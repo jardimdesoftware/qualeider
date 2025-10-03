@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:14-alpine
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - qualeider-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: back-qualeider
+    environment:
+      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public"
+      JWT_SECRET: "${JWT_SECRET}"
+      GMAIL_USER: "${GMAIL_USER}"
+      GMAIL_PASS: "${GMAIL_PASS}"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    restart: always
+    networks:
+      - qualeider-network
+
+volumes:
+  pgdata:
+    driver: local   
+
+networks:
+  planograma-network:
+    driver: bridge

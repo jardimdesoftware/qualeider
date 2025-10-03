@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["debian-openssl-1.1.x", "linux-musl", "windows"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                    Int              @id @default(autoincrement())
+  name                  String
+  email                 String           @unique
+  password              String
+  role                  Role             @default(Common)
+  userType              UserType?
+  userCategory          UserCategory 
+  city                  String           
+  state                 String 
+  status                String           @default("Active")
+  resetToken            String?  
+  resetTokenExpiry      DateTime?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  animals               Animal[]
+  dailyCollections      DailyCollection[]
+}
+
+model Animal {
+  id                    Int              @id @default(autoincrement())
+  name                  String?
+  animalType            AnimalType
+  breed                 String
+  age                   Int
+  userId                Int
+  status                String           @default("Active")
+  user                  User             @relation(fields: [userId], references: [id])
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+}
+
+model DailyCollection {
+  id                    Int              @id @default(autoincrement())
+  quantity              Float            
+  collectionDate        DateTime         @default(now()) 
+  userId                Int              
+  user                  User             @relation(fields: [userId], references: [id])
+  numAnimals            Int              
+  numOrdens             Int              
+  rationProvided        Boolean          
+  numLactation          Int              
+  milkingPlace          MilkingPlace     
+  technicalAssistance   Boolean          
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+}
+
+enum Role {
+  Admin
+  Common
+}
+
+enum UserType {
+  Pecuarista
+  Cooperativa
+  Associacao
+  Outro
+}
+
+enum UserCategory {
+  Fisica
+  Juridica
+}
+
+enum AnimalType {
+  Vaca
+  Cabra
+  Ovelha
+  Bufala
+  Outro
+}
+
+enum MilkingPlace {
+  Aberto
+  Curral
+  Ambos
+}
