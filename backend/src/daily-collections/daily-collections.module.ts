@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { DailyCollectionsService } from './daily-collections.service';
 import { DailyCollectionsController } from './daily-collections.controller';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 
 @Module({
   controllers: [DailyCollectionsController],

@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { CreateDailyCollectionDto } from './dto/create-daily-collection.dto';
 import { UpdateDailyCollectionDto } from './dto/update-daily-collection.dto';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
@@ -7,7 +7,7 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 @Injectable()
 export class DailyCollectionsService {
   constructor(private prisma: PrismaService) {}
-  
+
   /////////////////////////////
   async create(createDailyCollectionDto: CreateDailyCollectionDto) {
     try {
@@ -16,7 +16,9 @@ export class DailyCollectionsService {
       });
 
       if (!user) {
-        throw new NotFoundException(`Usuário com ID ${createDailyCollectionDto.userId} não encontrado.`);
+        throw new NotFoundException(
+          `Usuário com ID ${createDailyCollectionDto.userId} não encontrado.`,
+        );
       }
 
       const dailyCollection = await this.prisma.dailyCollection.create({
@@ -46,7 +48,7 @@ export class DailyCollectionsService {
       if (error instanceof PrismaClientKnownRequestError) {
         throw new Error(`Erro ao buscar formulários: ${error.message}`);
       }
-      throw error; 
+      throw error;
     }
   }
 
@@ -58,13 +60,13 @@ export class DailyCollectionsService {
       });
 
       return {
-        alreadySubmitted: !!submission, 
+        alreadySubmitted: !!submission,
       };
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
         throw new Error(`Erro ao verificar submissão: ${error.message}`);
       }
-      throw error; 
+      throw error;
     }
   }
 
@@ -77,7 +79,9 @@ export class DailyCollectionsService {
       });
 
       if (!dailyCollection) {
-        throw new NotFoundException(`Coleta diária com ID ${id} não encontrada.`);
+        throw new NotFoundException(
+          `Coleta diária com ID ${id} não encontrada.`,
+        );
       }
 
       return {
@@ -94,12 +98,15 @@ export class DailyCollectionsService {
   ///////////////////////////////////////
   async update(id: number, updateDailyCollectionDto: UpdateDailyCollectionDto) {
     try {
-      const existingDailyCollection = await this.prisma.dailyCollection.findUnique({
-        where: { id },
-      });
+      const existingDailyCollection =
+        await this.prisma.dailyCollection.findUnique({
+          where: { id },
+        });
 
       if (!existingDailyCollection) {
-        throw new NotFoundException(`Coleta diária com ID ${id} não encontrada.`);
+        throw new NotFoundException(
+          `Coleta diária com ID ${id} não encontrada.`,
+        );
       }
 
       const updatedDailyCollection = await this.prisma.dailyCollection.update({
@@ -113,12 +120,14 @@ export class DailyCollectionsService {
       };
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
-        if (error.code === 'P2025') { 
-          throw new NotFoundException(`Coleta diária com ID ${id} não encontrada.`);
+        if (error.code === 'P2025') {
+          throw new NotFoundException(
+            `Coleta diária com ID ${id} não encontrada.`,
+          );
         }
         throw new Error(`Erro ao atualizar coleta diária: ${error.message}`);
       }
-      throw error; 
+      throw error;
     }
   }
 
@@ -135,15 +144,16 @@ export class DailyCollectionsService {
       };
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
-        if (error.code === 'P2025') { 
-          throw new NotFoundException(`Coleta diária com ID ${id} não encontrada.`);
+        if (error.code === 'P2025') {
+          throw new NotFoundException(
+            `Coleta diária com ID ${id} não encontrada.`,
+          );
         }
         throw new Error(`Erro ao excluir coleta diária: ${error.message}`);
       }
-      throw error; 
+      throw error;
     }
   }
-
 
   async findAllByUserId(userId: number) {
     try {
@@ -152,7 +162,9 @@ export class DailyCollectionsService {
       });
 
       if (!dailyCollections || dailyCollections.length === 0) {
-        throw new NotFoundException(`Nenhum formulário encontrado para o usuário com ID ${userId}.`);
+        throw new NotFoundException(
+          `Nenhum formulário encontrado para o usuário com ID ${userId}.`,
+        );
       }
 
       return {
@@ -162,7 +174,7 @@ export class DailyCollectionsService {
       if (error instanceof PrismaClientKnownRequestError) {
         throw new Error(`Erro ao buscar formulários: ${error.message}`);
       }
-      throw error; 
+      throw error;
     }
   }
 }
