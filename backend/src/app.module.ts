@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
@@ -12,7 +13,18 @@ import { JwtService } from '@nestjs/jwt';
 import { MailModule } from './mail/mail.module';
 
 @Module({
-  imports: [PrismaModule, UsersModule, AnimalsModule, DailyCollectionsModule, AuthModule, MailModule],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
+    PrismaModule,
+    UsersModule,
+    AnimalsModule,
+    DailyCollectionsModule,
+    AuthModule,
+    MailModule,
+  ],
   controllers: [AppController],
   providers: [AppService, MailService, AuthService, JwtService],
 })
