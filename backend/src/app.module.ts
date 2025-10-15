@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from '@/infrastructure/prisma/prisma.module';
+import { InfrastructureModule } from '@/infrastructure/infrastructure.module';
 import { UsersModule } from './users/users.module';
 import { AnimalsModule } from './animals/animals.module';
 import { DailyCollectionsModule } from './daily-collections/daily-collections.module';
@@ -19,6 +20,7 @@ import { MailModule } from './mail/mail.module';
       envFilePath: '.env',
     }),
     PrismaModule,
+    InfrastructureModule,
     UsersModule,
     AnimalsModule,
     DailyCollectionsModule,

@@ -10,9 +10,8 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcryptjs';
-import { randomBytes } from 'crypto';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
-import { MailService } from 'src/mail/mail.service';
+import { MailService } from '@/mail/mail.service';
 
 @Injectable()
 export class AuthService {
