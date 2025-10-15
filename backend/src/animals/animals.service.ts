@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { CreateAnimalDto } from './dto/create-animal.dto';
 import { UpdateAnimalDto } from './dto/update-animal.dto';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
@@ -16,7 +16,9 @@ export class AnimalsService {
       });
 
       if (!user) {
-        throw new NotFoundException(`Usuário com ID ${createAnimalDto.userId} não encontrado.`);
+        throw new NotFoundException(
+          `Usuário com ID ${createAnimalDto.userId} não encontrado.`,
+        );
       }
 
       const animal = await this.prisma.animal.create({
@@ -31,7 +33,7 @@ export class AnimalsService {
       if (error instanceof PrismaClientKnownRequestError) {
         throw new Error(`Erro ao criar animal: ${error.message}`);
       }
-      throw error; 
+      throw error;
     }
   }
 
@@ -48,7 +50,7 @@ export class AnimalsService {
       if (error instanceof PrismaClientKnownRequestError) {
         throw new Error(`Erro ao buscar animais: ${error.message}`);
       }
-      throw error; 
+      throw error;
     }
   }
 
@@ -70,18 +72,20 @@ export class AnimalsService {
       if (error instanceof PrismaClientKnownRequestError) {
         throw new Error(`Erro ao buscar animal: ${error.message}`);
       }
-      throw error; 
+      throw error;
     }
   }
 
   /////////////////////////////
   async update(id: number, updateAnimalDto: UpdateAnimalDto) {
     const animal = await this.prisma.animal.findUnique({
-      where: { id, status: 'Active' }, 
+      where: { id, status: 'Active' },
     });
 
     if (!animal) {
-      throw new NotFoundException(`Animal com ID ${id} não encontrado ou está inativo.`);
+      throw new NotFoundException(
+        `Animal com ID ${id} não encontrado ou está inativo.`,
+      );
     }
 
     const updatedAnimal = await this.prisma.animal.update({
@@ -99,18 +103,20 @@ export class AnimalsService {
   async remove(id: number) {
     // Verifica se o animal existe e está ativo
     const animal = await this.prisma.animal.findUnique({
-      where: { id, status: 'Active' }, 
+      where: { id, status: 'Active' },
     });
-  
+
     if (!animal) {
-      throw new NotFoundException(`Animal com ID ${id} não encontrado ou já está inativo.`);
+      throw new NotFoundException(
+        `Animal com ID ${id} não encontrado ou já está inativo.`,
+      );
     }
-  
+
     await this.prisma.animal.update({
       where: { id },
-      data: { status: 'Inactive' }, 
+      data: { status: 'Inactive' },
     });
-  
+
     return { message: `Animal com ID ${id} foi desativado com sucesso.` };
   }
 

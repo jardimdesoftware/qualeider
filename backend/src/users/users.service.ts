@@ -1,5 +1,11 @@
-import { ConflictException, ForbiddenException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
+import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcryptjs';
@@ -34,11 +40,10 @@ export class UsersService {
     }
   }
 
-
   async findAll() {
     try {
       const users = await this.prisma.user.findMany({
-        where: { status: 'Active' }, 
+        where: { status: 'Active' },
         select: {
           id: true,
           name: true,
@@ -58,7 +63,6 @@ export class UsersService {
     }
   }
 
-
   async findOne(id: number) {
     try {
       const user = await this.prisma.user.findUnique({
@@ -74,7 +78,7 @@ export class UsersService {
           state: true,
           status: true,
           createdAt: true,
-          animals: { 
+          animals: {
             orderBy: { id: 'desc' },
             select: {
               id: true,
@@ -86,56 +90,36 @@ export class UsersService {
           },
         },
       });
-  
+
       if (!user) {
-        throw new NotFoundException(`Usuário com ID ${id} não encontrado ou está inativo.`);
+        throw new NotFoundException(
+          `Usuário com ID ${id} não encontrado ou está inativo.`,
+        );
       }
-  
+
       return user;
     } catch (error) {
       throw new Error('Erro ao buscar usuário: ' + error.message);
     }
   }
 
-
   async update(id: number, updateUserDto: UpdateUserDto) {
     try {
       const user = await this.prisma.user.findUnique({
-        where: { id, status: 'Active' }, 
+        where: { id, status: 'Active' },
       });
-  
+
       if (!user) {
-        throw new NotFoundException(`Usuário com ID ${id} não encontrado ou está inativo.`);
+        throw new NotFoundException(
+          `Usuário com ID ${id} não encontrado ou está inativo.`,
+        );
       }
-  
+
       const updatedUser = await this.prisma.user.update({
         where: { id },
         data: updateUserDto,
       });
-  
-      delete updatedUser.password; 
-      return updatedUser;
-    } catch (error) {
-      throw new Error('Erro ao atualizar usuário: ' + error.message);
-    }
-  }
 
-
-  async partialUpdate(id: number, updatePartialUserDto: UpdatePartialUserDto) {
-    try {
-      const user = await this.prisma.user.findUnique({
-        where: { id, status: 'Active' }, 
-      });
-  
-      if (!user) {
-        throw new NotFoundException(`Usuário com ID ${id} não encontrado ou está inativo.`);
-      }
-  
-      const updatedUser = await this.prisma.user.update({
-        where: { id },
-        data: updatePartialUserDto, 
-      });
-  
       delete updatedUser.password;
       return updatedUser;
     } catch (error) {
@@ -143,6 +127,29 @@ export class UsersService {
     }
   }
 
+  async partialUpdate(id: number, updatePartialUserDto: UpdatePartialUserDto) {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id, status: 'Active' },
+      });
+
+      if (!user) {
+        throw new NotFoundException(
+          `Usuário com ID ${id} não encontrado ou está inativo.`,
+        );
+      }
+
+      const updatedUser = await this.prisma.user.update({
+        where: { id },
+        data: updatePartialUserDto,
+      });
+
+      delete updatedUser.password;
+      return updatedUser;
+    } catch (error) {
+      throw new Error('Erro ao atualizar usuário: ' + error.message);
+    }
+  }
 
   // async patch(
   //   id: number,
@@ -153,11 +160,11 @@ export class UsersService {
   //   const user = await this.prisma.user.findUnique({
   //     where: { id, status: 'Active' },
   //   });
-  
+
   //   if (!user) {
   //     throw new NotFoundException('Usuário não encontrado ou está inativo.');
   //   }
-  
+
   //   if (userRole !== 'Admin' && user.id !== userId) {
   //     throw new ForbiddenException('Você não tem permissão para atualizar este usuário.');
   //   }
@@ -171,22 +178,23 @@ export class UsersService {
   //   return updatedUser;
   // }
 
-
   async remove(id: number) {
     try {
       const user = await this.prisma.user.findUnique({
-        where: { id, status: 'Active' }, 
+        where: { id, status: 'Active' },
       });
-  
+
       if (!user) {
-        throw new NotFoundException(`Usuário com ID ${id} não encontrado ou já está inativo.`);
+        throw new NotFoundException(
+          `Usuário com ID ${id} não encontrado ou já está inativo.`,
+        );
       }
-  
+
       await this.prisma.user.update({
         where: { id },
-        data: { status: 'Inactive' }, 
+        data: { status: 'Inactive' },
       });
-  
+
       return { message: `Usuário com ID ${id} foi desativado com sucesso.` };
     } catch (error) {
       throw new Error('Erro ao desativar usuário: ' + error.message);
@@ -198,5 +206,4 @@ export class UsersService {
       where: { email },
     });
   }
-  
 }
