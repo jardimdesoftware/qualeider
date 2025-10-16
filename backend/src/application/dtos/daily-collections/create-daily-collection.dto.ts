@@ -1,0 +1,50 @@
+import { ApiProperty } from '@nestjs/swagger';
+import {
+  IsBoolean,
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsNumber,
+} from 'class-validator';
+import { MilkingPlace } from '@/domain/enums/enums';
+
+export class CreateDailyCollectionDto {
+  @ApiProperty({
+    description: 'Total de leite coletados em litros',
+    example: 25,
+  })
+  @IsNumber()
+  quantity!: number;
+
+  @ApiProperty({ description: 'Id do usuário', example: 2 })
+  @IsInt()
+  userId!: number;
+
+  @ApiProperty({ description: 'Número de animais ordenados', example: 5 })
+  @IsInt()
+  numAnimals!: number;
+
+  @ApiProperty({ description: 'Número de ordenhas realizadas', example: 2 })
+  @IsInt()
+  numOrdens!: number;
+
+  @ApiProperty({ description: 'Utilizou ração', example: true })
+  @IsBoolean()
+  rationProvided!: boolean;
+
+  @ApiProperty({ description: 'Número de lactações por animal', example: 2 })
+  @IsInt()
+  numLactation!: number;
+
+  @ApiProperty({
+    description: 'Local de ordenha',
+    enum: MilkingPlace,
+    example: MilkingPlace.Curral,
+  })
+  @IsEnum(MilkingPlace)
+  milkingPlace!: MilkingPlace;
+
+  @ApiProperty({ description: 'Utilizou assistência técnica', example: true })
+  @IsBoolean()
+  technicalAssistance!: boolean;
+}

@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { AnimalsModule as FeatureAnimalsModule } from '../../animals/animals.module';
+import { AnimalsApplicationModule } from '@/application/services/animals/animals.module';
 import { AnimalsController } from '../controllers/animals.controller';
 
 @Module({
-  imports: [FeatureAnimalsModule],
+  imports: [AnimalsApplicationModule],
   controllers: [AnimalsController],
 })
 export class AnimalsPresentationModule {}

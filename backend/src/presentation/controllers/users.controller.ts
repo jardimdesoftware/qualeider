@@ -16,10 +16,10 @@ import {
   ApiParam,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import { UsersService } from '../../users/users.service';
-import { CreateUserDto } from '../../users/dto/create-user.dto';
-import { UpdateUserDto } from '../../users/dto/update-user.dto';
-import { UpdatePartialUserDto } from '../../users/dto/update-partial-user.dto';
+import { UsersService } from '@/application/services/users/users.service';
+import { CreateUserDto } from '@/application/dtos/users/create-user.dto';
+import { UpdateUserDto } from '@/application/dtos/users/update-user.dto';
+import { UpdatePartialUserDto } from '@/application/dtos/users/update-partial-user.dto';
 
 @ApiTags('Usuários')
 @Controller('users')
