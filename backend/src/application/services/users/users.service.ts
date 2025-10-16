@@ -119,6 +119,9 @@ export class UsersService {
 
       return user;
     } catch (error: any) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
       throw new Error('Erro ao buscar usuário: ' + error.message);
     }
   }
