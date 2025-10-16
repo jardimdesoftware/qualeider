@@ -16,6 +16,21 @@
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
-    "noFallthroughCasesInSwitch": false
-  }
+    "noFallthroughCasesInSwitch": false,
+    "paths": {
+      "@/domain/*": ["src/domain/*"],
+      "@/application/*": ["src/application/*"],
+      "@/infrastructure/*": ["src/infrastructure/*"],
+      "@/presentation/*": ["src/presentation/*"],
+      "@/auth/*": ["src/auth/*"],
+      "@/mail/*": ["src/mail/*"]
+    },
+    "ignoreDeprecations": "5.0"
+  },
+  "exclude": [
+    "src/animals/**",
+    "src/daily-collections/**",
+    "src/users/**",
+    "dist/**"
+  ]
 }

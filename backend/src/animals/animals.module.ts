@@ -1,10 +1,2 @@
-import { Module } from '@nestjs/common';
-import { AnimalsService } from './animals.service';
-import { AnimalsController } from './animals.controller';
-import { PrismaService } from '../prisma/prisma.service';
-
-@Module({
-  controllers: [AnimalsController],
-  providers: [AnimalsService, PrismaService],
-})
-export class AnimalsModule {}
+// Legacy file marker: this file is deprecated and should be deleted.
+export {};
