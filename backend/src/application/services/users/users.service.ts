@@ -9,10 +9,33 @@ import { CreateUserDto } from '@/application/dtos/users/create-user.dto';
 import { UpdateUserDto } from '@/application/dtos/users/update-user.dto';
 import { UpdatePartialUserDto } from '@/application/dtos/users/update-partial-user.dto';
 import * as bcrypt from 'bcryptjs';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class UsersService {
   constructor(private prisma: PrismaService) {}
+
+  private async findActiveUserById(id: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id, status: 'Active' },
+    });
+    if (!user) {
+      throw new NotFoundException(
+        `Usuário com ID ${id} não encontrado ou está inativo.`,
+      );
+    }
+    return user;
+  }
+
+  /**
+   * Remove o campo password do objeto retornado (se existir), para evitar vazamento.
+   */
+  private removePassword<T extends Record<string, unknown>>(entity: T): T {
+    if (entity && 'password' in entity) {
+      delete (entity as { password?: string }).password;
+    }
+    return entity;
+  }
 
   async create(createUserDto: CreateUserDto) {
     const { password, ...rest } = createUserDto;
@@ -27,11 +50,8 @@ export class UsersService {
         },
       });
 
-      // avoid leaking password back
-      if ('password' in (user as Record<string, unknown>)) {
-        delete (user as { password?: string }).password;
-      }
-      return user;
+      // Evita retornar senha
+      return this.removePassword(user);
     } catch (error: any) {
       if (error.code === 'P2002') {
         throw new ConflictException('Email já está em uso.');
@@ -105,25 +125,28 @@ export class UsersService {
 
   async update(id: number, updateUserDto: UpdateUserDto) {
     try {
-      const user = await this.prisma.user.findUnique({
-        where: { id, status: 'Active' },
-      });
+      await this.findActiveUserById(id);
 
-      if (!user) {
-        throw new NotFoundException(
-          `Usuário com ID ${id} não encontrado ou está inativo.`,
+      // Se for informado password, aplica hash antes de salvar
+      const payload: Prisma.UserUpdateInput = {
+        ...updateUserDto,
+      } as Prisma.UserUpdateInput;
+      if (
+        typeof (payload as any).password === 'string' &&
+        ((payload as any).password as string).trim().length > 0
+      ) {
+        (payload as any).password = await bcrypt.hash(
+          (payload as any).password as string,
+          10,
         );
       }
 
       const updatedUser = await this.prisma.user.update({
         where: { id },
-        data: updateUserDto,
+        data: payload,
       });
 
-      if ('password' in (updatedUser as Record<string, unknown>)) {
-        delete (updatedUser as { password?: string }).password;
-      }
-      return updatedUser;
+      return this.removePassword(updatedUser);
     } catch (error: any) {
       throw new Error('Erro ao atualizar usuário: ' + error.message);
     }
@@ -131,25 +154,28 @@ export class UsersService {
 
   async partialUpdate(id: number, updatePartialUserDto: UpdatePartialUserDto) {
     try {
-      const user = await this.prisma.user.findUnique({
-        where: { id, status: 'Active' },
-      });
+      await this.findActiveUserById(id);
 
-      if (!user) {
-        throw new NotFoundException(
-          `Usuário com ID ${id} não encontrado ou está inativo.`,
+      // Se for informado password, aplica hash antes de salvar
+      const payload: Prisma.UserUpdateInput = {
+        ...updatePartialUserDto,
+      } as Prisma.UserUpdateInput;
+      if (
+        typeof (payload as any).password === 'string' &&
+        ((payload as any).password as string).trim().length > 0
+      ) {
+        (payload as any).password = await bcrypt.hash(
+          (payload as any).password as string,
+          10,
         );
       }
 
       const updatedUser = await this.prisma.user.update({
         where: { id },
-        data: updatePartialUserDto,
+        data: payload,
       });
 
-      if ('password' in (updatedUser as Record<string, unknown>)) {
-        delete (updatedUser as { password?: string }).password;
-      }
-      return updatedUser;
+      return this.removePassword(updatedUser);
     } catch (error: any) {
       throw new Error('Erro ao atualizar usuário: ' + error.message);
     }
@@ -157,15 +183,7 @@ export class UsersService {
 
   async remove(id: number) {
     try {
-      const user = await this.prisma.user.findUnique({
-        where: { id, status: 'Active' },
-      });
-
-      if (!user) {
-        throw new NotFoundException(
-          `Usuário com ID ${id} não encontrado ou já está inativo.`,
-        );
-      }
+      await this.findActiveUserById(id);
 
       await this.prisma.user.update({
         where: { id },

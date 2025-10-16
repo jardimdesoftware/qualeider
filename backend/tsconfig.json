@@ -27,5 +27,10 @@
     },
     "ignoreDeprecations": "5.0"
   },
-  "exclude": ["src/animals/**", "dist/**"]
+  "exclude": [
+    "src/animals/**",
+    "src/daily-collections/**",
+    "src/users/**",
+    "dist/**"
+  ]
 }
