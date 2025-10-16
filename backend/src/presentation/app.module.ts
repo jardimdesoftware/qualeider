@@ -8,7 +8,7 @@ import { UsersPresentationModule } from './modules/users.module';
 import { AnimalsPresentationModule } from './modules/animals.module';
 import { DailyCollectionsPresentationModule } from './modules/daily-collections.module';
 import { AuthPresentationModule } from './modules/auth.module';
-import { MailModule } from '../mail/mail.module';
+import { MailModule } from '@/mail/mail.module';
 import * as path from 'path';
 
 @Module({

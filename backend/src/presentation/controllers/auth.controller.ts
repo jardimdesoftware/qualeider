@@ -1,9 +1,9 @@
 import { Controller, Post, Body, UnauthorizedException } from '@nestjs/common';
-import { AuthService } from '../../auth/auth.service';
-import { LoginDto } from '../../auth/dto/login.dto';
-import { ForgotPasswordDto } from '../../auth/dto/forgot-password.dto';
+import { AuthService } from '@/auth/auth.service';
+import { LoginDto } from '@/application/dtos/auth/login.dto';
+import { ForgotPasswordDto } from '@/application/dtos/auth/forgot-password.dto';
 import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { ResetPasswordDto } from '../../auth/dto/reset-password.dto';
+import { ResetPasswordDto } from '@/application/dtos/auth/reset-password.dto';
 
 @Controller('auth')
 export class AuthController {
