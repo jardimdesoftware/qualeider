@@ -26,5 +26,6 @@
       "@/mail/*": ["src/mail/*"]
     },
     "ignoreDeprecations": "5.0"
-  }
+  },
+  "exclude": ["src/animals/**", "dist/**"]
 }

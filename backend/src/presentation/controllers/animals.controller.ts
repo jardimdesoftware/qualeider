@@ -13,9 +13,9 @@ import {
   ValidationPipe,
   UsePipes,
 } from '@nestjs/common';
-import { AnimalsService } from '../../animals/animals.service';
-import { CreateAnimalDto } from '../../animals/dto/create-animal.dto';
-import { UpdateAnimalDto } from '../../animals/dto/update-animal.dto';
+import { AnimalsService } from '@/application/services/animals/animals.service';
+import { CreateAnimalDto } from '@/application/dtos/animals/create-animal.dto';
+import { UpdateAnimalDto } from '@/application/dtos/animals/update-animal.dto';
 import {
   ApiBearerAuth,
   ApiOperation,

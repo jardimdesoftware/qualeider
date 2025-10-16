@@ -9,10 +9,20 @@ import { AnimalsPresentationModule } from './modules/animals.module';
 import { DailyCollectionsPresentationModule } from './modules/daily-collections.module';
 import { AuthPresentationModule } from './modules/auth.module';
 import { MailModule } from '../mail/mail.module';
+import * as path from 'path';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: [
+        path.resolve(process.cwd(), '.env'),
+        path.resolve(
+          process.cwd(),
+          `.env.${process.env.NODE_ENV || 'development'}`,
+        ),
+      ],
+    }),
     PrismaModule,
     InfrastructureModule,
     UsersPresentationModule,

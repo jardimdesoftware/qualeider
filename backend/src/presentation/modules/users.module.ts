@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { UsersModule as FeatureUsersModule } from '../../users/users.module';
+import { UsersApplicationModule } from '@/application/services/users/users.module';
 import { UsersController } from '../controllers/users.controller';
 
 @Module({
-  imports: [FeatureUsersModule],
+  imports: [UsersApplicationModule],
   controllers: [UsersController],
 })
 export class UsersPresentationModule {}

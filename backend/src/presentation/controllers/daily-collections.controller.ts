@@ -14,9 +14,9 @@ import {
   ParseIntPipe,
   Query,
 } from '@nestjs/common';
-import { DailyCollectionsService } from '../../daily-collections/daily-collections.service';
-import { CreateDailyCollectionDto } from '../../daily-collections/dto/create-daily-collection.dto';
-import { UpdateDailyCollectionDto } from '../../daily-collections/dto/update-daily-collection.dto';
+import { DailyCollectionsService } from '@/application/services/daily-collections/daily-collections.service';
+import { CreateDailyCollectionDto } from '@/application/dtos/daily-collections/create-daily-collection.dto';
+import { UpdateDailyCollectionDto } from '@/application/dtos/daily-collections/update-daily-collection.dto';
 import {
   ApiBearerAuth,
   ApiOperation,
