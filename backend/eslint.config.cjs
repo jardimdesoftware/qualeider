@@ -2,11 +2,11 @@ const parser = require('@typescript-eslint/parser');
 
 module.exports = [
   {
-    files: ["src/**/*.ts", "apps/**/*.ts", "libs/**/*.ts", "test/**/*.ts"],
+    files: ['src/**/*.ts', 'apps/**/*.ts', 'libs/**/*.ts', 'test/**/*.ts'],
     languageOptions: {
       parser,
       parserOptions: {
-        project: 'tsconfig.json',
+        project: 'tsconfig.eslint.json',
         tsconfigRootDir: __dirname,
         sourceType: 'module',
       },
@@ -23,34 +23,40 @@ module.exports = [
   },
   {
     ignores: [
-      "build/**",
-      "coverage/**",
-      "docs/!(src|tools)/",
-      "docs/src/!(_data)",
-      "jsdoc/**",
-      "lib/types/**/*.ts",
-      "templates/**",
-      "tests/bench/**",
-      "tests/fixtures/**",
-      "tests/performance/**",
-      "tmp/**",
-      "**/test.js",
-      ".vscode",
+      'src/animals/**',
+      'src/daily-collections/**',
+      'src/users/**',
+      'build/**',
+      'coverage/**',
+      'docs/!(src|tools)/',
+      'docs/src/!(_data)',
+      'jsdoc/**',
+      'lib/types/**/*.ts',
+      'templates/**',
+      'tests/bench/**',
+      'tests/fixtures/**',
+      'tests/performance/**',
+      'tmp/**',
+      '**/test.js',
+      '.vscode',
     ],
   },
   {
-    files: ["tools/*.js", "docs/tools/*.js"],
+    files: ['tools/*.js', 'docs/tools/*.js'],
     rules: {
-      "no-console": "off",
-      "n/no-process-exit": "off",
+      'no-console': 'off',
+      'n/no-process-exit': 'off',
     },
   },
   {
-    files: ["lib/rules/*.js", "tools/internal-rules/*.js"],
-    ignores: ["**/index.js"],
+    files: ['lib/rules/*.js', 'tools/internal-rules/*.js'],
+    ignores: ['**/index.js'],
     rules: {
-      "eslint-plugin/report-message-format": ["error", "[^a-z].*\\.$"],
-      "eslint-plugin/require-meta-docs-description": ["error", { pattern: "^(Enforce|Require|Disallow) .+[^. ]$" }],
+      'eslint-plugin/report-message-format': ['error', '[^a-z].*\\.$'],
+      'eslint-plugin/require-meta-docs-description': [
+        'error',
+        { pattern: '^(Enforce|Require|Disallow) .+[^. ]$' },
+      ],
     },
   },
 ];
