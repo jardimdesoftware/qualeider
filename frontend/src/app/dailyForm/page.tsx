@@ -4,27 +4,14 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/siedbar";
 import { apiBase } from "@/services/baseApi";
-
-enum MilkingPlace {
-  Aberto = "Aberto",
-  Curral = "Curral",
-  Ambos = "Ambos",
-}
-
-interface FormData {
-  quantity: number;
-  userId: number;
-  numAnimals: number;
-  numOrdens: number;
-  rationProvided: boolean;
-  numLactation: number;
-  milkingPlace: MilkingPlace;
-  technicalAssistance: boolean;
-}
+import {
+  MilkingPlace,
+  DailyCollectionCreate,
+} from "@/interfaces/daily-collection";
 
 export default function DailyForm() {
   const router = useRouter();
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<DailyCollectionCreate>({
     quantity: 0,
     userId: 0,
     numAnimals: 0,
@@ -51,8 +38,12 @@ export default function DailyForm() {
       if (payload.role !== "Common") {
         router.push("/");
       } else {
-        setFormData((prev) => ({ ...prev, userId: payload.sub }));
-        checkIfUserAlreadySubmitted(payload.sub);
+        const uid =
+          typeof payload.sub === "string"
+            ? parseInt(payload.sub, 10)
+            : payload.sub;
+        setFormData((prev) => ({ ...prev, userId: uid }));
+        checkIfUserAlreadySubmitted(uid);
         setLoading(false);
       }
     } catch (err) {
@@ -64,11 +55,14 @@ export default function DailyForm() {
   const checkIfUserAlreadySubmitted = async (userId: number) => {
     try {
       const token = localStorage.getItem("authToken");
-      const response = await apiBase.get(`/daily-collections/check?userId=${userId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await apiBase.get(
+        `/daily-collections/check?userId=${userId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (response.data.alreadySubmitted) {
         setAlreadySubmitted(true);
@@ -82,10 +76,14 @@ export default function DailyForm() {
     e.preventDefault();
 
     const newErrors: Record<string, string> = {};
-    if (formData.quantity < 0) newErrors.quantity = "Quantidade deve ser preenchida";
-    if (formData.numAnimals < 0) newErrors.numAnimals = "Número de animais deve ser preenchido";
-    if (formData.numOrdens < 0) newErrors.numOrdens = "Número de ordenhas deve ser preenchido";
-    if (formData.numLactation < 0) newErrors.numLactation = "Número de lactações deve ser preenchido";
+    if (formData.quantity < 0)
+      newErrors.quantity = "Quantidade deve ser preenchida";
+    if (formData.numAnimals < 0)
+      newErrors.numAnimals = "Número de animais deve ser preenchido";
+    if (formData.numOrdens < 0)
+      newErrors.numOrdens = "Número de ordenhas deve ser preenchido";
+    if (formData.numLactation < 0)
+      newErrors.numLactation = "Número de lactações deve ser preenchido";
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -107,6 +105,7 @@ export default function DailyForm() {
         setModalMessage("Erro ao enviar formulário");
       }
     } catch (err) {
+      console.error("Erro ao enviar formulário:", err);
       setModalMessage("Erro ao enviar formulário");
     }
   };
@@ -131,8 +130,13 @@ export default function DailyForm() {
       <div className="flex flex-col lg:flex-row">
         <Sidebar />
         <div className="flex-1 p-8">
-          <h1 className="text-2xl font-bold mb-6 mt-12 md:mt-4">Formulário Diário</h1>
-          <p className="text-gray-600">Você já respondeu o formulário hoje. Volte amanhã para responder novamente.</p>
+          <h1 className="text-2xl font-bold mb-6 mt-12 md:mt-4">
+            Formulário Diário
+          </h1>
+          <p className="text-gray-600">
+            Você já respondeu o formulário hoje. Volte amanhã para responder
+            novamente.
+          </p>
         </div>
       </div>
     );
@@ -142,7 +146,9 @@ export default function DailyForm() {
     <div className="flex flex-col lg:flex-row">
       <Sidebar />
       <div className="flex-1 p-8">
-        <h1 className="text-2xl font-bold mb-6 mt-12 md:mt-4">Formulário Diário</h1>
+        <h1 className="text-2xl font-bold mb-6 mt-12 md:mt-4">
+          Formulário Diário
+        </h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Quantidade */}
           <div>
@@ -152,11 +158,18 @@ export default function DailyForm() {
             <input
               type="number"
               value={formData.quantity}
-              onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value, 10) })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  quantity: parseInt(e.target.value, 10),
+                })
+              }
               min="0"
               className="w-full p-2 border border-gray-300 rounded-lg"
             />
-            {errors.quantity && <p className="text-red-500 text-sm">{errors.quantity}</p>}
+            {errors.quantity && (
+              <p className="text-red-500 text-sm">{errors.quantity}</p>
+            )}
           </div>
 
           {/* Número de Animais */}
@@ -167,11 +180,18 @@ export default function DailyForm() {
             <input
               type="number"
               value={formData.numAnimals}
-              onChange={(e) => setFormData({ ...formData, numAnimals: parseInt(e.target.value, 10) })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  numAnimals: parseInt(e.target.value, 10),
+                })
+              }
               min="0"
               className="w-full p-2 border border-gray-300 rounded-lg"
             />
-            {errors.numAnimals && <p className="text-red-500 text-sm">{errors.numAnimals}</p>}
+            {errors.numAnimals && (
+              <p className="text-red-500 text-sm">{errors.numAnimals}</p>
+            )}
           </div>
 
           {/* Número de Ordenhas */}
@@ -182,11 +202,18 @@ export default function DailyForm() {
             <input
               type="number"
               value={formData.numOrdens}
-              onChange={(e) => setFormData({ ...formData, numOrdens: parseInt(e.target.value, 10) })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  numOrdens: parseInt(e.target.value, 10),
+                })
+              }
               min="0"
               className="w-full p-2 border border-gray-300 rounded-lg"
             />
-            {errors.numOrdens && <p className="text-red-500 text-sm">{errors.numOrdens}</p>}
+            {errors.numOrdens && (
+              <p className="text-red-500 text-sm">{errors.numOrdens}</p>
+            )}
           </div>
 
           {/* Ração Fornecida */}
@@ -196,7 +223,12 @@ export default function DailyForm() {
             </label>
             <select
               value={formData.rationProvided ? "true" : "false"}
-              onChange={(e) => setFormData({ ...formData, rationProvided: e.target.value === "true" })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  rationProvided: e.target.value === "true",
+                })
+              }
               className="w-full p-2 border border-gray-300 rounded-lg"
             >
               <option value="true">Sim</option>
@@ -212,11 +244,18 @@ export default function DailyForm() {
             <input
               type="number"
               value={formData.numLactation}
-              onChange={(e) => setFormData({ ...formData, numLactation: parseInt(e.target.value, 10) })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  numLactation: parseInt(e.target.value, 10),
+                })
+              }
               min="0"
               className="w-full p-2 border border-gray-300 rounded-lg"
             />
-            {errors.numLactation && <p className="text-red-500 text-sm">{errors.numLactation}</p>}
+            {errors.numLactation && (
+              <p className="text-red-500 text-sm">{errors.numLactation}</p>
+            )}
           </div>
 
           {/* Local de Ordenha */}
@@ -226,7 +265,12 @@ export default function DailyForm() {
             </label>
             <select
               value={formData.milkingPlace}
-              onChange={(e) => setFormData({ ...formData, milkingPlace: e.target.value as MilkingPlace })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  milkingPlace: e.target.value as MilkingPlace,
+                })
+              }
               className="w-full p-2 border border-gray-300 rounded-lg"
             >
               <option value={MilkingPlace.Aberto}>Aberto</option>
@@ -242,7 +286,12 @@ export default function DailyForm() {
             </label>
             <select
               value={formData.technicalAssistance ? "true" : "false"}
-              onChange={(e) => setFormData({ ...formData, technicalAssistance: e.target.value === "true" })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  technicalAssistance: e.target.value === "true",
+                })
+              }
               className="w-full p-2 border border-gray-300 rounded-lg"
             >
               <option value="true">Sim</option>

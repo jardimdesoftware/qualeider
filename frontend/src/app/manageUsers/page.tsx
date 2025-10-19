@@ -5,19 +5,7 @@ import { useRouter } from "next/navigation";
 import Sidebar from "@/components/siedbar";
 import { apiBase } from "@/services/baseApi";
 import React from "react";
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  userType: string | null;
-  userCategory: string;
-  city: string;
-  state: string;
-  status: string;
-  createdAt: string;
-}
+import { User } from "@/interfaces/user";
 
 export default function ManageUsers() {
   const [users, setUsers] = useState<User[]>([]);
@@ -57,6 +45,7 @@ export default function ManageUsers() {
       setUsers(response.data);
       setLoading(false);
     } catch (err) {
+      console.error("Erro ao carregar os usuários:", err);
       setLoading(false);
       setError("Erro ao carregar os usuários.");
     }
@@ -115,9 +104,10 @@ export default function ManageUsers() {
         setSuccessMessage(null);
       }, 3000);
     } catch (err) {
+      console.error("Erro ao excluir o usuário:", err);
       setError("Erro ao excluir o usuário. Tente novamente mais tarde.");
     } finally {
-      setShowDeletePopup(false); 
+      setShowDeletePopup(false);
       setUserToDelete(null);
     }
   };
@@ -146,8 +136,12 @@ export default function ManageUsers() {
         {showDeletePopup && (
           <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
             <div className="bg-white p-6 rounded-lg shadow-lg text-center">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Confirmar Exclusão</h2>
-              <p className="text-gray-700 mb-4">Tem certeza que deseja excluir este usuário?</p>
+              <h2 className="text-xl font-bold text-gray-900 mb-4">
+                Confirmar Exclusão
+              </h2>
+              <p className="text-gray-700 mb-4">
+                Tem certeza que deseja excluir este usuário?
+              </p>
               <div className="flex justify-center gap-4">
                 <button
                   onClick={() => setShowDeletePopup(false)}
@@ -167,7 +161,9 @@ export default function ManageUsers() {
         )}
 
         <div className="flex-col md:flex-row justify-between">
-          <h1 className="text-2xl font-bold mb-6 mt-12 md:mt-4">Gerenciar Usuários</h1>
+          <h1 className="text-2xl font-bold mb-6 mt-12 md:mt-4">
+            Gerenciar Usuários
+          </h1>
           <div className="mb-4">
             <input
               type="text"
@@ -205,7 +201,9 @@ export default function ManageUsers() {
               <tr className="bg-green-background text-white">
                 <th className="p-3 text-left">Nome</th>
                 <th className="p-3 text-left hidden md:table-cell">Email</th>
-                <th className="p-3 text-left hidden md:table-cell">Categoria</th>
+                <th className="p-3 text-left hidden md:table-cell">
+                  Categoria
+                </th>
                 <th className="p-3 text-left">Ações</th>
               </tr>
             </thead>
@@ -243,8 +241,8 @@ export default function ManageUsers() {
                       </button>
                       <button
                         onClick={() => {
-                          setUserToDelete(user.id); 
-                          setShowDeletePopup(true); 
+                          setUserToDelete(user.id);
+                          setShowDeletePopup(true);
                         }}
                         className="text-red-500 hover:text-red-800"
                       >
@@ -257,16 +255,20 @@ export default function ManageUsers() {
                       <td colSpan={4} className="p-3">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <span className="font-semibold">Acesso:</span> {user.role}
+                            <span className="font-semibold">Acesso:</span>{" "}
+                            {user.role}
                           </div>
                           <div>
-                            <span className="font-semibold">Pessoa:</span> {user.userCategory}
+                            <span className="font-semibold">Pessoa:</span>{" "}
+                            {user.userCategory}
                           </div>
                           <div>
-                            <span className="font-semibold">Cidade:</span> {user.city}
+                            <span className="font-semibold">Cidade:</span>{" "}
+                            {user.city}
                           </div>
                           <div>
-                            <span className="font-semibold">Estado:</span> {user.state}
+                            <span className="font-semibold">Estado:</span>{" "}
+                            {user.state}
                           </div>
                         </div>
                       </td>
@@ -288,7 +290,8 @@ export default function ManageUsers() {
             Anterior
           </button>
           <span className="px-4 py-2 text-gray-600">
-            Pág. {currentPage} de {Math.ceil(filteredUsers.length / usersPerPage)}
+            Pág. {currentPage} de{" "}
+            {Math.ceil(filteredUsers.length / usersPerPage)}
           </span>
           <button
             onClick={() => paginate(currentPage + 1)}

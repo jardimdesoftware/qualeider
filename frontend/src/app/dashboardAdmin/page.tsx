@@ -4,40 +4,27 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/siedbar";
 import { apiBase } from "@/services/baseApi";
-import { Activity, Milk, Users, MapPin, PieChart as PieChartIcon, BarChart2 } from "lucide-react"; 
-import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts"; 
-
-interface DailyCollection {
-  id: number;
-  quantity: number;
-  collectionDate: string;
-  userId: number;
-  numAnimals: number;
-  numOrdens: number;
-  rationProvided: boolean;
-  numLactation: number;
-  milkingPlace: string;
-  technicalAssistance: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  userType: string | null;
-  userCategory: string;
-  city: string;
-  state: string;
-  status: string;
-  createdAt: string;
-}
+import { Activity, Milk, Users, MapPin, BarChart2 } from "lucide-react";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from "recharts";
+import { DailyCollection } from "@/interfaces/daily-collection";
+import { User } from "@/interfaces/user";
 
 export default function DashboardAdmin() {
   const router = useRouter();
-  const [dailyCollections, setDailyCollections] = useState<DailyCollection[]>([]);
+  const [dailyCollections, setDailyCollections] = useState<DailyCollection[]>(
+    []
+  );
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -98,8 +85,10 @@ export default function DashboardAdmin() {
 
   const averageLactationsThisMonth =
     dailyCollections.length > 0
-      ? dailyCollections.reduce((sum, collection) => sum + collection.numLactation, 0) /
-        dailyCollections.length
+      ? dailyCollections.reduce(
+          (sum, collection) => sum + collection.numLactation,
+          0
+        ) / dailyCollections.length
       : 0;
 
   const totalMilkingThisMonth = dailyCollections
@@ -115,14 +104,17 @@ export default function DashboardAdmin() {
 
   const technicalAssistanceUsageThisMonth =
     dailyCollections.length > 0
-      ? (dailyCollections.filter((collection) => collection.technicalAssistance).length /
+      ? (dailyCollections.filter((collection) => collection.technicalAssistance)
+          .length /
           dailyCollections.length) *
         100
       : 0;
 
   const activeUsers = users.filter((user) => user.status === "Active").length;
 
-  const usersFromBeloJardim = users.filter((user) => user.city === "Belo Jardim").length;
+  const usersFromBeloJardim = users.filter(
+    (user) => user.city === "Belo Jardim"
+  ).length;
 
   // Dados para o gráfico de pizza (distribuição de tipos de usuários)
   const userTypeDistribution = users
@@ -132,10 +124,12 @@ export default function DashboardAdmin() {
       return acc;
     }, {} as Record<string, number>);
 
-  const pieChartData = Object.entries(userTypeDistribution).map(([type, count]) => ({
-    name: type,
-    value: count,
-  }));
+  const pieChartData = Object.entries(userTypeDistribution).map(
+    ([type, count]) => ({
+      name: type,
+      value: count,
+    })
+  );
 
   // Dados para o gráfico de linhas (quantidade de usuários por estado)
   const usersByState = users.reduce((acc, user) => {
@@ -169,7 +163,9 @@ export default function DashboardAdmin() {
             <Milk className="text-blue-500 mr-2" size={24} />
             <div>
               <h3 className="text-lg font-semibold">Leite Coletado (Mês)</h3>
-              <p className="text-2xl font-bold">{totalMilkThisMonth.toFixed(2)} litros</p>
+              <p className="text-2xl font-bold">
+                {totalMilkThisMonth.toFixed(2)} litros
+              </p>
             </div>
           </div>
 
@@ -177,8 +173,12 @@ export default function DashboardAdmin() {
           <div className="bg-white p-4 rounded-lg shadow flex items-center">
             <Activity className="text-purple-500 mr-2" size={24} />
             <div>
-              <h3 className="text-lg font-semibold">Média de Lactações (Mês)</h3>
-              <p className="text-2xl font-bold">{averageLactationsThisMonth.toFixed(1)}</p>
+              <h3 className="text-lg font-semibold">
+                Média de Lactações (Mês)
+              </h3>
+              <p className="text-2xl font-bold">
+                {averageLactationsThisMonth.toFixed(1)}
+              </p>
             </div>
           </div>
 
@@ -195,8 +195,12 @@ export default function DashboardAdmin() {
           <div className="bg-white p-4 rounded-lg shadow flex items-center">
             <Activity className="text-red-500 mr-2" size={24} />
             <div>
-              <h3 className="text-lg font-semibold">Uso de Assistência Técnica (Mês)</h3>
-              <p className="text-2xl font-bold">{technicalAssistanceUsageThisMonth.toFixed(1)}%</p>
+              <h3 className="text-lg font-semibold">
+                Uso de Assistência Técnica (Mês)
+              </h3>
+              <p className="text-2xl font-bold">
+                {technicalAssistanceUsageThisMonth.toFixed(1)}%
+              </p>
             </div>
           </div>
 
@@ -223,7 +227,9 @@ export default function DashboardAdmin() {
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Gráfico de Pizza - Distribuição de userType para usuários Common */}
           <div className="bg-white p-4 rounded-lg shadow flex-1 flex flex-col items-center">
-            <h2 className="text-lg font-semibold mb-4">Distribuição de Tipos de Usuários</h2>
+            <h2 className="text-lg font-semibold mb-4">
+              Distribuição de Tipos de Usuários
+            </h2>
             <div className="w-full flex justify-center">
               <PieChart width={345} height={300}>
                 <Pie
@@ -236,7 +242,14 @@ export default function DashboardAdmin() {
                   label={({ percent }) => `(${(percent * 100).toFixed(0)}%)`}
                 >
                   {pieChartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={["#4E79A7", "#E15759", "#76B7B2", "#59A14F", "#F28E2B"][index % 5]} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={
+                        ["#4E79A7", "#E15759", "#76B7B2", "#59A14F", "#F28E2B"][
+                          index % 5
+                        ]
+                      }
+                    />
                   ))}
                 </Pie>
                 <Tooltip />
@@ -247,7 +260,9 @@ export default function DashboardAdmin() {
 
           {/* Gráfico de Linhas - Quantidade de Usuários por Estado */}
           <div className="bg-white p-4 rounded-lg shadow flex-1 flex flex-col items-center">
-            <h2 className="text-lg font-semibold mb-4">Quantidade de Usuários por Estado</h2>
+            <h2 className="text-lg font-semibold mb-4">
+              Quantidade de Usuários por Estado
+            </h2>
             <div className="w-full h-[300px] flex justify-center items-center">
               <LineChart
                 width={500}
@@ -281,7 +296,8 @@ export default function DashboardAdmin() {
         {/* Mensagem se não houver dados */}
         {dailyCollections.length === 0 && users.length === 0 && (
           <p className="text-gray-600 mt-8">
-            Nenhum dado encontrado. Não há usuários, animais ou formulários cadastrados.
+            Nenhum dado encontrado. Não há usuários, animais ou formulários
+            cadastrados.
           </p>
         )}
       </div>

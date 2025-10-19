@@ -5,15 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Sidebar from "@/components/siedbar";
 import { apiBase } from "@/services/baseApi";
 import { BREED_OPTIONS } from "@/constants/animal-breeds";
-
-interface Animal {
-  id: number;
-  name: string;
-  animalType: string;
-  breed: string;
-  age: number;
-  userId: number;
-}
+import { Animal } from "@/interfaces/animal";
 
 export default function EditAnimal() {
   const router = useRouter();

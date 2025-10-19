@@ -37,6 +37,8 @@ backend/           # API NestJS + Prisma
 		application/
 		infrastructure/
 		presentation/  # main.ts, controllers
+		interfaces/
+		constants/
 	prisma/          # schema.prisma e migrations
 	docker-compose.yml  # Banco PostgreSQL local
 

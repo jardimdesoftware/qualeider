@@ -5,18 +5,11 @@ import { useRouter } from "next/navigation";
 import Sidebar from "@/components/siedbar";
 import { apiBase } from "@/services/baseApi";
 import { BREED_OPTIONS } from "@/constants/animal-breeds";
-
-interface Animal {
-  name: string;
-  animalType: string;
-  breed: string;
-  age: number;
-  userId: number;
-}
+import { CreateAnimal } from "@/interfaces/animal";
 
 export default function AddAnimal() {
   const router = useRouter();
-  const [formData, setFormData] = useState<Animal>({
+  const [formData, setFormData] = useState<CreateAnimal>({
     name: "",
     animalType: "",
     breed: "",
@@ -39,7 +32,12 @@ export default function AddAnimal() {
       if (payload.role !== "Common") {
         router.push("/");
       } else {
-        setFormData((prev) => ({ ...prev, userId: payload.sub }));
+        // payload.sub from JWT is typically a string; ensure numeric userId
+        const userId =
+          typeof payload.sub === "string"
+            ? parseInt(payload.sub, 10)
+            : payload.sub;
+        setFormData((prev) => ({ ...prev, userId }));
         setLoading(false);
       }
     } catch (err) {

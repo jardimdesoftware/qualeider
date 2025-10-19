@@ -9,17 +9,7 @@ import Wave from "@/components/global/waveFooter";
 import { Eye, EyeOff } from "lucide-react";
 import { apiBase } from "@/services/baseApi";
 import { USER_CATEGORIES, sortByNamePtBr } from "@/constants/user-options";
-
-interface Estado {
-  id: number;
-  sigla: string;
-  nome: string;
-}
-
-interface Cidade {
-  id: number;
-  nome: string;
-}
+import { Estado, Cidade } from "@/interfaces/location";
 
 export default function CreateAccount() {
   const router = useRouter();

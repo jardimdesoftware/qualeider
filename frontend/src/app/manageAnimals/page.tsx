@@ -6,18 +6,7 @@ import Sidebar from "@/components/siedbar";
 import { apiBase } from "@/services/baseApi";
 import { Activity, PieChart as PieChartIcon, BarChart2 } from "lucide-react";
 import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts"; 
-
-interface Animal {
-  id: number;
-  name: string;
-  animalType: string;
-  breed: string;
-  age: number;
-  userId: number;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import { Animal } from "@/interfaces/animal";
 
 export default function AnimalDashboard() {
   const router = useRouter();

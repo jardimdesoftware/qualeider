@@ -8,18 +8,7 @@ import React from "react";
 import axios from "axios";
 import EmptyState from "@/components/empty-state";
 import { Cat } from "lucide-react";
-
-interface Animal {
-  id: number;
-  name: string;
-  animalType: string;
-  breed: string;
-  age: number;
-  userId: number;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import { Animal } from "@/interfaces/animal";
 
 export default function ManageAnimals() {
   const [animals, setAnimals] = useState<Animal[]>([]);

@@ -4,18 +4,9 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/siedbar";
 import { apiBase } from "@/services/baseApi";
-import { Eye, EyeOff } from "lucide-react"; 
-
-interface Estado {
-  id: number;
-  sigla: string;
-  nome: string;
-}
-
-interface Cidade {
-  id: number;
-  nome: string;
-}
+import { Eye, EyeOff } from "lucide-react";
+import { Estado, Cidade } from "@/interfaces/location";
+import { USER_CATEGORIES, sortByNamePtBr } from "@/constants/user-options";
 
 export default function AddUser() {
   const router = useRouter();
@@ -34,8 +25,8 @@ export default function AddUser() {
   const [estados, setEstados] = useState<Estado[]>([]);
   const [cidades, setCidades] = useState<Cidade[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showPassword, setShowPassword] = useState(false); 
-  const [modalMessage, setModalMessage] = useState<string | null>(null); 
+  const [showPassword, setShowPassword] = useState(false);
+  const [modalMessage, setModalMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("authToken");
@@ -66,7 +57,7 @@ export default function AddUser() {
           "https://servicodados.ibge.gov.br/api/v1/localidades/estados"
         );
         const data = await response.json();
-        setEstados(data);
+        setEstados(sortByNamePtBr(data));
       } catch (err) {
         console.error("Erro ao buscar estados:", err);
       }
@@ -84,7 +75,7 @@ export default function AddUser() {
             `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${formData.state}/municipios`
           );
           const data = await response.json();
-          setCidades(data);
+          setCidades(sortByNamePtBr(data));
         } catch (err) {
           console.error("Erro ao buscar cidades:", err);
         }
@@ -115,8 +106,10 @@ export default function AddUser() {
     if (!formData.name) newErrors.name = "Nome é obrigatório";
     if (!formData.email) newErrors.email = "Email é obrigatório";
     if (!formData.password) newErrors.password = "Senha é obrigatória";
-    if (formData.password.length < 6) newErrors.password = "A senha deve ter no mínimo 6 dígitos"; 
-    if (!formData.userCategory) newErrors.userCategory = "Categoria é obrigatória";
+    if (formData.password.length < 6)
+      newErrors.password = "A senha deve ter no mínimo 6 dígitos";
+    if (!formData.userCategory)
+      newErrors.userCategory = "Categoria é obrigatória";
     if (!formData.state) newErrors.state = "Estado é obrigatório";
     if (!formData.city) newErrors.city = "Cidade é obrigatória";
     if (userRole === "Common" && !formData.userType)
@@ -144,11 +137,12 @@ export default function AddUser() {
         setModalMessage("Cadastro realizado com sucesso!");
       } else {
         setModalMessage("Erro ao cadastrar usuário");
-        resetForm(); 
+        resetForm();
       }
     } catch (err) {
+      console.error("Erro ao cadastrar usuário:", err);
       setModalMessage("Erro ao cadastrar usuário");
-      resetForm(); 
+      resetForm();
     }
   };
 
@@ -171,7 +165,9 @@ export default function AddUser() {
     <div className="flex flex-col lg:flex-row">
       <Sidebar />
       <div className="flex-1 p-8">
-        <h1 className="text-2xl font-bold mb-6 mt-12 md:mt-4">Adicionar Usuário</h1>
+        <h1 className="text-2xl font-bold mb-6 mt-12 md:mt-4">
+          Adicionar Usuário
+        </h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Tipo de Usuário e Categoria lado a lado */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -181,7 +177,9 @@ export default function AddUser() {
               </label>
               <select
                 value={userRole}
-                onChange={(e) => setUserRole(e.target.value as "Admin" | "Common")}
+                onChange={(e) =>
+                  setUserRole(e.target.value as "Admin" | "Common")
+                }
                 className="w-full p-2 border border-gray-300 rounded-lg"
               >
                 <option value="Admin">Admin</option>
@@ -194,14 +192,18 @@ export default function AddUser() {
               </label>
               <select
                 value={formData.userCategory}
-                onChange={(e) => setFormData({ ...formData, userCategory: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, userCategory: e.target.value })
+                }
                 className="w-full p-2 border border-gray-300 rounded-lg"
               >
                 <option value="">Selecione um tipo</option>
                 <option value="Fisica">Física</option>
                 <option value="Juridica">Jurídica</option>
               </select>
-              {errors.userCategory && <p className="text-red-500 text-sm">{errors.userCategory}</p>}
+              {errors.userCategory && (
+                <p className="text-red-500 text-sm">{errors.userCategory}</p>
+              )}
             </div>
           </div>
 
@@ -213,16 +215,21 @@ export default function AddUser() {
               </label>
               <select
                 value={formData.userType}
-                onChange={(e) => setFormData({ ...formData, userType: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, userType: e.target.value })
+                }
                 className="w-full p-2 border border-gray-300 rounded-lg"
               >
                 <option value="">Selecione uma categoria</option>
-                <option value="Pecuarista">Pecuarista</option>
-                <option value="Cooperativa">Cooperativa</option>
-                <option value="Associacao">Associação</option>
-                <option value="Outro">Outro</option>
+                {USER_CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat === "Associacao" ? "Associação" : cat}
+                  </option>
+                ))}
               </select>
-              {errors.userType && <p className="text-red-500 text-sm">{errors.userType}</p>}
+              {errors.userType && (
+                <p className="text-red-500 text-sm">{errors.userType}</p>
+              )}
             </div>
           )}
 
@@ -234,10 +241,14 @@ export default function AddUser() {
             <input
               type="text"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
               className="w-full p-2 border border-gray-300 rounded-lg"
             />
-            {errors.name && <p className="text-red-500 text-sm">{errors.name}</p>}
+            {errors.name && (
+              <p className="text-red-500 text-sm">{errors.name}</p>
+            )}
           </div>
 
           <div>
@@ -247,10 +258,14 @@ export default function AddUser() {
             <input
               type="email"
               value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
               className="w-full p-2 border border-gray-300 rounded-lg"
             />
-            {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
+            {errors.email && (
+              <p className="text-red-500 text-sm">{errors.email}</p>
+            )}
           </div>
 
           <div>
@@ -261,7 +276,9 @@ export default function AddUser() {
               <input
                 type={showPassword ? "text" : "password"}
                 value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
                 className="w-full p-2 border border-gray-300 rounded-lg pr-10"
               />
               <button
@@ -272,7 +289,9 @@ export default function AddUser() {
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
-            {errors.password && <p className="text-red-500 text-sm">{errors.password}</p>}
+            {errors.password && (
+              <p className="text-red-500 text-sm">{errors.password}</p>
+            )}
           </div>
 
           {/* Estado e Cidade lado a lado */}
@@ -283,7 +302,9 @@ export default function AddUser() {
               </label>
               <select
                 value={formData.state}
-                onChange={(e) => setFormData({ ...formData, state: e.target.value, city: "" })}
+                onChange={(e) =>
+                  setFormData({ ...formData, state: e.target.value, city: "" })
+                }
                 className="w-full p-2 border border-gray-300 rounded-lg"
               >
                 <option value="">Selecione um estado</option>
@@ -293,7 +314,9 @@ export default function AddUser() {
                   </option>
                 ))}
               </select>
-              {errors.state && <p className="text-red-500 text-sm">{errors.state}</p>}
+              {errors.state && (
+                <p className="text-red-500 text-sm">{errors.state}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">
@@ -301,7 +324,9 @@ export default function AddUser() {
               </label>
               <select
                 value={formData.city}
-                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, city: e.target.value })
+                }
                 className="w-full p-2 border border-gray-300 rounded-lg"
                 disabled={!formData.state}
               >
@@ -312,7 +337,9 @@ export default function AddUser() {
                   </option>
                 ))}
               </select>
-              {errors.city && <p className="text-red-500 text-sm">{errors.city}</p>}
+              {errors.city && (
+                <p className="text-red-500 text-sm">{errors.city}</p>
+              )}
             </div>
           </div>
 
@@ -334,7 +361,8 @@ export default function AddUser() {
           </div>
         </form>
 
-        {/* Modal de sucesso/erro */   /*Ajietar design                                     --------------------------- */}
+        {/* Modal de sucesso/erro */
+        /*Ajietar design                                     --------------------------- */}
         {modalMessage && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
             <div className="bg-white p-6 rounded-lg">

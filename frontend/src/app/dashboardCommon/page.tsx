@@ -19,33 +19,8 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-
-interface Animal {
-  id: number;
-  name: string;
-  animalType: string;
-  breed: string;
-  age: number;
-  userId: number;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface DailyCollection {
-  id: number;
-  quantity: number;
-  collectionDate: string;
-  userId: number;
-  numAnimals: number;
-  numOrdens: number;
-  rationProvided: boolean;
-  numLactation: number;
-  milkingPlace: string;
-  technicalAssistance: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
+import { Animal } from "@/interfaces/animal";
+import { DailyCollection } from "@/interfaces/daily-collection";
 
 export default function DashboardCommon() {
   const router = useRouter();

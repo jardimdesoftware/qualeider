@@ -4,28 +4,9 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/siedbar";
 import { apiBase } from "@/services/baseApi";
-
-interface Estado {
-  id: number;
-  sigla: string;
-  nome: string;
-}
-
-interface Cidade {
-  id: number;
-  nome: string;
-}
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: "Admin" | "Common";
-  userType: string | null;
-  userCategory: string;
-  city: string;
-  state: string;
-}
+import { Estado, Cidade } from "@/interfaces/location";
+import { User } from "@/interfaces/user";
+import { USER_CATEGORIES, sortByNamePtBr } from "@/constants/user-options";
 
 export default function Settings() {
   const router = useRouter();
@@ -38,7 +19,7 @@ export default function Settings() {
     state: "",
     city: "",
   });
-  const [initialFormData, setInitialFormData] = useState({ ...formData }); 
+  const [initialFormData, setInitialFormData] = useState({ ...formData });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [estados, setEstados] = useState<Estado[]>([]);
   const [cidades, setCidades] = useState<Cidade[]>([]);
@@ -56,8 +37,8 @@ export default function Settings() {
 
     try {
       const payload = JSON.parse(atob(token.split(".")[1]));
-      setUserRole(payload.role); 
-      fetchUserData(payload.sub); 
+      setUserRole(payload.role);
+      fetchUserData(payload.sub);
     } catch (err) {
       console.error("Erro ao decodificar o token:", err);
       router.push("/login");
@@ -73,7 +54,7 @@ export default function Settings() {
           "https://servicodados.ibge.gov.br/api/v1/localidades/estados"
         );
         const data = await response.json();
-        setEstados(data);
+        setEstados(sortByNamePtBr(data));
       } catch (err) {
         console.error("Erro ao buscar estados:", err);
       }
@@ -91,7 +72,7 @@ export default function Settings() {
             `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${formData.state}/municipios`
           );
           const data = await response.json();
-          setCidades(data);
+          setCidades(sortByNamePtBr(data));
         } catch (err) {
           console.error("Erro ao buscar cidades:", err);
         }
@@ -121,7 +102,7 @@ export default function Settings() {
         state: user.state,
         city: user.city,
       });
-      setInitialFormData({ 
+      setInitialFormData({
         name: user.name,
         email: user.email,
         userType: user.userType || "",
@@ -142,7 +123,8 @@ export default function Settings() {
     const newErrors: Record<string, string> = {};
     if (!formData.name) newErrors.name = "Nome é obrigatório";
     if (!formData.email) newErrors.email = "Email é obrigatório";
-    if (!formData.userCategory) newErrors.userCategory = "Categoria é obrigatória";
+    if (!formData.userCategory)
+      newErrors.userCategory = "Categoria é obrigatória";
     if (!formData.state) newErrors.state = "Estado é obrigatório";
     if (!formData.city) newErrors.city = "Cidade é obrigatória";
     if (userRole === "Common" && !formData.userType)
@@ -179,7 +161,7 @@ export default function Settings() {
         return;
       }
 
-      const userId = parseInt(payload.sub, 10); 
+      const userId = parseInt(payload.sub, 10);
 
       if (isNaN(userId)) {
         setErrorMessage("ID do usuário inválido.");
@@ -194,7 +176,7 @@ export default function Settings() {
 
       if (response.status === 200) {
         setSuccessMessage("Dados atualizados com sucesso!");
-        setInitialFormData({ ...formData }); 
+        setInitialFormData({ ...formData });
       } else {
         setErrorMessage("Erro ao atualizar dados.");
       }
@@ -206,7 +188,7 @@ export default function Settings() {
 
   const handleCancel = () => {
     setShowConfirmationModal(false);
-    setFormData({ ...initialFormData }); 
+    setFormData({ ...initialFormData });
   };
 
   if (loading) {
@@ -246,16 +228,21 @@ export default function Settings() {
               </label>
               <select
                 value={formData.userType}
-                onChange={(e) => setFormData({ ...formData, userType: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, userType: e.target.value })
+                }
                 className="w-full p-2 border border-gray-300 rounded-lg"
               >
                 <option value="">Selecione uma categoria</option>
-                <option value="Pecuarista">Pecuarista</option>
-                <option value="Cooperativa">Cooperativa</option>
-                <option value="Associacao">Associação</option>
-                <option value="Outro">Outro</option>
+                {USER_CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat === "Associacao" ? "Associação" : cat}
+                  </option>
+                ))}
               </select>
-              {errors.userType && <p className="text-red-500 text-sm">{errors.userType}</p>}
+              {errors.userType && (
+                <p className="text-red-500 text-sm">{errors.userType}</p>
+              )}
             </div>
           )}
 
@@ -266,14 +253,18 @@ export default function Settings() {
             </label>
             <select
               value={formData.userCategory}
-              onChange={(e) => setFormData({ ...formData, userCategory: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, userCategory: e.target.value })
+              }
               className="w-full p-2 border border-gray-300 rounded-lg"
             >
               <option value="">Selecione um tipo</option>
               <option value="Fisica">Física</option>
               <option value="Juridica">Jurídica</option>
             </select>
-            {errors.userCategory && <p className="text-red-500 text-sm">{errors.userCategory}</p>}
+            {errors.userCategory && (
+              <p className="text-red-500 text-sm">{errors.userCategory}</p>
+            )}
           </div>
 
           {/* Nome e Email */}
@@ -284,10 +275,14 @@ export default function Settings() {
             <input
               type="text"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
               className="w-full p-2 border border-gray-300 rounded-lg"
             />
-            {errors.name && <p className="text-red-500 text-sm">{errors.name}</p>}
+            {errors.name && (
+              <p className="text-red-500 text-sm">{errors.name}</p>
+            )}
           </div>
 
           <div>
@@ -297,10 +292,14 @@ export default function Settings() {
             <input
               type="email"
               value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
               className="w-full p-2 border border-gray-300 rounded-lg"
             />
-            {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
+            {errors.email && (
+              <p className="text-red-500 text-sm">{errors.email}</p>
+            )}
           </div>
 
           {/* Estado e Cidade */}
@@ -311,7 +310,9 @@ export default function Settings() {
               </label>
               <select
                 value={formData.state}
-                onChange={(e) => setFormData({ ...formData, state: e.target.value, city: "" })}
+                onChange={(e) =>
+                  setFormData({ ...formData, state: e.target.value, city: "" })
+                }
                 className="w-full p-2 border border-gray-300 rounded-lg"
               >
                 <option value="">Selecione um estado</option>
@@ -321,7 +322,9 @@ export default function Settings() {
                   </option>
                 ))}
               </select>
-              {errors.state && <p className="text-red-500 text-sm">{errors.state}</p>}
+              {errors.state && (
+                <p className="text-red-500 text-sm">{errors.state}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">
@@ -329,7 +332,9 @@ export default function Settings() {
               </label>
               <select
                 value={formData.city}
-                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, city: e.target.value })
+                }
                 className="w-full p-2 border border-gray-300 rounded-lg"
                 disabled={!formData.state}
               >
@@ -340,7 +345,9 @@ export default function Settings() {
                   </option>
                 ))}
               </select>
-              {errors.city && <p className="text-red-500 text-sm">{errors.city}</p>}
+              {errors.city && (
+                <p className="text-red-500 text-sm">{errors.city}</p>
+              )}
             </div>
           </div>
 
@@ -359,8 +366,12 @@ export default function Settings() {
         {showConfirmationModal && (
           <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
             <div className="bg-white p-6 rounded-lg shadow-lg text-center">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Confirmar Alterações</h2>
-              <p className="text-gray-700 mb-4">Tem certeza que deseja salvar as alterações?</p>
+              <h2 className="text-xl font-bold text-gray-900 mb-4">
+                Confirmar Alterações
+              </h2>
+              <p className="text-gray-700 mb-4">
+                Tem certeza que deseja salvar as alterações?
+              </p>
               <div className="flex justify-center gap-4">
                 <button
                   onClick={handleCancel}
