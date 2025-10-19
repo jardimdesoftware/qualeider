@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import Sidebar from "@/components/siedbar";
 import { apiBase } from "@/services/baseApi";
 import React from "react";
+import axios from "axios";
+import EmptyState from "@/components/empty-state";
+import { Cat } from "lucide-react";
 
 interface Animal {
   id: number;
@@ -23,6 +26,7 @@ export default function ManageAnimals() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [animalsPerPage, setAnimalsPerPage] = useState(7);
@@ -63,16 +67,26 @@ export default function ManageAnimals() {
         return;
       }
 
-      const response = await apiBase.get<Animal[]>(`/animals/user/${payload.sub}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await apiBase.get<Animal[]>(
+        `/animals/user/${payload.sub}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       setAnimals(response.data);
       setLoading(false);
     } catch (err) {
       setLoading(false);
-      setError("Erro ao carregar os animais. Sem animais cadastrados.");
+      if (axios.isAxiosError(err) && err.response?.status === 404) {
+        // Sem animais cadastrados para o usuário
+        setAnimals([]);
+        setError(null);
+        setInfoMessage("Erro ao carregar os animais. Sem animais cadastrados.");
+      } else {
+        setError("Erro ao carregar os animais.");
+      }
       console.error("Erro ao buscar animais:", err);
     }
   };
@@ -90,7 +104,10 @@ export default function ManageAnimals() {
 
   const indexOfLastAnimal = currentPage * animalsPerPage;
   const indexOfFirstAnimal = indexOfLastAnimal - animalsPerPage;
-  const currentAnimals = filteredAnimals.slice(indexOfFirstAnimal, indexOfLastAnimal);
+  const currentAnimals = filteredAnimals.slice(
+    indexOfFirstAnimal,
+    indexOfLastAnimal
+  );
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
   useEffect(() => {
@@ -122,7 +139,7 @@ export default function ManageAnimals() {
           Authorization: `Bearer ${token}`,
         },
       });
-      setSuccessMessage("Animal excluído com sucesso!"); 
+      setSuccessMessage("Animal excluído com sucesso!");
       fetchAnimals();
 
       setTimeout(() => {
@@ -130,10 +147,10 @@ export default function ManageAnimals() {
       }, 3000);
     } catch (err) {
       setErrorMessage("Erro ao excluir o animal. Tente novamente mais tarde.");
-      setShowErrorPopup(true); 
+      setShowErrorPopup(true);
     } finally {
-      setShowDeletePopup(false); 
-      setAnimalToDelete(null); 
+      setShowDeletePopup(false);
+      setAnimalToDelete(null);
     }
   };
 
@@ -160,8 +177,12 @@ export default function ManageAnimals() {
         {showDeletePopup && (
           <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
             <div className="bg-white p-6 rounded-lg shadow-lg text-center">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Confirmar Exclusão</h2>
-              <p className="text-gray-700 mb-4">Tem certeza que deseja excluir este animal?</p>
+              <h2 className="text-xl font-bold text-gray-900 mb-4">
+                Confirmar Exclusão
+              </h2>
+              <p className="text-gray-700 mb-4">
+                Tem certeza que deseja excluir este animal?
+              </p>
               <div className="flex justify-center gap-4">
                 <button
                   onClick={() => setShowDeletePopup(false)}
@@ -197,7 +218,9 @@ export default function ManageAnimals() {
         )}
 
         <div className="flex-col md:flex-row justify-between">
-          <h1 className="text-2xl font-bold mb-6 mt-12 md:mt-4">Gerenciar Animais</h1>
+          <h1 className="text-2xl font-bold mb-6 mt-12 md:mt-4">
+            Gerenciar Animais
+          </h1>
           <div className="mb-4">
             <input
               type="text"
@@ -222,11 +245,28 @@ export default function ManageAnimals() {
           </div>
         )}
 
-        {error ? (
-          <div className="text-red-500 mb-6">{error}</div>
-        ) : animals.length === 0 ? (
-          <div className="text-gray-600 mb-6">Nenhum animal cadastrado.</div>
-        ) : (
+        {error && (
+          <div className="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+            {error}
+          </div>
+        )}
+
+        {!error && infoMessage && animals.length === 0 && (
+          <div className="mb-6">
+            <div className="mb-4 rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-gray-700">
+              {infoMessage}
+            </div>
+            <EmptyState
+              icon={<Cat size={40} />}
+              title={infoMessage}
+              description="Cadastre seu primeiro animal para começar."
+              actionHref="/manageMyAnimals/addAnimal"
+              actionLabel="Cadastrar animal"
+            />
+          </div>
+        )}
+
+        {!error && animals.length > 0 && (
           <>
             <div className="overflow-x-auto mb-6">
               <table className="min-w-full bg-white border border-gray-300 rounded-lg overflow-hidden">
@@ -235,13 +275,18 @@ export default function ManageAnimals() {
                     <th className="p-3 text-left">Nome</th>
                     <th className="p-3 text-left hidden md:table-cell">Tipo</th>
                     <th className="p-3 text-left hidden md:table-cell">Raça</th>
-                    <th className="p-3 text-left hidden md:table-cell">Idade</th>
+                    <th className="p-3 text-left hidden md:table-cell">
+                      Idade
+                    </th>
                     <th className="p-3 text-left">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
                   {currentAnimals.map((animal) => (
-                    <tr key={animal.id} className="border-b border-gray-200 hover:bg-gray-50">
+                    <tr
+                      key={animal.id}
+                      className="border-b border-gray-200 hover:bg-gray-50"
+                    >
                       <td className="p-3">
                         <div className="flex flex-col">
                           <span className="font-semibold">{animal.name}</span>
@@ -256,8 +301,12 @@ export default function ManageAnimals() {
                           </span>
                         </div>
                       </td>
-                      <td className="p-3 hidden md:table-cell">{animal.animalType}</td>
-                      <td className="p-3 hidden md:table-cell">{animal.breed}</td>
+                      <td className="p-3 hidden md:table-cell">
+                        {animal.animalType}
+                      </td>
+                      <td className="p-3 hidden md:table-cell">
+                        {animal.breed}
+                      </td>
                       <td className="p-3 hidden md:table-cell">{animal.age}</td>
                       <td className="p-3">
                         <button
@@ -268,8 +317,8 @@ export default function ManageAnimals() {
                         </button>
                         <button
                           onClick={() => {
-                            setAnimalToDelete(animal.id); 
-                            setShowDeletePopup(true); 
+                            setAnimalToDelete(animal.id);
+                            setShowDeletePopup(true);
                           }}
                           className="text-red-500 hover:text-red-800"
                         >
@@ -292,11 +341,14 @@ export default function ManageAnimals() {
                 Anterior
               </button>
               <span className="px-4 py-2 text-gray-600">
-                Pág. {currentPage} de {Math.ceil(filteredAnimals.length / animalsPerPage)}
+                Pág. {currentPage} de{" "}
+                {Math.ceil(filteredAnimals.length / animalsPerPage)}
               </span>
               <button
                 onClick={() => paginate(currentPage + 1)}
-                disabled={currentPage * animalsPerPage >= filteredAnimals.length}
+                disabled={
+                  currentPage * animalsPerPage >= filteredAnimals.length
+                }
                 className="px-4 py-2 bg-blue-500 text-white rounded-r disabled:opacity-50"
               >
                 Próximo
