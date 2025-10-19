@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Logo from "@/assets/Logo.png";
 import Button from "@/components/global/button";
 import Wave from "@/components/global/waveFooter";
 import { Eye, EyeOff } from "lucide-react";
 import { apiBase } from "@/services/baseApi";
+import { USER_CATEGORIES, sortByNamePtBr } from "@/constants/user-options";
 
 interface Estado {
   id: number;
@@ -60,7 +62,7 @@ export default function CreateAccount() {
           "https://servicodados.ibge.gov.br/api/v1/localidades/estados"
         );
         const data = await response.json();
-        setEstados(data);
+        setEstados(sortByNamePtBr(data));
       } catch (err) {
         console.error("Erro ao buscar estados:", err);
       }
@@ -77,7 +79,7 @@ export default function CreateAccount() {
             `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${formData.state}/municipios`
           );
           const data = await response.json();
-          setCidades(data);
+          setCidades(sortByNamePtBr(data));
         } catch (err) {
           console.error("Erro ao buscar cidades:", err);
         }
@@ -110,7 +112,10 @@ export default function CreateAccount() {
 
   const validateUserType = (userType: string) => {
     if (!userType) {
-      setErrors((prev) => ({ ...prev, userType: "Tipo de pessoa é obrigatório" }));
+      setErrors((prev) => ({
+        ...prev,
+        userType: "Tipo de pessoa é obrigatório",
+      }));
     } else {
       setErrors((prev) => ({ ...prev, userType: "" }));
     }
@@ -118,7 +123,10 @@ export default function CreateAccount() {
 
   const validateUserCategory = (userCategory: string) => {
     if (!userCategory) {
-      setErrors((prev) => ({ ...prev, userCategory: "Categoria é obrigatória" }));
+      setErrors((prev) => ({
+        ...prev,
+        userCategory: "Categoria é obrigatória",
+      }));
     } else {
       setErrors((prev) => ({ ...prev, userCategory: "" }));
     }
@@ -144,7 +152,10 @@ export default function CreateAccount() {
     if (!password) {
       setErrors((prev) => ({ ...prev, password: "Senha é obrigatória" }));
     } else if (password.length < 6) {
-      setErrors((prev) => ({ ...prev, password: "Senha deve ter pelo menos 6 caracteres" }));
+      setErrors((prev) => ({
+        ...prev,
+        password: "Senha deve ter pelo menos 6 caracteres",
+      }));
     } else {
       setErrors((prev) => ({ ...prev, password: "" }));
     }
@@ -154,7 +165,10 @@ export default function CreateAccount() {
     if (!confirmPassword) {
       setErrors((prev) => ({ ...prev, confirmPassword: "Confirme a senha" }));
     } else if (confirmPassword !== formData.password) {
-      setErrors((prev) => ({ ...prev, confirmPassword: "As senhas não coincidem" }));
+      setErrors((prev) => ({
+        ...prev,
+        confirmPassword: "As senhas não coincidem",
+      }));
     } else {
       setErrors((prev) => ({ ...prev, confirmPassword: "" }));
     }
@@ -166,10 +180,35 @@ export default function CreateAccount() {
       validateEmail(formData.email);
       validateUserType(formData.userType);
 
-      if (!formData.name || !formData.email || !formData.userType || errors.name || errors.email || errors.userType) {
+      if (
+        !formData.name ||
+        !formData.email ||
+        !formData.userType ||
+        errors.name ||
+        errors.email ||
+        errors.userType
+      ) {
         return;
       }
-      setStep(2);
+      const verifyEmailAlreadyExists = async () => {
+        try {
+          const resp = await apiBase.get<{ exists: boolean }>(
+            "/users/check-email",
+            {
+              params: { email: formData.email },
+            }
+          );
+          if (resp.data.exists) {
+            setErrors((prev) => ({ ...prev, email: "Email já cadastrado" }));
+            return;
+          }
+          setStep(2);
+        } catch (e) {
+          console.warn("Falha ao verificar email duplicado", e);
+          setStep(2);
+        }
+      };
+      void verifyEmailAlreadyExists();
     }
   };
 
@@ -218,6 +257,7 @@ export default function CreateAccount() {
         setShowErrorPopup(true);
       }
     } catch (error) {
+      console.error("Erro ao criar usuário:", error);
       setShowErrorPopup(true);
     } finally {
       setLoading(false);
@@ -235,13 +275,21 @@ export default function CreateAccount() {
   };
 
   return (
-    <main className={`flex justify-center items-center min-h-screen p-8 ${isMobile ? "bg-green-background" : ""}`}>
+    <main
+      className={`flex justify-center items-center min-h-screen p-8 ${
+        isMobile ? "bg-green-background" : ""
+      }`}
+    >
       {/* Popup de Sucesso */}
       {showSuccessPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg text-center z-50">
-            <h2 className="text-xl font-bold text-green-600 mb-4">Cadastro Realizado!</h2>
-            <p className="text-gray-700 mb-4">Sua conta foi criada com sucesso. Redirecionando para o login...</p>
+            <h2 className="text-xl font-bold text-green-600 mb-4">
+              Cadastro Realizado!
+            </h2>
+            <p className="text-gray-700 mb-4">
+              Sua conta foi criada com sucesso. Redirecionando para o login...
+            </p>
             <button
               onClick={closePopup}
               className="bg-green-800 text-white px-4 py-2 rounded-lg hover:bg-green-900"
@@ -256,8 +304,13 @@ export default function CreateAccount() {
       {showErrorPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg text-center z-50">
-            <h2 className="text-xl font-bold text-red-600 mb-4">Erro ao Cadastrar</h2>
-            <p className="text-gray-700 mb-4">Ocorreu um erro ao tentar criar sua conta. Tente novamente mais tarde.</p>
+            <h2 className="text-xl font-bold text-red-600 mb-4">
+              Erro ao Cadastrar
+            </h2>
+            <p className="text-gray-700 mb-4">
+              Ocorreu um erro ao tentar criar sua conta. Tente novamente mais
+              tarde.
+            </p>
             <button
               onClick={closePopup}
               className="bg-green-800 text-white px-4 py-2 rounded-lg hover:bg-green-900"
@@ -289,7 +342,9 @@ export default function CreateAccount() {
                   className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                   required
                 />
-                {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+                {errors.name && (
+                  <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+                )}
               </div>
               <div>
                 <label className="text-gray-700 font-medium">Email</label>
@@ -303,10 +358,14 @@ export default function CreateAccount() {
                   className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                   required
                 />
-                {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+                {errors.email && (
+                  <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+                )}
               </div>
               <div>
-                <label className="text-gray-700 font-medium">Tipo de Pessoa</label>
+                <label className="text-gray-700 font-medium">
+                  Tipo de Pessoa
+                </label>
                 <select
                   value={formData.userType}
                   onChange={(e) => {
@@ -320,7 +379,9 @@ export default function CreateAccount() {
                   <option value="Fisica">Física</option>
                   <option value="Juridica">Jurídica</option>
                 </select>
-                {errors.userType && <p className="text-red-500 text-sm mt-1">{errors.userType}</p>}
+                {errors.userType && (
+                  <p className="text-red-500 text-sm mt-1">{errors.userType}</p>
+                )}
               </div>
               <Button
                 text="PRÓXIMO"
@@ -329,11 +390,18 @@ export default function CreateAccount() {
                 textColor="text-white"
                 hoverColor="hover:bg-green-900"
                 className="w-full mt-4"
-                disabled={loading || !!errors.name || !!errors.email || !!errors.userType}
+                disabled={
+                  loading ||
+                  !!errors.name ||
+                  !!errors.email ||
+                  !!errors.userType
+                }
               />
               <p className="text-center text-gray-700 mt-4 text-sm">
                 Já possui uma conta?{" "}
-                <a href="/login" className="text-green-700 font-semibold">Faça Login</a>
+                <a href="/login" className="text-green-700 font-semibold">
+                  Faça Login
+                </a>
               </p>
             </div>
           ) : (
@@ -351,19 +419,28 @@ export default function CreateAccount() {
                   required
                 >
                   <option value="">Selecione</option>
-                  <option value="Pecuarista">Pecuarista</option>
-                  <option value="Cooperativa">Cooperativa</option>
-                  <option value="Associacao">Associação</option>
-                  <option value="Outro">Outro</option>
+                  {USER_CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat === "Associacao" ? "Associação" : cat}
+                    </option>
+                  ))}
                 </select>
-                {errors.userCategory && <p className="text-red-500 text-sm mt-1">{errors.userCategory}</p>}
+                {errors.userCategory && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.userCategory}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="text-gray-700 font-medium">Estado</label>
                 <select
                   value={formData.state}
                   onChange={(e) => {
-                    setFormData({ ...formData, state: e.target.value, city: "" });
+                    setFormData({
+                      ...formData,
+                      state: e.target.value,
+                      city: "",
+                    });
                     validateState(e.target.value);
                   }}
                   className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
@@ -376,7 +453,9 @@ export default function CreateAccount() {
                     </option>
                   ))}
                 </select>
-                {errors.state && <p className="text-red-500 text-sm mt-1">{errors.state}</p>}
+                {errors.state && (
+                  <p className="text-red-500 text-sm mt-1">{errors.state}</p>
+                )}
               </div>
               <div>
                 <label className="text-gray-700 font-medium">Cidade</label>
@@ -397,7 +476,9 @@ export default function CreateAccount() {
                     </option>
                   ))}
                 </select>
-                {errors.city && <p className="text-red-500 text-sm mt-1">{errors.city}</p>}
+                {errors.city && (
+                  <p className="text-red-500 text-sm mt-1">{errors.city}</p>
+                )}
               </div>
               <div className="relative">
                 <label className="text-gray-700 font-medium">Senha</label>
@@ -418,15 +499,22 @@ export default function CreateAccount() {
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
-                {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+                {errors.password && (
+                  <p className="text-red-500 text-sm mt-1">{errors.password}</p>
+                )}
               </div>
               <div className="relative">
-                <label className="text-gray-700 font-medium">Confirmar Senha</label>
+                <label className="text-gray-700 font-medium">
+                  Confirmar Senha
+                </label>
                 <input
                   type={showConfirmPassword ? "text" : "password"}
                   value={formData.confirmPassword}
                   onChange={(e) => {
-                    setFormData({ ...formData, confirmPassword: e.target.value });
+                    setFormData({
+                      ...formData,
+                      confirmPassword: e.target.value,
+                    });
                     validateConfirmPassword(e.target.value);
                   }}
                   className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 pr-10"
@@ -437,9 +525,17 @@ export default function CreateAccount() {
                   className="absolute right-3 top-1/2 text-gray-500 hover:text-gray-700"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
-                  {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  {showConfirmPassword ? (
+                    <EyeOff size={20} />
+                  ) : (
+                    <Eye size={20} />
+                  )}
                 </button>
-                {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}
+                {errors.confirmPassword && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.confirmPassword}
+                  </p>
+                )}
               </div>
               <Button
                 text={loading ? "Cadastrando..." : "CADASTRAR"}
@@ -468,17 +564,31 @@ export default function CreateAccount() {
                 Bem-vindo ao <span className="font-bold">QualeiDer!</span>
               </h1>
               <div className="text-white space-y-2 text-sm">
-                <p>Sua ferramenta essencial para o gerenciamento da produção leiteira.</p>
-                <p>Com o <strong>QualeiDer</strong>, você pode:</p>
+                <p>
+                  Sua ferramenta essencial para o gerenciamento da produção
+                  leiteira.
+                </p>
+                <p>
+                  Com o <strong>QualeiDer</strong>, você pode:
+                </p>
                 <ul className="list-disc list-inside">
-                  <li><strong>Cadastrar e gerenciar</strong> seus animais de forma simples e organizada.</li>
-                  <li><strong>Monitorar a produção diária</strong> de leite com precisão e facilidade.</li>
-                  <li><strong>Acessar gráficos detalhados</strong> para tomar decisões mais inteligentes.</li>
+                  <li>
+                    <strong>Cadastrar e gerenciar</strong> seus animais de forma
+                    simples e organizada.
+                  </li>
+                  <li>
+                    <strong>Monitorar a produção diária</strong> de leite com
+                    precisão e facilidade.
+                  </li>
+                  <li>
+                    <strong>Acessar gráficos detalhados</strong> para tomar
+                    decisões mais inteligentes.
+                  </li>
                 </ul>
               </div>
             </div>
             <div className="absolute bottom-4 right-4">
-              <img src={Logo.src} alt="Logo do sistema" className="w-20 h-20" />
+              <Image src={Logo} alt="Logo do sistema" className="w-20 h-20" />
             </div>
           </div>
         )}

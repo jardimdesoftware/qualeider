@@ -8,6 +8,7 @@ import {
   Patch,
   Delete,
   BadRequestException,
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -34,6 +35,17 @@ export class UsersController {
   @Post()
   async create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
+  }
+
+  @ApiOperation({ summary: 'Verificar se email já está cadastrado' })
+  @ApiResponse({ status: 200, description: 'Retorna se o email existe' })
+  @Get('check-email')
+  async checkEmail(@Query('email') email: string) {
+    if (!email || typeof email !== 'string') {
+      throw new BadRequestException('Email inválido');
+    }
+    const user = await this.usersService.findByEmail(email);
+    return { exists: !!user };
   }
 
   @ApiOperation({ summary: 'Listar todos os usuários' })

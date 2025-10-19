@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/siedbar";
 import { apiBase } from "@/services/baseApi";
+import { BREED_OPTIONS } from "@/constants/animal-breeds";
 
 interface Animal {
   name: string;
@@ -19,20 +20,12 @@ export default function AddAnimal() {
     name: "",
     animalType: "",
     breed: "",
-    age: 1, 
+    age: 1,
     userId: 0,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [modalMessage, setModalMessage] = useState<string | null>(null);
-
-  const breedOptions = {
-    Vaca: ["Holandês", "Jersey", "Pardo-Suíço", "Girolando", "Guzerá", "Gir Leiteiro", "Simental", "Ayrshire", "Normanda", "Red Poll", "Outro"],
-    Cabra: ["Saanen", "Toggenburg", "Alpina", "Anglo-Nubiana", "Murciana-Granadina", "LaMancha", "Parda Alpina", "Malagueña", "Outro"],
-    Ovelha: ["Lacaune", "East Friesian", "Assaf", "Awassi", "Manchega", "Sarda", "Churra", "British Milk Sheep", "Outro"],
-    Bufala: ["Murrah", "Jafarabadi", "Mediterrânea", "Surti", "Nili-Ravi", "Outro"],
-    Outro: ["Outro"],
-  };
 
   useEffect(() => {
     const token = localStorage.getItem("authToken");
@@ -46,7 +39,7 @@ export default function AddAnimal() {
       if (payload.role !== "Common") {
         router.push("/");
       } else {
-        setFormData((prev) => ({ ...prev, userId: payload.sub })); 
+        setFormData((prev) => ({ ...prev, userId: payload.sub }));
         setLoading(false);
       }
     } catch (err) {
@@ -60,9 +53,11 @@ export default function AddAnimal() {
 
     const newErrors: Record<string, string> = {};
     if (!formData.name) newErrors.name = "Nome é obrigatório";
-    if (!formData.animalType) newErrors.animalType = "Tipo de animal é obrigatório";
+    if (!formData.animalType)
+      newErrors.animalType = "Tipo de animal é obrigatório";
     if (!formData.breed) newErrors.breed = "Raça é obrigatória";
-    if (formData.age < 1) newErrors.age = "Idade deve ser um número inteiro positivo (1 ou mais)";
+    if (formData.age < 1)
+      newErrors.age = "Idade deve ser um número inteiro positivo (1 ou mais)";
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -83,6 +78,7 @@ export default function AddAnimal() {
         setModalMessage("Erro ao cadastrar animal");
       }
     } catch (err) {
+      console.error("Erro ao cadastrar animal:", err);
       setModalMessage("Erro ao cadastrar animal");
     }
   };
@@ -106,7 +102,9 @@ export default function AddAnimal() {
     <div className="flex flex-col lg:flex-row">
       <Sidebar />
       <div className="flex-1 p-8">
-        <h1 className="text-2xl font-bold mb-6 mt-12 md:mt-4">Adicionar Animal</h1>
+        <h1 className="text-2xl font-bold mb-6 mt-12 md:mt-4">
+          Adicionar Animal
+        </h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Nome do Animal */}
           <div>
@@ -116,10 +114,14 @@ export default function AddAnimal() {
             <input
               type="text"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
               className="w-full p-2 border border-gray-300 rounded-lg"
             />
-            {errors.name && <p className="text-red-500 text-sm">{errors.name}</p>}
+            {errors.name && (
+              <p className="text-red-500 text-sm">{errors.name}</p>
+            )}
           </div>
 
           {/* Tipo de Animal */}
@@ -129,7 +131,13 @@ export default function AddAnimal() {
             </label>
             <select
               value={formData.animalType}
-              onChange={(e) => setFormData({ ...formData, animalType: e.target.value, breed: "" })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  animalType: e.target.value,
+                  breed: "",
+                })
+              }
               className="w-full p-2 border border-gray-300 rounded-lg"
             >
               <option value="">Selecione um tipo</option>
@@ -139,7 +147,9 @@ export default function AddAnimal() {
               <option value="Bufala">Bufala</option>
               <option value="Outro">Outro</option>
             </select>
-            {errors.animalType && <p className="text-red-500 text-sm">{errors.animalType}</p>}
+            {errors.animalType && (
+              <p className="text-red-500 text-sm">{errors.animalType}</p>
+            )}
           </div>
 
           {/* Raça do Animal */}
@@ -149,19 +159,25 @@ export default function AddAnimal() {
             </label>
             <select
               value={formData.breed}
-              onChange={(e) => setFormData({ ...formData, breed: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, breed: e.target.value })
+              }
               className="w-full p-2 border border-gray-300 rounded-lg"
               disabled={!formData.animalType}
             >
               <option value="">Selecione uma raça</option>
               {formData.animalType &&
-                breedOptions[formData.animalType as keyof typeof breedOptions].map((breed) => (
+                BREED_OPTIONS[
+                  formData.animalType as keyof typeof BREED_OPTIONS
+                ].map((breed) => (
                   <option key={breed} value={breed}>
                     {breed}
                   </option>
                 ))}
             </select>
-            {errors.breed && <p className="text-red-500 text-sm">{errors.breed}</p>}
+            {errors.breed && (
+              <p className="text-red-500 text-sm">{errors.breed}</p>
+            )}
           </div>
 
           {/* Idade do Animal */}
@@ -178,7 +194,7 @@ export default function AddAnimal() {
                   setFormData({ ...formData, age: value });
                 }
               }}
-              min="1" 
+              min="1"
               className="w-full p-2 border border-gray-300 rounded-lg"
             />
             {errors.age && <p className="text-red-500 text-sm">{errors.age}</p>}

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Sidebar from "@/components/siedbar";
 import { apiBase } from "@/services/baseApi";
+import { BREED_OPTIONS } from "@/constants/animal-breeds";
 
 interface Animal {
   id: number;
@@ -17,7 +18,7 @@ interface Animal {
 export default function EditAnimal() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const animalId = searchParams.get("id"); 
+  const animalId = searchParams.get("id");
 
   const [formData, setFormData] = useState<Animal>({
     id: 0,
@@ -31,13 +32,6 @@ export default function EditAnimal() {
   const [loading, setLoading] = useState(true);
   const [modalMessage, setModalMessage] = useState<string | null>(null);
 
-  const breedOptions = {
-    Vaca: ["Holandês", "Jersey", "Pardo-Suíço", "Girolando", "Guzerá", "Gir Leiteiro", "Simental", "Ayrshire", "Normanda", "Red Poll", "Outro"],
-    Cabra: ["Saanen", "Toggenburg", "Alpina", "Anglo-Nubiana", "Murciana-Granadina", "LaMancha", "Parda Alpina", "Malagueña", "Outro"],
-    Ovelha: ["Lacaune", "East Friesian", "Assaf", "Awassi", "Manchega", "Sarda", "Churra", "British Milk Sheep", "Outro"],
-    Bufala: ["Murrah", "Jafarabadi", "Mediterrânea", "Surti", "Nili-Ravi", "Outro"],
-    Outro: ["Outro"],
-  };
 
   useEffect(() => {
     const token = localStorage.getItem("authToken");
@@ -51,7 +45,7 @@ export default function EditAnimal() {
       if (payload.role !== "Common") {
         router.push("/");
       } else {
-        setFormData((prev) => ({ ...prev, userId: payload.sub })); 
+        setFormData((prev) => ({ ...prev, userId: payload.sub }));
         setLoading(false);
       }
     } catch (err) {
@@ -95,9 +89,11 @@ export default function EditAnimal() {
 
     const newErrors: Record<string, string> = {};
     if (!formData.name) newErrors.name = "Nome é obrigatório";
-    if (!formData.animalType) newErrors.animalType = "Tipo de animal é obrigatório";
+    if (!formData.animalType)
+      newErrors.animalType = "Tipo de animal é obrigatório";
     if (!formData.breed) newErrors.breed = "Raça é obrigatória";
-    if (formData.age < 1) newErrors.age = "Idade deve ser um número inteiro positivo (1 ou mais)";
+    if (formData.age < 1)
+      newErrors.age = "Idade deve ser um número inteiro positivo (1 ou mais)";
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -154,10 +150,14 @@ export default function EditAnimal() {
             <input
               type="text"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
               className="w-full p-2 border border-gray-300 rounded-lg"
             />
-            {errors.name && <p className="text-red-500 text-sm">{errors.name}</p>}
+            {errors.name && (
+              <p className="text-red-500 text-sm">{errors.name}</p>
+            )}
           </div>
 
           {/* Tipo de Animal */}
@@ -167,7 +167,13 @@ export default function EditAnimal() {
             </label>
             <select
               value={formData.animalType}
-              onChange={(e) => setFormData({ ...formData, animalType: e.target.value, breed: "" })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  animalType: e.target.value,
+                  breed: "",
+                })
+              }
               className="w-full p-2 border border-gray-300 rounded-lg"
             >
               <option value="">Selecione um tipo</option>
@@ -177,7 +183,9 @@ export default function EditAnimal() {
               <option value="Bufala">Bufala</option>
               <option value="Outro">Outro</option>
             </select>
-            {errors.animalType && <p className="text-red-500 text-sm">{errors.animalType}</p>}
+            {errors.animalType && (
+              <p className="text-red-500 text-sm">{errors.animalType}</p>
+            )}
           </div>
 
           {/* Raça do Animal */}
@@ -187,19 +195,25 @@ export default function EditAnimal() {
             </label>
             <select
               value={formData.breed}
-              onChange={(e) => setFormData({ ...formData, breed: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, breed: e.target.value })
+              }
               className="w-full p-2 border border-gray-300 rounded-lg"
               disabled={!formData.animalType}
             >
               <option value="">Selecione uma raça</option>
               {formData.animalType &&
-                breedOptions[formData.animalType as keyof typeof breedOptions].map((breed) => (
+                BREED_OPTIONS[
+                  formData.animalType as keyof typeof BREED_OPTIONS
+                ].map((breed) => (
                   <option key={breed} value={breed}>
                     {breed}
                   </option>
                 ))}
             </select>
-            {errors.breed && <p className="text-red-500 text-sm">{errors.breed}</p>}
+            {errors.breed && (
+              <p className="text-red-500 text-sm">{errors.breed}</p>
+            )}
           </div>
 
           {/* Idade do Animal */}
