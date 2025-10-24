@@ -40,28 +40,83 @@ export class AuthService {
     };
   }
 
-  async forgotPassword(email: string) {
+  async forgotPassword(email: string, request?: any) {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new NotFoundException('E-mail não encontrado no sistema.');
+    }
+
     try {
-      const user = await this.prisma.user.findUnique({
-        where: { email },
-      });
+      const resetToken = Math.floor(100000 + Math.random() * 900000).toString();
 
-      if (!user) {
-        throw new Error('Usuário não encontrado.');
-      }
-
-      const resetToken = Math.random().toString(36).substring(2, 15);
+      const resetTokenExpiry = new Date();
+      resetTokenExpiry.setMinutes(resetTokenExpiry.getMinutes() + 15);
 
       await this.prisma.user.update({
         where: { id: user.id },
-        data: { resetToken },
+        data: {
+          resetToken,
+          resetTokenExpiry,
+        },
       });
 
-      await this.mailService.sendResetPasswordEmail(user.email, resetToken);
+      // Extrai metadados do request se disponível
+      let metadata = {
+        expiryDate: resetTokenExpiry,
+        location: 'Não disponível',
+        device: 'Não disponível',
+        browser: 'Não disponível',
+        ipAddress: 'Não disponível',
+      };
 
-      // Retorna uma resposta de sucesso
+      if (request) {
+        const userAgent = request.headers['user-agent'] || '';
+        const ip =
+          request.ip || request.connection.remoteAddress || 'Não disponível';
+
+        // Extrai informações do User-Agent
+        const getOS = (ua: string) => {
+          if (ua.includes('Windows NT 10.0')) return 'Windows 10';
+          if (ua.includes('Windows NT 6.3')) return 'Windows 8.1';
+          if (ua.includes('Windows NT 6.2')) return 'Windows 8';
+          if (ua.includes('Windows NT 6.1')) return 'Windows 7';
+          if (ua.includes('Mac OS X')) return 'macOS';
+          if (ua.includes('Linux')) return 'Linux';
+          if (ua.includes('Android')) return 'Android';
+          if (ua.includes('iOS')) return 'iOS';
+          return 'Desconhecido';
+        };
+
+        const getBrowser = (ua: string) => {
+          if (ua.includes('Edg/')) return 'Edge';
+          if (ua.includes('Chrome/')) return 'Chrome';
+          if (ua.includes('Firefox/')) return 'Firefox';
+          if (ua.includes('Safari/') && !ua.includes('Chrome')) return 'Safari';
+          if (ua.includes('Opera/') || ua.includes('OPR/')) return 'Opera';
+          return 'Desconhecido';
+        };
+
+        metadata = {
+          expiryDate: resetTokenExpiry,
+          location: 'Não disponível', // Pode usar serviço de geolocalização por IP
+          device: getOS(userAgent),
+          browser: getBrowser(userAgent),
+          ipAddress: ip,
+        };
+      }
+
+      await this.mailService.sendResetPasswordEmail(
+        user.email,
+        resetToken,
+        user.name,
+        metadata,
+      );
+
       return {
-        status: HttpStatus.CREATED, // Status 201
+        status: HttpStatus.CREATED,
         message: 'E-mail de redefinição de senha enviado com sucesso.',
       };
     } catch (error) {
@@ -75,25 +130,52 @@ export class AuthService {
     }
   }
 
-  async resetPassword(
-    email: string,
-    token: string,
-    newPassword: string,
-  ): Promise<boolean> {
+  async validateResetToken(email: string, token: string): Promise<boolean> {
     const user = await this.prisma.user.findUnique({
       where: { email },
     });
 
     if (!user) {
-      return false;
+      throw new NotFoundException('Usuário não encontrado.');
     }
 
-    if (user.resetToken !== token) {
-      throw new Error('Token inválido.');
+    if (!user.resetToken || user.resetToken !== token) {
+      throw new UnauthorizedException('Token inválido.');
     }
 
     if (user.resetTokenExpiry && user.resetTokenExpiry < new Date()) {
-      throw new Error('Token expirado.');
+      throw new UnauthorizedException(
+        'Token expirado. Solicite um novo código.',
+      );
+    }
+
+    // Estende a validade do token por mais 15 minutos após validação bem-sucedida
+    const newExpiry = new Date();
+    newExpiry.setMinutes(newExpiry.getMinutes() + 15);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        resetTokenExpiry: newExpiry,
+      },
+    });
+
+    return true;
+  }
+
+  async resetPassword(
+    email: string,
+    token: string,
+    newPassword: string,
+  ): Promise<boolean> {
+    await this.validateResetToken(email, token);
+
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado.');
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 12);

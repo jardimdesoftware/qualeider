@@ -8,6 +8,7 @@ import Wave from "@/components/global/waveFooter";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { apiBase } from "@/services/baseApi";
+import axios from "axios";
 
 export default function ForgotPassword() {
   const [isMobile, setIsMobile] = useState(false);
@@ -15,6 +16,7 @@ export default function ForgotPassword() {
   const [loading, setLoading] = useState(false);
   const [emailError, setEmailError] = useState("");
   const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -59,8 +61,30 @@ export default function ForgotPassword() {
           response.data.message || "Erro ao enviar e-mail de recuperação"
         );
       }
-    } catch (error) {
-      console.error("Erro no frontend:", error);
+    } catch (err) {
+      console.error("Erro no frontend:", err);
+
+      if (axios.isAxiosError(err) && err.response) {
+        // Tratamento de erros específicos do backend
+        if (err.response.status === 404) {
+          setErrorMessage(
+            "E-mail não encontrado no sistema. Verifique o endereço digitado."
+          );
+        } else if (err.response.status === 500) {
+          setErrorMessage(
+            "Erro ao enviar e-mail de recuperação. Tente novamente mais tarde."
+          );
+        } else {
+          setErrorMessage(
+            err.response.data.message || "Ocorreu um erro inesperado."
+          );
+        }
+      } else {
+        setErrorMessage(
+          "Erro ao conectar com o servidor. Verifique sua conexão."
+        );
+      }
+
       setShowErrorPopup(true);
     } finally {
       setLoading(false);
@@ -77,13 +101,8 @@ export default function ForgotPassword() {
       {showErrorPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg text-center z-50">
-            <h2 className="text-xl font-bold text-red-600 mb-4">
-              Erro ao Enviar E-mail
-            </h2>
-            <p className="text-gray-700 mb-4">
-              Ocorreu um erro ao tentar enviar o e-mail de recuperação. Tente
-              novamente mais tarde.
-            </p>
+            <h2 className="text-xl font-bold text-red-600 mb-4">Erro</h2>
+            <p className="text-gray-700 mb-4">{errorMessage}</p>
             <button
               onClick={() => setShowErrorPopup(false)}
               className="bg-green-800 text-white px-4 py-2 rounded-lg hover:bg-green-900"
