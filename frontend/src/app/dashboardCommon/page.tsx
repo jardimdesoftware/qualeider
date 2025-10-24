@@ -7,20 +7,12 @@ import { apiBase } from "@/services/baseApi";
 import EmptyState from "@/components/empty-state";
 import axios from "axios";
 import { Activity, Milk, Cat, Ruler, Wheat, Droplet } from "lucide-react";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from "recharts";
 import { Animal } from "@/interfaces/animal";
 import { DailyCollection } from "@/interfaces/daily-collection";
+import MetricCard from "@/components/metric-card";
+import AnimalDistributionChart from "@/components/dashboard/AnimalDistributionChart";
+import MilkLast7DaysChart from "@/components/dashboard/MilkLast7DaysChart";
+import DashboardLoading from "@/components/dashboard/DashboardLoading";
 
 export default function DashboardCommon() {
   const router = useRouter();
@@ -180,11 +172,7 @@ export default function DashboardCommon() {
   const hasCollections = dailyCollections.length > 0;
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="w-10 h-10 border-4 border-green-700 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
+    return <DashboardLoading />;
   }
 
   return (
@@ -219,167 +207,58 @@ export default function DashboardCommon() {
 
         {/* Cards com Métricas */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mb-8">
-          {/* Card: Total de Animais Cadastrados */}
-          <div className="bg-white p-4 rounded-lg shadow flex items-center">
-            <Cat className="text-green-500 mr-2" size={24} />
-            <div>
-              <h3 className="text-lg font-semibold">Total de Animais</h3>
-              <p className="text-2xl font-bold">{totalAnimals}</p>
-            </div>
-          </div>
+          <MetricCard
+            icon={<Cat size={24} />}
+            iconColor="text-green-500"
+            title="Total de Animais"
+            value={totalAnimals}
+          />
 
-          {/* Card: Total de Leite Coletado no Mês */}
-          <div className="bg-white p-4 rounded-lg shadow flex items-center">
-            <Milk className="text-blue-500 mr-2" size={24} />
-            <div>
-              <h3 className="text-lg font-semibold">Leite Coletado (Mês)</h3>
-              <p className="text-2xl font-bold">
-                {totalMilkThisMonth.toFixed(2)} litros
-              </p>
-            </div>
-          </div>
+          <MetricCard
+            icon={<Milk size={24} />}
+            iconColor="text-blue-500"
+            title="Leite Coletado (Mês)"
+            value={totalMilkThisMonth.toFixed(2)}
+            unit="litros"
+          />
 
-          {/* Card: Idade Média dos Animais */}
-          <div className="bg-white p-4 rounded-lg shadow flex items-center">
-            <Ruler className="text-purple-500 mr-2" size={24} />
-            <div>
-              <h3 className="text-lg font-semibold">Idade Média dos Animais</h3>
-              <p className="text-2xl font-bold">
-                {averageAnimalAge.toFixed(1)} anos
-              </p>
-            </div>
-          </div>
+          <MetricCard
+            icon={<Ruler size={24} />}
+            iconColor="text-purple-500"
+            title="Idade Média dos Animais"
+            value={averageAnimalAge.toFixed(1)}
+            unit="anos"
+          />
 
-          {/* Card: Porcentagem de Ração Fornecida */}
-          <div className="bg-white p-4 rounded-lg shadow flex items-center">
-            <Wheat className="text-yellow-500 mr-2" size={24} />
-            <div>
-              <h3 className="text-lg font-semibold">Ração Fornecida</h3>
-              <p className="text-2xl font-bold">
-                {rationProvidedPercentage.toFixed(1)}%
-              </p>
-            </div>
-          </div>
+          <MetricCard
+            icon={<Wheat size={24} />}
+            iconColor="text-yellow-500"
+            title="Ração Fornecida"
+            value={`${rationProvidedPercentage.toFixed(1)}%`}
+          />
 
-          {/* Card: Total de Ordenhas no Mês */}
-          <div className="bg-white p-4 rounded-lg shadow flex items-center">
-            <Activity className="text-red-500 mr-2" size={24} />
-            <div>
-              <h3 className="text-lg font-semibold">Total de Ordenhas (Mês)</h3>
-              <p className="text-2xl font-bold">{totalMilkingThisMonth}</p>
-            </div>
-          </div>
+          <MetricCard
+            icon={<Activity size={24} />}
+            iconColor="text-red-500"
+            title="Total de Ordenhas (Mês)"
+            value={totalMilkingThisMonth}
+          />
 
-          {/* Card: Média de Lactações no Mês */}
-          <div className="bg-white p-4 rounded-lg shadow flex items-center">
-            <Droplet className="text-pink-500 mr-2" size={24} />
-            <div>
-              <h3 className="text-lg font-semibold">
-                Média de Lactações (Mês)
-              </h3>
-              <p className="text-2xl font-bold">
-                {averageLactationsThisMonth.toFixed(1)}
-              </p>
-            </div>
-          </div>
+          <MetricCard
+            icon={<Droplet size={24} />}
+            iconColor="text-pink-500"
+            title="Média de Lactações (Mês)"
+            value={averageLactationsThisMonth.toFixed(1)}
+          />
         </div>
 
         {/* Gráficos */}
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Gráfico de Pizza - Distribuição por Tipo de Animal */}
-          <div className="bg-white p-4 rounded-lg shadow flex-1 flex flex-col items-center">
-            <h2 className="text-lg font-semibold mb-4">
-              Distribuição por Tipo de Animal
-            </h2>
-            {hasAnimals ? (
-              <div className="w-full flex justify-center">
-                <PieChart width={345} height={300}>
-                  <Pie
-                    data={pieChartData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={90}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ percent }) => `(${(percent * 100).toFixed(0)}%)`}
-                  >
-                    {pieChartData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={
-                          [
-                            "#4E79A7",
-                            "#E15759",
-                            "#76B7B2",
-                            "#59A14F",
-                            "#F28E2B",
-                          ][index % 5]
-                        }
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </div>
-            ) : (
-              <div className="w-full">
-                <EmptyState
-                  icon={<Cat size={32} />}
-                  title="Sem dados de animais"
-                  description="Cadastre animais para ver a distribuição por tipo."
-                  actionHref="/manageAnimals/create"
-                  actionLabel="Cadastrar animal"
-                />
-              </div>
-            )}
-          </div>
+          <AnimalDistributionChart data={pieChartData} />
 
           {/* Gráfico de Linhas - Leite Coletado nos Últimos 7 Dias */}
-          <div className="bg-white p-4 rounded-lg shadow flex-1 flex flex-col items-center">
-            <h2 className="text-lg font-semibold mb-4">
-              Leite Coletado (Últimos 7 Dias)
-            </h2>
-            {hasCollections ? (
-              <div className="w-full h-[300px] flex justify-center items-center">
-                <LineChart
-                  width={500}
-                  height={300}
-                  data={lineChartData}
-                  margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend
-                    align="center"
-                    wrapperStyle={{
-                      paddingTop: 10,
-                      textAlign: "center",
-                    }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="quantity"
-                    name="Leite (litros)"
-                    stroke="#9467BD"
-                    activeDot={{ r: 8 }}
-                  />
-                </LineChart>
-              </div>
-            ) : (
-              <div className="w-full">
-                <EmptyState
-                  icon={<Milk size={32} />}
-                  title="Sem dados de coletas"
-                  description="Registre coletas diárias para visualizar o gráfico."
-                  actionHref="/dailyForm"
-                  actionLabel="Registrar coleta"
-                />
-              </div>
-            )}
-          </div>
+          <MilkLast7DaysChart data={lineChartData} />
         </div>
       </div>
     </div>

@@ -7,6 +7,7 @@ import { apiBase } from "@/services/baseApi";
 import { Estado, Cidade } from "@/interfaces/location";
 import { User } from "@/interfaces/user";
 import { USER_CATEGORIES, sortByNamePtBr } from "@/constants/user-options";
+import DashboardLoading from "@/components/dashboard/DashboardLoading";
 
 export default function EditUser() {
   const router = useRouter();
@@ -180,11 +181,7 @@ export default function EditUser() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="w-10 h-10 border-4 border-green-700 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
+    return <DashboardLoading />;
   }
 
   return (

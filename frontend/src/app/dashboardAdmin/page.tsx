@@ -19,6 +19,8 @@ import {
 } from "recharts";
 import { DailyCollection } from "@/interfaces/daily-collection";
 import { User } from "@/interfaces/user";
+import MetricCard from "@/components/metric-card";
+import DashboardLoading from "@/components/dashboard/DashboardLoading";
 
 export default function DashboardAdmin() {
   const router = useRouter();
@@ -143,11 +145,7 @@ export default function DashboardAdmin() {
   }));
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="w-10 h-10 border-4 border-green-700 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
+    return <DashboardLoading />;
   }
 
   return (
@@ -158,69 +156,48 @@ export default function DashboardAdmin() {
 
         {/* Cards com Métricas */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mb-8">
-          {/* Card: Total de Leite Coletado no Mês */}
-          <div className="bg-white p-4 rounded-lg shadow flex items-center">
-            <Milk className="text-blue-500 mr-2" size={24} />
-            <div>
-              <h3 className="text-lg font-semibold">Leite Coletado (Mês)</h3>
-              <p className="text-2xl font-bold">
-                {totalMilkThisMonth.toFixed(2)} litros
-              </p>
-            </div>
-          </div>
+          <MetricCard
+            icon={<Milk size={24} />}
+            iconColor="text-blue-500"
+            title="Leite Coletado (Mês)"
+            value={totalMilkThisMonth.toFixed(2)}
+            unit="litros"
+          />
 
-          {/* Card: Média de Lactações no Mês */}
-          <div className="bg-white p-4 rounded-lg shadow flex items-center">
-            <Activity className="text-purple-500 mr-2" size={24} />
-            <div>
-              <h3 className="text-lg font-semibold">
-                Média de Lactações (Mês)
-              </h3>
-              <p className="text-2xl font-bold">
-                {averageLactationsThisMonth.toFixed(1)}
-              </p>
-            </div>
-          </div>
+          <MetricCard
+            icon={<Activity size={24} />}
+            iconColor="text-purple-500"
+            title="Média de Lactações (Mês)"
+            value={averageLactationsThisMonth.toFixed(1)}
+          />
 
-          {/* Card: Total de Ordenhas no Mês */}
-          <div className="bg-white p-4 rounded-lg shadow flex items-center">
-            <BarChart2 className="text-yellow-500 mr-2" size={24} />
-            <div>
-              <h3 className="text-lg font-semibold">Total de Ordenhas (Mês)</h3>
-              <p className="text-2xl font-bold">{totalMilkingThisMonth}</p>
-            </div>
-          </div>
+          <MetricCard
+            icon={<BarChart2 size={24} />}
+            iconColor="text-yellow-500"
+            title="Total de Ordenhas (Mês)"
+            value={totalMilkingThisMonth}
+          />
 
-          {/* Card: Uso de Assistência Técnica no Mês */}
-          <div className="bg-white p-4 rounded-lg shadow flex items-center">
-            <Activity className="text-red-500 mr-2" size={24} />
-            <div>
-              <h3 className="text-lg font-semibold">
-                Uso de Assistência Técnica (Mês)
-              </h3>
-              <p className="text-2xl font-bold">
-                {technicalAssistanceUsageThisMonth.toFixed(1)}%
-              </p>
-            </div>
-          </div>
+          <MetricCard
+            icon={<Activity size={24} />}
+            iconColor="text-red-500"
+            title="Uso de Assistência Técnica (Mês)"
+            value={`${technicalAssistanceUsageThisMonth.toFixed(1)}%`}
+          />
 
-          {/* Card: Quantidade de Usuários Ativos */}
-          <div className="bg-white p-4 rounded-lg shadow flex items-center">
-            <Users className="text-green-500 mr-2" size={24} />
-            <div>
-              <h3 className="text-lg font-semibold">Usuários Ativos</h3>
-              <p className="text-2xl font-bold">{activeUsers}</p>
-            </div>
-          </div>
+          <MetricCard
+            icon={<Users size={24} />}
+            iconColor="text-green-500"
+            title="Usuários Ativos"
+            value={activeUsers}
+          />
 
-          {/* Card: Quantidade de Usuários de Belo Jardim */}
-          <div className="bg-white p-4 rounded-lg shadow flex items-center">
-            <MapPin className="text-pink-500 mr-2" size={24} />
-            <div>
-              <h3 className="text-lg font-semibold">Usuários de Belo Jardim</h3>
-              <p className="text-2xl font-bold">{usersFromBeloJardim}</p>
-            </div>
-          </div>
+          <MetricCard
+            icon={<MapPin size={24} />}
+            iconColor="text-pink-500"
+            title="Usuários de Belo Jardim"
+            value={usersFromBeloJardim}
+          />
         </div>
 
         {/* Gráficos */}

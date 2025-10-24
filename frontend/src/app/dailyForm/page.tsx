@@ -8,6 +8,7 @@ import {
   MilkingPlace,
   DailyCollectionCreate,
 } from "@/interfaces/daily-collection";
+import DashboardLoading from "@/components/dashboard/DashboardLoading";
 
 export default function DailyForm() {
   const router = useRouter();
@@ -118,11 +119,7 @@ export default function DailyForm() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="w-10 h-10 border-4 border-green-700 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
+    return <DashboardLoading />;
   }
 
   if (alreadySubmitted) {

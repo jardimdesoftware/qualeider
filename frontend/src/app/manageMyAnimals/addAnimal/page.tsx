@@ -6,6 +6,7 @@ import Sidebar from "@/components/siedbar";
 import { apiBase } from "@/services/baseApi";
 import { BREED_OPTIONS } from "@/constants/animal-breeds";
 import { CreateAnimal } from "@/interfaces/animal";
+import DashboardLoading from "@/components/dashboard/DashboardLoading";
 
 export default function AddAnimal() {
   const router = useRouter();
@@ -89,11 +90,7 @@ export default function AddAnimal() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="w-10 h-10 border-4 border-green-700 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
+    return <DashboardLoading />;
   }
 
   return (

@@ -7,6 +7,7 @@ import { apiBase } from "@/services/baseApi";
 import { Eye, EyeOff } from "lucide-react";
 import { Estado, Cidade } from "@/interfaces/location";
 import { USER_CATEGORIES, sortByNamePtBr } from "@/constants/user-options";
+import DashboardLoading from "@/components/dashboard/DashboardLoading";
 
 export default function AddUser() {
   const router = useRouter();
@@ -154,11 +155,7 @@ export default function AddUser() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="w-10 h-10 border-4 border-green-700 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
+    return <DashboardLoading />;
   }
 
   return (
