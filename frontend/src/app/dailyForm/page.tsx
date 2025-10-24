@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Sidebar from "@/components/siedbar";
+import Sidebar from "@/components/sidebar";
 import { apiBase } from "@/services/baseApi";
 import {
   MilkingPlace,
@@ -21,6 +21,7 @@ export default function DailyForm() {
     numLactation: 0,
     milkingPlace: MilkingPlace.Aberto,
     technicalAssistance: false,
+    collectionDate: new Date().toISOString().split("T")[0],
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);

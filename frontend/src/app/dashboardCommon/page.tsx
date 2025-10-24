@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Sidebar from "@/components/siedbar";
+import Sidebar from "@/components/sidebar";
 import { apiBase } from "@/services/baseApi";
 import EmptyState from "@/components/empty-state";
 import axios from "axios";

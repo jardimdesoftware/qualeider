@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Sidebar from "@/components/siedbar";
+import Sidebar from "@/components/sidebar";
 import { apiBase } from "@/services/baseApi";
 import React from "react";
 import axios from "axios";
@@ -135,6 +135,7 @@ export default function ManageAnimals() {
         setSuccessMessage(null);
       }, 3000);
     } catch (err) {
+      console.error("Erro ao excluir o animal:", err);
       setErrorMessage("Erro ao excluir o animal. Tente novamente mais tarde.");
       setShowErrorPopup(true);
     } finally {

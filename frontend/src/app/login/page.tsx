@@ -79,7 +79,8 @@ export default function Login() {
       }
 
       console.log("Token recebido:", access_token);
-    } catch (error) {
+    } catch (err) {
+      console.error("Erro ao fazer login:", err);
       setErrorMessage("Erro ao fazer login. Verifique suas credenciais.");
       setShowErrorPopup(true); 
     } finally {

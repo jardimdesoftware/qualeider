@@ -133,7 +133,7 @@ export default function ForgotPassword() {
               <p>Esqueceu sua senha? Sem problemas! Siga os passos abaixo para redefinir sua senha e acessar sua conta novamente:</p>
               <ol className="list-decimal list-inside text-left">
                 <li>Insira o e-mail cadastrado no campo.</li>
-                <li>Clique em "Enviar" para receber um link de redefinição.</li>
+                <li>Clique em &ldquo;Enviar&rdquo; para receber um link de redefinição.</li>
                 <li>Acesse seu e-mail e siga as instruções para criar uma nova senha.</li>
               </ol>
               <p>Se você não receber o e-mail em alguns minutos, verifique sua caixa de spam ou entre em contato conosco.</p>

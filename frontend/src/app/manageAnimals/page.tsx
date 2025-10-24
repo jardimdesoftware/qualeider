@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Sidebar from "@/components/siedbar";
+import Sidebar from "@/components/sidebar";
 import { apiBase } from "@/services/baseApi";
 import { Activity, PieChart as PieChartIcon, BarChart2 } from "lucide-react";
 import {

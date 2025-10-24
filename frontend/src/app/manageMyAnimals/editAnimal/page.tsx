@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Sidebar from "@/components/siedbar";
+import Sidebar from "@/components/sidebar";
 import { apiBase } from "@/services/baseApi";
 import { BREED_OPTIONS } from "@/constants/animal-breeds";
 import { Animal } from "@/interfaces/animal";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 
-export default function EditAnimal() {
+function EditAnimalContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const animalId = searchParams.get("id");
@@ -106,6 +106,7 @@ export default function EditAnimal() {
         setModalMessage("Erro ao atualizar animal.");
       }
     } catch (err) {
+      console.error("Erro ao atualizar animal:", err);
       setModalMessage("Erro ao atualizar animal.");
     }
   };
@@ -258,5 +259,13 @@ export default function EditAnimal() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function EditAnimal() {
+  return (
+    <Suspense fallback={<DashboardLoading />}>
+      <EditAnimalContent />
+    </Suspense>
   );
 }

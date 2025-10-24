@@ -109,7 +109,8 @@ export default function ResetPassword() {
         setErrorMessage("Erro ao redefinir a senha.");
         setShowErrorPopup(true); 
       }
-    } catch (error) {
+    } catch (err) {
+      console.error("Erro ao conectar-se à API:", err);
       setErrorMessage("Erro ao conectar-se à API.");
       setShowErrorPopup(true); 
     } finally {
@@ -241,7 +242,7 @@ export default function ResetPassword() {
                 <li>Nova Senha: Crie uma senha segura.</li>
                 <li>Confirme a Nova Senha: Digite a senha novamente para confirmar.</li>
               </ol>
-              <p>Clique em <strong>"Redefinir Senha"</strong> para concluir o processo.</p>
+              <p>Clique em <strong>&ldquo;Redefinir Senha&rdquo;</strong> para concluir o processo.</p>
             </div>
           </div>
           <div className="absolute bottom-4 right-4">

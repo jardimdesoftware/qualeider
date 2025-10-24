@@ -1,7 +1,7 @@
 import Logo from "@/assets/Logo.png";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Menu, X, Home, Users, Folder, Calendar, FileText, PieChart, LogOut, Milk, Settings } from "lucide-react";
+import { Menu, X, Users, FileText, PieChart, LogOut, Milk, Settings } from "lucide-react";
 
 export default function Sidebar() {
   const [isMobile, setIsMobile] = useState(false);

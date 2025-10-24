@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Sidebar from "@/components/siedbar";
+import Sidebar from "@/components/sidebar";
 import { apiBase } from "@/services/baseApi";
 import { Estado, Cidade } from "@/interfaces/location";
 import { User } from "@/interfaces/user";
 import { USER_CATEGORIES, sortByNamePtBr } from "@/constants/user-options";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 
-export default function EditUser() {
+function EditUserContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const userId = searchParams.get("id"); // Obtém o ID do usuário da URL
@@ -374,5 +374,13 @@ export default function EditUser() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function EditUser() {
+  return (
+    <Suspense fallback={<DashboardLoading />}>
+      <EditUserContent />
+    </Suspense>
   );
 }
