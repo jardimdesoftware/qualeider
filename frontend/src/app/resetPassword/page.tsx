@@ -170,7 +170,13 @@ export default function ResetPassword() {
           </Link>
           {isMobile && (
             <div className="flex flex-col items-center mb-4">
-              <Image src={Logo} alt="Logo do sistema" className="w-20 h-20" width={80} height={80} />
+              <Image
+                src={Logo}
+                alt="Logo do sistema"
+                className="w-20 h-20"
+                width={80}
+                height={80}
+              />
             </div>
           )}
           <h1 className="text-2xl font-bold text-gray-900 mb-6 text-center">
@@ -289,7 +295,13 @@ export default function ResetPassword() {
             </div>
           </div>
           <div className="absolute bottom-4 right-4">
-            <Image src={Logo} alt="Logo do sistema" className="w-20 h-20" width={80} height={80} />
+            <Image
+              src={Logo}
+              alt="Logo do sistema"
+              className="w-20 h-20"
+              width={80}
+              height={80}
+            />
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
@@ -22,9 +22,11 @@ export default function Home() {
   }, []);
 
   return (
-    <main className={`flex justify-center items-center min-h-screen p-8 ${
-      isMobile ? "bg-green-background" : ""
-    }`}>
+    <main
+      className={`flex justify-center items-center min-h-screen p-8 ${
+        isMobile ? "bg-green-background" : ""
+      }`}
+    >
       {/* Container Central */}
       <div className="w-full max-w-4xl bg-white shadow-lg rounded-lg overflow-hidden flex flex-col md:flex-row">
         {/* Seção Esquerda - Login */}
@@ -32,8 +34,16 @@ export default function Home() {
           {/* Exibe a logo e o nome QuaLeiDer apenas no mobile */}
           {isMobile && (
             <div className="flex flex-col items-center mb-4">
-              <h1 className="text-2xl font-bold text-gray-900 mt-2">QuaLeiDer</h1>
-              <Image src={Logo} alt="Logo do sistema" className="w-20 h-20" width={80} height={80} />
+              <h1 className="text-2xl font-bold text-gray-900 mt-2">
+                QuaLeiDer
+              </h1>
+              <Image
+                src={Logo}
+                alt="Logo do sistema"
+                className="w-20 h-20"
+                width={80}
+                height={80}
+              />
             </div>
           )}
 
@@ -78,19 +88,32 @@ export default function Home() {
         <div className="hidden md:flex w-full md:w-1/2 bg-green-background p-12 flex-col justify-between items-center relative">
           <div className="text-center">
             <h1 className="text-2xl text-white mb-4">
-              Bem-vindo ao <span className="font-bold text-white">QualeiDer!</span>
+              Bem-vindo ao{" "}
+              <span className="font-bold text-white">QualeiDer!</span>
             </h1>
 
             {/* Parágrafos de texto */}
             <div className="text-white space-y-2 text-sm">
-              <p>A solução completa para o gerenciamento da sua produção leiteira.</p>
-              <p>No QualeiDer, você pode cadastrar seus animais e monitorar a produção diária de leite de forma simples e organizada.</p>
+              <p>
+                A solução completa para o gerenciamento da sua produção
+                leiteira.
+              </p>
+              <p>
+                No QualeiDer, você pode cadastrar seus animais e monitorar a
+                produção diária de leite de forma simples e organizada.
+              </p>
             </div>
           </div>
 
           {/* Selo na parte inferior */}
           <div className="absolute bottom-4 right-4">
-            <Image src={Logo} alt="Logo do sistema" className="w-20 h-20" width={80} height={80} />
+            <Image
+              src={Logo}
+              alt="Logo do sistema"
+              className="w-20 h-20"
+              width={80}
+              height={80}
+            />
           </div>
         </div>
       </div>

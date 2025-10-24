@@ -2,7 +2,16 @@ import Image from "next/image";
 import Logo from "@/assets/Logo.png";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Menu, X, Users, FileText, PieChart, LogOut, Milk, Settings } from "lucide-react";
+import {
+  Menu,
+  X,
+  Users,
+  FileText,
+  PieChart,
+  LogOut,
+  Milk,
+  Settings,
+} from "lucide-react";
 
 export default function Sidebar() {
   const [isMobile, setIsMobile] = useState(false);
@@ -18,13 +27,13 @@ export default function Sidebar() {
     const token = localStorage.getItem("authToken");
     if (token) {
       try {
-        const payload = JSON.parse(atob(token.split(".")[1])); 
-        return payload.role; 
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        return payload.role;
       } catch (error) {
         console.error("Erro ao decodificar o token:", error);
       }
     }
-    return "Common"; 
+    return "Common";
   };
 
   useEffect(() => {
@@ -45,20 +54,47 @@ export default function Sidebar() {
 
   const handleLogout = () => {
     localStorage.removeItem("authToken");
-    window.location.href = "/"; 
+    window.location.href = "/";
   };
 
-  const menuItems = userRole === "Admin" ? [
-    { name: "Dashboard", link: "/dashboardAdmin", icon: <PieChart size={20} /> },
-    { name: "Usuários", link: "/manageUsers", icon: <Users size={20} /> },
-    { name: "Animais", link: "/manageAnimals", icon: <Milk size={20} /> },
-    { name: "Configuração", link: "/settings", icon: <Settings size={20} /> },
-  ] : [
-    { name: "Dashboard", link: "/dashboardCommon", icon: <PieChart size={20} /> },
-    { name: "Animais", link: "/manageMyAnimals", icon: <Milk size={20} /> },
-    { name: "Formulário", link: "/dailyForm", icon: <FileText size={20} /> },
-    { name: "Configuração", link: "/settings", icon: <Settings size={20} /> },
-  ];
+  const menuItems =
+    userRole === "Admin"
+      ? [
+          {
+            name: "Dashboard",
+            link: "/dashboardAdmin",
+            icon: <PieChart size={20} />,
+          },
+          { name: "Usuários", link: "/manageUsers", icon: <Users size={20} /> },
+          { name: "Animais", link: "/manageAnimals", icon: <Milk size={20} /> },
+          {
+            name: "Configuração",
+            link: "/settings",
+            icon: <Settings size={20} />,
+          },
+        ]
+      : [
+          {
+            name: "Dashboard",
+            link: "/dashboardCommon",
+            icon: <PieChart size={20} />,
+          },
+          {
+            name: "Animais",
+            link: "/manageMyAnimals",
+            icon: <Milk size={20} />,
+          },
+          {
+            name: "Formulário",
+            link: "/dailyForm",
+            icon: <FileText size={20} />,
+          },
+          {
+            name: "Configuração",
+            link: "/settings",
+            icon: <Settings size={20} />,
+          },
+        ];
 
   return (
     <div>
@@ -73,14 +109,27 @@ export default function Sidebar() {
           </div>
 
           {/* Menu lateral acima da barra verde */}
-          <div className={`fixed top-0 left-0 h-screen w-64 bg-green-background shadow-lg p-4 transition-transform duration-300 z-50 ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}>
-            <button onClick={toggleMenu} className="absolute top-4 right-4 text-white">
+          <div
+            className={`fixed top-0 left-0 h-screen w-64 bg-green-background shadow-lg p-4 transition-transform duration-300 z-50 ${
+              menuOpen ? "translate-x-0" : "-translate-x-full"
+            }`}
+          >
+            <button
+              onClick={toggleMenu}
+              className="absolute top-4 right-4 text-white"
+            >
               <X size={24} />
             </button>
 
             {/* Logo */}
             <div className="flex items-center gap-2 p-4">
-              <Image src={Logo} alt="Logo" className="w-10 h-10" width={40} height={40} />
+              <Image
+                src={Logo}
+                alt="Logo"
+                className="w-10 h-10"
+                width={40}
+                height={40}
+              />
               <h2 className="text-white font-bold text-lg">QualeiDer</h2>
             </div>
 
@@ -90,7 +139,9 @@ export default function Sidebar() {
                   key={item.link}
                   href={item.link}
                   className={`flex items-center gap-2 p-3 rounded-lg transition-colors duration-200 ${
-                    pathname === item.link ? "text-gray-900 bg-white" : "text-white hover:bg-gray-200 hover:text-gray-900"
+                    pathname === item.link
+                      ? "text-gray-900 bg-white"
+                      : "text-white hover:bg-gray-200 hover:text-gray-900"
                   }`}
                 >
                   {item.icon}
@@ -102,7 +153,7 @@ export default function Sidebar() {
             {/* Botão de sair */}
             <div className="absolute bottom-4 left-4">
               <button
-                onClick={handleLogout} 
+                onClick={handleLogout}
                 className="flex items-center gap-2 text-white p-3 rounded-lg hover:bg-red-600"
               >
                 <LogOut size={20} />
@@ -116,7 +167,13 @@ export default function Sidebar() {
           <div>
             {/* Logo */}
             <div className="flex items-center gap-2 p-4">
-              <Image src={Logo} alt="Logo" className="w-10 h-10" width={40} height={40} />
+              <Image
+                src={Logo}
+                alt="Logo"
+                className="w-10 h-10"
+                width={40}
+                height={40}
+              />
               <h2 className="text-white font-bold text-lg">QualeiDer</h2>
             </div>
 
@@ -126,7 +183,9 @@ export default function Sidebar() {
                   key={item.link}
                   href={item.link}
                   className={`flex items-center gap-2 p-3 rounded-lg transition-colors duration-200 ${
-                    pathname === item.link ? "text-gray-900 bg-white" : "text-white hover:bg-gray-200 hover:text-gray-900"
+                    pathname === item.link
+                      ? "text-gray-900 bg-white"
+                      : "text-white hover:bg-gray-200 hover:text-gray-900"
                   }`}
                 >
                   {item.icon}
@@ -139,7 +198,7 @@ export default function Sidebar() {
           {/* Botão de sair */}
           <div className="p-4">
             <button
-              onClick={handleLogout} 
+              onClick={handleLogout}
               className="flex items-center gap-2 text-white p-3 rounded-lg hover:bg-red-600 hover:text-white w-full transition-colors duration-200"
             >
               <LogOut size={20} />

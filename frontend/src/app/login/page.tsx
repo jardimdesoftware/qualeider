@@ -121,7 +121,13 @@ export default function Login() {
               <h1 className="text-2xl font-bold text-gray-900 mt-2">
                 QuaLeiDer
               </h1>
-              <Image src={Logo} alt="Logo do sistema" className="w-20 h-20" width={80} height={80} />
+              <Image
+                src={Logo}
+                alt="Logo do sistema"
+                className="w-20 h-20"
+                width={80}
+                height={80}
+              />
             </div>
           )}
 
@@ -242,7 +248,13 @@ export default function Login() {
 
           {/* Selo na parte inferior */}
           <div className="absolute bottom-4 right-4">
-            <Image src={Logo} alt="Logo do sistema" className="w-20 h-20" width={80} height={80} />
+            <Image
+              src={Logo}
+              alt="Logo do sistema"
+              className="w-20 h-20"
+              width={80}
+              height={80}
+            />
           </div>
         </div>
       </div>
