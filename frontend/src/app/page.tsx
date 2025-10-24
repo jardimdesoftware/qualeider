@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import Logo from "@/assets/Logo.png";
 import Button from "@/components/global/button";
 import Wave from "@/components/global/waveFooter";
@@ -32,7 +33,7 @@ export default function Home() {
           {isMobile && (
             <div className="flex flex-col items-center mb-4">
               <h1 className="text-2xl font-bold text-gray-900 mt-2">QuaLeiDer</h1>
-              <img src={Logo.src} alt="Logo do sistema" className="w-20 h-20" />
+              <Image src={Logo} alt="Logo do sistema" className="w-20 h-20" width={80} height={80} />
             </div>
           )}
 
@@ -89,7 +90,7 @@ export default function Home() {
 
           {/* Selo na parte inferior */}
           <div className="absolute bottom-4 right-4">
-            <img src={Logo.src} alt="Logo do sistema" className="w-20 h-20" />
+            <Image src={Logo} alt="Logo do sistema" className="w-20 h-20" width={80} height={80} />
           </div>
         </div>
       </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import Logo from "@/assets/Logo.png";
 import Button from "@/components/global/button";
 import Wave from "@/components/global/waveFooter";
@@ -15,8 +16,8 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
-  const [showErrorPopup, setShowErrorPopup] = useState(false); 
-  const [errorMessage, setErrorMessage] = useState(""); 
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -82,14 +83,18 @@ export default function Login() {
     } catch (err) {
       console.error("Erro ao fazer login:", err);
       setErrorMessage("Erro ao fazer login. Verifique suas credenciais.");
-      setShowErrorPopup(true); 
+      setShowErrorPopup(true);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className={`flex justify-center items-center min-h-screen p-8 ${isMobile ? "bg-green-background" : ""}`}>
+    <main
+      className={`flex justify-center items-center min-h-screen p-8 ${
+        isMobile ? "bg-green-background" : ""
+      }`}
+    >
       {/* Popout de Erro */}
       {showErrorPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
@@ -113,8 +118,10 @@ export default function Login() {
           {/* Exibe a logo e o nome QuaLeiDer apenas no mobile */}
           {isMobile && (
             <div className="flex flex-col items-center mb-4">
-              <h1 className="text-2xl font-bold text-gray-900 mt-2">QuaLeiDer</h1>
-              <img src={Logo.src} alt="Logo do sistema" className="w-20 h-20" />
+              <h1 className="text-2xl font-bold text-gray-900 mt-2">
+                QuaLeiDer
+              </h1>
+              <Image src={Logo} alt="Logo do sistema" className="w-20 h-20" width={80} height={80} />
             </div>
           )}
 
@@ -137,7 +144,9 @@ export default function Login() {
                 className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                 required
               />
-              {emailError && <p className="text-red-500 text-sm mt-1">{emailError}</p>}
+              {emailError && (
+                <p className="text-red-500 text-sm mt-1">{emailError}</p>
+              )}
             </div>
             <div className="relative">
               <label className="text-gray-700 font-medium">Senha</label>
@@ -158,12 +167,17 @@ export default function Login() {
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
-              {passwordError && <p className="text-red-500 text-sm mt-1">{passwordError}</p>}
+              {passwordError && (
+                <p className="text-red-500 text-sm mt-1">{passwordError}</p>
+              )}
             </div>
           </div>
 
           {/* Esqueci minha senha */}
-          <a href="/forgotPassword" className="text-green-700 font-semibold text-sm mt-2 inline-block">
+          <a
+            href="/forgotPassword"
+            className="text-green-700 font-semibold text-sm mt-2 inline-block"
+          >
             Esqueci minha senha
           </a>
 
@@ -181,7 +195,9 @@ export default function Login() {
           {/* Link de registro */}
           <p className="text-center text-gray-700 mt-4 text-sm">
             Não tem uma conta?{" "}
-            <a href="/createAccount" className="text-green-700 font-semibold">Registre-se</a>
+            <a href="/createAccount" className="text-green-700 font-semibold">
+              Registre-se
+            </a>
           </p>
 
           {/* Rodapé */}
@@ -200,19 +216,33 @@ export default function Login() {
 
             {/* Parágrafos de texto */}
             <div className="text-white space-y-2 text-sm">
-              <p>Sua ferramenta essencial para o gerenciamento da produção leiteira.</p>
-              <p>Com o <strong>QualeiDer</strong>, você pode:</p>
+              <p>
+                Sua ferramenta essencial para o gerenciamento da produção
+                leiteira.
+              </p>
+              <p>
+                Com o <strong>QualeiDer</strong>, você pode:
+              </p>
               <ul className="list-disc list-inside">
-                <li><strong>Cadastrar e gerenciar</strong> seus animais de forma simples e organizada.</li>
-                <li><strong>Monitorar a produção diária</strong> de leite com precisão e facilidade.</li>
-                <li><strong>Acessar gráficos detalhados</strong> para tomar decisões mais inteligentes.</li>
+                <li>
+                  <strong>Cadastrar e gerenciar</strong> seus animais de forma
+                  simples e organizada.
+                </li>
+                <li>
+                  <strong>Monitorar a produção diária</strong> de leite com
+                  precisão e facilidade.
+                </li>
+                <li>
+                  <strong>Acessar gráficos detalhados</strong> para tomar
+                  decisões mais inteligentes.
+                </li>
               </ul>
             </div>
           </div>
 
           {/* Selo na parte inferior */}
           <div className="absolute bottom-4 right-4">
-            <img src={Logo.src} alt="Logo do sistema" className="w-20 h-20" />
+            <Image src={Logo} alt="Logo do sistema" className="w-20 h-20" width={80} height={80} />
           </div>
         </div>
       </div>
