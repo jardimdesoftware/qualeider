@@ -41,8 +41,10 @@ export class AuthService {
   }
 
   async forgotPassword(email: string, request?: any) {
+    const normalizedEmail = email.toLowerCase();
+
     const user = await this.prisma.user.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
     });
 
     if (!user) {
@@ -63,7 +65,6 @@ export class AuthService {
         },
       });
 
-      // Extrai metadados do request se disponível
       let metadata = {
         expiryDate: resetTokenExpiry,
         location: 'Não disponível',
@@ -77,7 +78,6 @@ export class AuthService {
         const ip =
           request.ip || request.connection.remoteAddress || 'Não disponível';
 
-        // Extrai informações do User-Agent
         const getOS = (ua: string) => {
           if (ua.includes('Windows NT 10.0')) return 'Windows 10';
           if (ua.includes('Windows NT 6.3')) return 'Windows 8.1';
@@ -101,7 +101,7 @@ export class AuthService {
 
         metadata = {
           expiryDate: resetTokenExpiry,
-          location: 'Não disponível', // Pode usar serviço de geolocalização por IP
+          location: 'Não disponível',
           device: getOS(userAgent),
           browser: getBrowser(userAgent),
           ipAddress: ip,
