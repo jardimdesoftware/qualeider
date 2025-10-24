@@ -4,7 +4,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from '@/infrastructure/prisma/prisma.module';
 import { InfrastructureModule } from '@/infrastructure/infrastructure.module';
-import { MailModule } from './mail/mail.module';
+import { MailModule } from '@/mail/mail.module';
 
 @Module({
   imports: [

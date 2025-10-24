@@ -1,5 +1,3 @@
-// Pure domain enums used across layers. Keep in sync with Prisma schema enumerations.
-
 export enum Role {
   Admin = 'Admin',
   Common = 'Common',

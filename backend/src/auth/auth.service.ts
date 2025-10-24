@@ -1,10 +1,8 @@
 import {
-  Body,
   HttpException,
   HttpStatus,
   Injectable,
   NotFoundException,
-  Post,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -67,7 +65,6 @@ export class AuthService {
 
       let metadata = {
         expiryDate: resetTokenExpiry,
-        location: 'Não disponível',
         device: 'Não disponível',
         browser: 'Não disponível',
         ipAddress: 'Não disponível',
@@ -101,7 +98,6 @@ export class AuthService {
 
         metadata = {
           expiryDate: resetTokenExpiry,
-          location: 'Não disponível',
           device: getOS(userAgent),
           browser: getBrowser(userAgent),
           ipAddress: ip,
