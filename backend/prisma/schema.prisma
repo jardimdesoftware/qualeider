@@ -8,8 +8,27 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Association {
+  id                    Int              @id @default(autoincrement())
+  name                  String           
+  cnpj                  String?          @unique 
+  city                  String
+  state                 String
+  address               String?
+  phone                 String?
+  email                 String?          @unique
+  status                String           @default("Active")
+  users                 User[]           
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  @@index([city, state])
+  @@index([status])
+}
+
 model User {
   id                    Int              @id @default(autoincrement())
+  associationId         Int?             // NULL para SuperAdmin
+  association           Association?     @relation(fields: [associationId], references: [id])
   name                  String
   email                 String           @unique
   password              String

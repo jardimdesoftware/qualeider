@@ -50,7 +50,6 @@ export class UsersService {
         },
       });
 
-      // Evita retornar senha
       return this.removePassword(user);
     } catch (error: any) {
       if (error.code === 'P2002') {
@@ -60,10 +59,16 @@ export class UsersService {
     }
   }
 
-  async findAll() {
+  async findAll(associationId?: number) {
     try {
+      const where: any = { status: 'Active' };
+
+      if (associationId !== undefined) {
+        where.associationId = associationId;
+      }
+
       const users = await this.prisma.user.findMany({
-        where: { status: 'Active' },
+        where,
         select: {
           id: true,
           name: true,
@@ -74,6 +79,14 @@ export class UsersService {
           city: true,
           state: true,
           status: true,
+          associationId: true,
+          association: {
+            select: {
+              id: true,
+              name: true,
+              city: true,
+            },
+          },
           createdAt: true,
         },
       });
@@ -130,7 +143,6 @@ export class UsersService {
     try {
       await this.findActiveUserById(id);
 
-      // Se for informado password, aplica hash antes de salvar
       const payload: Prisma.UserUpdateInput = {
         ...updateUserDto,
       } as Prisma.UserUpdateInput;
@@ -159,7 +171,6 @@ export class UsersService {
     try {
       await this.findActiveUserById(id);
 
-      // Se for informado password, aplica hash antes de salvar
       const payload: Prisma.UserUpdateInput = {
         ...updatePartialUserDto,
       } as Prisma.UserUpdateInput;

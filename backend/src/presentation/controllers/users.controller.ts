@@ -55,8 +55,12 @@ export class UsersController {
     description: 'Lista de usuários obtida com sucesso',
   })
   @Get()
-  async findAll() {
-    return this.usersService.findAll();
+  async findAll(@Query('associationId') associationId?: string) {
+    const assocId = associationId ? +associationId : undefined;
+    if (associationId && isNaN(assocId)) {
+      throw new BadRequestException('associationId inválido');
+    }
+    return this.usersService.findAll(assocId);
   }
 
   @ApiOperation({ summary: 'Buscar um usuário pelo ID' })

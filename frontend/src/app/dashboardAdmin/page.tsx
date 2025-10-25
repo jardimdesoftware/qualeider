@@ -42,7 +42,7 @@ export default function DashboardAdmin() {
       if (payload.role !== "Admin") {
         router.push("/");
       } else {
-        fetchData();
+        fetchData(payload.associationId);
         setLoading(false);
       }
     } catch (err) {
@@ -51,25 +51,27 @@ export default function DashboardAdmin() {
     }
   }, [router]);
 
-  const fetchData = async () => {
+  const fetchData = async (associationId?: number) => {
     try {
       const token = localStorage.getItem("authToken");
 
-      const collectionsResponse = await apiBase.get("/daily-collections", {
+      const queryParams = associationId ? `?associationId=${associationId}` : '';
+
+      const collectionsResponse = await apiBase.get(`/daily-collections${queryParams}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
       setDailyCollections(collectionsResponse.data);
 
-      const usersResponse = await apiBase.get("/users", {
+      const usersResponse = await apiBase.get(`/users${queryParams}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
       setUsers(usersResponse.data);
     } catch (err) {
-      console.error("Erro ao buscar dados:", err);
+      // Erro ao buscar dados
     }
   };
 

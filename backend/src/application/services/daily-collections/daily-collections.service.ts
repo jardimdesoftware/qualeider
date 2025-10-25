@@ -36,9 +36,32 @@ export class DailyCollectionsService {
     }
   }
 
-  async findAll() {
+  async findAll(associationId?: number) {
     try {
-      const dailyCollections = await this.prisma.dailyCollection.findMany();
+      const where: any = {};
+
+      // Se associationId for fornecido, filtra coletas de usuários da associação
+      if (associationId !== undefined) {
+        where.user = {
+          associationId: associationId,
+        };
+      }
+
+      const dailyCollections = await this.prisma.dailyCollection.findMany({
+        where,
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              associationId: true,
+            },
+          },
+        },
+        orderBy: {
+          collectionDate: 'desc',
+        },
+      });
       return dailyCollections;
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
