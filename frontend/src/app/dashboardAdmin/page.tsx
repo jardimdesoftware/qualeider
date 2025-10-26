@@ -71,7 +71,7 @@ export default function DashboardAdmin() {
       });
       setUsers(usersResponse.data);
     } catch (err) {
-      // Erro ao buscar dados
+      console.error("Erro ao buscar dados:", err); 
     }
   };
 

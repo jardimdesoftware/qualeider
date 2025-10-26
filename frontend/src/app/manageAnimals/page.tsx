@@ -49,7 +49,6 @@ export default function AnimalDashboard() {
   const fetchAnimals = async (associationId?: number) => {
     const token = localStorage.getItem("authToken");
     try {
-      // Adiciona o filtro de associationId se existir
       const queryParams = associationId ? `?associationId=${associationId}` : '';
       
       const response = await apiBase.get<{ data: Animal[] }>(`/animals${queryParams}`, {
@@ -59,6 +58,7 @@ export default function AnimalDashboard() {
       });
       setAnimals(response.data.data);
     } catch (err) {
+      console.error("Erro ao carregar os animais:", err);
       setError("Erro ao carregar os animais.");
     }
   };

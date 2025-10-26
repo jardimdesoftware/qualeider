@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Logo from "@/assets/Logo.png";
@@ -8,8 +8,18 @@ import Button from "@/components/global/button";
 import Wave from "@/components/global/waveFooter";
 import { Eye, EyeOff } from "lucide-react";
 import { apiBase } from "@/services/baseApi";
-import { USER_CATEGORIES, sortByNamePtBr } from "@/constants/user-options";
-import { Estado, Cidade } from "@/interfaces/location";
+import { useLocationData, useIsMobile } from "@/hooks";
+import {
+  validateCPF,
+  validateCNPJ,
+  formatCPF,
+  formatCNPJ,
+  cleanDocument,
+  isValidEmail,
+  isNotEmpty,
+  isValidPassword,
+  passwordsMatch,
+} from "@/utils";
 
 export default function CreateAccount() {
   const router = useRouter();
@@ -17,72 +27,28 @@ export default function CreateAccount() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    userType: "",
-    userCategory: "",
+    userCategory: "", // Categoria: Produtor ou Associação
+    userType: "", // Tipo de Pessoa: Física ou Jurídica (apenas para Produtor na Tela 2)
+    document: "", // CPF ou CNPJ
     state: "",
     city: "",
     password: "",
     confirmPassword: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [estados, setEstados] = useState<Estado[]>([]);
-  const [cidades, setCidades] = useState<Cidade[]>([]);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
 
-  // Verifica o tamanho da tela
-  useEffect(() => {
-    const checkScreenSize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkScreenSize();
-    window.addEventListener("resize", checkScreenSize);
-    return () => window.removeEventListener("resize", checkScreenSize);
-  }, []);
-
-  // Busca estados ao carregar o componente
-  useEffect(() => {
-    const fetchEstados = async () => {
-      try {
-        const response = await fetch(
-          "https://servicodados.ibge.gov.br/api/v1/localidades/estados"
-        );
-        const data = await response.json();
-        setEstados(sortByNamePtBr(data));
-      } catch (err) {
-        console.error("Erro ao buscar estados:", err);
-      }
-    };
-    fetchEstados();
-  }, []);
-
-  // Busca cidades quando o estado é selecionado
-  useEffect(() => {
-    const fetchCidades = async () => {
-      if (formData.state) {
-        try {
-          const response = await fetch(
-            `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${formData.state}/municipios`
-          );
-          const data = await response.json();
-          setCidades(sortByNamePtBr(data));
-        } catch (err) {
-          console.error("Erro ao buscar cidades:", err);
-        }
-      } else {
-        setCidades([]);
-      }
-    };
-    fetchCidades();
-  }, [formData.state]);
+  // Hooks customizados
+  const isMobile = useIsMobile();
+  const { estados, cidades } = useLocationData(formData.state);
 
   // Funções de validação dinâmica
   const validateName = (name: string) => {
-    if (!name) {
+    if (!isNotEmpty(name)) {
       setErrors((prev) => ({ ...prev, name: "Nome é obrigatório" }));
     } else {
       setErrors((prev) => ({ ...prev, name: "" }));
@@ -90,24 +56,12 @@ export default function CreateAccount() {
   };
 
   const validateEmail = (email: string) => {
-    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email) {
+    if (!isNotEmpty(email)) {
       setErrors((prev) => ({ ...prev, email: "Email é obrigatório" }));
-    } else if (!regex.test(email)) {
+    } else if (!isValidEmail(email)) {
       setErrors((prev) => ({ ...prev, email: "Email inválido" }));
     } else {
       setErrors((prev) => ({ ...prev, email: "" }));
-    }
-  };
-
-  const validateUserType = (userType: string) => {
-    if (!userType) {
-      setErrors((prev) => ({
-        ...prev,
-        userType: "Tipo de pessoa é obrigatório",
-      }));
-    } else {
-      setErrors((prev) => ({ ...prev, userType: "" }));
     }
   };
 
@@ -120,6 +74,77 @@ export default function CreateAccount() {
     } else {
       setErrors((prev) => ({ ...prev, userCategory: "" }));
     }
+  };
+
+  const validateUserType = (userType: string) => {
+    if (formData.userCategory === "Pecuarista" && !userType) {
+      setErrors((prev) => ({
+        ...prev,
+        userType: "Tipo de pessoa é obrigatório",
+      }));
+    } else {
+      setErrors((prev) => ({ ...prev, userType: "" }));
+    }
+  };
+
+  const validateDocument = (document: string) => {
+    if (!isNotEmpty(document)) {
+      setErrors((prev) => ({ ...prev, document: "CPF/CNPJ é obrigatório" }));
+      return;
+    }
+
+    const cleanDoc = cleanDocument(document);
+
+    // Determina se é CPF ou CNPJ baseado na categoria/tipo
+    const isCNPJ =
+      formData.userCategory === "Associacao" ||
+      formData.userType === "Juridica";
+    const isCPF = formData.userType === "Fisica";
+
+    if (isCNPJ) {
+      // Valida CNPJ
+      if (cleanDoc.length !== 14) {
+        setErrors((prev) => ({
+          ...prev,
+          document: "CNPJ deve ter 14 dígitos",
+        }));
+      } else if (!validateCNPJ(document)) {
+        setErrors((prev) => ({ ...prev, document: "CNPJ inválido" }));
+      } else {
+        setErrors((prev) => ({ ...prev, document: "" }));
+      }
+    } else if (isCPF) {
+      // Valida CPF
+      if (cleanDoc.length !== 11) {
+        setErrors((prev) => ({
+          ...prev,
+          document: "CPF deve ter 11 dígitos",
+        }));
+      } else if (!validateCPF(document)) {
+        setErrors((prev) => ({ ...prev, document: "CPF inválido" }));
+      } else {
+        setErrors((prev) => ({ ...prev, document: "" }));
+      }
+    } else {
+      setErrors((prev) => ({ ...prev, document: "" }));
+    }
+  };
+
+  const handleDocumentChange = (value: string) => {
+    const isCNPJ =
+      formData.userCategory === "Associacao" ||
+      formData.userType === "Juridica";
+
+    let formattedValue = value;
+
+    if (isCNPJ) {
+      formattedValue = formatCNPJ(value);
+    } else if (formData.userType === "Fisica") {
+      formattedValue = formatCPF(value);
+    }
+
+    setFormData({ ...formData, document: formattedValue });
+    validateDocument(formattedValue);
   };
 
   const validateState = (state: string) => {
@@ -139,9 +164,9 @@ export default function CreateAccount() {
   };
 
   const validatePassword = (password: string) => {
-    if (!password) {
+    if (!isNotEmpty(password)) {
       setErrors((prev) => ({ ...prev, password: "Senha é obrigatória" }));
-    } else if (password.length < 6) {
+    } else if (!isValidPassword(password, 6)) {
       setErrors((prev) => ({
         ...prev,
         password: "Senha deve ter pelo menos 6 caracteres",
@@ -152,9 +177,9 @@ export default function CreateAccount() {
   };
 
   const validateConfirmPassword = (confirmPassword: string) => {
-    if (!confirmPassword) {
+    if (!isNotEmpty(confirmPassword)) {
       setErrors((prev) => ({ ...prev, confirmPassword: "Confirme a senha" }));
-    } else if (confirmPassword !== formData.password) {
+    } else if (!passwordsMatch(formData.password, confirmPassword)) {
       setErrors((prev) => ({
         ...prev,
         confirmPassword: "As senhas não coincidem",
@@ -168,18 +193,24 @@ export default function CreateAccount() {
     if (step === 1) {
       validateName(formData.name);
       validateEmail(formData.email);
-      validateUserType(formData.userType);
+      validateUserCategory(formData.userCategory);
 
       if (
         !formData.name ||
         !formData.email ||
-        !formData.userType ||
+        !formData.userCategory ||
         errors.name ||
         errors.email ||
-        errors.userType
+        errors.userCategory
       ) {
         return;
       }
+
+      // Se for Associação, define automaticamente como Pessoa Jurídica
+      if (formData.userCategory === "Associacao") {
+        setFormData({ ...formData, userType: "Juridica" });
+      }
+
       const verifyEmailAlreadyExists = async () => {
         try {
           const resp = await apiBase.get<{ exists: boolean }>(
@@ -193,8 +224,7 @@ export default function CreateAccount() {
             return;
           }
           setStep(2);
-        } catch (e) {
-          console.warn("Falha ao verificar email duplicado", e);
+        } catch {
           setStep(2);
         }
       };
@@ -202,36 +232,59 @@ export default function CreateAccount() {
     }
   };
 
+  const handlePrevStep = () => {
+    setStep(1);
+  };
+
   const handleSubmit = async () => {
-    validateUserCategory(formData.userCategory);
+    // Se for Produtor, valida o tipo de pessoa
+    if (formData.userCategory === "Pecuarista") {
+      validateUserType(formData.userType);
+    }
+
+    validateDocument(formData.document);
     validateState(formData.state);
     validateCity(formData.city);
     validatePassword(formData.password);
     validateConfirmPassword(formData.confirmPassword);
 
-    if (
-      !formData.userCategory ||
+    const hasErrors =
+      !formData.document ||
       !formData.state ||
       !formData.city ||
       !formData.password ||
       !formData.confirmPassword ||
-      errors.userCategory ||
+      errors.document ||
       errors.state ||
       errors.city ||
       errors.password ||
-      errors.confirmPassword
+      errors.confirmPassword;
+
+    if (
+      formData.userCategory === "Pecuarista" &&
+      (!formData.userType || errors.userType)
     ) {
       return;
     }
 
+    if (hasErrors) {
+      return;
+    }
+
     setLoading(true);
+
+    // Define userType como "Juridica" se for Associação
+    const finalUserType =
+      formData.userCategory === "Associacao" ? "Juridica" : formData.userType;
+
     const userData = {
       name: formData.name,
       email: formData.email,
       password: formData.password,
       role: "Common",
-      userType: formData.userCategory,
-      userCategory: formData.userType,
+      userType: formData.userCategory, // Categoria: Pecuarista, Associacao, etc
+      userCategory: finalUserType, // Tipo de Pessoa: Fisica ou Juridica
+      document: cleanDocument(formData.document), // Remove formatação
       state: formData.state,
       city: formData.city,
     };
@@ -246,8 +299,7 @@ export default function CreateAccount() {
       } else {
         setShowErrorPopup(true);
       }
-    } catch (error) {
-      console.error("Erro ao criar usuário:", error);
+    } catch {
       setShowErrorPopup(true);
     } finally {
       setLoading(false);
@@ -319,9 +371,36 @@ export default function CreateAccount() {
 
           {step === 1 ? (
             <div className="space-y-4">
-              {/* Campos da primeira etapa */}
               <div>
-                <label className="text-gray-700 font-medium">Nome</label>
+                <label className="text-gray-700 font-medium">Categoria</label>
+                <select
+                  value={formData.userCategory}
+                  onChange={(e) => {
+                    setFormData({ ...formData, userCategory: e.target.value });
+                    validateUserCategory(e.target.value);
+                  }}
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                  required
+                >
+                  <option value="">Selecione</option>
+                  <option value="Pecuarista">Produtor</option>
+                  <option value="Associacao">Associação</option>
+                </select>
+                {errors.userCategory && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.userCategory}
+                  </p>
+                )}
+              </div>
+              {/* TELA 1: Nome, Email, Categoria, Senha */}
+              <div>
+                <label className="text-gray-700 font-medium">
+                  {formData.userCategory === "Associacao"
+                    ? "Nome da Associação"
+                    : formData.userCategory === "Pecuarista"
+                    ? "Seu nome"
+                    : "Nome"}
+                </label>
                 <input
                   type="text"
                   value={formData.name}
@@ -336,6 +415,7 @@ export default function CreateAccount() {
                   <p className="text-red-500 text-sm mt-1">{errors.name}</p>
                 )}
               </div>
+
               <div>
                 <label className="text-gray-700 font-medium">Email</label>
                 <input
@@ -352,25 +432,61 @@ export default function CreateAccount() {
                   <p className="text-red-500 text-sm mt-1">{errors.email}</p>
                 )}
               </div>
-              <div>
-                <label className="text-gray-700 font-medium">
-                  Tipo de Pessoa
-                </label>
-                <select
-                  value={formData.userType}
+              <div className="relative">
+                <label className="text-gray-700 font-medium">Senha</label>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={formData.password}
                   onChange={(e) => {
-                    setFormData({ ...formData, userType: e.target.value });
-                    validateUserType(e.target.value);
+                    setFormData({ ...formData, password: e.target.value });
+                    validatePassword(e.target.value);
                   }}
-                  className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 pr-10"
                   required
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-9 text-gray-500 hover:text-gray-700"
+                  onClick={() => setShowPassword(!showPassword)}
                 >
-                  <option value="">Selecione</option>
-                  <option value="Fisica">Física</option>
-                  <option value="Juridica">Jurídica</option>
-                </select>
-                {errors.userType && (
-                  <p className="text-red-500 text-sm mt-1">{errors.userType}</p>
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+                {errors.password && (
+                  <p className="text-red-500 text-sm mt-1">{errors.password}</p>
+                )}
+              </div>
+              <div className="relative">
+                <label className="text-gray-700 font-medium">
+                  Confirmar Senha
+                </label>
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={formData.confirmPassword}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      confirmPassword: e.target.value,
+                    });
+                    validateConfirmPassword(e.target.value);
+                  }}
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 pr-10"
+                  required
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-9 text-gray-500 hover:text-gray-700"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff size={20} />
+                  ) : (
+                    <Eye size={20} />
+                  )}
+                </button>
+                {errors.confirmPassword && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.confirmPassword}
+                  </p>
                 )}
               </div>
               <Button
@@ -384,7 +500,9 @@ export default function CreateAccount() {
                   loading ||
                   !!errors.name ||
                   !!errors.email ||
-                  !!errors.userType
+                  !!errors.userCategory ||
+                  !!errors.password ||
+                  !!errors.confirmPassword
                 }
               />
               <p className="text-center text-gray-700 mt-4 text-sm">
@@ -396,29 +514,58 @@ export default function CreateAccount() {
             </div>
           ) : (
             <div className="space-y-4">
-              {/* Campos da segunda etapa */}
+              {/* TELA 2: Tipo de Pessoa (condicional), CPF/CNPJ, Estado, Cidade */}
+              {formData.userCategory === "Pecuarista" && (
+                <div>
+                  <label className="text-gray-700 font-medium">
+                    Tipo de Pessoa
+                  </label>
+                  <select
+                    value={formData.userType}
+                    onChange={(e) => {
+                      setFormData({ ...formData, userType: e.target.value });
+                      validateUserType(e.target.value);
+                    }}
+                    className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                    required
+                  >
+                    <option value="">Selecione</option>
+                    <option value="Fisica">Física</option>
+                    <option value="Juridica">Jurídica</option>
+                  </select>
+                  {errors.userType && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.userType}
+                    </p>
+                  )}
+                </div>
+              )}
               <div>
-                <label className="text-gray-700 font-medium">Categoria</label>
-                <select
-                  value={formData.userCategory}
-                  onChange={(e) => {
-                    setFormData({ ...formData, userCategory: e.target.value });
-                    validateUserCategory(e.target.value);
-                  }}
+                <label className="text-gray-700 font-medium">
+                  {formData.userCategory === "Associacao" ||
+                  formData.userType === "Juridica"
+                    ? "CNPJ"
+                    : formData.userType === "Fisica"
+                    ? "CPF"
+                    : "CPF/CNPJ"}
+                </label>
+                <input
+                  type="text"
+                  value={formData.document}
+                  onChange={(e) => handleDocumentChange(e.target.value)}
+                  placeholder={
+                    formData.userCategory === "Associacao" ||
+                    formData.userType === "Juridica"
+                      ? "00.000.000/0000-00"
+                      : formData.userType === "Fisica"
+                      ? "000.000.000-00"
+                      : ""
+                  }
                   className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                   required
-                >
-                  <option value="">Selecione</option>
-                  {USER_CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat === "Associacao" ? "Associação" : cat}
-                    </option>
-                  ))}
-                </select>
-                {errors.userCategory && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.userCategory}
-                  </p>
+                />
+                {errors.document && (
+                  <p className="text-red-500 text-sm mt-1">{errors.document}</p>
                 )}
               </div>
               <div>
@@ -470,79 +617,32 @@ export default function CreateAccount() {
                   <p className="text-red-500 text-sm mt-1">{errors.city}</p>
                 )}
               </div>
-              <div className="relative">
-                <label className="text-gray-700 font-medium">Senha</label>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={formData.password}
-                  onChange={(e) => {
-                    setFormData({ ...formData, password: e.target.value });
-                    validatePassword(e.target.value);
-                  }}
-                  className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 pr-10"
-                  required
+              <div className="flex space-x-4 mt-4">
+                <Button
+                  text="VOLTAR"
+                  onClick={handlePrevStep}
+                  bgColor="bg-gray-600"
+                  textColor="text-white"
+                  hoverColor="hover:bg-gray-700"
+                  className="flex-1"
                 />
-                <button
-                  type="button"
-                  className="absolute right-3 top-1/2 text-gray-500 hover:text-gray-700"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-                {errors.password && (
-                  <p className="text-red-500 text-sm mt-1">{errors.password}</p>
-                )}
-              </div>
-              <div className="relative">
-                <label className="text-gray-700 font-medium">
-                  Confirmar Senha
-                </label>
-                <input
-                  type={showConfirmPassword ? "text" : "password"}
-                  value={formData.confirmPassword}
-                  onChange={(e) => {
-                    setFormData({
-                      ...formData,
-                      confirmPassword: e.target.value,
-                    });
-                    validateConfirmPassword(e.target.value);
-                  }}
-                  className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 pr-10"
-                  required
+                <Button
+                  text={loading ? "Cadastrando..." : "CADASTRAR"}
+                  onClick={handleSubmit}
+                  bgColor="bg-green-800"
+                  textColor="text-white"
+                  hoverColor="hover:bg-green-900"
+                  className="flex-1"
+                  disabled={
+                    loading ||
+                    (formData.userCategory === "Pecuarista" &&
+                      !!errors.userType) ||
+                    !!errors.document ||
+                    !!errors.state ||
+                    !!errors.city
+                  }
                 />
-                <button
-                  type="button"
-                  className="absolute right-3 top-1/2 text-gray-500 hover:text-gray-700"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff size={20} />
-                  ) : (
-                    <Eye size={20} />
-                  )}
-                </button>
-                {errors.confirmPassword && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.confirmPassword}
-                  </p>
-                )}
               </div>
-              <Button
-                text={loading ? "Cadastrando..." : "CADASTRAR"}
-                onClick={handleSubmit}
-                bgColor="bg-green-800"
-                textColor="text-white"
-                hoverColor="hover:bg-green-900"
-                className="w-full mt-4"
-                disabled={
-                  loading ||
-                  !!errors.userCategory ||
-                  !!errors.state ||
-                  !!errors.city ||
-                  !!errors.password ||
-                  !!errors.confirmPassword
-                }
-              />
             </div>
           )}
         </div>
