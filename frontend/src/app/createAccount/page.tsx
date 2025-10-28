@@ -7,6 +7,7 @@ import { Building2, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import InfoSidebar from "@/components/global/InfoSidebar";
 import { accountSelectionSidebarData } from "@/constants/sidebarData";
+import Footer from "@/components/global/Footer";
 
 export default function CreateAccount() {
   const router = useRouter();
@@ -125,10 +126,7 @@ export default function CreateAccount() {
             </a>
           </p>
 
-          <div className="text-center mt-8 text-gray-500 text-sm">
-            <p>© 2025 IFPE - Campus Belo Jardim</p>
-            <p>Todos os direitos reservados</p>
-          </div>
+          <Footer className="mt-8" />
         </div>
 
         {/* Lado Direito - Informações (Desktop) */}

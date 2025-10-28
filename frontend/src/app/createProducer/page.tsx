@@ -20,6 +20,7 @@ import {
 } from "@/utils";
 import InfoSidebar from "@/components/global/InfoSidebar";
 import { producerSidebarData } from "@/constants/sidebarData";
+import Footer from "@/components/global/Footer";
 
 export default function CreateProducer() {
   const router = useRouter();
@@ -490,6 +491,8 @@ export default function CreateProducer() {
               Faça login
             </a>
           </p>
+
+          <Footer className="mt-6" />
         </div>
 
         {!isMobile && (

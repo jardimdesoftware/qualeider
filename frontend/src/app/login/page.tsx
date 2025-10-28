@@ -9,6 +9,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { apiBase } from "@/services/baseApi";
 import InfoSidebar from "@/components/global/InfoSidebar";
 import { loginSidebarData } from "@/constants/sidebarData";
+import Footer from "@/components/global/Footer";
 
 export default function Login() {
   const [isMobile, setIsMobile] = useState(false);
@@ -218,11 +219,7 @@ export default function Login() {
             </a>
           </p>
 
-          {/* Rodapé */}
-          <div className="text-center mt-6 text-gray-500 text-sm">
-            <p>© 2025 IFPE - Campus Belo Jardim</p>
-            <p>Todos os direitos reservados ao IFPE - Campus Belo Jardim</p>
-          </div>
+          <Footer className="mt-6" />
         </div>
 
         {/* Seção Direita - Informações */}

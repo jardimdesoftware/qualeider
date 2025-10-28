@@ -23,6 +23,7 @@ import {
 } from "@/utils/validation-utils";
 import InfoSidebar from "@/components/global/InfoSidebar";
 import { associationSidebarData } from "@/constants/sidebarData";
+import Footer from "@/components/global/Footer";
 
 export default function CreateAssociation() {
   const router = useRouter();
@@ -1061,6 +1062,8 @@ export default function CreateAssociation() {
               </div>
             </div>
           )}
+
+          <Footer className="mt-6" />
         </div>
 
         {!isMobile && (

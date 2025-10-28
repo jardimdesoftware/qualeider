@@ -5,6 +5,7 @@ import Image from "next/image";
 import Logo from "@/assets/Logo.png";
 import Button from "@/components/global/button";
 import Wave from "@/components/global/waveFooter";
+import Footer from "@/components/global/Footer";
 
 export default function Home() {
   const [isMobile, setIsMobile] = useState(false);
@@ -77,11 +78,7 @@ export default function Home() {
             hoverColor="hover:bg-gray-700"
           />
 
-          {/* Rodapé */}
-          <div className="text-center mt-6 text-gray-500 text-sm">
-            <p>© 2025 IFPE - Campus Belo Jardim</p>
-            <p>Todos os direitos reservados ao IFPE - Campus Belo Jardim</p>
-          </div>
+          <Footer className="mt-6" />
         </div>
 
         {/* Seção Direita - Informações */}
