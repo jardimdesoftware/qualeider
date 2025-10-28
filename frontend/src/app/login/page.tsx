@@ -202,7 +202,17 @@ export default function Login() {
           <p className="text-center text-gray-700 mt-4 text-sm">
             Não tem uma conta?{" "}
             <a href="/createAccount" className="text-green-700 font-semibold">
-              Registre-se
+              Criar Conta
+            </a>
+          </p>
+
+          <p className="text-center text-gray-700 mt-2 text-sm opacity-0">
+            É uma associação?{" "}
+            <a
+              href="/createAssociation"
+              className="text-green-700 font-semibold"
+            >
+              Cadastre sua Associação
             </a>
           </p>
 

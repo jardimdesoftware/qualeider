@@ -8,6 +8,7 @@ import { UsersPresentationModule } from './modules/users.module';
 import { AnimalsPresentationModule } from './modules/animals.module';
 import { DailyCollectionsPresentationModule } from './modules/daily-collections.module';
 import { AuthPresentationModule } from './modules/auth.module';
+import { AssociationsPresentationModule } from './modules/associations.module';
 import { MailModule } from '@/mail/mail.module';
 import * as path from 'path';
 
@@ -29,6 +30,7 @@ import * as path from 'path';
     AnimalsPresentationModule,
     DailyCollectionsPresentationModule,
     AuthPresentationModule,
+    AssociationsPresentationModule,
     MailModule,
   ],
   controllers: [AppController],

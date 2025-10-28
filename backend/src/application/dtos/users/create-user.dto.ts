@@ -4,8 +4,8 @@ import {
   IsNotEmpty,
   IsString,
   MinLength,
-  Length, 
-  Matches, 
+  Length,
+  Matches,
   ValidateIf,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
@@ -77,6 +77,14 @@ export class CreateUserDto {
     message: 'A categoria de usuário fornecida não é válida.',
   })
   userCategory!: UserCategory;
+
+  @ApiProperty({
+    description: 'CPF ou CNPJ do usuário',
+    example: '12345678000190',
+    required: false,
+  })
+  @IsString({ message: 'O documento deve ser uma string.' })
+  document?: string;
 
   @ApiProperty({ description: 'Estado do usuário (UF)', example: 'PE' })
   @IsNotEmpty({ message: 'O estado não pode ser vazio.' })
