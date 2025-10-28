@@ -73,3 +73,31 @@ export const accountSelectionSidebarData = {
     },
   ],
 };
+
+export const loginSidebarData = {
+  title: "Bem-vindo ao QualeiDer!",
+  subtitle:
+    "Sua ferramenta essencial para o gerenciamento da produção leiteira",
+  items: [
+    {
+      title: "Gestão Completa de Animais",
+      description:
+        "Cadastre e gerencie seus animais de forma simples e organizada com histórico completo.",
+    },
+    {
+      title: "Monitoramento de Produção",
+      description:
+        "Monitore a produção diária de leite com precisão e facilidade em tempo real.",
+    },
+    {
+      title: "Análises Inteligentes",
+      description:
+        "Acesse gráficos detalhados e relatórios para tomar decisões mais inteligentes sobre seu rebanho.",
+    },
+    {
+      title: "Acesso Seguro",
+      description:
+        "Seus dados protegidos com criptografia e autenticação segura para total tranquilidade.",
+    },
+  ],
+};

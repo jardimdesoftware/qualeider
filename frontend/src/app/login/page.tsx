@@ -7,6 +7,8 @@ import Button from "@/components/global/button";
 import Wave from "@/components/global/waveFooter";
 import { Eye, EyeOff } from "lucide-react";
 import { apiBase } from "@/services/baseApi";
+import InfoSidebar from "@/components/global/InfoSidebar";
+import { loginSidebarData } from "@/constants/sidebarData";
 
 export default function Login() {
   const [isMobile, setIsMobile] = useState(false);
@@ -224,49 +226,13 @@ export default function Login() {
         </div>
 
         {/* Seção Direita - Informações */}
-        <div className="hidden md:flex w-full md:w-1/2 bg-green-background p-16 flex-col justify-between items-center relative">
-          <div className="text-center">
-            <h1 className="text-2xl text-white mb-4">
-              Bem-vindo ao <span className="font-bold">QualeiDer!</span>
-            </h1>
-
-            {/* Parágrafos de texto */}
-            <div className="text-white space-y-2 text-sm">
-              <p>
-                Sua ferramenta essencial para o gerenciamento da produção
-                leiteira.
-              </p>
-              <p>
-                Com o <strong>QualeiDer</strong>, você pode:
-              </p>
-              <ul className="list-disc list-inside">
-                <li>
-                  <strong>Cadastrar e gerenciar</strong> seus animais de forma
-                  simples e organizada.
-                </li>
-                <li>
-                  <strong>Monitorar a produção diária</strong> de leite com
-                  precisão e facilidade.
-                </li>
-                <li>
-                  <strong>Acessar gráficos detalhados</strong> para tomar
-                  decisões mais inteligentes.
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Selo na parte inferior */}
-          <div className="absolute bottom-4 right-4">
-            <Image
-              src={Logo}
-              alt="Logo do sistema"
-              className="w-20 h-20"
-              width={80}
-              height={80}
-            />
-          </div>
-        </div>
+        {!isMobile && (
+          <InfoSidebar
+            title={loginSidebarData.title}
+            subtitle={loginSidebarData.subtitle}
+            items={loginSidebarData.items}
+          />
+        )}
       </div>
       <Wave />
     </main>
