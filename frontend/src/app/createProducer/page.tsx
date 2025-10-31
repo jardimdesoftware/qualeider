@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Button from "@/components/global/button";
 import Wave from "@/components/global/waveFooter";
@@ -40,6 +40,19 @@ export default function CreateProducer() {
   const [loading, setLoading] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [showWave, setShowWave] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY;
+      const maxScroll =
+        document.documentElement.scrollHeight - window.innerHeight;
+      const scrollThreshold = 0.8;
+      setShowWave(scrollPosition > maxScroll * scrollThreshold);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const isMobile = useIsMobile();
   const { estados, cidades } = useLocationData(formData.state);
@@ -503,7 +516,14 @@ export default function CreateProducer() {
           />
         )}
       </div>
-      <Wave />
+      {/* Wave - Aparece apenas ao scroll */}
+      <div
+        className={`fixed bottom-0 left-0 right-0 z-50 transition-all duration-300 ${
+          showWave ? "translate-y-0" : "translate-y-full"
+        }`}
+      >
+        <Wave />
+      </div>
     </main>
   );
 }
