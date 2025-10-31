@@ -28,32 +28,35 @@ export default function ManageUsers() {
       return;
     }
 
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    if (payload.role !== "Admin") {
-      router.push("/");
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      if (payload.role !== "Admin") {
+        router.push("/");
+      } else {
+        fetchUsers(payload.associationId); 
+      }
+    } catch {
+      router.push("/login");
     }
   }, [router]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (associationId?: number) => {
     const token = localStorage.getItem("authToken");
     try {
-      const response = await apiBase.get<User[]>("/users", {
+      const queryParams = associationId ? `?associationId=${associationId}` : '';
+      
+      const response = await apiBase.get<User[]>(`/users${queryParams}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
       setUsers(response.data);
       setLoading(false);
-    } catch (err) {
-      console.error("Erro ao carregar os usuários:", err);
+    } catch {
       setLoading(false);
       setError("Erro ao carregar os usuários.");
     }
   };
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
 
   const toggleUserDetails = (userId: number) => {
     setExpandedUserId(expandedUserId === userId ? null : userId);

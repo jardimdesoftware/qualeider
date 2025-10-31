@@ -65,7 +65,6 @@ export default function ForgotPassword() {
       console.error("Erro no frontend:", err);
 
       if (axios.isAxiosError(err) && err.response) {
-        // Tratamento de erros específicos do backend
         if (err.response.status === 404) {
           setErrorMessage(
             "E-mail não encontrado no sistema. Verifique o endereço digitado."

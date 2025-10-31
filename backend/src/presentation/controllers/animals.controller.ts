@@ -12,6 +12,7 @@ import {
   ParseIntPipe,
   ValidationPipe,
   UsePipes,
+  Query,
 } from '@nestjs/common';
 import { AnimalsService } from '@/application/services/animals/animals.service';
 import { CreateAnimalDto } from '@/application/dtos/animals/create-animal.dto';
@@ -78,9 +79,16 @@ export class AnimalsController {
   @ApiResponse({ status: 200, description: 'Animais listados com sucesso' })
   @ApiResponse({ status: 500, description: 'Erro interno do servidor' })
   @Get()
-  async findAll() {
+  async findAll(@Query('associationId') associationId?: string) {
     try {
-      const result = await this.animalsService.findAll();
+      const assocId = associationId ? +associationId : undefined;
+      if (associationId && isNaN(assocId)) {
+        throw new HttpException(
+          { status: HttpStatus.BAD_REQUEST, error: 'associationId inválido' },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      const result = await this.animalsService.findAll(assocId);
       return result;
     } catch (error) {
       throw new HttpException(

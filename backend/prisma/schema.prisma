@@ -8,14 +8,88 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  Admin
+  Common
+}
+
+enum UserType {
+  Pecuarista
+  Cooperativa
+  Associacao
+  Outro
+}
+
+enum UserCategory {
+  Fisica
+  Juridica
+}
+
+enum AnimalType {
+  Vaca
+  Cabra
+  Ovelha
+  Bufala
+  Outro
+}
+
+enum MilkingPlace {
+  Aberto
+  Curral
+  Ambos
+}
+
+enum CoverageArea {
+  Municipal
+  Regional
+  Estadual
+}
+
+model Association {
+  id                    Int              @id @default(autoincrement())
+  name                  String           
+  tradeName             String?          
+  cnpj                  String           @unique 
+  stateRegistration     String?          
+  email                 String           @unique
+  password              String           
+  landlinePhone         String          
+  mobilePhone           String?          
+  website               String?          
+  zipCode               String           
+  state                 String           
+  city                  String           
+  street                String           
+  number                String           
+  complement            String?          
+  neighborhood          String           
+  foundationDate        DateTime?        
+  numberOfMembers       Int?             
+  coverageArea          CoverageArea           
+  presidentName         String           
+  presidentCpf          String           
+  presidentEmail        String           
+  presidentPhone        String           
+  status                String           @default("Active")
+  users                 User[]           
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  @@index([city, state])
+  @@index([status])
+  @@index([cnpj])
+}
+
 model User {
   id                    Int              @id @default(autoincrement())
+  associationId         Int?             
+  association           Association?     @relation(fields: [associationId], references: [id])
   name                  String
   email                 String           @unique
   password              String
   role                  Role             @default(Common)
   userType              UserType?
   userCategory          UserCategory 
+  document              String?          @unique // CPF ou CNPJ
   city                  String           
   state                 String 
   status                String           @default("Active")
@@ -56,33 +130,4 @@ model DailyCollection {
   updatedAt             DateTime         @updatedAt
 }
 
-enum Role {
-  Admin
-  Common
-}
 
-enum UserType {
-  Pecuarista
-  Cooperativa
-  Associacao
-  Outro
-}
-
-enum UserCategory {
-  Fisica
-  Juridica
-}
-
-enum AnimalType {
-  Vaca
-  Cabra
-  Ovelha
-  Bufala
-  Outro
-}
-
-enum MilkingPlace {
-  Aberto
-  Curral
-  Ambos
-}

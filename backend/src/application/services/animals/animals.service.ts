@@ -33,10 +33,27 @@ export class AnimalsService {
     }
   }
 
-  async findAll() {
+  async findAll(associationId?: number) {
     try {
+      const where: any = { status: 'Active' };
+
+      if (associationId !== undefined) {
+        where.user = {
+          associationId: associationId,
+        };
+      }
+
       const animals = await this.prisma.animal.findMany({
-        where: { status: 'Active' },
+        where,
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              associationId: true,
+            },
+          },
+        },
       });
       return { data: animals };
     } catch (error) {

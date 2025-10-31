@@ -7,6 +7,9 @@ import Button from "@/components/global/button";
 import Wave from "@/components/global/waveFooter";
 import { Eye, EyeOff } from "lucide-react";
 import { apiBase } from "@/services/baseApi";
+import InfoSidebar from "@/components/global/InfoSidebar";
+import { loginSidebarData } from "@/constants/sidebarData";
+import Footer from "@/components/global/Footer";
 
 export default function Login() {
   const [isMobile, setIsMobile] = useState(false);
@@ -18,6 +21,19 @@ export default function Login() {
   const [passwordError, setPasswordError] = useState("");
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [showWave, setShowWave] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY;
+      const maxScroll =
+        document.documentElement.scrollHeight - window.innerHeight;
+      const scrollThreshold = 0.8;
+      setShowWave(scrollPosition > maxScroll * scrollThreshold);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -202,63 +218,40 @@ export default function Login() {
           <p className="text-center text-gray-700 mt-4 text-sm">
             Não tem uma conta?{" "}
             <a href="/createAccount" className="text-green-700 font-semibold">
-              Registre-se
+              Criar Conta
             </a>
           </p>
 
-          {/* Rodapé */}
-          <div className="text-center mt-6 text-gray-500 text-sm">
-            <p>© 2025 IFPE - Campus Belo Jardim</p>
-            <p>Todos os direitos reservados ao IFPE - Campus Belo Jardim</p>
-          </div>
+          <p className="text-center text-gray-700 mt-2 text-sm opacity-0">
+            É uma associação?{" "}
+            <a
+              href="/createAssociation"
+              className="text-green-700 font-semibold"
+            >
+              Cadastre sua Associação
+            </a>
+          </p>
+
+          <Footer className="mt-6" />
         </div>
 
         {/* Seção Direita - Informações */}
-        <div className="hidden md:flex w-full md:w-1/2 bg-green-background p-16 flex-col justify-between items-center relative">
-          <div className="text-center">
-            <h1 className="text-2xl text-white mb-4">
-              Bem-vindo ao <span className="font-bold">QualeiDer!</span>
-            </h1>
-
-            {/* Parágrafos de texto */}
-            <div className="text-white space-y-2 text-sm">
-              <p>
-                Sua ferramenta essencial para o gerenciamento da produção
-                leiteira.
-              </p>
-              <p>
-                Com o <strong>QualeiDer</strong>, você pode:
-              </p>
-              <ul className="list-disc list-inside">
-                <li>
-                  <strong>Cadastrar e gerenciar</strong> seus animais de forma
-                  simples e organizada.
-                </li>
-                <li>
-                  <strong>Monitorar a produção diária</strong> de leite com
-                  precisão e facilidade.
-                </li>
-                <li>
-                  <strong>Acessar gráficos detalhados</strong> para tomar
-                  decisões mais inteligentes.
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Selo na parte inferior */}
-          <div className="absolute bottom-4 right-4">
-            <Image
-              src={Logo}
-              alt="Logo do sistema"
-              className="w-20 h-20"
-              width={80}
-              height={80}
-            />
-          </div>
-        </div>
+        {!isMobile && (
+          <InfoSidebar
+            title={loginSidebarData.title}
+            subtitle={loginSidebarData.subtitle}
+            items={loginSidebarData.items}
+          />
+        )}
       </div>
-      <Wave />
+      {/* Wave - Aparece apenas ao scroll */}
+      <div
+        className={`fixed bottom-0 left-0 right-0 z-50 transition-all duration-300 ${
+          showWave ? "translate-y-0" : "translate-y-full"
+        }`}
+      >
+        <Wave />
+      </div>
     </main>
   );
 }

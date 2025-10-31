@@ -37,6 +37,7 @@ export default function AnimalDashboard() {
       if (payload.role !== "Admin") {
         router.push("/");
       } else {
+        fetchAnimals(payload.associationId);
         setLoading(false);
       }
     } catch (err) {
@@ -45,28 +46,22 @@ export default function AnimalDashboard() {
     }
   }, [router]);
 
-  useEffect(() => {
-    if (loading) return;
-
-    const fetchAnimals = async () => {
-      const token = localStorage.getItem("authToken");
-      try {
-        const response = await apiBase.get<{ data: Animal[] }>("/animals", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        setAnimals(response.data.data);
-        setLoading(false);
-      } catch (err) {
-        console.error("Erro ao carregar os animais:", err);
-        setLoading(false);
-        setError("Erro ao carregar os animais.");
-      }
-    };
-
-    fetchAnimals();
-  }, [loading]);
+  const fetchAnimals = async (associationId?: number) => {
+    const token = localStorage.getItem("authToken");
+    try {
+      const queryParams = associationId ? `?associationId=${associationId}` : '';
+      
+      const response = await apiBase.get<{ data: Animal[] }>(`/animals${queryParams}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setAnimals(response.data.data);
+    } catch (err) {
+      console.error("Erro ao carregar os animais:", err);
+      setError("Erro ao carregar os animais.");
+    }
+  };
 
   // Métricas gerais
   const totalAnimals = animals.length;

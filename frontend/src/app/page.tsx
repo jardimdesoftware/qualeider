@@ -5,9 +5,24 @@ import Image from "next/image";
 import Logo from "@/assets/Logo.png";
 import Button from "@/components/global/button";
 import Wave from "@/components/global/waveFooter";
+import Footer from "@/components/global/Footer";
+import WelcomeInfo from "@/components/global/WelcomeInfo";
 
 export default function Home() {
   const [isMobile, setIsMobile] = useState(false);
+  const [showWave, setShowWave] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY;
+      const maxScroll =
+        document.documentElement.scrollHeight - window.innerHeight;
+      const scrollThreshold = 0.8;
+      setShowWave(scrollPosition > maxScroll * scrollThreshold);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     // Função para verificar o tamanho da tela
@@ -77,11 +92,7 @@ export default function Home() {
             hoverColor="hover:bg-gray-700"
           />
 
-          {/* Rodapé */}
-          <div className="text-center mt-6 text-gray-500 text-sm">
-            <p>© 2025 IFPE - Campus Belo Jardim</p>
-            <p>Todos os direitos reservados ao IFPE - Campus Belo Jardim</p>
-          </div>
+          <Footer className="mt-6" />
         </div>
 
         {/* Seção Direita - Informações */}
@@ -93,16 +104,7 @@ export default function Home() {
             </h1>
 
             {/* Parágrafos de texto */}
-            <div className="text-white space-y-2 text-sm">
-              <p>
-                A solução completa para o gerenciamento da sua produção
-                leiteira.
-              </p>
-              <p>
-                No QualeiDer, você pode cadastrar seus animais e monitorar a
-                produção diária de leite de forma simples e organizada.
-              </p>
-            </div>
+            <WelcomeInfo />
           </div>
 
           {/* Selo na parte inferior */}
@@ -117,7 +119,14 @@ export default function Home() {
           </div>
         </div>
       </div>
-      <Wave />
+      {/* Wave - Aparece apenas ao scroll */}
+      <div
+        className={`fixed bottom-0 left-0 right-0 z-50 transition-all duration-300 ${
+          showWave ? "translate-y-0" : "translate-y-full"
+        }`}
+      >
+        <Wave />
+      </div>
     </main>
   );
 }

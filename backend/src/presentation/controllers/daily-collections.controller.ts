@@ -85,9 +85,16 @@ export class DailyCollectionsController {
   @ApiResponse({ status: 200, description: 'Formulários listados com sucesso' })
   @ApiResponse({ status: 500, description: 'Erro interno do servidor' })
   @Get()
-  async findAll() {
+  async findAll(@Query('associationId') associationId?: string) {
     try {
-      const result = await this.dailyCollectionsService.findAll();
+      const assocId = associationId ? +associationId : undefined;
+      if (associationId && isNaN(assocId)) {
+        throw new HttpException(
+          { status: HttpStatus.BAD_REQUEST, error: 'associationId inválido' },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      const result = await this.dailyCollectionsService.findAll(assocId);
       return result;
     } catch (error) {
       throw new HttpException(
