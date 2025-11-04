@@ -23,7 +23,9 @@
       "@/infrastructure/*": ["src/infrastructure/*"],
       "@/presentation/*": ["src/presentation/*"],
       "@/auth/*": ["src/auth/*"],
-      "@/mail/*": ["src/mail/*"]
+      "@/mail/*": ["src/mail/*"],
+      "@/events/*": ["src/events/*"],
+      "@/listener/*": ["src/listener/*"]
     },
     "ignoreDeprecations": "5.0"
   },
