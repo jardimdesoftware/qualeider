@@ -72,6 +72,7 @@ model Association {
   presidentPhone        String           
   status                String           @default("Active")
   users                 User[]           
+  invites               Invite[]
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
   @@index([city, state])
@@ -99,6 +100,7 @@ model User {
   updatedAt             DateTime         @updatedAt
   animals               Animal[]
   dailyCollections      DailyCollection[]
+  invites               Invite[]
 }
 
 model Animal {
@@ -128,6 +130,49 @@ model DailyCollection {
   technicalAssistance   Boolean          
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  CANCELED
+}
+
+model Invite {
+  id                    Int              @id @default(autoincrement())
+  associationId         Int
+  association           Association      @relation(fields: [associationId], references: [id])
+  userId                Int
+  user                  User             @relation(fields: [userId], references: [id])
+  token                 String           @unique @default(uuid())
+  status                InviteStatus     @default(PENDING)
+  message               String?
+  customMessage         String?
+  sentAt                DateTime         @default(now())
+  expiresAt             DateTime
+  respondedAt           DateTime?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  @@index([associationId])
+  @@index([userId])
+  @@index([status])
+  @@index([token])
+  @@index([expiresAt])
+}
+
+model Notification {
+  id                    Int              @id @default(autoincrement())
+  associationId         Int
+  subject               String
+  message               String
+  metadata              String?          // JSON string
+  createdAt             DateTime         @default(now())
+
+  @@index([associationId])
+  @@index([createdAt])
 }
 
 

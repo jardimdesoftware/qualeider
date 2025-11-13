@@ -22,10 +22,13 @@
       "@/application/*": ["src/application/*"],
       "@/infrastructure/*": ["src/infrastructure/*"],
       "@/presentation/*": ["src/presentation/*"],
+      "@/common/*": ["src/common/*"],
       "@/auth/*": ["src/auth/*"],
-      "@/mail/*": ["src/mail/*"]
+      "@/mail/*": ["src/mail/*"],
+      "@/events/*": ["src/events/*"],
+      "@/listener/*": ["src/listener/*"]
     },
-    "ignoreDeprecations": "5.0"
+    "ignoreDeprecations": "6.0"
   },
   "exclude": [
     "src/animals/**",

@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
+import { PrismaExceptionFilter } from '@/common/filters/prisma-exception.filter';
 
 /**
  * Configura as opções de CORS baseadas nas variáveis de ambiente.
@@ -94,14 +95,17 @@ async function bootstrap() {
   const corsOptions = configureCors(configService);
   app.enableCors(corsOptions);
 
-  // 2. Configurar Swagger
+  // 2. Configurar filtros globais
+  app.useGlobalFilters(new PrismaExceptionFilter());
+
+  // 3. Configurar Swagger
   setupSwagger(app);
 
-  // 3. Iniciar o servidor
+  // 4. Iniciar o servidor
   const port = getAppPort(configService);
   await app.listen(port);
 
-  // 4. Logar o status da aplicação
+  // 5. Logar o status da aplicação
   await logAppStatus(app, port, corsOptions);
 }
 

@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
   UnauthorizedException,
+  Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '@/application/services/users/users.service';
@@ -13,6 +14,8 @@ import { MailService } from '@/mail/mail.service';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
@@ -32,12 +35,15 @@ export class AuthService {
   }
 
   async login(user: any) {
-    const payload = { 
-      email: user.email, 
-      sub: user.id, 
+    const payload = {
+      email: user.email,
+      sub: user.id,
       role: user.role,
-      associationId: user.associationId
+      associationId: user.associationId,
     };
+
+    this.logger.log(`Usuário autenticado: ${user.email}`);
+
     return {
       access_token: this.jwtService.sign(payload),
     };
@@ -116,18 +122,15 @@ export class AuthService {
         metadata,
       );
 
+      this.logger.log(`Token de reset enviado para ${user.email}`);
+
       return {
         status: HttpStatus.CREATED,
         message: 'E-mail de redefinição de senha enviado com sucesso.',
       };
     } catch (error) {
-      throw new HttpException(
-        {
-          status: HttpStatus.INTERNAL_SERVER_ERROR,
-          error: 'Ocorreu um erro ao enviar o e-mail de recuperação.',
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      this.logger.error('Erro ao processar reset de senha:', error);
+      throw error;
     }
   }
 
@@ -161,6 +164,8 @@ export class AuthService {
       },
     });
 
+    this.logger.log(`Token validado para ${email}, validade estendida`);
+
     return true;
   }
 
@@ -189,6 +194,8 @@ export class AuthService {
         resetTokenExpiry: null,
       },
     });
+
+    this.logger.log(`Senha redefinida para ${email}`);
 
     return true;
   }

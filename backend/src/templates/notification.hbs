@@ -1,0 +1,66 @@
+<div<!DOCTYPE html>
+
+  style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;'<html>
+
+><head>
+
+  <h2 style='color: #2c5f2d;'>{{subject}}</h2>  <style>
+
+    body { font-family: Arial, sans-serif; }
+
+  <p>Prezado(a) <strong>{{userName}}</strong>,</p>    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+
+    .header { background-color: #2d6a4f; color: white; padding: 20px; text-align: center; }
+
+  <p>Você recebeu uma nova mensagem da sua associação:</p>    .content { padding: 20px; background-color: #f8f9fa; }
+
+    .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
+
+  <div  </style>
+
+    style='background-color: #f5f5f5; border-left: 4px solid #2c5f2d; padding: 15px; margin: 20px 0;'</head>
+
+  ><body>
+
+    <p style='margin: 0; white-space: pre-wrap;'>{{message}}</p>  <div class="container">
+
+  </div>    <div class="header">
+
+      <h1>QualeiDer - Notificação</h1>
+
+  {{#if metadata}}    </div>
+
+    <hr style='border: none; border-top: 1px solid #ddd; margin: 30px 0;' />    <div class="content">
+
+    <p style='font-size: 12px; color: #666;'>      <p>Olá, <strong>{{userName}}</strong>!</p>
+
+      <strong>Informações da Mensagem:</strong><br />      <h2>{{subject}}</h2>
+
+      {{#if metadata.associationName}}Associação: <strong>{{metadata.associationName}}</strong><br />{{/if}}      <p>{{message}}</p>
+
+      {{#if metadata.senderName}}Enviado por: {{metadata.senderName}}<br />{{/if}}    </div>
+
+      {{#if metadata.sentAt}}Data de envio: {{metadata.sentAt}}<br />{{/if}}    <div class="footer">
+
+      {{#if metadata.category}}Categoria: {{metadata.category}}<br />{{/if}}      <p>Esta é uma notificação automática da sua associação.</p>
+
+    </p>      <p>© 2025 IFPE - Campus Belo Jardim</p>
+
+  {{/if}}    </div>
+
+  </div>
+
+  <hr style='border: none; border-top: 1px solid #ddd; margin: 30px 0;' /></body>
+
+</html>
+  <p>Atenciosamente,<br />
+    <strong>Equipe de Suporte - QualeiDer</strong></p>
+
+  <p style='font-size: 11px; color: #999; margin-top: 30px;'>
+    <em>(Este e-mail é enviado automaticamente, por favor não responda.)</em>
+  </p>
+
+  <p style='font-size: 11px; color: #999; text-align: center; margin-top: 20px;'>
+    © 2025 IFPE - Campus Belo Jardim
+  </p>
+</div>

@@ -1,8 +1,8 @@
 import {
   ConflictException,
   Injectable,
-  InternalServerErrorException,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { CreateUserDto } from '@/application/dtos/users/create-user.dto';
@@ -13,6 +13,8 @@ import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(private prisma: PrismaService) {}
 
   private async findActiveUserById(id: number) {
@@ -50,164 +52,147 @@ export class UsersService {
         },
       });
 
+      this.logger.log(`Usuário criado: ${user.email} (ID: ${user.id})`);
+
       return this.removePassword(user);
-    } catch (error: any) {
-      if (error.code === 'P2002') {
-        throw new ConflictException('Email já está em uso.');
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          throw new ConflictException('Email já está em uso.');
+        }
       }
-      throw new InternalServerErrorException('Erro ao criar usuário.');
+      throw error;
     }
   }
 
   async findAll(associationId?: number) {
-    try {
-      const where: any = { status: 'Active' };
+    const where: Prisma.UserWhereInput = { status: 'Active' };
 
-      if (associationId !== undefined) {
-        where.associationId = associationId;
-      }
-
-      const users = await this.prisma.user.findMany({
-        where,
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          role: true,
-          userType: true,
-          userCategory: true,
-          city: true,
-          state: true,
-          status: true,
-          associationId: true,
-          association: {
-            select: {
-              id: true,
-              name: true,
-              city: true,
-            },
-          },
-          createdAt: true,
-        },
-      });
-      return users;
-    } catch (error: any) {
-      throw new Error('Erro ao buscar usuários: ' + error.message);
+    if (associationId !== undefined) {
+      where.associationId = associationId;
     }
+
+    const users = await this.prisma.user.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        userType: true,
+        userCategory: true,
+        city: true,
+        state: true,
+        status: true,
+        associationId: true,
+        association: {
+          select: {
+            id: true,
+            name: true,
+            city: true,
+          },
+        },
+        createdAt: true,
+      },
+    });
+    return users;
   }
 
   async findOne(id: number) {
-    try {
-      const user = await this.prisma.user.findUnique({
-        where: { id, status: 'Active' },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          role: true,
-          userType: true,
-          userCategory: true,
-          city: true,
-          state: true,
-          status: true,
-          createdAt: true,
-          animals: {
-            orderBy: { id: 'desc' },
-            select: {
-              id: true,
-              name: true,
-              breed: true,
-              age: true,
-              createdAt: true,
-            },
+    const user = await this.prisma.user.findUnique({
+      where: { id, status: 'Active' },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        userType: true,
+        userCategory: true,
+        city: true,
+        state: true,
+        status: true,
+        createdAt: true,
+        animals: {
+          orderBy: { id: 'desc' },
+          select: {
+            id: true,
+            name: true,
+            breed: true,
+            age: true,
+            createdAt: true,
           },
         },
-      });
+      },
+    });
 
-      if (!user) {
-        throw new NotFoundException(
-          `Usuário com ID ${id} não encontrado ou está inativo.`,
-        );
-      }
-
-      return user;
-    } catch (error: any) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      throw new Error('Erro ao buscar usuário: ' + error.message);
+    if (!user) {
+      throw new NotFoundException(
+        `Usuário com ID ${id} não encontrado ou está inativo.`,
+      );
     }
+
+    return user;
   }
 
   async update(id: number, updateUserDto: UpdateUserDto) {
-    try {
-      await this.findActiveUserById(id);
+    await this.findActiveUserById(id);
 
-      const payload: Prisma.UserUpdateInput = {
-        ...updateUserDto,
-      } as Prisma.UserUpdateInput;
-      if (
-        typeof (payload as any).password === 'string' &&
-        ((payload as any).password as string).trim().length > 0
-      ) {
-        (payload as any).password = await bcrypt.hash(
-          (payload as any).password as string,
-          10,
-        );
-      }
+    const payload: Prisma.UserUpdateInput = {
+      ...updateUserDto,
+    } as Prisma.UserUpdateInput;
 
-      const updatedUser = await this.prisma.user.update({
-        where: { id },
-        data: payload,
-      });
-
-      return this.removePassword(updatedUser);
-    } catch (error: any) {
-      throw new Error('Erro ao atualizar usuário: ' + error.message);
+    if (
+      typeof (payload as any).password === 'string' &&
+      ((payload as any).password as string).trim().length > 0
+    ) {
+      (payload as any).password = await bcrypt.hash(
+        (payload as any).password as string,
+        10,
+      );
     }
+
+    const updatedUser = await this.prisma.user.update({
+      where: { id },
+      data: payload,
+    });
+
+    return this.removePassword(updatedUser);
   }
 
   async partialUpdate(id: number, updatePartialUserDto: UpdatePartialUserDto) {
-    try {
-      await this.findActiveUserById(id);
+    await this.findActiveUserById(id);
 
-      const payload: Prisma.UserUpdateInput = {
-        ...updatePartialUserDto,
-      } as Prisma.UserUpdateInput;
-      if (
-        typeof (payload as any).password === 'string' &&
-        ((payload as any).password as string).trim().length > 0
-      ) {
-        (payload as any).password = await bcrypt.hash(
-          (payload as any).password as string,
-          10,
-        );
-      }
+    const payload: Prisma.UserUpdateInput = {
+      ...updatePartialUserDto,
+    } as Prisma.UserUpdateInput;
 
-      const updatedUser = await this.prisma.user.update({
-        where: { id },
-        data: payload,
-      });
-
-      return this.removePassword(updatedUser);
-    } catch (error: any) {
-      throw new Error('Erro ao atualizar usuário: ' + error.message);
+    if (
+      typeof (payload as any).password === 'string' &&
+      ((payload as any).password as string).trim().length > 0
+    ) {
+      (payload as any).password = await bcrypt.hash(
+        (payload as any).password as string,
+        10,
+      );
     }
+
+    const updatedUser = await this.prisma.user.update({
+      where: { id },
+      data: payload,
+    });
+
+    return this.removePassword(updatedUser);
   }
 
   async remove(id: number) {
-    try {
-      await this.findActiveUserById(id);
+    await this.findActiveUserById(id);
 
-      await this.prisma.user.update({
-        where: { id },
-        data: { status: 'Inactive' },
-      });
+    const deactivated = await this.prisma.user.update({
+      where: { id },
+      data: { status: 'Inactive' },
+    });
 
-      return { message: `Usuário com ID ${id} foi desativado com sucesso.` };
-    } catch (error: any) {
-      throw new Error('Erro ao desativar usuário: ' + error.message);
-    }
+    return this.removePassword(deactivated);
   }
 
   async findByEmail(email: string) {

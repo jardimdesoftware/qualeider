@@ -1,7 +1,5 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { AppController } from '../app.controller';
-import { AppService } from '../app.service';
 import { PrismaModule } from '@/infrastructure/prisma/prisma.module';
 import { InfrastructureModule } from '@/infrastructure/infrastructure.module';
 import { UsersPresentationModule } from './modules/users.module';
@@ -9,7 +7,11 @@ import { AnimalsPresentationModule } from './modules/animals.module';
 import { DailyCollectionsPresentationModule } from './modules/daily-collections.module';
 import { AuthPresentationModule } from './modules/auth.module';
 import { AssociationsPresentationModule } from './modules/associations.module';
+import { InvitesPresentationModule } from './modules/invites.module';
+import { NotificationsPresentationModule } from './modules/notifications.module';
 import { MailModule } from '@/mail/mail.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ScheduleModule } from '@nestjs/schedule';
 import * as path from 'path';
 
 @Module({
@@ -24,6 +26,8 @@ import * as path from 'path';
         ),
       ],
     }),
+    EventEmitterModule.forRoot(),
+    ScheduleModule.forRoot(),
     PrismaModule,
     InfrastructureModule,
     UsersPresentationModule,
@@ -31,9 +35,11 @@ import * as path from 'path';
     DailyCollectionsPresentationModule,
     AuthPresentationModule,
     AssociationsPresentationModule,
+    InvitesPresentationModule,
+    NotificationsPresentationModule,
     MailModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [],
+  providers: [],
 })
 export class AppModule {}
