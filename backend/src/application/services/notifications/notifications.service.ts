@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
-import { MailService } from '@/mail/mail.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { NotificationEvent } from '@/events/notification.events';
 import { NotificationSendPayload } from '@/events/notification-payload.interface';
@@ -9,7 +8,6 @@ import { NotificationSendPayload } from '@/events/notification-payload.interface
 export class NotificationsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly mailService: MailService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 

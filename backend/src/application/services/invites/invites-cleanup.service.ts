@@ -15,41 +15,33 @@ export class InvitesCleanupService {
    */
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async expireOldInvites() {
-    this.logger.log('🕐 Iniciando verificação de convites expirados...');
+    this.logger.log('Iniciando verificação de convites expirados...');
 
-    try {
-      const result = await this.prisma.invite.updateMany({
-        where: {
-          status: InviteStatus.PENDING,
-          expiresAt: {
-            lt: new Date(), // Menor que a data atual
-          },
+    const result = await this.prisma.invite.updateMany({
+      where: {
+        status: InviteStatus.PENDING,
+        expiresAt: {
+          lt: new Date(),
         },
-        data: {
-          status: InviteStatus.EXPIRED,
-        },
-      });
+      },
+      data: {
+        status: InviteStatus.EXPIRED,
+      },
+    });
 
-      this.logger.log(
-        `✅ ${result.count} convite(s) marcado(s) como expirado(s)`,
-      );
+    this.logger.log(
+      `✅ ${result.count} convite(s) marcado(s) como expirado(s)`,
+    );
 
-      return {
-        success: true,
-        expiredCount: result.count,
-        timestamp: new Date(),
-      };
-    } catch (error) {
-      this.logger.error('❌ Erro ao expirar convites:', error);
-      throw error;
-    }
+    return {
+      success: true,
+      expiredCount: result.count,
+      timestamp: new Date(),
+    };
   }
 
-  /**
-   * Método para executar manualmente (útil para testes)
-   */
   async manualExpireCheck() {
-    this.logger.log('🔍 Execução manual de verificação de convites expirados');
+    this.logger.log('Execução manual de verificação de convites expirados');
     return this.expireOldInvites();
   }
 }

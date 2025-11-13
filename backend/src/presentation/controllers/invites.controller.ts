@@ -15,6 +15,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { InvitesService } from '@/application/services/invites/invites.service';
 import { CreateInviteDto } from '@/application/dtos/invites/create-invite.dto';
 import { RespondInviteDto } from '@/application/dtos/invites/respond-invite.dto';
+import { InviteStatus } from '@/application/enums/invite-status.enum';
 
 @Controller('invites')
 @ApiTags('Invites')
@@ -83,7 +84,7 @@ export class InvitesController {
   })
   async getAssociationInvites(
     @Param('associationId', ParseIntPipe) associationId: number,
-    @Query('status') status?: string,
+    @Query('status') status?: InviteStatus,
   ) {
     return this.invitesService.getAssociationInvites(associationId, status);
   }
