@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { MailService } from '@/mail/mail.service';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
@@ -8,6 +8,7 @@ import { InviteDeclinedEvent } from '@/events/invite-declined.event';
 
 @Injectable()
 export class InviteEmailListener {
+  private readonly logger = new Logger(InviteEmailListener.name);
   constructor(
     private readonly mailService: MailService,
     private readonly prisma: PrismaService,
@@ -23,7 +24,7 @@ export class InviteEmailListener {
     const declineUrl = `${frontendUrl}/invites/${event.token}?action=decline`;
 
     try {
-      console.log(`Enviando email de convite para ${event.userEmail}...`);
+      this.logger.log(`Enviando email de convite para ${event.userEmail}...`);
 
       await this.mailService.sendInviteEmail(
         event.userEmail,
@@ -35,11 +36,11 @@ export class InviteEmailListener {
         event.expiresAt,
       );
 
-      console.log(
+      this.logger.log(
         `Email de convite enviado com sucesso para ${event.userEmail}`,
       );
     } catch (error) {
-      console.error(
+      this.logger.error(
         `❌ Erro ao enviar email de convite para ${event.userEmail}:`,
         error,
       );
@@ -51,7 +52,7 @@ export class InviteEmailListener {
    */
   @OnEvent('invite.accepted')
   async handleInviteAccepted(event: InviteAcceptedEvent) {
-    console.log(
+    this.logger.log(
       `✅ Convite #${event.inviteId} aceito: ${event.userName} agora faz parte da ${event.associationName}`,
     );
 
@@ -63,7 +64,7 @@ export class InviteEmailListener {
       });
 
       if (association) {
-        console.log(
+        this.logger.log(
           `Enviando notificação de aceite para ${association.email}...`,
         );
 
@@ -74,13 +75,12 @@ export class InviteEmailListener {
           event.userId,
         );
 
-        console.log(
+        this.logger.log(
           `Notificação de aceite enviada para ${association.email}`,
         );
       }
     } catch (error) {
-      console.error('❌ Erro ao notificar associação sobre aceite:', error);
-      // Não lançar erro para não quebrar o fluxo
+      this.logger.error('❌ Erro ao notificar associação sobre aceite:', error);
     }
   }
 
@@ -89,19 +89,18 @@ export class InviteEmailListener {
    */
   @OnEvent('invite.declined')
   async handleInviteDeclined(event: InviteDeclinedEvent) {
-    console.log(
+    this.logger.log(
       `Convite #${event.inviteId} recusado: ${event.userName} recusou o convite da ${event.associationName}`,
     );
 
     try {
-      // Buscar email da associação
       const association = await this.prisma.association.findUnique({
         where: { id: event.associationId },
         select: { email: true, name: true },
       });
 
       if (association) {
-        console.log(
+        this.logger.log(
           ` Enviando notificação de recusa para ${association.email}...`,
         );
 
@@ -111,12 +110,12 @@ export class InviteEmailListener {
           event.userName,
         );
 
-        console.log(
+        this.logger.log(
           `Notificação de recusa enviada para ${association.email}`,
         );
       }
     } catch (error) {
-      console.error('Erro ao notificar associação sobre recusa:', error);
+      this.logger.error('Erro ao notificar associação sobre recusa:', error);
       // Não lançar erro para não quebrar o fluxo
     }
   }

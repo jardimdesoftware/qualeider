@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { MailerService } from '@nestjs-modules/mailer';
 
 @Injectable()
 export class MailService {
+  private readonly logger = new Logger(MailService.name);
   constructor(private readonly mailerService: MailerService) {}
 
   async sendResetPasswordEmail(
@@ -42,9 +43,12 @@ export class MailService {
           metadata,
         },
       });
-      console.log('E-mail de redefinição de senha enviado com sucesso!');
+      this.logger.log('E-mail de redefinição de senha enviado com sucesso!');
     } catch (error) {
-      console.error('Erro ao enviar e-mail de redefinição de senha:', error);
+      this.logger.error(
+        'Erro ao enviar e-mail de redefinição de senha:',
+        error,
+      );
       throw error;
     }
   }
@@ -79,9 +83,12 @@ export class MailService {
           }),
         },
       });
-      console.log(`✅ Email de convite enviado para ${to}`);
+      this.logger.log(`✅ Email de convite enviado para ${to}`);
     } catch (error) {
-      console.error(`❌ Erro ao enviar email de convite para ${to}:`, error);
+      this.logger.error(
+        `❌ Erro ao enviar email de convite para ${to}:`,
+        error,
+      );
       throw error;
     }
   }
@@ -109,9 +116,9 @@ export class MailService {
           userProfileUrl,
         },
       });
-      console.log(`✅ Notificação de aceite enviada para ${to}`);
+      this.logger.log(`✅ Notificação de aceite enviada para ${to}`);
     } catch (error) {
-      console.error(
+      this.logger.error(
         `❌ Erro ao enviar notificação de aceite para ${to}:`,
         error,
       );
@@ -137,9 +144,9 @@ export class MailService {
           userName,
         },
       });
-      console.log(`✅ Notificação de recusa enviada para ${to}`);
+      this.logger.log(`✅ Notificação de recusa enviada para ${to}`);
     } catch (error) {
-      console.error(
+      this.logger.error(
         `❌ Erro ao enviar notificação de recusa para ${to}:`,
         error,
       );
@@ -174,9 +181,9 @@ export class MailService {
           metadata,
         },
       });
-      console.log(`E-mail enviado para ${to}`);
+      this.logger.log(`E-mail enviado para ${to}`);
     } catch (error) {
-      console.error(`Erro ao enviar e-mail para ${to}:`, error);
+      this.logger.error(`Erro ao enviar e-mail para ${to}:`, error);
       throw error;
     }
   }

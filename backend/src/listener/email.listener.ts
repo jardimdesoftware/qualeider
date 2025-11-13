@@ -1,13 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { MailService } from '@/mail/mail.service';
 import { NotificationSendPayload } from '@/events/notification-payload.interface';
 
 const MAX_RETRIES = 3;
-const DELAY_MS = 2000; 
+const DELAY_MS = 2000;
 
 @Injectable()
 export class EmailListener {
+  private readonly logger = new Logger(EmailListener.name);
   constructor(private readonly mailService: MailService) {}
 
   @OnEvent('notification.send')
@@ -20,7 +21,9 @@ export class EmailListener {
     attempt: number,
   ) {
     try {
-      console.log(`Tentativa ${attempt} de enviar email para ${payload.to}...`);
+      this.logger.log(
+        `Tentativa ${attempt} de enviar email para ${payload.to}...`,
+      );
 
       await this.mailService.sendNotificationEmail(
         payload.to,
@@ -30,20 +33,25 @@ export class EmailListener {
         payload.metadata,
       );
 
-      console.log(
+      this.logger.log(
         `Email enviado com sucesso para ${payload.to} na tentativa ${attempt}.`,
       );
     } catch (error) {
-      console.error(`Erro na Tentativa ${attempt} para ${payload.to}:`, error);
+      this.logger.error(
+        `Erro na Tentativa ${attempt} para ${payload.to}:`,
+        error,
+      );
 
       if (attempt < MAX_RETRIES) {
         const delayTime = DELAY_MS * attempt; // 2s, 4s, 6s
-        console.log(`Aguardando ${delayTime}ms antes da próxima tentativa...`);
+        this.logger.log(
+          `Aguardando ${delayTime}ms antes da próxima tentativa...`,
+        );
         await new Promise((resolve) => setTimeout(resolve, delayTime));
 
         await this.safeSendEmail(payload, attempt + 1);
       } else {
-        console.error(
+        this.logger.error(
           `Falha final ao enviar email para ${payload.to} após ${MAX_RETRIES} tentativas.`,
         );
 
@@ -51,6 +59,4 @@ export class EmailListener {
       }
     }
   }
-
-  
 }
