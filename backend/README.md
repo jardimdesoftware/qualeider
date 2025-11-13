@@ -12,43 +12,55 @@ Desenvolvido como parte do projeto QualeiDer do Instituto Federal de Pernambuco.
 
 ## Estrutura do Projeto
 
-```
+```plaintext
 backend/
 ├── src/
-│   ├── application/              # Camada de aplicação (casos de uso)
-│   │   ├── services/
-│   │   │   ├── animals/         # Serviços de animais
-│   │   │   ├── associations/    # Serviços de associações
-│   │   │   ├── daily-collections/  # Serviços de coletas
-│   │   │   ├── invites/         # Serviços de convites
-│   │   │   ├── notifications/   # Serviços de notificações
-│   │   │   └── users/           # Serviços de usuários
-│   │   └── modules/
-│   │       ├── animals.module.ts
-│   │       ├── associations.module.ts
-│   │       ├── daily-collections.module.ts
-│   │       ├── invites.module.ts
-│   │       ├── notifications.module.ts
-│   │       └── users.module.ts
+│   ├── application/              # Camada de aplicação
+│   │   ├── dtos/                # Data Transfer Objects
+│   │   │   ├── animals/         # DTOs de animais
+│   │   │   ├── associations/    # DTOs de associações
+│   │   │   ├── auth/            # DTOs de autenticação
+│   │   │   ├── daily-collections/  # DTOs de coletas
+│   │   │   ├── invites/         # DTOs de convites
+│   │   │   ├── notifications/   # DTOs de notificações
+│   │   │   └── users/           # DTOs de usuários
+│   │   ├── enums/               # Enumerações
+│   │   │   └── invite-status.enum.ts
+│   │   ├── ports/               # Interfaces de serviços (DIP)
+│   │   │   ├── hash.service.ts  # Interface para hash (bcrypt)
+│   │   │   └── token.service.ts # Interface para tokens (JWT)
+│   │   └── services/            # Serviços de aplicação
+│   │       ├── animals/
+│   │       │   ├── animals.service.ts
+│   │       │   └── animals.module.ts
+│   │       ├── associations/
+│   │       │   ├── associations.service.ts
+│   │       │   └── associations.module.ts
+│   │       ├── daily-collections/
+│   │       │   ├── daily-collections.service.ts
+│   │       │   └── daily-collections.module.ts
+│   │       ├── invites/
+│   │       │   ├── invites.service.ts
+│   │       │   ├── invites-cleanup.service.ts  # Cron job
+│   │       │   └── invites.module.ts
+│   │       ├── notifications/
+│   │       │   ├── notifications.service.ts
+│   │       │   └── notifications.module.ts
+│   │       └── users/
+│   │           ├── users.service.ts
+│   │           └── users.module.ts
 │   │
-│   ├── presentation/             # Camada de apresentação (controllers/DTOs)
-│   │   ├── controllers/
-│   │   │   ├── animals/
+│   ├── presentation/            # Camada de apresentação
+│   │   ├── controllers/         # Controllers REST
+│   │   │   ├── animals.controller.ts
 │   │   │   ├── associations/
-│   │   │   ├── auth/
-│   │   │   ├── daily-collections/
-│   │   │   ├── invites/
-│   │   │   ├── notifications/
-│   │   │   └── users/
-│   │   ├── dto/                 # Data Transfer Objects
-│   │   │   ├── animals/
-│   │   │   ├── associations/
-│   │   │   ├── auth/
-│   │   │   ├── daily-collections/
-│   │   │   ├── invites/
-│   │   │   ├── notifications/
-│   │   │   └── users/
-│   │   ├── modules/
+│   │   │   │   └── associations.controller.ts
+│   │   │   ├── auth.controller.ts
+│   │   │   ├── daily-collections.controller.ts
+│   │   │   ├── invites.controller.ts
+│   │   │   ├── notifications.controller.ts
+│   │   │   └── users.controller.ts
+│   │   ├── modules/            # Módulos de apresentação
 │   │   │   ├── animals.module.ts
 │   │   │   ├── associations.module.ts
 │   │   │   ├── auth.module.ts
@@ -56,71 +68,94 @@ backend/
 │   │   │   ├── invites.module.ts
 │   │   │   ├── notifications.module.ts
 │   │   │   └── users.module.ts
-│   │   ├── app.module.ts
-│   │   └── main.ts
+│   │   ├── app.module.ts       # Módulo raiz
+│   │   └── main.ts             # Entry point da aplicação
 │   │
-│   ├── infrastructure/           # Camada de infraestrutura
-│   │   ├── database/
-│   │   │   └── prisma/
-│   │   │       ├── prisma.module.ts
-│   │   │       └── prisma.service.ts
-│   │   ├── mail/
-│   │   │   ├── mail.module.ts
-│   │   │   └── mail.service.ts
-│   │   └── modules/
-│   │       └── infrastructure.module.ts
-│   │
-│   ├── domain/                   # Camada de domínio (entidades/interfaces)
-│   │   ├── entities/
+│   ├── domain/                  # Camada de domínio
+│   │   ├── entities/           # Entidades de domínio
 │   │   │   ├── animal.entity.ts
-│   │   │   ├── association.entity.ts
 │   │   │   ├── daily-collection.entity.ts
-│   │   │   ├── invite.entity.ts
-│   │   │   ├── notification.entity.ts
 │   │   │   └── user.entity.ts
-│   │   └── interfaces/
-│   │       ├── animal.interface.ts
-│   │       ├── association.interface.ts
-│   │       ├── daily-collection.interface.ts
-│   │       ├── invite.interface.ts
-│   │       ├── notification.interface.ts
-│   │       └── user.interface.ts
+│   │   └── enums/              # Enums de domínio
+│   │       └── enums.ts        # Role, Status, AnimalType, etc.
 │   │
-│   ├── events/                   # Sistema de eventos
-│   │   ├── invite.events.ts
-│   │   └── notification.events.ts
+│   ├── infrastructure/          # Camada de infraestrutura
+│   │   ├── prisma/
+│   │   │   ├── prisma.module.ts
+│   │   │   └── prisma.service.ts
+│   │   ├── services/           # Implementações de ports
+│   │   │   ├── bcrypt-hash.service.ts    # Implementa IHashService
+│   │   │   └── jwt-token.service.ts      # Implementa ITokenService
+│   │   └── infrastructure.module.ts
 │   │
-│   ├── listener/                 # Event listeners
-│   │   ├── email.listener.ts
-│   │   └── invite-email.listener.ts
+│   ├── common/                  # Recursos compartilhados
+│   │   └── filters/
+│   │       └── prisma-exception.filter.ts  # Filtro global de erros Prisma
 │   │
-│   ├── auth/                     # Autenticação e estratégias
-│   │   ├── auth.controller.ts
+│   ├── auth/                    # Módulo de autenticação
 │   │   ├── auth.module.ts
 │   │   ├── auth.service.ts
-│   │   └── jwt.strategy.ts
+│   │   └── jwt.strategy.ts     # Estratégia Passport JWT
 │   │
-│   ├── templates/                # Templates de email (Handlebars)
+│   ├── mail/                    # Serviço de email
+│   │   ├── mail.module.ts
+│   │   └── mail.service.ts     # Nodemailer + Handlebars
+│   │
+│   ├── events/                  # Sistema de eventos
+│   │   ├── invite-accepted.event.ts
+│   │   ├── invite-created.event.ts
+│   │   ├── invite-declined.event.ts
+│   │   ├── notification.events.ts
+│   │   └── notification-payload.interface.ts
+│   │
+│   ├── listener/                # Event listeners
+│   │   ├── email.listener.ts         # Escuta eventos de notificação
+│   │   └── invite-email.listener.ts  # Escuta eventos de convite
+│   │
+│   ├── templates/               # Templates de email (Handlebars)
 │   │   ├── invite.hbs
 │   │   ├── invite-accepted.hbs
 │   │   ├── invite-declined.hbs
 │   │   ├── notification.hbs
 │   │   └── reset-password.hbs
 │   │
-│   └── prisma/                   # Configuração do Prisma
+│   └── prisma/                  # Configuração do Prisma
 │       ├── schema.prisma
 │       └── migrations/
 │
-├── tests/                        # Testes
-│   ├── setup.ts
+├── test/                        # Testes E2E
+│   ├── app.e2e-spec.ts
 │   └── jest-e2e.json
 │
-├── test-invites.http            # Testes HTTP (REST Client)
-├── TESTES_BACKEND.md            # Guia de testes
 ├── docker-compose.yml
 ├── Dockerfile
 └── package.json
 ```
+
+## Arquitetura
+
+### Path Aliases
+
+O projeto utiliza path aliases para imports mais limpos:
+
+- `@/application/*` → `src/application/*`
+- `@/presentation/*` → `src/presentation/*`
+- `@/domain/*` → `src/domain/*`
+- `@/infrastructure/*` → `src/infrastructure/*`
+- `@/common/*` → `src/common/*`
+- `@/auth/*` → `src/auth/*`
+- `@/mail/*` → `src/mail/*`
+- `@/events/*` → `src/events/*`
+- `@/listener/*` → `src/listener/*`
+
+### Padrões Implementados
+
+- **Clean Architecture**: Separação em camadas (Domain, Application, Infrastructure, Presentation)
+- **Dependency Inversion**: Uso de ports/adapters para desacoplamento
+- **Event-Driven**: Sistema de eventos com `@nestjs/event-emitter`
+- **CRON Jobs**: Limpeza automática de convites expirados (`@nestjs/schedule`)
+- **Global Exception Filter**: `PrismaExceptionFilter` para tratamento centralizado de erros
+- **Logging**: NestJS Logger em todos os serviços
 
 ## Documentação da API
 

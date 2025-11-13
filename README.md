@@ -26,23 +26,23 @@ O backend segue um estilo de Clean Architecture por camadas:
 - infrastructure: Prisma (repositórios/serviços), email, etc.
 - presentation: controllers NestJS e bootstrap da aplicação
 
-Swagger: http://localhost:8080/api
+Swagger: <http://localhost:8080/api>
 
 ## Estrutura de pastas
 
-```
+```plaintext
 backend/           # API NestJS + Prisma
-	src/
-		domain/
-		application/
-		infrastructure/
-		presentation/  # main.ts, controllers
-		interfaces/
-		constants/
-	prisma/          # schema.prisma e migrations
-	docker-compose.yml  # Banco PostgreSQL local
+  src/
+    domain/
+    application/
+    infrastructure/
+    presentation/  # main.ts, controllers
+    interfaces/
+    constants/
+  prisma/          # schema.prisma e migrations
+  docker-compose.yml  # Banco PostgreSQL local
 
 frontend/          # App Next.js
-	src/
-	public/
+  src/
+  public/
 ```
