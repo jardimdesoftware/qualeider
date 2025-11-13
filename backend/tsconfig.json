@@ -28,7 +28,7 @@
       "@/events/*": ["src/events/*"],
       "@/listener/*": ["src/listener/*"]
     },
-    "ignoreDeprecations": "5.0"
+    "ignoreDeprecations": "6.0"
   },
   "exclude": [
     "src/animals/**",
