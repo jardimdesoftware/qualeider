@@ -1,7 +1,7 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateUserDto } from './create-user.dto';
 import { IsNotEmpty, IsString, IsEmail, IsEnum } from 'class-validator';
-import { Role, UserType, UserCategory } from '@/domain/enums/enums';
+import { UserType, UserCategory } from '@/domain/enums/enums';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class UpdatePartialUserDto extends PartialType(CreateUserDto) {
@@ -17,15 +17,6 @@ export class UpdatePartialUserDto extends PartialType(CreateUserDto) {
   @IsNotEmpty()
   @IsEmail()
   email!: string;
-
-  @ApiProperty({
-    description: 'Nível de Acesso',
-    enum: Role,
-    example: Role.Common,
-  })
-  @IsNotEmpty()
-  @IsEnum(Role)
-  role!: Role;
 
   @ApiProperty({
     description: 'Tipo de usuário para o common',

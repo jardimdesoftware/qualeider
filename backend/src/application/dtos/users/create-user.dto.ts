@@ -6,10 +6,9 @@ import {
   MinLength,
   Length,
   Matches,
-  ValidateIf,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
-import { UserCategory, UserType, Role } from '@/domain/enums/enums';
+import { UserCategory, UserType } from '@/domain/enums/enums';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateUserDto {
@@ -43,24 +42,10 @@ export class CreateUserDto {
   password!: string;
 
   @ApiProperty({
-    description: 'Nível de Acesso',
-    enum: Role,
-    example: Role.Common,
-  })
-  @IsNotEmpty({ message: 'A role é obrigatória.' })
-  @IsEnum(Role, { message: 'A role fornecida não é válida.' })
-  role!: Role;
-
-  @ApiProperty({
-    description: 'Tipo de usuário (OBRIGATÓRIO se a role for "Common")',
+    description: 'Tipo de usuário',
     enum: UserType,
     example: UserType.Pecuarista,
     required: false,
-  })
-  @ValidateIf((o) => o.role === Role.Common)
-  @IsNotEmpty({
-    message:
-      'O tipo de usuário (userType) é obrigatório quando a role é Common.',
   })
   @IsEnum(UserType, {
     message: 'O tipo de usuário (userType) fornecido não é válido.',

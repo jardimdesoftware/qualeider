@@ -1,8 +1,3 @@
-export enum Role {
-  Admin = 'Admin',
-  Common = 'Common',
-}
-
 export enum UserType {
   Pecuarista = 'Pecuarista',
   Cooperativa = 'Cooperativa',
