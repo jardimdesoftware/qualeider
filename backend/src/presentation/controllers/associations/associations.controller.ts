@@ -33,15 +33,15 @@ export class AssociationsController {
   @ApiOperation({ summary: 'Verificar se o email já está cadastrado' })
   @ApiResponse({ status: 200, description: 'Retorna se o email existe.' })
   async checkEmail(@Query('email') email: string) {
-    const exists = await this.associationsService.checkEmailExists(email);
-    return { exists };
+    const association = await this.associationsService.findByEmail(email);
+    return { exists: !!association };
   }
 
   @Get('check-cnpj')
   @ApiOperation({ summary: 'Verificar se o CNPJ já está cadastrado' })
   @ApiResponse({ status: 200, description: 'Retorna se o CNPJ existe.' })
   async checkCnpj(@Query('cnpj') cnpj: string) {
-    const exists = await this.associationsService.checkCnpjExists(cnpj);
-    return { exists };
+    const association = await this.associationsService.findByCnpj(cnpj);
+    return { exists: !!association };
   }
 }

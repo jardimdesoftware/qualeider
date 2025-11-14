@@ -50,8 +50,8 @@ export class DailyCollectionsController {
       );
       return {
         statusCode: HttpStatus.CREATED,
-        message: result.message,
-        data: result.data,
+        message: 'Coleta criada com sucesso',
+        data: result,
       };
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -207,8 +207,8 @@ export class DailyCollectionsController {
       );
       return {
         statusCode: HttpStatus.OK,
-        message: result.message,
-        data: result.data,
+        message: 'Coleta atualizada com sucesso',
+        data: result,
       };
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -250,8 +250,8 @@ export class DailyCollectionsController {
       const result = await this.dailyCollectionsService.remove(id);
       return {
         statusCode: HttpStatus.OK,
-        message: result.message,
-        data: result.data,
+        message: 'Coleta excluída com sucesso',
+        data: result,
       };
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -289,7 +289,7 @@ export class DailyCollectionsController {
   async findAllByUserId(@Param('userId', new ParseIntPipe()) userId: number) {
     try {
       const result = await this.dailyCollectionsService.findAllByUserId(userId);
-      return result.data;
+      return result;
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw new HttpException(

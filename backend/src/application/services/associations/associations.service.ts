@@ -9,17 +9,25 @@ export class AssociationsService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  private async checkEmailExists(email: string): Promise<boolean> {
-    const association = await this.prisma.association.findUnique({
+  async findByEmail(email: string) {
+    return await this.prisma.association.findUnique({
       where: { email: email.toLowerCase() },
     });
+  }
+
+  async findByCnpj(cnpj: string) {
+    return await this.prisma.association.findUnique({
+      where: { cnpj },
+    });
+  }
+
+  private async checkEmailExists(email: string): Promise<boolean> {
+    const association = await this.findByEmail(email);
     return !!association;
   }
 
   private async checkCnpjExists(cnpj: string): Promise<boolean> {
-    const association = await this.prisma.association.findUnique({
-      where: { cnpj },
-    });
+    const association = await this.findByCnpj(cnpj);
     return !!association;
   }
 
