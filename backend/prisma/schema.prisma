@@ -8,11 +8,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  Admin
-  Common
-}
-
 enum UserType {
   Pecuarista
   Cooperativa
@@ -87,7 +82,6 @@ model User {
   name                  String
   email                 String           @unique
   password              String
-  role                  Role             @default(Common)
   userType              UserType?
   userCategory          UserCategory 
   document              String?          @unique // CPF ou CNPJ

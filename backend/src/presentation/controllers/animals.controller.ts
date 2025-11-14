@@ -44,8 +44,8 @@ export class AnimalsController {
       const result = await this.animalsService.create(createAnimalDto);
       return {
         statusCode: HttpStatus.CREATED,
-        message: result.message,
-        data: result.data,
+        message: 'Animal criado com sucesso',
+        data: result,
       };
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -111,7 +111,7 @@ export class AnimalsController {
   async findOne(@Param('id', new ParseIntPipe()) id: number) {
     try {
       const result = await this.animalsService.findOne(id);
-      return result.data;
+      return result;
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw new HttpException(
@@ -148,8 +148,8 @@ export class AnimalsController {
       const result = await this.animalsService.update(id, updateAnimalDto);
       return {
         statusCode: HttpStatus.OK,
-        message: result.message,
-        data: result.data,
+        message: 'Animal atualizado com sucesso',
+        data: result,
       };
     } catch (error) {
       if (error instanceof NotFoundException) {

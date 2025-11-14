@@ -27,8 +27,7 @@
       "@/mail/*": ["src/mail/*"],
       "@/events/*": ["src/events/*"],
       "@/listener/*": ["src/listener/*"]
-    },
-    "ignoreDeprecations": "6.0"
+    }
   },
   "exclude": [
     "src/animals/**",
