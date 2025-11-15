@@ -1,0 +1,15 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "Executando testes unitários antes do commit..."
+
+# Executar testes unitários
+npm run test:unit -- --bail --findRelatedTests
+
+# Se testes falharem, abortar commit
+if [ $? -ne 0 ]; then
+  echo "Testes falharam! Corrija os erros antes de fazer commit."
+  exit 1
+fi
+
+echo "Testes passaram! O commit será feito."

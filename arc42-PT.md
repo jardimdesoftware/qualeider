@@ -11,9 +11,9 @@ Versão do template 8.2 PT. (baseado na versão AsciiDoc), Setembro de
 Criado, mantido e © pelo Dr. Peter Hruschka, Dr. Gernot Starke e
 colaboradores. Veja <https://arc42.org>.
 
-# 1. Introdução e Objetivos {#section-introduction-and-goals}
+# 1. Introdução e Objetivos 
 
-## Visão Geral dos Requisitos {#\_vis_o_geral_dos_requisitos}
+## Visão Geral dos Requisitos 
 
 O **QuaLeiDer** é uma plataforma web para gestão de produtores de leite e suas associações, desenvolvida pelo Instituto Federal de Pernambuco.
 
@@ -75,7 +75,7 @@ O **QuaLeiDer** é uma plataforma web para gestão de produtores de leite e suas
      - Histórico de vacinação e tratamentos por animal
      - Taxa de produtividade por animal (litros/dia)
 
-## Objetivos de Qualidade {#\_objetivos_de_qualidade}
+## Objetivos de Qualidade 
 
 | Prioridade | Objetivo de Qualidade | Cenário Mensurável                                                                                                                              |
 | ---------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -183,7 +183,7 @@ O **QuaLeiDer** é uma plataforma web para gestão de produtores de leite e suas
   - Tempo de execução de testes unitários: <60s
   - Tempo de execução de testes E2E: ~90s
 
-## Partes Interessadas {#\_partes_interessadas}
+## Partes Interessadas 
 
 | Função/Nome                         | Contato                               | Expectativas                                                                                                    |
 | ----------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
@@ -193,9 +193,9 @@ O **QuaLeiDer** é uma plataforma web para gestão de produtores de leite e suas
 | **Equipe de Desenvolvimento**       | Desenvolvedores do projeto            | Arquitetura limpa e bem documentada, facilidade de manutenção e extensão, uso de boas práticas                  |
 | **Administradores do Sistema**      | Suporte técnico                       | Acesso administrativo, logs detalhados, facilidade de deployment e monitoramento                                |
 
-# Restrições Arquiteturais {#section-architecture-constraints}
+# Restrições Arquiteturais 
 
-# Contexto e Escopo {#section-context-and-scope}
+# Contexto e Escopo 
 
 ## Contexto Negocial {#\_contexto_negocial}
 
@@ -339,9 +339,9 @@ _\<diagrama + explicação>_
 
 _\<diagrama + explicação>_
 
-# Conceitos Transversais {#section-concepts}
+# Conceitos Transversais 
 
-## Estratégia de Testabilidade {#\_estrat_gia_de_testabilidade}
+## Estratégia de Testabilidade 
 
 A testabilidade é um conceito transversal crítico no QuaLeiDer, garantindo que o sistema seja mantível, confiável e evolua com segurança.
 
@@ -503,7 +503,7 @@ _\<explicação>_
 
 _\<explicação>_
 
-# Decisões Arquiteturais {#section-design-decisions}
+# Decisões Arquiteturais 
 
 ## DA-001: Adoção de Jest como Framework de Testes Único
 
@@ -626,9 +626,9 @@ Estabelecer meta de cobertura mínima de 80% geral, com 90%+ para camadas críti
 - Domain Entities: 100% ✅
 - Presentation Controllers: 97% ✅
 
-# Requisitos de qualidade {#section-quality-scenarios}
+# Requisitos de qualidade 
 
-## Árvore de qualidade {#\_\_rvore_de_qualidade}
+## Árvore de qualidade 
 
 ```
 QuaLeiDer - Qualidade
@@ -768,7 +768,7 @@ QuaLeiDer - Qualidade
 - **Resposta:** Desenvolvedor adiciona teste que reproduz cenário exato do bug; teste falha conforme esperado; correção implementada; teste passa
 - **Medida:** Bug reproduzido em <10 minutos; correção validada por teste automatizado; deploy com confiança (100% dos testes passando)
 
-# Riscos e Débitos Técnicos {#section-technical-risks}
+# Riscos e Débitos Técnicos 
 
 ## Riscos Relacionados à Testabilidade
 
@@ -889,7 +889,7 @@ Não há testes automatizados específicos para validar vulnerabilidades de segu
 - Validação de autenticação/autorização em todos endpoints
 - Integrar SAST tool (ex: SonarQube) no pipeline
 
-# Glossário {#section-glossary}
+# Glossário 
 
 | Termo                         | Definição                                                                                                              |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------- |

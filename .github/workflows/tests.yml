@@ -1,0 +1,66 @@
+name: Tests CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: qualeider_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Instalar dependências
+        working-directory: backend
+        run: npm ci
+
+      - name: Configurar variáveis de ambiente
+        working-directory: backend
+        run: |
+          cp .env.example .env
+          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/qualeider_test" >> .env
+
+      - name: 🗄️ Executar migrations
+        working-directory: backend
+        run: npx prisma migrate deploy
+
+      - name: Executar testes unitários
+        working-directory: backend
+        run: npm run test:unit -- --coverage
+
+      - name: Executar testes E2E
+        working-directory: backend
+        run: npm run test:e2e
+
+      - name: Upload coverage para Codecov (opcional)
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./backend/coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
