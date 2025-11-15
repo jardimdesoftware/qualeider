@@ -135,6 +135,17 @@ export class UsersService {
   async update(id: number, updateUserDto: UpdateUserDto) {
     await this.findActiveUserById(id);
 
+    // Verifica se o email já está em uso por outro usuário
+    if (updateUserDto.email) {
+      const existingUser = await this.prisma.user.findUnique({
+        where: { email: updateUserDto.email },
+      });
+
+      if (existingUser && existingUser.id !== id) {
+        throw new ConflictException('Email já cadastrado');
+      }
+    }
+
     const payload: Prisma.UserUpdateInput = {
       ...updateUserDto,
     } as Prisma.UserUpdateInput;
@@ -149,16 +160,34 @@ export class UsersService {
       );
     }
 
-    const updatedUser = await this.prisma.user.update({
-      where: { id },
-      data: payload,
-    });
+    try {
+      const updatedUser = await this.prisma.user.update({
+        where: { id },
+        data: payload,
+      });
 
-    return this.removePassword(updatedUser);
+      return this.removePassword(updatedUser);
+    } catch (error) {
+      if (error.code === 'P2002') {
+        throw new ConflictException('Email já cadastrado');
+      }
+      throw error;
+    }
   }
 
   async partialUpdate(id: number, updatePartialUserDto: UpdatePartialUserDto) {
     await this.findActiveUserById(id);
+
+    // Verifica se o email já está em uso por outro usuário
+    if (updatePartialUserDto.email) {
+      const existingUser = await this.prisma.user.findUnique({
+        where: { email: updatePartialUserDto.email },
+      });
+
+      if (existingUser && existingUser.id !== id) {
+        throw new ConflictException('Email já cadastrado');
+      }
+    }
 
     const payload: Prisma.UserUpdateInput = {
       ...updatePartialUserDto,
@@ -174,12 +203,19 @@ export class UsersService {
       );
     }
 
-    const updatedUser = await this.prisma.user.update({
-      where: { id },
-      data: payload,
-    });
+    try {
+      const updatedUser = await this.prisma.user.update({
+        where: { id },
+        data: payload,
+      });
 
-    return this.removePassword(updatedUser);
+      return this.removePassword(updatedUser);
+    } catch (error) {
+      if (error.code === 'P2002') {
+        throw new ConflictException('Email já cadastrado');
+      }
+      throw error;
+    }
   }
 
   async remove(id: number) {

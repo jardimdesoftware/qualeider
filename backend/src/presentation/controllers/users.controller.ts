@@ -9,7 +9,9 @@ import {
   Delete,
   BadRequestException,
   Query,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '@/application/guards/jwt-auth.guard';
 import {
   ApiTags,
   ApiOperation,
@@ -50,6 +52,7 @@ export class UsersController {
 
   @ApiOperation({ summary: 'Listar todos os usuários' })
   @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @ApiResponse({
     status: 200,
     description: 'Lista de usuários obtida com sucesso',
@@ -64,6 +67,8 @@ export class UsersController {
   }
 
   @ApiOperation({ summary: 'Buscar um usuário pelo ID' })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiParam({ name: 'id', description: 'ID do usuário', type: Number })
   @ApiResponse({ status: 200, description: 'Usuário encontrado' })
   @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
@@ -75,6 +80,7 @@ export class UsersController {
 
   @ApiOperation({ summary: 'Atualizar todos os dados de um usuário pelo ID' })
   @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @ApiParam({ name: 'id', description: 'ID do usuário', type: Number })
   @ApiResponse({ status: 200, description: 'Usuário atualizado com sucesso' })
   @ApiResponse({ status: 400, description: 'Dados inválidos' })
@@ -87,6 +93,7 @@ export class UsersController {
 
   @ApiOperation({ summary: 'Atualizar alguns dados de um usuário pelo ID' })
   @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @ApiParam({ name: 'id', description: 'ID do usuário', type: Number })
   @ApiResponse({ status: 200, description: 'Usuário atualizado com sucesso' })
   @ApiResponse({ status: 400, description: 'Dados inválidos' })
@@ -102,6 +109,7 @@ export class UsersController {
 
   @ApiOperation({ summary: 'Excluir um usuário pelo ID' })
   @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @ApiParam({ name: 'id', description: 'ID do usuário', type: Number })
   @ApiResponse({ status: 200, description: 'Usuário excluído com sucesso' })
   @ApiResponse({ status: 404, description: 'Usuário não encontrado' })

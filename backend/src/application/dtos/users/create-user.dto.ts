@@ -2,6 +2,7 @@ import {
   IsEmail,
   IsEnum,
   IsNotEmpty,
+  IsOptional,
   IsString,
   MinLength,
   Length,
@@ -47,6 +48,7 @@ export class CreateUserDto {
     example: UserType.Pecuarista,
     required: false,
   })
+  @IsOptional()
   @IsEnum(UserType, {
     message: 'O tipo de usuário (userType) fornecido não é válido.',
   })
@@ -68,6 +70,7 @@ export class CreateUserDto {
     example: '12345678000190',
     required: false,
   })
+  @IsOptional()
   @IsString({ message: 'O documento deve ser uma string.' })
   document?: string;
 

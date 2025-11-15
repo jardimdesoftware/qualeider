@@ -25,6 +25,7 @@ export class CreateAnimalDto {
   animalType!: AnimalType;
 
   @ApiProperty({ description: 'Raça do animal', example: 'Holandês' })
+  @IsNotEmpty()
   @IsString()
   breed!: string;
 

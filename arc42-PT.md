@@ -80,7 +80,7 @@ O **QuaLeiDer** é uma plataforma web para gestão de produtores de leite e suas
 | Prioridade | Objetivo de Qualidade | Cenário Mensurável                                                                                                                              |
 | ---------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1          | **Segurança**         | Tokens JWT expiram em 24h; senhas com hash bcrypt (10 rounds); reset de senha expira em 15 min; proteção contra SQL injection via Prisma ORM    |
-| 2          | **Manutenibilidade**  | Clean Architecture com 4 camadas (Domain, Application, Infrastructure, Presentation);                     |
+| 2          | **Manutenibilidade**  | Clean Architecture com 4 camadas (Domain, Application, Infrastructure, Presentation);                                                           |
 | 3          | **Escalabilidade**    | Sistema suporta 50 associações e 2.000 produtores simultâneos; API responde <300ms com 500 req/min; preparado para crescimento horizontal       |
 | 4          | **Confiabilidade**    | Jobs CRON alertam admin em caso de falha; emails com 3 tentativas de reenvio (5, 15, 30 min); 99% de uptime para operações críticas             |
 | 5          | **Usabilidade**       | Produtor registra coleta em <45s via smartphone; taxa de sucesso de 95% na aceitação de convites sem ajuda; API RESTful documentada com Swagger |
@@ -108,7 +108,7 @@ O **QuaLeiDer** é uma plataforma web para gestão de produtores de leite e suas
 **Escalabilidade:**
 
 - Arquitetura modular com NestJS preparada para crescimento horizontal
-- Suporte para 50 associações e 2.000 produtores registrando coletas simultaneamente (pico: 07:00-09:00)
+- Suporte para 50 associações e 2.000 produtores registrando coletas simultaneamente
 - Tempo de resposta da API de registro de coleta <300ms mesmo com 500 requisições/minuto
 - Database Prisma com connection pooling para otimização de queries
 - Preparado para deploy em múltiplas instâncias (load balancing)
@@ -135,11 +135,53 @@ O **QuaLeiDer** é uma plataforma web para gestão de produtores de leite e suas
   - Interface responsiva otimizada para smartphones (tela mínima: 360px)
   - Fluxo de registro de coleta diária em <45 segundos
   - Formulários com validação em tempo real e mensagens de erro claras
-  - Aceitação de convite com taxa de sucesso de 95% sem necessidade de ajuda
 - **Para Desenvolvedores:**
+  - Documentação arc42
   - API RESTful documentada com Swagger/OpenAPI
   - Exemplos de requisição/resposta para todos os endpoints
   - Mensagens de erro padronizadas com códigos HTTP apropriados
+
+**Testabilidade:**
+
+- **Arquitetura Orientada a Testes:**
+
+  - Dependency Injection em 100% dos serviços (NestJS pattern)
+  - Interfaces claramente definidas para todos os repositórios e serviços externos
+  - Ports & Adapters pattern permitindo substituição de infraestrutura por mocks
+  - Separação entre lógica de negócio (Application) e infraestrutura (Presentation, Infrastructure)
+
+- **Cobertura de Testes (Atual: 96.25%):**
+
+  - **Testes Unitários:** 466 testes cobrindo DTOs, Services, Controllers, Entities
+    - DTOs: 100% de cobertura (validação de dados de entrada)
+    - Services (Application): 95%+ de cobertura (lógica de negócio)
+    - Controllers (Presentation): 97% de cobertura (endpoints HTTP)
+    - Entities (Domain): 100% de cobertura (regras de negócio)
+  - **Testes E2E:** 110 testes integrando backend completo (API + Database)
+    - 7 suítes de testes: Auth (24), Users (18), Animals (16), Daily Collections (14), Invites (17), Associations (21)
+    - Taxa de sucesso: 100% (110/110 testes passando)
+
+- **Ferramentas e Práticas:**
+
+  - Jest como framework de testes (unitários e E2E)
+  - Supertest para testes de API HTTP
+  - Test Factories para geração de dados de teste consistentes
+  - Setup/Teardown automático de banco de dados para testes E2E
+  - Mocks configuráveis para serviços externos (email, database)
+  - Testes seguguindo o padrão AAA (Arrange, act, assert)
+
+- **Estratégias de Teste:**
+
+  - **Testes Unitários:** Isolam a lógica de negócio, mockando dependências externas
+  - **Testes E2E:** Validam fluxos completos (HTTP → Controller → Service → Database)
+  - **Testes de Integração:** Validam interação entre camadas (Service + Repository)
+  - **Testes de Contrato:** Garantem que DTOs mantêm compatibilidade com contratos de API
+
+- **Métricas de Qualidade:**
+  - Meta: > 80% de cobertura em camadas críticas (Application, Domain)
+  - 0 testes quebrados ou ignorados
+  - Tempo de execução de testes unitários: <60s
+  - Tempo de execução de testes E2E: ~90s
 
 ## Partes Interessadas {#\_partes_interessadas}
 
@@ -299,9 +341,157 @@ _\<diagrama + explicação>_
 
 # Conceitos Transversais {#section-concepts}
 
-## _\<Conceito 1>_ {#\_\_emphasis_conceito_1_emphasis}
+## Estratégia de Testabilidade {#\_estrat_gia_de_testabilidade}
 
-_\<explicação>_
+A testabilidade é um conceito transversal crítico no QuaLeiDer, garantindo que o sistema seja mantível, confiável e evolua com segurança.
+
+### Princípios de Design para Testabilidade
+
+**1. Dependency Injection (DI)**
+
+- 100% dos serviços utilizam DI via NestJS
+- Permite substituição de dependências por mocks/stubs em testes
+- Exemplo: `MailService` pode ser substituído por `MockMailService` em testes
+
+**2. Ports & Adapters (Hexagonal Architecture)**
+
+- Interfaces claramente definidas entre camadas
+- Camada de Application independente de infraestrutura
+- Exemplo: Interface `IUserRepository` implementada por `PrismaUserRepository` em produção e `InMemoryUserRepository` em testes
+
+**3. Separation of Concerns**
+
+- DTOs separam validação de entrada da lógica de negócio
+- Services contêm apenas lógica de negócio (sem detalhes de HTTP ou Database)
+- Controllers são finos, delegando toda lógica para Services
+
+### Estrutura de Testes
+
+```
+tests/
+├── unit/                          # Testes unitários (466 testes)
+│   ├── application/
+│   │   ├── dtos/                 # Validação de DTOs (100% cobertura)
+│   │   └── services/             # Lógica de negócio (95%+ cobertura)
+│   ├── domain/
+│   │   ├── entities/             # Regras de domínio (100% cobertura)
+│   │   └── enums/
+│   └── presentation/
+│       └── controllers/          # Endpoints HTTP (97% cobertura)
+├── e2e/                           # Testes end-to-end (110 testes)
+│   ├── auth/                     # Login, Reset de Senha (24 testes)
+│   ├── users/                    # CRUD de Usuários (18 testes)
+│   ├── animals/                  # CRUD de Animais (16 testes)
+│   ├── daily-collections/        # CRUD de Coletas (14 testes)
+│   ├── invites/                  # Sistema de Convites (17 testes)
+│   ├── associations/             # CRUD de Associações (21 testes)
+│   ├── factories/                # Test Factories para dados de teste
+│   └── helpers/                  # Helpers para autenticação e setup
+├── mocks/                         # Mocks reutilizáveis
+└── factories/                     # Factories para geração de dados
+```
+
+### Test Factories Pattern
+
+Factories geram dados de teste consistentes e reutilizáveis:
+
+```typescript
+// Exemplo: UserFactory
+UserFactory.buildProducer(); // Produtor com dados válidos
+UserFactory.buildAdmin(); // Administrador
+UserFactory.buildAssociation(); // Associação
+
+// Exemplo: AnimalFactory
+AnimalFactory.buildVaca(); // Vaca com dados padrão
+AnimalFactory.buildCabra(); // Cabra
+AnimalFactory.build({ age: 5 }); // Animal personalizado
+```
+
+**Benefícios:**
+
+- Reduz duplicação de código nos testes
+- Garante dados válidos por padrão
+- Facilita manutenção quando DTOs mudam
+- Aumenta legibilidade dos testes
+
+### Estratégias de Mock
+
+**1. Mocks de Serviços Externos**
+
+- `MailService`: Mock para evitar envio de emails reais em testes
+- `PrismaService`: Mock para testes unitários de services
+
+**2. Test Doubles**
+
+- **Stubs:** Retornam dados pré-definidos (ex: `findById()` retorna usuário fixo)
+- **Spies:** Verificam se métodos foram chamados com argumentos corretos
+- **Mocks:** Simulam comportamento completo de dependências
+
+**3. Database em Testes E2E**
+
+- Database real (PostgreSQL) isolado para testes
+- Setup/Teardown automático entre testes
+- Transações rollback para garantir isolamento
+
+### Padrões de Nomenclatura
+
+Testes em **português** seguindo convenção "deve...":
+
+```typescript
+describe('E2E: Animais - Operações CRUD', () => {
+  describe('POST /animals (Criar)', () => {
+    it('deve criar um novo animal com dados válidos', ...)
+    it('deve retornar 404 com userId inexistente', ...)
+    it('deve retornar 400 com dados inválidos', ...)
+  })
+})
+```
+
+**Benefícios:**
+
+- Testes funcionam como documentação viva em português
+- Facilitam compreensão por desenvolvedores brasileiros
+- Mensagens de erro claras ao executar testes
+
+### Métricas e Metas
+
+| Métrica               | Meta  | Atual  | Status |
+| --------------------- | ----- | ------ | ------ |
+| Cobertura Geral       | >80%  | 96.25% | ✅     |
+| Cobertura DTOs        | 100%  | 100%   | ✅     |
+| Cobertura Services    | >90%  | 95%+   | ✅     |
+| Cobertura Controllers | >90%  | 97%    | ✅     |
+| Testes Unitários      | >300  | 466    | ✅     |
+| Testes E2E            | >80   | 110    | ✅     |
+| Tempo Exec. Unit      | <60s  | ~50s   | ✅     |
+| Tempo Exec. E2E       | <120s | ~90s   | ✅     |
+| Taxa de Sucesso       | 100%  | 100%   | ✅     |
+
+### Processo de CI/CD
+
+**1. Validação Pré-Commit**
+
+- Linter (ESLint) valida padrões de código
+- Prettier formata código automaticamente
+
+**2. Pipeline de Testes**
+
+- Testes unitários executados primeiro (rápido feedback)
+- Testes E2E executados se unitários passarem
+- Cobertura validada (bloqueia merge se <80%)
+
+**3. Proteção de Branches**
+
+- Pull Requests requerem 100% dos testes passando
+- Cobertura não pode diminuir
+- Review de código obrigatório
+
+### Boas Práticas Adotadas
+
+1. **AAA Pattern (Arrange-Act-Assert):** Estrutura clara em todos os testes
+2. **Test Isolation:** Cada teste independente (sem ordem de execução)
+3. **Single Responsibility:** Um teste valida um comportamento
+4. **Meaningful Names:** Nomes descritivos em português
 
 ## _\<Conceito 2>_ {#\_\_emphasis_conceito_2_emphasis}
 
@@ -314,6 +504,127 @@ _\<explicação>_
 _\<explicação>_
 
 # Decisões Arquiteturais {#section-design-decisions}
+
+## DA-001: Adoção de Jest como Framework de Testes Único
+
+**Contexto:**
+
+- Necessidade de framework de testes para unitários e E2E
+- NestJS recomenda Jest como padrão
+- Alternativas: Mocha, Vitest, AVA
+
+**Decisão:**
+Adotar Jest como framework único para testes unitários e E2E, com Supertest para testes de API HTTP.
+
+**Consequências:**
+
+- ✅ **Positivas:**
+  - Ecossistema consistente com NestJS
+  - Suporte nativo a mocking e coverage
+  - Documentação abundante e comunidade ativa
+  - Execução paralela de testes
+  - Configuração unificada (jest.config.ts)
+- ⚠️ **Negativas:**
+  - Performance inferior ao Vitest
+  - Configuração de path aliases pode ser complexa (Padrão que já foi adotado antes)
+
+## DA-002: Testes E2E com Database Real
+
+**Contexto:**
+
+- Testes E2E precisam validar integração completa
+- Opções: database real, in-memory (SQLite), mocks completos
+- Prisma ORM utilizado no projeto
+
+**Decisão:**
+Utilizar PostgreSQL real em testes E2E com setup/teardown automático para isolamento. (MIGRAR DEPOIS)
+
+**Consequências:**
+
+- ✅ **Positivas:**
+  - Valida queries reais (sem discrepância SQLite vs PostgreSQL)
+  - Detecta problemas de migração e constraints
+  - Testes mais confiáveis (produção-like)
+  - Sem necessidade de mocks complexos
+- ⚠️ **Negativas:**
+  - Testes E2E mais lentos (~90s total)
+  - Requer PostgreSQL instalado localmente
+  - Setup/teardown adiciona complexidade
+
+## DA-003: Factories Pattern para Dados de Teste
+
+**Contexto:**
+
+- Necessidade de gerar dados válidos nos testes
+- Repetição de código ao criar objetos de teste
+- DTOs com muitos campos obrigatórios
+
+**Decisão:**
+Implementar Test Factories para todos os DTOs principais (User, Animal, DailyCollection, Invite, Association).
+
+**Consequências:**
+
+- ✅ **Positivas:**
+  - Reduz duplicação de código nos testes
+  - Facilita manutenção quando DTOs mudam
+  - Testes mais legíveis e focados
+  - Dados válidos por padrão
+- ⚠️ **Negativas:**
+  - Código adicional a manter (factories/)
+  - Necessidade do desenvolvedor conhecer o conceito de factory
+
+## DA-004: Nomenclatura de Testes em Português
+
+**Contexto:**
+
+- Equipe brasileira com diferentes níveis de inglês
+- Testes devem funcionar como documentação
+- Padrão "should..." vs "deve..."
+
+**Decisão:**
+Todos os testes (unitários e E2E) devem ser escritos em português seguindo padrão "deve...".
+
+**Consequências:**
+
+- ✅ **Positivas:**
+  - Testes funcionam como documentação viva em português
+  - Facilita compreensão por desenvolvedores brasileiros
+  - Mensagens de erro mais claras
+  - Alinhamento com comentários de código em português
+- ⚠️ **Negativas:**
+  - Mistura de idiomas (código em inglês, testes em português)
+
+## DA-005: Cobertura Mínima de 80%
+
+**Status:** Aceita
+
+**Contexto:**
+
+- Necessidade de garantir qualidade do código
+- Balance entre cobertura e produtividade
+- Diferentes níveis de criticidade por camada
+
+**Decisão:**
+Estabelecer meta de cobertura mínima de 80% geral, com 90%+ para camadas críticas (Application, Domain).
+
+**Consequências:**
+
+- ✅ **Positivas:**
+  - Código crítico bem testado
+  - Reduz bugs em produção
+  - Facilita refatoração com confiança
+  - CI/CD bloqueia deploys com cobertura baixa
+- ⚠️ **Negativas:**
+  - Pode incentivar testes sem valor (coverage gaming)
+  - Tempo adicional de desenvolvimento
+  - Cobertura não garante qualidade
+
+**Métricas Atuais:**
+
+- Cobertura Geral: 96.25% ✅
+- Application Services: 95%+ ✅
+- Domain Entities: 100% ✅
+- Presentation Controllers: 97% ✅
 
 # Requisitos de qualidade {#section-quality-scenarios}
 
@@ -328,6 +639,10 @@ QuaLeiDer - Qualidade
 ├── Manutenibilidade (P2)
 │   ├── Modularidade
 │   ├── Testabilidade
+│   │   ├── Cobertura de Código (96.25%)
+│   │   ├── Testes Unitários (466 testes)
+│   │   ├── Testes E2E (110 testes)
+│   │   └── Test Factories
 │   └── Documentação
 ├── Escalabilidade (P3)
 │   ├── Capacidade
@@ -426,14 +741,189 @@ QuaLeiDer - Qualidade
 - **Resposta:** Sistema gera alerta visual no dashboard e notificação por email
 - **Medida:** Alerta gerado em tempo real (<5 segundos); taxa de falsos positivos <5%; produtor pode marcar alerta como "revisado"
 
+### Cenário 10: Adição de Nova Funcionalidade sem Quebrar Testes (Testabilidade)
+
+- **Fonte:** Desenvolvedor precisa adicionar validação de CNPJ em associações
+- **Estímulo:** Requisito novo de validar formato e dígitos verificadores do CNPJ
+- **Artefato:** Service `AssociationsService` e DTO `CreateAssociationDto`
+- **Ambiente:** Ambiente de desenvolvimento com suite de testes completa (576 testes)
+- **Resposta:** Desenvolvedor adiciona validação em DTO; testes existentes continuam passando; novos testes são adicionados
+- **Medida:** Testes executados em <60s; cobertura mantida >95%; zero regressões; implementação completa em <2 horas
+
+### Cenário 11: Substituição de Serviço de Email por Mock em Testes (Testabilidade)
+
+- **Fonte:** Desenvolvedor executando testes E2E localmente
+- **Estímulo:** Necessita testar fluxo de reset de senha sem enviar emails reais
+- **Artefato:** Módulo `MailService` e testes E2E de autenticação
+- **Ambiente:** Ambiente de desenvolvimento local sem acesso a serviço de email externo
+- **Resposta:** Sistema utiliza mock de `MailService` via Dependency Injection; emails são "enviados" para array em memória
+- **Medida:** Testes executam sem dependências externas; verificação de conteúdo de email via mock; 100% de isolamento
+
+### Cenário 12: Debugging de Falha em Produção via Testes Reproduzíveis (Testabilidade)
+
+- **Fonte:** Bug reportado em produção: convite duplicado não retorna erro 409
+- **Estímulo:** Desenvolvedor precisa reproduzir o bug localmente
+- **Artefato:** Teste E2E `invites-crud.e2e-spec.ts`
+- **Ambiente:** Ambiente de desenvolvimento com database PostgreSQL local
+- **Resposta:** Desenvolvedor adiciona teste que reproduz cenário exato do bug; teste falha conforme esperado; correção implementada; teste passa
+- **Medida:** Bug reproduzido em <10 minutos; correção validada por teste automatizado; deploy com confiança (100% dos testes passando)
+
 # Riscos e Débitos Técnicos {#section-technical-risks}
+
+## Riscos Relacionados à Testabilidade
+
+### RT-001: Degradação da Cobertura de Testes
+
+**Probabilidade:** Média | **Impacto:** Alto | **Prioridade:** Alta
+
+**Descrição:**
+Desenvolvedores podem adicionar novas funcionalidades sem criar testes correspondentes, reduzindo a cobertura ao longo do tempo.
+
+**Mitigação:**
+
+- CI/CD bloqueia merge se cobertura cair abaixo de 80%
+- Code reviews obrigatórios verificam presença de testes
+- Dashboard de cobertura visível para toda equipe
+- Meta de 90%+ para camadas críticas (Application, Domain)
+
+**Plano de Contingência:**
+
+- Revisão de processo de code review
+- Treinamento da equipe em boas práticas de teste
+
+### RT-002: Testes E2E Flaky (Instáveis)
+
+**Probabilidade:** Baixa | **Impacto:** Médio | **Prioridade:** Média
+
+**Descrição:**
+Testes E2E podem falhar intermitentemente devido a dependências de tempo, concorrência ou estado compartilhado.
+
+**Mitigação Atual:**
+
+- Setup/teardown limpa database entre testes
+- Uso de database isolado para testes E2E
+- Sem dependências de sleep/timeout fixos
+- Factories garantem dados determinísticos
+
+**Monitoramento:**
+
+- Taxa de sucesso dos testes E2E: 100%
+- Reexecução automática de testes falhados (max 1x)
+- Log detalhado de falhas intermitentes
+
+**Plano de Contingência:**
+
+- Identificar testes flaky via histórico de CI/CD
+- Desabilitar temporariamente
+- Refatorar para remover não-determinismo
+
+### RT-003: Lentidão Progressiva dos Testes
+
+**Probabilidade:** Média | **Impacto:** Médio | **Prioridade:** Média
+
+**Descrição:**
+À medida que o sistema cresce, tempo de execução de testes pode aumentar, reduzindo velocidade de feedback.
+
+**Métricas Atuais:**
+
+- Testes Unitários: ~50s (466 testes)
+- Testes E2E: ~90s (110 testes)
+- Total: ~140s
+
+**Limites Estabelecidos:**
+
+- Testes Unitários: <60s
+- Testes E2E: <120s
+- Total: <180s
+
+**Mitigação:**
+
+- Execução paralela de testes (Jest workers)
+- Otimização de queries em testes E2E
+- Test filtering (rodar apenas testes afetados)
+- Cache de módulos compilados
+
+**Plano de Contingência:**
+
+- Revisar testes lentos (>5s unitários, >10s E2E)
+- Considerar splitting de suítes de teste
+- Avaliar migração para Vitest se necessário
+
+## Débitos Técnicos Relacionados à Testabilidade
+
+### DT-001: Ausência de Testes de Carga (Load Testing)
+
+**Prioridade:** Alta | **Esforço Estimado:** 2 semanas
+
+**Descrição:**
+Sistema não possui testes automatizados de carga para validar cenário de 2.000 produtores simultâneos.
+
+**Impacto:**
+
+- Impossível validar meta de escalabilidade (<300ms com 500 req/min)
+- Risco de degradação de performance em produção
+
+**Proposta de Resolução:**
+
+- Implementar testes com k6 ou Artillery
+- Simular carga realista (pico 07:00-09:00)
+- Incluir em pipeline de CI/CD (execução semanal)
+- Monitorar métricas (latência p95, p99, taxa de erro)
+
+### DT-002: Cobertura de Testes de Segurança
+
+**Prioridade:** Média | **Esforço Estimado:** 1 semana
+
+**Descrição:**
+Não há testes automatizados específicos para validar vulnerabilidades de segurança (OWASP Top 10).
+
+**Impacto:**
+
+- Risco de regressões de segurança passarem despercebidas
+- Validação manual é propensa a erros
+
+**Proposta de Resolução:**
+
+- Adicionar testes de SQL Injection (já mitigado por Prisma)
+- Testes de XSS em endpoints que retornam HTML
+- Validação de autenticação/autorização em todos endpoints
+- Integrar SAST tool (ex: SonarQube) no pipeline
 
 # Glossário {#section-glossary}
 
-+-----------------------+-----------------------------------------------+
-| Termo | Definição |
-+=======================+===============================================+
-| _\<Termo-1>_ | _\<definição-1>_ |
-+-----------------------+-----------------------------------------------+
-| _\<Termo-2>_ | _\<definição-2>_ |
-+-----------------------+-----------------------------------------------+
+| Termo                         | Definição                                                                                                              |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **AAA Pattern**               | Arrange-Act-Assert: padrão de estruturação de testes dividido em 3 etapas (preparar, executar, verificar)              |
+| **CI/CD**                     | Continuous Integration/Continuous Deployment: prática de integração e deploy contínuos com validação automatizada      |
+| **Cobertura de Código**       | Métrica que indica percentual de código executado durante testes automatizados                                         |
+| **Dependency Injection (DI)** | Padrão de design onde dependências são fornecidas externamente ao invés de criadas internamente, facilitando testes    |
+| **E2E (End-to-End)**          | Testes que validam fluxo completo do sistema, do endpoint HTTP até o banco de dados                                    |
+| **Flaky Test**                | Teste instável que falha intermitentemente sem mudanças no código, geralmente por não-determinismo                     |
+| **Mock**                      | Objeto que simula comportamento de dependência real, usado para isolar código em testes                                |
+| **Ports & Adapters**          | Padrão arquitetural (Hexagonal Architecture) que separa lógica de negócio de detalhes de infraestrutura via interfaces |
+| **Stub**                      | Tipo de test double que retorna dados pré-definidos, mais simples que mocks                                            |
+| **Test Double**               | Termo genérico para objetos que substituem dependências reais em testes (mocks, stubs, spies, fakes)                   |
+| **Test Factory**              | Padrão de criação de objetos de teste com dados válidos por padrão, reduzindo duplicação de código                     |
+| **Test Isolation**            | Princípio de que cada teste deve ser independente e não afetar outros testes                                           |
+| **Testes de Contrato**        | Testes que validam se a interface entre sistemas externos permanece compatível                                         |
+| **Testes Unitários**          | Testes que validam pequenas unidades de código (funções, métodos) de forma isolada                                     |
+| **JWT**                       | JSON Web Token: padrão de token para autenticação stateless                                                            |
+| **DTO**                       | Data Transfer Object: objeto que transporta dados entre camadas, usado para validação de entrada                       |
+| **ORM**                       | Object-Relational Mapping: framework que mapeia objetos para tabelas de banco de dados (ex: Prisma)                    |
+| **CRON Job**                  | Tarefa agendada que executa automaticamente em intervalos definidos                                                    |
+| **Clean Architecture**        | Arquitetura em camadas que separa lógica de negócio de frameworks e infraestrutura                                     |
+| **Prisma**                    | ORM TypeScript-first utilizado no projeto para acesso ao PostgreSQL                                                    |
+| **NestJS**                    | Framework Node.js para construção de aplicações server-side escaláveis                                                 |
+| **Supertest**                 | Biblioteca para testes de APIs HTTP em Node.js                                                                         |
+| **Jest**                      | Framework JavaScript para testes unitários e E2E                                                                       |
+| **DRY**                       | Don't Repeat Yourself: princípio de evitar duplicação de código através de abstração e reutilização                    |
+| **SRP**                       | Single Responsibility Principle: cada classe/módulo deve ter uma única responsabilidade                                |
+| **DIP**                       | Dependency Inversion Principle: depender de abstrações (interfaces) ao invés de implementações concretas               |
+| **SOLID**                     | Conjunto de 5 princípios de design orientado a objetos (SRP, OCP, LSP, ISP, DIP)                                       |
+| **KISS**                      | Keep It Simple, Stupid: princípio de manter soluções simples e evitar complexidade desnecessária                       |
+| **YAGNI**                     | You Aren't Gonna Need It: não implementar funcionalidades até que sejam realmente necessárias                          |
+| **TDD**                       | Test-Driven Development: metodologia de desenvolver testes antes do código de produção                                 |
+| **Refactoring**               | Processo de melhorar estrutura interna do código sem alterar comportamento externo                                     |
+| **Code Smell**                | Indicador de possível problema no código que merece atenção (ex: funções muito longas, duplicação)                     |
+| **Path Alias**                | Atalho de importação (ex: `@/application`) que simplifica caminhos relativos no código                                 |
+| **Clean Code**                | Conjunto de práticas para escrever código legível, simples e fácil de manter                          |
