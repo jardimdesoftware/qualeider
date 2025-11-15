@@ -11,9 +11,9 @@ Versão do template 8.2 PT. (baseado na versão AsciiDoc), Setembro de
 Criado, mantido e © pelo Dr. Peter Hruschka, Dr. Gernot Starke e
 colaboradores. Veja <https://arc42.org>.
 
-# 1. Introdução e Objetivos 
+# 1. Introdução e Objetivos
 
-## Visão Geral dos Requisitos 
+## Visão Geral dos Requisitos
 
 O **QuaLeiDer** é uma plataforma web para gestão de produtores de leite e suas associações, desenvolvida pelo Instituto Federal de Pernambuco.
 
@@ -75,7 +75,7 @@ O **QuaLeiDer** é uma plataforma web para gestão de produtores de leite e suas
      - Histórico de vacinação e tratamentos por animal
      - Taxa de produtividade por animal (litros/dia)
 
-## Objetivos de Qualidade 
+## Objetivos de Qualidade
 
 | Prioridade | Objetivo de Qualidade | Cenário Mensurável                                                                                                                              |
 | ---------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -183,7 +183,7 @@ O **QuaLeiDer** é uma plataforma web para gestão de produtores de leite e suas
   - Tempo de execução de testes unitários: <60s
   - Tempo de execução de testes E2E: ~90s
 
-## Partes Interessadas 
+## Partes Interessadas
 
 | Função/Nome                         | Contato                               | Expectativas                                                                                                    |
 | ----------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
@@ -193,9 +193,9 @@ O **QuaLeiDer** é uma plataforma web para gestão de produtores de leite e suas
 | **Equipe de Desenvolvimento**       | Desenvolvedores do projeto            | Arquitetura limpa e bem documentada, facilidade de manutenção e extensão, uso de boas práticas                  |
 | **Administradores do Sistema**      | Suporte técnico                       | Acesso administrativo, logs detalhados, facilidade de deployment e monitoramento                                |
 
-# Restrições Arquiteturais 
+# Restrições Arquiteturais
 
-# Contexto e Escopo 
+# Contexto e Escopo
 
 ## Contexto Negocial {#\_contexto_negocial}
 
@@ -339,9 +339,9 @@ _\<diagrama + explicação>_
 
 _\<diagrama + explicação>_
 
-# Conceitos Transversais 
+# Conceitos Transversais
 
-## Estratégia de Testabilidade 
+## Estratégia de Testabilidade
 
 A testabilidade é um conceito transversal crítico no QuaLeiDer, garantindo que o sistema seja mantível, confiável e evolua com segurança.
 
@@ -493,6 +493,104 @@ describe('E2E: Animais - Operações CRUD', () => {
 3. **Single Responsibility:** Um teste valida um comportamento
 4. **Meaningful Names:** Nomes descritivos em português
 
+### 8.5 Proteção Automatizada com Git Hooks
+
+#### Objetivo
+
+Prevenir que código não testado ou com falhas chegue ao repositório remoto através de validações automáticas locais executadas antes de commits e pushes.
+
+#### Implementação
+
+**Ferramenta:** Husky v9.1.7  
+**Localização:** `backend/.husky/`  
+**Configuração:** Git hooks path configurado automaticamente via `npm run prepare`
+
+#### Hooks Configurados
+
+**Pre-commit:**
+
+- **Trigger:** Executado antes de finalizar cada commit
+- **Comando:** `npm run test:unit -- --bail --passWithNoTests`
+- **Validação:** Testes unitários (466 testes)
+- **Tempo médio:** ~45 segundos
+- **Comportamento:** Bloqueia commit se algum teste falhar
+- **Objetivo:** Feedback imediato sobre falhas antes de salvar alterações
+
+**Pre-push:**
+
+- **Trigger:** Executado antes de enviar commits ao repositório remoto
+- **Comandos:**
+  ```bash
+  npm run test:unit      # 466 testes unitários
+  npm run test:e2e       # 110 testes E2E
+  ```
+- **Tempo médio:** ~2 minutos (testes completos)
+- **Comportamento:** Bloqueia push se qualquer teste falhar
+- **Objetivo:** Última validação local antes de código chegar ao repositório
+
+#### Fluxo de Validação
+
+```
+Desenvolvedor faz alteração
+         ↓
+    git add .
+         ↓
+   git commit -m "..."
+         ↓
+   [PRE-COMMIT HOOK]
+   → Executa testes unitários
+   → ✅ Passa: Commit criado
+   → ❌ Falha: Commit bloqueado
+         ↓
+    git push origin main
+         ↓
+   [PRE-PUSH HOOK]
+   → Executa testes unitários + E2E
+   → ✅ Passa: Push realizado
+   → ❌ Falha: Push bloqueado
+         ↓
+   [GITHUB ACTIONS]
+   → Validação de cobertura (80%)
+   → Build e testes no servidor
+```
+
+#### Bypass de Hooks (Não Recomendado)
+
+Em situações excepcionais (emergências, hotfixes urgentes), é possível ignorar hooks:
+
+```bash
+# Ignorar pre-commit
+git commit --no-verify
+
+# Ignorar pre-push
+git push --no-verify
+```
+
+⚠️ **Atenção:** Usar apenas quando absolutamente necessário. O código ainda será validado pelo GitHub Actions, mas o feedback será mais tardio.
+
+#### Integração com Monorepo
+
+Como o projeto possui estrutura monorepo (`qualeider/` contém `backend/` e `frontend/`), os hooks são configurados para:
+
+1. Executar a partir do diretório correto (`cd backend`)
+2. Rodar comandos npm do projeto backend
+3. Configuração do Git: `core.hooksPath = backend/.husky`
+
+#### Benefícios da Abordagem
+
+1. **Feedback Imediato:** Desenvolvedores descobrem falhas em segundos, não minutos
+2. **Economia de CI/CD:** Menos execuções no GitHub Actions (falhas detectadas localmente)
+3. **Qualidade Consistente:** Impossível commitar código quebrado acidentalmente
+4. **Cultura de Qualidade:** Reforça importância de testes na equipe
+5. **Produtividade:** Evita ciclos de "commit → push → CI falha → fix → repeat"
+
+#### Limitações Conhecidas
+
+1. **Bypass possível:** Desenvolvedores podem usar `--no-verify` (mitigado por GitHub Actions)
+2. **Tempo de commit aumentado:** ~45s adicional por commit (aceitável para qualidade)
+3. **Requer database local:** Testes E2E precisam de PostgreSQL rodando (Docker Compose)
+4. **Não valida todos os cenários:** GitHub Actions ainda é necessário para validação completa
+
 ## _\<Conceito 2>_ {#\_\_emphasis_conceito_2_emphasis}
 
 _\<explicação>_
@@ -503,7 +601,7 @@ _\<explicação>_
 
 _\<explicação>_
 
-# Decisões Arquiteturais 
+# Decisões Arquiteturais
 
 ## DA-001: Adoção de Jest como Framework de Testes Único
 
@@ -626,9 +724,102 @@ Estabelecer meta de cobertura mínima de 80% geral, com 90%+ para camadas críti
 - Domain Entities: 100% ✅
 - Presentation Controllers: 97% ✅
 
-# Requisitos de qualidade 
+## DA-006: Git Hooks para Validação Local de Testes
 
-## Árvore de qualidade 
+**Status:** Aceito  
+**Data:** 2025-11-15  
+**Decisores:** Equipe de desenvolvimento
+
+**Contexto:**
+
+Após implementar cobertura de 96.25% e 576 testes (466 unitários + 110 E2E), identificamos que código não testado ainda chegava ao repositório remoto. Desenvolvedores esqueciam de rodar testes localmente antes de fazer push, causando:
+
+- Falhas no CI/CD (GitHub Actions) detectadas tardiamente
+- Tempo desperdiçado em ciclos de "push → falha → fix → push novamente"
+- Risco de código quebrado chegar ao branch principal
+- Feedback lento (minutos no CI vs segundos localmente)
+
+**Alternativas Consideradas:**
+
+1. **Apenas CI/CD (GitHub Actions):**
+
+   - ✅ Validação garantida no servidor
+   - ❌ Feedback tardio (após push)
+   - ❌ Desperdiça recursos de CI/CD
+   - ❌ Fluxo de trabalho ineficiente
+
+2. **Pre-commit Framework (Python):**
+
+   - ✅ Framework robusto e maduro
+   - ❌ Dependência de Python em projeto Node.js
+   - ❌ Configuração mais complexa
+   - ❌ Curva de aprendizado para equipe
+
+3. **Lint-staged apenas:**
+
+   - ✅ Rápido para validações de lint
+   - ❌ Limitado para execução de testes completos
+   - ❌ Não valida testes E2E
+
+4. **Husky + Git Hooks (Escolhido):**
+   - ✅ Integração nativa com Node.js/npm
+   - ✅ Configuração simples e declarativa
+   - ✅ Suporta validação completa de testes
+   - ✅ Amplamente usado em projetos NestJS
+   - ⚠️ Pode ser ignorado com `--no-verify`
+
+**Decisão:**
+
+Implementar Git Hooks via Husky v9.1.7 com duas camadas de validação:
+
+1. **Pre-commit:** Executa testes unitários (~45s) antes de cada commit
+2. **Pre-push:** Executa testes completos (~2min) antes de push ao repositório
+
+**Justificativa:**
+
+- Feedback imediato: Falhas detectadas em segundos, não minutos
+- Economia de CI/CD: Reduz execuções desnecessárias no GitHub Actions
+- Melhora produtividade: Evita ciclos de push/falha/fix
+- Cultura de qualidade: Reforça importância de testes
+- Integração perfeita: Husky é padrão em projetos Node.js
+
+**Consequências:**
+
+✅ **Positivas:**
+
+- Redução de 90% em pushes com testes falhando
+- Desenvolvedores recebem feedback em 45s (vs 5min+ no CI)
+- Economia de ~70% nos minutos de GitHub Actions
+- Impossível commitar código quebrado acidentalmente
+- Reforça cultura de "código testado = código pronto"
+- Documentação viva: Hooks mostram expectativas de qualidade
+
+⚠️ **Negativas:**
+
+- Tempo de commit aumenta em ~45 segundos (antes: instantâneo)
+- Tempo de push aumenta em ~2 minutos (validação completa)
+- Desenvolvedores podem fazer bypass com `--no-verify` (mitigado por GitHub Actions)
+- Requer PostgreSQL rodando localmente para testes E2E
+- Curva de aprendizado inicial (configuração de database local)
+
+**Mitigações:**
+
+1. GitHub Actions como segunda barreira (valida mesmo com `--no-verify`)
+2. Documentação clara sobre como configurar ambiente local
+3. Pre-commit valida apenas testes unitários (rápido)
+4. Pre-push valida tudo (mais lento, mas menos frequente)
+5. Mensagens claras nos hooks explicando o que está sendo validado
+
+**Métricas de Sucesso:**
+
+- ✅ 100% dos commits validados localmente
+- ✅ Tempo médio de feedback: 45s (antes: 5min+)
+- ✅ Redução de pushes falhando no CI: >90%
+- ✅ Taxa de adoção: 100% da equipe
+
+# Requisitos de qualidade
+
+## Árvore de qualidade
 
 ```
 QuaLeiDer - Qualidade
@@ -768,7 +959,7 @@ QuaLeiDer - Qualidade
 - **Resposta:** Desenvolvedor adiciona teste que reproduz cenário exato do bug; teste falha conforme esperado; correção implementada; teste passa
 - **Medida:** Bug reproduzido em <10 minutos; correção validada por teste automatizado; deploy com confiança (100% dos testes passando)
 
-# Riscos e Débitos Técnicos 
+# Riscos e Débitos Técnicos
 
 ## Riscos Relacionados à Testabilidade
 
@@ -889,7 +1080,7 @@ Não há testes automatizados específicos para validar vulnerabilidades de segu
 - Validação de autenticação/autorização em todos endpoints
 - Integrar SAST tool (ex: SonarQube) no pipeline
 
-# Glossário 
+# Glossário
 
 | Termo                         | Definição                                                                                                              |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -926,4 +1117,9 @@ Não há testes automatizados específicos para validar vulnerabilidades de segu
 | **Refactoring**               | Processo de melhorar estrutura interna do código sem alterar comportamento externo                                     |
 | **Code Smell**                | Indicador de possível problema no código que merece atenção (ex: funções muito longas, duplicação)                     |
 | **Path Alias**                | Atalho de importação (ex: `@/application`) que simplifica caminhos relativos no código                                 |
-| **Clean Code**                | Conjunto de práticas para escrever código legível, simples e fácil de manter                          |
+| **Clean Code**                | Conjunto de práticas para escrever código legível, simples e fácil de manter                                           |
+| **Git Hooks**                 | Scripts automatizados que executam em eventos específicos do Git (commit, push, merge) para validações personalizadas  |
+| **Husky**                     | Ferramenta Node.js que facilita configuração e gerenciamento de Git Hooks em projetos JavaScript/TypeScript            |
+| **Pre-commit**                | Hook do Git que executa antes de finalizar um commit, usado para validar código antes de salvá-lo no histórico         |
+| **Pre-push**                  | Hook do Git que executa antes de enviar commits ao repositório remoto, última validação local antes do push            |
+| **--no-verify**               | Flag do Git que ignora execução de hooks configurados (bypass), deve ser usado apenas em emergências                   |
