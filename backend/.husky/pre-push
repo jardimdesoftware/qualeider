@@ -1,7 +1,9 @@
 #!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
 
 echo "Executando todos os testes antes do push..."
+
+# Mudar para diretório backend
+cd backend
 
 # Executar testes unitários
 npm run test:unit
@@ -12,7 +14,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # Executar testes E2E (opcional - pode ser lento)
-echo "🔍 Executando testes E2E..."
+echo "Executando testes E2E..."
 npm run test:e2e
 
 if [ $? -ne 0 ]; then
