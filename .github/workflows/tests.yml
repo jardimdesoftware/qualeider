@@ -40,21 +40,19 @@ jobs:
         working-directory: backend
         run: npm ci
 
-      - name: Configurar variáveis de ambiente
+      - name: 🔧 Configurar variáveis de ambiente
         working-directory: backend
-        run: |
-          cp .env.example .env
-          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/qualeider_test" >> .env
+        run: cp .env.example .env
 
-      - name: 🗄️ Executar migrations
+      - name: Executar migrations
         working-directory: backend
         run: npx prisma migrate deploy
 
-      - name: 🧪 Executar testes unitários com cobertura
+      - name: Executar testes unitários com cobertura
         working-directory: backend
         run: npm run test:unit -- --coverage
 
-      - name: 📊 Validar cobertura mínima (80%)
+      - name: Validar cobertura mínima (80%)
         working-directory: backend
         run: |
           echo "Verificando cobertura de testes..."
@@ -63,11 +61,11 @@ jobs:
           # Jest já valida o threshold configurado (80%)
           # Se cobertura < 80%, este step falhará automaticamente
 
-      - name: 🌐 Executar testes E2E
+      - name: Executar testes E2E
         working-directory: backend
         run: npm run test:e2e
 
-      - name: 📊 Upload coverage para Codecov
+      - name: Upload coverage para Codecov
         uses: codecov/codecov-action@v3
         with:
           files: ./backend/coverage/lcov.info
