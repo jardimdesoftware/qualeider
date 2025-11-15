@@ -14,4 +14,4 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-echo "✅ Testes passaram! Commit permitido."
+echo "✅ Testes passaram! Commit permitido."ai
