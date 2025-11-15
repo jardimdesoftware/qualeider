@@ -50,17 +50,27 @@ jobs:
         working-directory: backend
         run: npx prisma migrate deploy
 
-      - name: Executar testes unitários
+      - name: 🧪 Executar testes unitários com cobertura
         working-directory: backend
         run: npm run test:unit -- --coverage
 
-      - name: Executar testes E2E
+      - name: 📊 Validar cobertura mínima (80%)
+        working-directory: backend
+        run: |
+          echo "Verificando cobertura de testes..."
+          npm run test:unit -- --coverage --ci
+          
+          # Jest já valida o threshold configurado (80%)
+          # Se cobertura < 80%, este step falhará automaticamente
+
+      - name: 🌐 Executar testes E2E
         working-directory: backend
         run: npm run test:e2e
 
-      - name: Upload coverage para Codecov (opcional)
+      - name: 📊 Upload coverage para Codecov
         uses: codecov/codecov-action@v3
         with:
           files: ./backend/coverage/lcov.info
           flags: unittests
           name: codecov-umbrella
+          fail_ci_if_error: true
