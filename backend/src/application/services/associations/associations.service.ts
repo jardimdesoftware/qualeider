@@ -10,12 +10,18 @@ export class AssociationsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findByEmail(email: string) {
+    if (!email) {
+      return null;
+    }
     return await this.prisma.association.findUnique({
       where: { email: email.toLowerCase() },
     });
   }
 
   async findByCnpj(cnpj: string) {
+    if (!cnpj) {
+      return null;
+    }
     return await this.prisma.association.findUnique({
       where: { cnpj },
     });

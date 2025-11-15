@@ -152,7 +152,7 @@ O **QuaLeiDer** é uma plataforma web para gestão de produtores de leite e suas
 
 - **Cobertura de Testes (Atual: 96.25%):**
 
-  - **Testes Unitários:** 466 testes cobrindo DTOs, Services, Controllers, Entities
+  - **Testes Unitários:** 472 testes cobrindo DTOs, Services, Controllers, Entities
     - DTOs: 100% de cobertura (validação de dados de entrada)
     - Services (Application): 95%+ de cobertura (lógica de negócio)
     - Controllers (Presentation): 97% de cobertura (endpoints HTTP)
@@ -369,7 +369,7 @@ A testabilidade é um conceito transversal crítico no QuaLeiDer, garantindo que
 
 ```
 tests/
-├── unit/                          # Testes unitários (466 testes)
+├── unit/                          # Testes unitários (472 testes)
 │   ├── application/
 │   │   ├── dtos/                 # Validação de DTOs (100% cobertura)
 │   │   └── services/             # Lógica de negócio (95%+ cobertura)
@@ -461,7 +461,7 @@ describe('E2E: Animais - Operações CRUD', () => {
 | Cobertura DTOs        | 100%  | 100%   | ✅     |
 | Cobertura Services    | >90%  | 95%+   | ✅     |
 | Cobertura Controllers | >90%  | 97%    | ✅     |
-| Testes Unitários      | >300  | 466    | ✅     |
+| Testes Unitários      | >300  | 472    | ✅     |
 | Testes E2E            | >80   | 110    | ✅     |
 | Tempo Exec. Unit      | <60s  | ~50s   | ✅     |
 | Tempo Exec. E2E       | <120s | ~90s   | ✅     |
@@ -511,7 +511,7 @@ Prevenir que código não testado ou com falhas chegue ao repositório remoto at
 
 - **Trigger:** Executado antes de finalizar cada commit
 - **Comando:** `npm run test:unit -- --bail --passWithNoTests`
-- **Validação:** Testes unitários (466 testes)
+- **Validação:** Testes unitários (472 testes)
 - **Tempo médio:** ~45 segundos
 - **Comportamento:** Bloqueia commit se algum teste falhar
 - **Objetivo:** Feedback imediato sobre falhas antes de salvar alterações
@@ -521,7 +521,7 @@ Prevenir que código não testado ou com falhas chegue ao repositório remoto at
 - **Trigger:** Executado antes de enviar commits ao repositório remoto
 - **Comandos:**
   ```bash
-  npm run test:unit      # 466 testes unitários
+  npm run test:unit      # 472 testes unitários
   npm run test:e2e       # 110 testes E2E
   ```
 - **Tempo médio:** ~2 minutos (testes completos)
@@ -732,7 +732,7 @@ Estabelecer meta de cobertura mínima de 80% geral, com 90%+ para camadas críti
 
 **Contexto:**
 
-Após implementar cobertura de 96.25% e 576 testes (466 unitários + 110 E2E), identificamos que código não testado ainda chegava ao repositório remoto. Desenvolvedores esqueciam de rodar testes localmente antes de fazer push, causando:
+Após implementar cobertura de 96.25% e 582 testes (472 unitários + 110 E2E), identificamos que código não testado ainda chegava ao repositório remoto. Desenvolvedores esqueciam de rodar testes localmente antes de fazer push, causando:
 
 - Falhas no CI/CD (GitHub Actions) detectadas tardiamente
 - Tempo desperdiçado em ciclos de "push → falha → fix → push novamente"
@@ -831,7 +831,7 @@ QuaLeiDer - Qualidade
 │   ├── Modularidade
 │   ├── Testabilidade
 │   │   ├── Cobertura de Código (96.25%)
-│   │   ├── Testes Unitários (466 testes)
+│   │   ├── Testes Unitários (472 testes)
 │   │   ├── Testes E2E (110 testes)
 │   │   └── Test Factories
 │   └── Documentação
@@ -937,7 +937,7 @@ QuaLeiDer - Qualidade
 - **Fonte:** Desenvolvedor precisa adicionar validação de CNPJ em associações
 - **Estímulo:** Requisito novo de validar formato e dígitos verificadores do CNPJ
 - **Artefato:** Service `AssociationsService` e DTO `CreateAssociationDto`
-- **Ambiente:** Ambiente de desenvolvimento com suite de testes completa (576 testes)
+- **Ambiente:** Ambiente de desenvolvimento com suite de testes completa (582 testes)
 - **Resposta:** Desenvolvedor adiciona validação em DTO; testes existentes continuam passando; novos testes são adicionados
 - **Medida:** Testes executados em <60s; cobertura mantida >95%; zero regressões; implementação completa em <2 horas
 
@@ -1017,7 +1017,7 @@ Testes E2E podem falhar intermitentemente devido a dependências de tempo, conco
 
 **Métricas Atuais:**
 
-- Testes Unitários: ~50s (466 testes)
+- Testes Unitários: ~50s (472 testes)
 - Testes E2E: ~90s (110 testes)
 - Total: ~140s
 

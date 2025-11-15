@@ -66,6 +66,27 @@ describe('AssociationsService', () => {
 
       expect(result).toBeNull();
     });
+
+    it('deve retornar null se email for undefined', async () => {
+      const result = await service.findByEmail(undefined as any);
+
+      expect(result).toBeNull();
+      expect(prisma.association.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('deve retornar null se email for null', async () => {
+      const result = await service.findByEmail(null as any);
+
+      expect(result).toBeNull();
+      expect(prisma.association.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('deve retornar null se email for string vazia', async () => {
+      const result = await service.findByEmail('');
+
+      expect(result).toBeNull();
+      expect(prisma.association.findUnique).not.toHaveBeenCalled();
+    });
   });
 
   describe('findByCnpj', () => {
@@ -90,6 +111,27 @@ describe('AssociationsService', () => {
       const result = await service.findByCnpj('00000000000000');
 
       expect(result).toBeNull();
+    });
+
+    it('deve retornar null se CNPJ for undefined', async () => {
+      const result = await service.findByCnpj(undefined as any);
+
+      expect(result).toBeNull();
+      expect(prisma.association.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('deve retornar null se CNPJ for null', async () => {
+      const result = await service.findByCnpj(null as any);
+
+      expect(result).toBeNull();
+      expect(prisma.association.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('deve retornar null se CNPJ for string vazia', async () => {
+      const result = await service.findByCnpj('');
+
+      expect(result).toBeNull();
+      expect(prisma.association.findUnique).not.toHaveBeenCalled();
     });
   });
 

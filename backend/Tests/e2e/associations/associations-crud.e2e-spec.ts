@@ -176,12 +176,12 @@ describe('E2E: Associações - Operações CRUD', () => {
       expect(response.body).toEqual({ exists: false });
     });
 
-    it('deve retornar 500 se o parâmetro email estiver faltando', async () => {
+    it('deve retornar 400 se o parâmetro email estiver faltando', async () => {
       await testApp
         .request()
         .get('/associations/check-email')
         .set('Authorization', `Bearer ${adminToken}`)
-        .expect(HttpStatus.INTERNAL_SERVER_ERROR);
+        .expect(HttpStatus.BAD_REQUEST);
     });
 
     it('deve funcionar sem autenticação', async () => {
@@ -224,12 +224,12 @@ describe('E2E: Associações - Operações CRUD', () => {
       expect(response.body).toEqual({ exists: false });
     });
 
-    it('deve retornar 500 se o parâmetro CNPJ estiver faltando', async () => {
+    it('deve retornar 400 se o parâmetro CNPJ estiver faltando', async () => {
       await testApp
         .request()
         .get('/associations/check-cnpj')
         .set('Authorization', `Bearer ${adminToken}`)
-        .expect(HttpStatus.INTERNAL_SERVER_ERROR);
+        .expect(HttpStatus.BAD_REQUEST);
     });
 
     it('deve funcionar sem autenticação', async () => {
