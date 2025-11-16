@@ -56,10 +56,11 @@ jobs:
         working-directory: backend
         run: npm run test:e2e
 
-      - name: Upload coverage para Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          files: ./backend/coverage/unit/lcov.info
-          flags: unittests
-          name: codecov-umbrella
-          fail_ci_if_error: true
+      # - name: Upload coverage para Codecov (falar com elton pra talvez fazer isso depois)
+      #   uses: codecov/codecov-action@v3
+      #   with:
+      #     token: ${{ secrets.CODECOV_TOKEN }}
+      #     files: ./backend/coverage/unit/lcov.info
+      #     flags: unittests
+      #     name: codecov-umbrella
+      #     fail_ci_if_error: true
