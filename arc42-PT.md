@@ -353,17 +353,54 @@ A testabilidade é um conceito transversal crítico no QuaLeiDer, garantindo que
 - Permite substituição de dependências por mocks/stubs em testes
 - Exemplo: `MailService` pode ser substituído por `MockMailService` em testes
 
+![Dependency Injection](images/dependency-injection.png)
+
 **2. Ports & Adapters (Hexagonal Architecture)**
 
 - Interfaces claramente definidas entre camadas
 - Camada de Application independente de infraestrutura
 - Exemplo: Interface `IUserRepository` implementada por `PrismaUserRepository` em produção e `InMemoryUserRepository` em testes
 
+![Ports & Adapters Pattern](images/ports-adapters.png)
+
+O padrão Ports & Adapters isola a lógica de negócio (núcleo) das preocupações de infraestrutura através de interfaces bem definidas:
+
+- **Ports (Interfaces):** Contratos que definem "o quê" o sistema precisa
+
+  - Repository Port: Interface para acesso a dados
+  - HTTP Port: Endpoints de entrada (Controllers)
+  - Email Port: Interface para envio de emails
+
+- **Adapters (Implementações):** Traduzem entre o mundo externo e o núcleo
+  - Inbound: `InvitesController` recebe requisições HTTP
+  - Outbound: `PrismaService` (PostgreSQL), `MailService` (Nodemailer)
+
+**Benefícios:**
+
+- Testabilidade: Services testados com mocks (ex: `MockMailService` substitui `MailService` em testes)
+- Independência: Trocar Nodemailer por SendGrid afeta apenas 1 arquivo
+- Manutenibilidade: Lógica de negócio isolada de frameworks
+
 **3. Separation of Concerns**
 
 - DTOs separam validação de entrada da lógica de negócio
 - Services contêm apenas lógica de negócio (sem detalhes de HTTP ou Database)
 - Controllers são finos, delegando toda lógica para Services
+
+![Separation of Concerns](images/separation-of-concerns.png)
+
+O princípio de Separation of Concerns divide responsabilidades em camadas distintas:
+
+- **Presentation (Controllers):** Apenas recebe requisições HTTP e delega para Services
+- **Application (Services):** Contém toda lógica de negócio, sem conhecimento de HTTP ou Database
+- **Domain (Entities):** Regras de negócio puras, validações de domínio
+- **Infrastructure (Prisma, Mail):** Detalhes técnicos de implementação
+
+**Benefícios:**
+
+- Cada camada pode ser testada isoladamente
+- Mudanças em uma camada não afetam outras
+- Código mais legível e organizado
 
 ### Estrutura de Testes
 
