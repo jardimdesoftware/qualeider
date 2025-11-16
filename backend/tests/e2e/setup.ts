@@ -21,25 +21,21 @@ export async function teardownE2ETests(): Promise<void> {
 
 /**
  * Limpa todas as tabelas do banco de dados
- * Mantém a ordem correta de deleção devido às foreign keys
  */
 export async function cleanDatabase(): Promise<void> {
   try {
-    // Desabilita foreign key checks temporariamente (PostgreSQL)
-    await prisma.$executeRaw`SET session_replication_role = 'replica';`;
-
-    // Ordem de deleção respeitando as foreign keys
-    await prisma.$executeRaw`TRUNCATE TABLE "DailyCollection" CASCADE;`;
-    await prisma.$executeRaw`TRUNCATE TABLE "Animal" CASCADE;`;
-    await prisma.$executeRaw`TRUNCATE TABLE "Invite" CASCADE;`;
-    await prisma.$executeRaw`TRUNCATE TABLE "Notification" CASCADE;`;
-    await prisma.$executeRaw`TRUNCATE TABLE "User" CASCADE;`;
-    await prisma.$executeRaw`TRUNCATE TABLE "Association" CASCADE;`;
-
-    // Reabilita foreign key checks
-    await prisma.$executeRaw`SET session_replication_role = 'origin';`;
+    await Promise.all([
+      prisma.dailyCollection.deleteMany(),
+      prisma.animal.deleteMany(),
+      prisma.invite.deleteMany(),
+      prisma.notification.deleteMany(),
+      prisma.user.deleteMany(),
+      prisma.association.deleteMany(),
+    ]);
   } catch (error) {
     console.error('Erro ao limpar banco de dados:', error);
     throw error;
   }
 }
+
+export { prisma };

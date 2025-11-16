@@ -15,9 +15,8 @@ const config: Config = {
       statements: 65,
     },
   },
-  // E2E tests may take even longer
   testTimeout: 60000,
-  // Run E2E tests sequentially to avoid database conflicts
+  // TODO: Implementar schemas isolados para permitir paralelização
   maxWorkers: 1,
 };
 
