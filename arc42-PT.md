@@ -55,15 +55,7 @@ O **QuaLeiDer** é uma plataforma web para gestão de produtores de leite e suas
    - Templates personalizados (Handlebars)
    - Eventos de convites, reset de senha, etc.
 
-6. **Gestão Administrativa**
-
-   - Acesso a logs detalhados do sistema (autenticação, erros, jobs)
-   - Monitoramento de processos em segundo plano (CRON jobs, envio de emails)
-   - Visualização de estatísticas globais (total de produtores, associações, coletas)
-   - Gestão de configurações do sistema (parâmetros de email, timeouts)
-   - Alertas automáticos para falhas críticas (jobs, serviços externos)
-
-7. **Módulo de Relatórios e Análises**
+6. **Módulo de Relatórios e Análises**
    - **Dados Agregados para Associações:**
      - Total de leite coletado por período (dia/semana/mês)
      - Número de produtores ativos por associação
@@ -79,10 +71,10 @@ O **QuaLeiDer** é uma plataforma web para gestão de produtores de leite e suas
 
 | Prioridade | Objetivo de Qualidade | Cenário Mensurável                                                                                                                              |
 | ---------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1          | **Segurança**         | Tokens JWT expiram em 24h; senhas com hash bcrypt (10 rounds); reset de senha expira em 15 min; proteção contra SQL injection via Prisma ORM    |
+| 1          | **Segurança**         | Tokens JWT expiram em 24h; senhas com hash bcrypt (12 rounds); reset de senha expira em 15 min; proteção contra SQL injection via Prisma ORM    |
 | 2          | **Manutenibilidade**  | Clean Architecture com 4 camadas (Domain, Application, Infrastructure, Presentation);                                                           |
 | 3          | **Escalabilidade**    | Sistema suporta 50 associações e 2.000 produtores simultâneos; API responde <300ms com 500 req/min; preparado para crescimento horizontal       |
-| 4          | **Confiabilidade**    | Jobs CRON alertam admin em caso de falha; emails com 3 tentativas de reenvio (5, 15, 30 min); 99% de uptime para operações críticas             |
+| 4          | **Confiabilidade**    | Jobs CRON registram falhas em log; emails com 3 tentativas de reenvio (5, 15, 30 min); 99% de uptime para operações críticas                    |
 | 5          | **Usabilidade**       | Produtor registra coleta em <45s via smartphone; taxa de sucesso de 95% na aceitação de convites sem ajuda; API RESTful documentada com Swagger |
 | 6          | **Testabilidade**     | Dependency Injection em 100% dos serviços; ports/adapters pattern; cobertura de testes >80% em camadas críticas (Application, Domain)           |
 
@@ -91,7 +83,7 @@ O **QuaLeiDer** é uma plataforma web para gestão de produtores de leite e suas
 **Segurança:**
 
 - Autenticação stateless com JWT
-- Hash de senhas com bcrypt (10 rounds)
+- Hash de senhas com bcrypt (12 rounds)
 - Validação rigorosa de DTOs com decorators
 - Proteção contra SQL injection via Prisma ORM
 - Tokens de reset de senha com expiração de 15 minutos
@@ -124,7 +116,7 @@ O **QuaLeiDer** é uma plataforma web para gestão de produtores de leite e suas
   - Falha permanente registrada em log após 4 tentativas
 - CRON job de limpeza de convites:
   - Execução diária às 02:00
-  - Alerta enviado ao Administrador se falhar por 3 dias consecutivos
+  - Falhas registradas em log estruturado para análise
 - Validações em camadas (DTO, Service, Database)
 - Tratamento de erros específico por tipo de falha (P2002, P2025, P2003)
 - Monitoramento de processos em segundo plano com logs estruturados
@@ -191,7 +183,6 @@ O **QuaLeiDer** é uma plataforma web para gestão de produtores de leite e suas
 | **Associações**                     | Organizações que gerenciam produtores | Ferramenta para convidar e gerenciar produtores, visualizar dados agregados, enviar notificações                |
 | **Instituto Federal de Pernambuco** | Cliente/Patrocinador                  | Sistema funcional que apoie a gestão de produtores de leite na região, código de qualidade para fins acadêmicos |
 | **Equipe de Desenvolvimento**       | Desenvolvedores do projeto            | Arquitetura limpa e bem documentada, facilidade de manutenção e extensão, uso de boas práticas                  |
-| **Administradores do Sistema**      | Suporte técnico                       | Acesso administrativo, logs detalhados, facilidade de deployment e monitoramento                                |
 
 # Restrições Arquiteturais
 
@@ -291,19 +282,448 @@ _\<modelo de caixa branca>_
 
 # Visão de Tempo de Execução {#section-runtime-view}
 
-## \<Cenário de Tempo de Execução 1> {#\_\_cen_rio_de_tempo_de_execu_o_1}
+## 6.1. Fluxo de Criação de Convite {#fluxo_criacao_convite}
 
-- _\<inserir diagrama de tempo de execução ou descrição textual do
-  cenário>_
+### Diagrama de Sequência
 
-- _\<inserir descrição dos aspectos notáveis ​​das interações entre as
-  instâncias do bloco de construção descritas neste diagrama.\>_
+![Arquitetura de Convites](images/invite-flow.png)
 
-## \<Cenário de Tempo de Execução 2> {#\_\_cen_rio_de_tempo_de_execu_o_2}
+### Descrição do Fluxo
 
-## ... {#\_}
+Este diagrama ilustra o fluxo completo de criação de um convite desde a requisição HTTP até o envio do email de notificação.
 
-## \<Cenário de Tempo de Execução n> {#\_\_cen_rio_de_tempo_de_execu_o_n}
+**Atores e Componentes:**
+
+- **Association**: Associação que envia o convite para um produtor
+- **InvitesController**: Camada de apresentação (HTTP) que recebe a requisição
+- **InvitesService**: Camada de aplicação contendo a lógica de negócio
+- **ORM (Prisma)**: Camada de acesso a dados
+- **PostgreSQL**: Banco de dados relacional
+- **EventEmitter**: Sistema de eventos para comunicação assíncrona
+- **MailService**: Serviço de envio de emails
+
+**Etapas do Fluxo:**
+
+1. **Requisição HTTP**: Associação envia `POST /invites` com `{userId, message}`
+2. **Validação de Pré-requisitos**: InvitesService executa 4 validações:
+   - ✓ Verifica se a associação existe
+   - ✓ Verifica se o usuário existe
+   - ✓ Verifica se não há convite existente
+   - ✓ Verifica se não há convite pendente
+3. **Cálculo de Expiração**: Define `expiresAt` como 7 dias a partir da criação
+4. **Criação do Convite**: Salva no banco de dados com token único gerado
+5. **Emissão de Evento**: `emit('invite.created', event)` - **comunicação assíncrona**
+6. **Resposta HTTP**: Retorna `201 Created` com `{token, expiresAt}` **imediatamente** (~100ms)
+7. **Envio de Email (Background)**: MailService escuta o evento via `@OnEvent('invite.created')` e envia o email (~2-3s)
+
+### EventEmitter: Comunicação Assíncrona
+
+**Por que usar EventEmitter?**
+
+O padrão Observer (Pub/Sub) via EventEmitter desacopla a criação do convite do envio do email, trazendo benefícios arquiteturais críticos:
+
+**Funcionamento:**
+
+```typescript
+// InvitesService (Publisher) - NÃO conhece MailService
+this.eventEmitter.emit('invite.created', {
+  inviteId: invite.id,
+  token: invite.token,
+  userEmail: user.email,
+  associationName: association.name,
+});
+
+// InviteEmailListener (Subscriber) - escuta automaticamente
+@OnEvent('invite.created')
+async handleInviteCreated(event: InviteCreatedEvent) {
+  const retryDelays = [5 * 60 * 1000, 15 * 60 * 1000, 30 * 60 * 1000]; // 5min, 15min, 30min
+
+  for (let attempt = 0; attempt < retryDelays.length + 1; attempt++) {
+    try {
+      await this.mailService.sendInviteEmail(event);
+      this.logger.log(`Email de convite enviado com sucesso (tentativa ${attempt + 1})`);
+      return; // Sucesso - sai do loop
+    } catch (error) {
+      const isLastAttempt = attempt === retryDelays.length;
+
+      if (isLastAttempt) {
+        this.logger.error(`Falha definitiva no envio de email após ${attempt + 1} tentativas`, error);
+        // TODO: Persistir em fila de falhas para processamento manual
+        throw error;
+      }
+
+      const delay = retryDelays[attempt];
+      this.logger.warn(`Tentativa ${attempt + 1} falhou. Reagendando em ${delay / 60000}min...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+}
+```
+
+**Benefícios:**
+
+| Aspecto             | Sem EventEmitter (Síncrono)          | Com EventEmitter (Assíncrono)       |
+| ------------------- | ------------------------------------ | ----------------------------------- |
+| **Performance**     | ~3s de resposta (espera envio email) | ~100ms (retorna imediatamente)      |
+| **Acoplamento**     | Service depende de MailService       | Completamente desacoplado           |
+| **Resiliência**     | Erro no email quebra criação         | Falha no email não afeta DB         |
+| **Extensibilidade** | Difícil adicionar novos listeners    | Fácil adicionar Notification, Audit |
+| **Testabilidade**   | Precisa mockar MailService           | Testa Service isoladamente          |
+
+### Características de Qualidade
+
+- **Performance**: Tempo de resposta <100ms (email enviado em background)
+- **Resiliência**:
+  - Falha no envio de email não impede criação do convite
+  - Sistema de retry automático: 3 tentativas com intervalos de 5min, 15min e 30min
+  - Falhas definitivas são logadas para processamento manual posterior
+- **Segurança**: Token único gerado com `crypto.randomBytes(32)`, expiração em 7 dias
+- **Rastreabilidade**: Evento `invite.created` logado para auditoria, incluindo tentativas de retry
+
+---
+
+## 6.2. Fluxo de Autenticação (Login) {#fluxo_autenticacao_login}
+
+### Diagrama de Sequência
+
+![Fluxo de Login](images/auth-login-flow.png)
+
+### Descrição do Fluxo
+
+Este diagrama ilustra o processo completo de autenticação JWT, desde a validação de credenciais até a geração do token de acesso.
+
+**Atores e Componentes:**
+
+- **User**: Usuário (Produtor, Associação) solicitando autenticação
+- **AuthController**: Camada de apresentação (HTTP) que recebe credenciais
+- **AuthService**: Camada de aplicação contendo lógica de autenticação
+- **UsersService**: Serviço responsável por buscar usuários no banco
+- **JwtService**: Serviço de infraestrutura para geração de tokens JWT
+- **ORM (Prisma)**: Camada de acesso a dados (PostgreSQL)
+- **PostgreSQL**: Banco de dados relacional
+
+**Etapas do Fluxo:**
+
+1. **Requisição HTTP**: User envia `POST /auth/login` com `{email, password}`
+2. **Validação de Credenciais**: AuthService chama `validateUser(email, password)`
+3. **Busca de Usuário**: UsersService consulta banco via `findByEmail(email)`
+4. **Query SQL**: Prisma executa `SELECT * FROM "User" WHERE email = ?`
+5. **Validação de Senha**: AuthService compara senha com `bcrypt.compare(password, hash)`
+6. **Remoção de Senha**: Campo `password` é removido do objeto antes de retornar
+7. **Geração de Token**: AuthService cria payload JWT e solicita assinatura
+8. **Assinatura JWT**: JwtService gera token com algoritmo HS256 e secret
+9. **Auditoria**: Logger registra autenticação bem-sucedida com email do usuário
+10. **Resposta HTTP**: Retorna `200 OK` com `{access_token}` válido por 24 horas
+
+### Segurança e Validações
+
+**Validação de Credenciais:**
+
+```typescript
+// AuthService.validateUser()
+const user = await this.usersService.findByEmail(email);
+
+if (!user) {
+  throw new UnauthorizedException("Credenciais inválidas.");
+}
+
+const isPasswordValid = await bcrypt.compare(password, user.password);
+
+if (!isPasswordValid) {
+  throw new UnauthorizedException("Credenciais inválidas.");
+}
+
+// Remove senha antes de retornar
+const { password, ...result } = user;
+return result;
+```
+
+**Payload do JWT:**
+
+```typescript
+// AuthService.login()
+const payload = {
+  email: user.email,
+  sub: user.id,
+  associationId: user.associationId,
+};
+
+return {
+  access_token: this.jwtService.sign(payload),
+};
+```
+
+**Configuração do Token:**
+
+| Propriedade   | Valor                         | Descrição                                    |
+| ------------- | ----------------------------- | -------------------------------------------- |
+| **Algoritmo** | HS256 (HMAC-SHA256)           | Assinatura simétrica                         |
+| **Secret**    | `process.env.JWT_SECRET`      | Chave secreta do servidor                    |
+| **Expiração** | 24 horas                      | Token válido por 1 dia                       |
+| **Payload**   | `{email, sub, associationId}` | Dados do usuário (sem informações sensíveis) |
+| **Stateless** | Sim                           | Servidor não armazena sessão                 |
+
+### Cenários de Erro
+
+**1. Usuário Não Encontrado:**
+
+```
+POST /auth/login {email: "wrong@example.com", password: "123"}
+→ UsersService.findByEmail() retorna null
+→ throw UnauthorizedException("Credenciais inválidas.")
+→ Response: 401 Unauthorized
+```
+
+**2. Senha Incorreta:**
+
+```
+POST /auth/login {email: "user@example.com", password: "WrongPass"}
+→ UsersService.findByEmail() retorna user
+→ bcrypt.compare() retorna false
+→ throw UnauthorizedException("Credenciais inválidas.")
+→ Response: 401 Unauthorized
+```
+
+**Importante:** Por questões de segurança, ambos os erros retornam a mesma mensagem genérica "Credenciais inválidas" para não revelar se o email existe no sistema.
+
+### Características de Qualidade
+
+- **Performance**: Tempo de resposta < 200ms (validação + geração de token)
+- **Segurança**:
+  - Senhas hasheadas com bcrypt (12 rounds)
+  - JWT assinado com HS256 + secret forte
+  - Senha nunca retornada ao cliente
+  - Mensagens de erro genéricas (não revelam se email existe)
+- **Auditoria**: Cada autenticação bem-sucedida é registrada em log com timestamp e email
+- **Escalabilidade**: Autenticação stateless permite balanceamento de carga sem sessão compartilhada
+
+### Uso do Token
+
+Após autenticação bem-sucedida, o cliente deve incluir o token em todas as requisições protegidas:
+
+```http
+GET /animals HTTP/1.1
+Host: api.qualeider.com
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+O token é validado automaticamente pelo `JwtAuthGuard` em endpoints protegidos com decorator `@UseGuards(JwtAuthGuard)`.
+
+---
+
+## 6.3. Fluxo de Registro de Coleta Diária {#fluxo_registro_coleta}
+
+### Diagrama de Sequência
+
+![Registro de Coleta Diária](images/daily-collection-flow.png)
+
+### Descrição do Fluxo
+
+Este diagrama ilustra o processo completo de registro de uma coleta diária de leite, incluindo todas as validações de negócio necessárias antes da persistência.
+
+**Atores e Componentes:**
+
+- **User (Produtor)**: Produtor de leite registrando a coleta diária
+- **DailyCollectionsController**: Camada de apresentação (HTTP)
+- **DailyCollectionsService**: Camada de aplicação com lógica de negócio e validações
+- **UsersService**: Serviço de validação de produtores
+- **AnimalsService**: Serviço de validação de animais
+- **ORM (Prisma)**: Camada de acesso a dados (PostgreSQL)
+- **PostgreSQL**: Banco de dados relacional
+
+**Etapas do Fluxo:**
+
+1. **Requisição HTTP**: Produtor envia `POST /daily-collections` com dados da coleta
+2. **Validações de Pré-requisitos** (6 validações executadas):
+   - ✓ **Produtor existe e está ativo** (consulta UsersService)
+   - ✓ **Produtor vinculado a uma associação** (valida `associationId`)
+   - ✓ **Animais pertencem ao produtor** (consulta AnimalsService)
+   - ✓ **Data da coleta não é futura** (validação de negócio)
+   - ✓ **Quantidade de leite > 0 litros** (validação de negócio)
+   - ✓ **Número de ordenhas válido** (1-3 por dia)
+3. **Criação Atômica**: Transação que cria registro de coleta + relacionamentos N-to-N com animais
+4. **Persistência**: 2 operações SQL executadas em transação:
+   - `INSERT INTO "DailyCollection"` (coleta principal)
+   - `INSERT INTO "_AnimalToDailyCollection"` (relacionamento Many-to-Many)
+5. **Resposta HTTP**: Retorna `201 Created` com dados da coleta e lista de animais
+
+### Validações de Negócio
+
+**Validações Executadas (DailyCollectionsService):**
+
+```
+┌─────────────────────────────────────────────┐
+│ VALIDAÇÕES DE PRÉ-REQUISITOS (6 checks)    │
+├─────────────────────────────────────────────┤
+│ 1. ✓ Produtor existe e está ativo          │
+│ 2. ✓ Produtor vinculado a uma associação   │
+│ 3. ✓ Todos animais pertencem ao produtor   │
+│ 4. ✓ Data da coleta não é futura           │
+│ 5. ✓ Quantidade de leite > 0 litros        │
+│ 6. ✓ Número de ordenhas válido (1-3/dia)   │
+└─────────────────────────────────────────────┘
+```
+
+**Código de Validação:**
+
+```typescript
+// DailyCollectionsService.create()
+
+const user = await this.usersService.findById(dto.userId);
+if (!user) {
+  throw new NotFoundException("Produtor não encontrado");
+}
+
+if (!user.associationId) {
+  throw new BadRequestException(
+    "Produtor deve estar vinculado a uma associação"
+  );
+}
+
+const animals = await this.animalsService.findMany({
+  where: {
+    id: { in: dto.animalIds },
+    userId: dto.userId,
+  },
+});
+
+if (animals.length !== dto.animalIds.length) {
+  throw new BadRequestException(
+    "Alguns animais não pertencem ao produtor ou não existem"
+  );
+}
+
+if (new Date(dto.date) > new Date()) {
+  throw new BadRequestException("Data não pode ser futura");
+}
+
+if (dto.quantity <= 0) {
+  throw new BadRequestException("Quantidade deve ser maior que zero");
+}
+
+if (dto.milkingCount < 1 || dto.milkingCount > 3) {
+  throw new BadRequestException("Número de ordenhas deve ser entre 1 e 3");
+}
+```
+
+### Relacionamento Many-to-Many
+
+**Tabela de Junção:**
+
+O sistema utiliza relacionamento Many-to-Many entre `Animal` e `DailyCollection`, permitindo rastrear quais animais contribuíram para cada coleta:
+
+```sql
+CREATE TABLE "_AnimalToDailyCollection" (
+  "A" INTEGER NOT NULL REFERENCES "Animal"("id"),
+  "B" INTEGER NOT NULL REFERENCES "DailyCollection"("id"),
+  PRIMARY KEY ("A", "B")
+);
+```
+
+**Criação Atômica:**
+
+```typescript
+const collection = await this.prisma.dailyCollection.create({
+  data: {
+    userId: dto.userId,
+    date: dto.date,
+    quantity: dto.quantity,
+    milkingCount: dto.milkingCount,
+    hasTechnicalAssistance: dto.hasTechnicalAssistance,
+    feed: dto.feed,
+    milkingLocation: dto.milkingLocation,
+    animals: {
+      connect: dto.animalIds.map((id) => ({ id })),
+    },
+  },
+  include: {
+    animals: true,
+  },
+});
+```
+
+### Dados Técnicos Coletados
+
+| Campo                      | Tipo    | Descrição                                      | Exemplo           |
+| -------------------------- | ------- | ---------------------------------------------- | ----------------- |
+| **quantity**               | Float   | Quantidade de leite em litros                  | 45.5              |
+| **milkingCount**           | Integer | Número de ordenhas realizadas (1-3)            | 2                 |
+| **hasTechnicalAssistance** | Boolean | Se recebeu assistência técnica                 | true              |
+| **feed**                   | String  | Tipo de alimentação fornecida                  | "Silagem + Ração" |
+| **milkingLocation**        | String  | Local onde a ordenha foi realizada             | "Sala de Ordenha" |
+| **date**                   | Date    | Data da coleta (não pode ser futura)           | "2025-11-16"      |
+| **animals**                | Array   | IDs dos animais que contribuíram para a coleta | [1, 2, 3]         |
+
+### Cenários de Erro
+
+**1. Produtor Não Encontrado:**
+
+```
+POST /daily-collections {userId: 999, ...}
+→ UsersService.findById(999) retorna null
+→ throw NotFoundException("Produtor não encontrado")
+→ Response: 404 Not Found
+```
+
+**2. Produtor Sem Associação:**
+
+```
+POST /daily-collections {userId: 1, ...}
+→ user.associationId === null
+→ throw BadRequestException("Produtor deve estar vinculado a uma associação")
+→ Response: 400 Bad Request
+```
+
+**3. Animais Não Pertencem ao Produtor:**
+
+```
+POST /daily-collections {userId: 1, animalIds: [1, 2, 999], ...}
+→ AnimalsService retorna apenas 2 animais (esperado: 3)
+→ throw BadRequestException("Alguns animais não pertencem ao produtor")
+→ Response: 400 Bad Request
+```
+
+**4. Data Futura:**
+
+```
+POST /daily-collections {date: "2025-12-31", ...}
+→ new Date(dto.date) > new Date()
+→ throw BadRequestException("Data não pode ser futura")
+→ Response: 400 Bad Request
+```
+
+**5. Quantidade Inválida:**
+
+```
+POST /daily-collections {quantity: -10, ...}
+→ dto.quantity <= 0
+→ throw BadRequestException("Quantidade deve ser maior que zero")
+→ Response: 400 Bad Request
+```
+
+### Características de Qualidade
+
+- **Performance**:
+
+  - Tempo médio de resposta: ~250ms
+  - Meta: < 300ms para 95% das requisições
+  - 2 queries de validação + 1 INSERT atômico
+
+- **Atomicidade**:
+
+  - Transação Prisma garante criação de coleta + relacionamentos
+  - Rollback automático em caso de falha
+
+- **Rastreabilidade**:
+
+  - Relacionamento N-to-N permite saber quais animais contribuíram
+  - Histórico completo de coletas por produtor
+  - Dados técnicos para análise de produtividade
+
+- **Validação Rigorosa**:
+  - 6 validações de negócio antes de persistir
+  - Garante integridade referencial (produtor, animais, associação)
+  - Previne dados inconsistentes no banco
 
 # Visão de Implantação {#section-deployment-view}
 
@@ -435,7 +855,6 @@ Factories geram dados de teste consistentes e reutilizáveis:
 ```typescript
 // Exemplo: UserFactory
 UserFactory.buildProducer(); // Produtor com dados válidos
-UserFactory.buildAdmin(); // Administrador
 UserFactory.buildAssociation(); // Associação
 
 // Exemplo: AnimalFactory
@@ -930,13 +1349,13 @@ QuaLeiDer - Qualidade
 - **Estímulo:** Job falha por 3 dias consecutivos (ex: erro de database)
 - **Artefato:** Serviço `InvitesCleanupService` com monitoramento
 - **Ambiente:** Sistema em produção, database temporariamente indisponível
-- **Resposta:** Sistema registra falha em log estruturado e envia alerta ao Administrador
-- **Medida:** Alerta enviado em <5 minutos após 3ª falha consecutiva; convites não são deletados incorretamente
+- **Resposta:** Sistema registra falha em log estruturado para análise posterior
+- **Medida:** Falha registrada em <5 minutos após 3ª tentativa consecutiva; convites não são deletados incorretamente
 
 ### Cenário 6: Ataque de SQL Injection (Segurança)
 
 - **Fonte:** Atacante mal-intencionado
-- **Estímulo:** Tenta injetar SQL via campo de email: `admin@test.com' OR '1'='1`
+- **Estímulo:** Tenta injetar SQL via campo de email: `user@test.com' OR '1'='1`
 - **Artefato:** Endpoint de login (`POST /auth/login`)
 - **Ambiente:** Sistema em produção exposto na internet
 - **Resposta:** Prisma ORM sanitiza a entrada; validação do DTO rejeita formato inválido
