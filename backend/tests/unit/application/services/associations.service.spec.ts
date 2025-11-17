@@ -5,6 +5,7 @@ import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { createMockPrismaService } from '../../../mocks/prisma.mock';
 import { createAssociation } from '../../../factories/association.factory';
 import * as bcrypt from 'bcryptjs';
+import { BCRYPT_ROUNDS_USER_CREATION } from '@/common/constants/security.constants';
 
 jest.mock('bcryptjs');
 
@@ -169,7 +170,10 @@ describe('AssociationsService', () => {
 
       expect(result).toHaveProperty('id', 1);
       expect(result).toHaveProperty('name', createDto.name);
-      expect(bcrypt.hash).toHaveBeenCalledWith(createDto.password, 10);
+      expect(bcrypt.hash).toHaveBeenCalledWith(
+        createDto.password,
+        BCRYPT_ROUNDS_USER_CREATION,
+      );
       expect(prisma.association.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           email: createDto.email,
@@ -237,7 +241,10 @@ describe('AssociationsService', () => {
 
       await service.create(createDto as any);
 
-      expect(bcrypt.hash).toHaveBeenCalledWith(createDto.password, 10);
+      expect(bcrypt.hash).toHaveBeenCalledWith(
+        createDto.password,
+        BCRYPT_ROUNDS_USER_CREATION,
+      );
       expect(prisma.association.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({

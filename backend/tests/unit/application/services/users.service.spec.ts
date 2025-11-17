@@ -10,6 +10,7 @@ import { UpdatePartialUserDto } from '@/application/dtos/users/update-partial-us
 import { createUser } from '../../../factories';
 import { createMockPrismaService } from '../../../mocks';
 import { UserCategory, Status } from '@/domain/enums/enums';
+import { BCRYPT_ROUNDS_USER_CREATION } from '@/common/constants/security.constants';
 
 // Mock bcrypt
 jest.mock('bcryptjs');
@@ -62,7 +63,10 @@ describe('UsersService', () => {
 
       const result = await service.create(createDto);
 
-      expect(bcrypt.hash).toHaveBeenCalledWith('plainPassword123', 10);
+      expect(bcrypt.hash).toHaveBeenCalledWith(
+        'plainPassword123',
+        BCRYPT_ROUNDS_USER_CREATION,
+      );
       expect(prismaService.user.create).toHaveBeenCalledWith({
         data: {
           name: 'John Doe',
@@ -95,7 +99,9 @@ describe('UsersService', () => {
       );
       prismaService.user.create.mockRejectedValue(prismaError);
 
-      await expect(service.create(createDto)).rejects.toThrow(ConflictException);
+      await expect(service.create(createDto)).rejects.toThrow(
+        ConflictException,
+      );
     });
 
     it('should remove password from returned user object', async () => {
@@ -159,7 +165,8 @@ describe('UsersService', () => {
 
       await service.findAll();
 
-      const selectFields = (prismaService.user.findMany.mock.calls[0][0] as any).select;
+      const selectFields = (prismaService.user.findMany.mock.calls[0][0] as any)
+        .select;
       expect(selectFields).not.toHaveProperty('password');
     });
 
@@ -168,7 +175,8 @@ describe('UsersService', () => {
 
       await service.findAll();
 
-      const selectFields = (prismaService.user.findMany.mock.calls[0][0] as any).select;
+      const selectFields = (prismaService.user.findMany.mock.calls[0][0] as any)
+        .select;
       expect(selectFields.association).toBeDefined();
       expect(selectFields.association.select).toHaveProperty('name');
     });
@@ -212,7 +220,13 @@ describe('UsersService', () => {
       const mockUser = {
         ...createUser({ id: 1 }),
         animals: [
-          { id: 1, name: 'Estrela', breed: 'Holandesa', age: 5, createdAt: new Date() },
+          {
+            id: 1,
+            name: 'Estrela',
+            breed: 'Holandesa',
+            age: 5,
+            createdAt: new Date(),
+          },
         ],
       };
 
@@ -267,7 +281,10 @@ describe('UsersService', () => {
 
       await service.update(1, updateDto);
 
-      expect(bcrypt.hash).toHaveBeenCalledWith('newPassword123', 10);
+      expect(bcrypt.hash).toHaveBeenCalledWith(
+        'newPassword123',
+        BCRYPT_ROUNDS_USER_CREATION,
+      );
       expect(prismaService.user.update).toHaveBeenCalledWith({
         where: { id: 1 },
         data: expect.objectContaining({
@@ -296,11 +313,17 @@ describe('UsersService', () => {
 
       prismaService.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.update(999, updateDto)).rejects.toThrow(NotFoundException);
+      await expect(service.update(999, updateDto)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should remove password from returned user', async () => {
-      const mockUser = createUser({ id: 1, status: Status.Active, password: 'hashedPass' });
+      const mockUser = createUser({
+        id: 1,
+        status: Status.Active,
+        password: 'hashedPass',
+      });
 
       prismaService.user.findUnique.mockResolvedValue(mockUser);
       prismaService.user.update.mockResolvedValue(mockUser);
@@ -352,7 +375,10 @@ describe('UsersService', () => {
 
       await service.partialUpdate(1, updateDto);
 
-      expect(bcrypt.hash).toHaveBeenCalledWith('partialNewPassword', 10);
+      expect(bcrypt.hash).toHaveBeenCalledWith(
+        'partialNewPassword',
+        BCRYPT_ROUNDS_USER_CREATION,
+      );
     });
 
     it('should throw NotFoundException when user not found', async () => {
@@ -476,7 +502,10 @@ describe('UsersService', () => {
 
       await service.create(createDto);
 
-      expect(bcrypt.hash).toHaveBeenCalledWith('myPassword', 10);
+      expect(bcrypt.hash).toHaveBeenCalledWith(
+        'myPassword',
+        BCRYPT_ROUNDS_USER_CREATION,
+      );
     });
   });
 });

@@ -8,6 +8,7 @@ import { UnauthorizedException, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { createUser } from '../../../factories';
 import { createMockPrismaService } from '../../../mocks';
+import { BCRYPT_ROUNDS_RESET_PASSWORD } from '@/common/constants/security.constants';
 
 // Mock bcrypt
 jest.mock('bcryptjs');
@@ -717,7 +718,10 @@ describe('AuthService', () => {
       );
 
       expect(result).toBe(true);
-      expect(bcrypt.hash).toHaveBeenCalledWith('newPassword123', 12);
+      expect(bcrypt.hash).toHaveBeenCalledWith(
+        'newPassword123',
+        BCRYPT_ROUNDS_RESET_PASSWORD,
+      );
       expect(prismaService.user.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 1 },
@@ -782,7 +786,10 @@ describe('AuthService', () => {
         'myNewPassword',
       );
 
-      expect(bcrypt.hash).toHaveBeenCalledWith('myNewPassword', 12);
+      expect(bcrypt.hash).toHaveBeenCalledWith(
+        'myNewPassword',
+        BCRYPT_ROUNDS_RESET_PASSWORD,
+      );
     });
 
     it('should clear reset token and expiry after successful reset', async () => {
