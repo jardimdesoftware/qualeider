@@ -2,6 +2,7 @@ import { Injectable, ConflictException, Logger } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { CreateAssociationDto } from '@/application/dtos/associations/create-association.dto';
 import * as bcrypt from 'bcryptjs';
+import { BCRYPT_ROUNDS_USER_CREATION } from '@/common/constants/security.constants';
 
 @Injectable()
 export class AssociationsService {
@@ -51,7 +52,10 @@ export class AssociationsService {
       throw new ConflictException('CNPJ já cadastrado.');
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(
+      password,
+      BCRYPT_ROUNDS_USER_CREATION,
+    );
 
     const association = await this.prisma.association.create({
       data: {

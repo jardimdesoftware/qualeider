@@ -10,6 +10,7 @@ import { UpdateUserDto } from '@/application/dtos/users/update-user.dto';
 import { UpdatePartialUserDto } from '@/application/dtos/users/update-partial-user.dto';
 import * as bcrypt from 'bcryptjs';
 import { Prisma } from '@prisma/client';
+import { BCRYPT_ROUNDS_USER_CREATION } from '@/common/constants/security.constants';
 
 @Injectable()
 export class UsersService {
@@ -43,7 +44,10 @@ export class UsersService {
     const { password, ...rest } = createUserDto;
 
     try {
-      const hashedPassword = await bcrypt.hash(password, 10);
+      const hashedPassword = await bcrypt.hash(
+        password,
+        BCRYPT_ROUNDS_USER_CREATION,
+      );
 
       const user = await this.prisma.user.create({
         data: {

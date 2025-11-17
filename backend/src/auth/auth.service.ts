@@ -11,6 +11,12 @@ import { UsersService } from '@/application/services/users/users.service';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { MailService } from '@/mail/mail.service';
+import {
+  BCRYPT_ROUNDS_RESET_PASSWORD,
+  RESET_TOKEN_MIN_VALUE,
+  RESET_TOKEN_MAX_VALUE,
+  RESET_TOKEN_EXPIRY_MINUTES,
+} from '@/common/constants/security.constants';
 
 @Injectable()
 export class AuthService {
@@ -60,10 +66,14 @@ export class AuthService {
     }
 
     try {
-      const resetToken = Math.floor(100000 + Math.random() * 900000).toString();
+      const resetToken = Math.floor(
+        RESET_TOKEN_MIN_VALUE + Math.random() * RESET_TOKEN_MAX_VALUE,
+      ).toString();
 
       const resetTokenExpiry = new Date();
-      resetTokenExpiry.setMinutes(resetTokenExpiry.getMinutes() + 15);
+      resetTokenExpiry.setMinutes(
+        resetTokenExpiry.getMinutes() + RESET_TOKEN_EXPIRY_MINUTES,
+      );
 
       await this.prisma.user.update({
         where: { id: user.id },
@@ -152,9 +162,8 @@ export class AuthService {
       );
     }
 
-    // Estende a validade do token por mais 15 minutos após validação bem-sucedida
     const newExpiry = new Date();
-    newExpiry.setMinutes(newExpiry.getMinutes() + 15);
+    newExpiry.setMinutes(newExpiry.getMinutes() + RESET_TOKEN_EXPIRY_MINUTES);
 
     await this.prisma.user.update({
       where: { id: user.id },
@@ -183,8 +192,10 @@ export class AuthService {
       throw new NotFoundException('Usuário não encontrado.');
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 12);
-
+    const hashedPassword = await bcrypt.hash(
+      newPassword,
+      BCRYPT_ROUNDS_RESET_PASSWORD,
+    );
     await this.prisma.user.update({
       where: { id: user.id },
       data: {
