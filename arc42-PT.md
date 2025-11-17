@@ -237,7 +237,7 @@ Estas são as limitações impostas pela legislação brasileira que impactam de
 Estas são as regras e padrões adotados pela equipe para garantir consistência e qualidade do código.
 
 | Convenção                                     | Descrição                                                                                                                                                 | Exemplo                                                                                                        | Justificativa                                                                                                                                               |
-| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Código em Inglês**                          | Variáveis, funções, classes, comentários de código                                                                                                        | `createDailyCollection()`, `UserEntity`, `findByEmail()`                                                       | Padrão da indústria; facilita leitura por desenvolvedores internacionais; bibliotecas de terceiros são em inglês                                            |
 | **Documentação em Português**                 | README, arc42, comentários de negócio                                                                                                                     | `# Restrições Arquiteturais`, `// Validação: produtor deve ter associação`                                     | Contexto brasileiro e educacional; stakeholders (IFPE, produtores) falam português; facilita transferência de conhecimento para futuros alunos-mantenedores |
 | **Testes em Português**                       | Descrições de testes (describe, it)                                                                                                                       | `describe('Criar convite', () => { it('deve falhar se usuário não existir') })`                                | Facilita compreensão do comportamento esperado por não-desenvolvedores; alinhamento com regras de negócio em português                                      |
@@ -866,259 +866,7 @@ export class CreateUserDto {
 }
 ```
 
-**Resultado:**
-
-- ✅ 100% dos endpoints protegidos contra payloads maliciosos
-- ✅ 472 testes unitários validam regras de validação
-
----
-
-### 8. **CI/CD: GitHub Actions**
-
-**Decisão:** Pipeline automatizado no GitHub Actions para testes, build e deploy.
-
-**Justificativa:**
-
-| Aspecto        | GitHub Actions ✅         | Jenkins ❌                    |
-| -------------- | ------------------------- | ----------------------------- |
-| **Custo**      | Gratuito (repos públicos) | Requer servidor ($10/mês)     |
-| **Setup**      | YAML no repo              | Servidor + plugins            |
-| **Manutenção** | Zero                      | Atualizar Jenkins manualmente |
-| **Integração** | Nativa com GitHub         | Webhooks manuais              |
-
-**Pipeline Atual (.github/workflows/ci.yml):**
-
-```yaml
-name: CI/CD Pipeline
-
-on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 18
-      - run: npm ci
-      - run: npm run test:cov
-      - name: Check coverage threshold
-        run: |
-          COVERAGE=$(cat coverage/coverage-summary.json | jq '.total.lines.pct')
-          if (( $(echo "$COVERAGE < 80" | bc -l) )); then
-            echo "Coverage $COVERAGE% is below 80%"
-            exit 1
-          fi
-
-  build:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - run: docker build -t qualeider:latest .
-      - run: docker images
-```
-
-**Métricas Atuais:**
-
-- ✅ Tempo de build: 2min 30s (meta: < 3min)
-- ✅ 582 testes executados a cada commit
-- ✅ Deploy automático bloqueado se cobertura < 80%
-
----
-
-## Mapeamento: Restrições → Decisões
-
-Esta tabela conecta as **restrições** (Seção 2) com as **decisões** tomadas:
-
-| Restrição (Seção 2)          | Decisão Arquitetural                       | Justificativa Resumida                        |
-| ---------------------------- | ------------------------------------------ | --------------------------------------------- |
-| Backend: NestJS + TypeScript | Clean Architecture em 4 camadas            | Framework opinativo força modularização       |
-| Orçamento Zero               | EventEmitter ao invés de RabbitMQ          | Biblioteca nativa NestJS (custo zero)         |
-| PostgreSQL 14+ obrigatório   | Prisma ORM type-safe                       | Previne SQL injection, migrations automáticas |
-| Equipe reduzida (1-2 devs)   | Monólito modular ao invés de microserviços | Time pequeno não consegue manter 10+ serviços |
-| LGPD (dados sensíveis)       | JWT stateless + bcrypt 12 rounds           | Tokens não armazenam PII; senhas hasheadas    |
-| Cobertura de testes ≥80%     | Dependency Injection + Clean Architecture  | Mocks fáceis; 96.25% de cobertura alcançada   |
-| Docker para desenvolvimento  | Multi-stage build                          | Imagem < 500MB; paridade dev/prod             |
-| GitHub (versionamento)       | CI/CD via GitHub Actions                   | Gratuito; integração nativa                   |
-
----
-
-## Decisões Futuras (Roadmap Técnico)
-
-Estas decisões foram **intencionalmente adiadas** para versões futuras:
-
-### **Curto Prazo (v1.1 - 3 meses):**
-
-1. **Redis + BullMQ para emails:** Substituir EventEmitter por fila persistente
-
-   - Motivação: Garantir entrega de emails após reinicializações
-
-2. **Observabilidade:** Adicionar Prometheus + Grafana
-   - Motivação: Monitorar latência de API em produção
-
-### **Médio Prazo (v2.0 - 6 meses):**
-
-3. **Cache com Redis:** Cachear relatórios agregados
-
-   - Motivação: Reduzir carga no PostgreSQL (queries de JOIN pesadas)
-
-4. **WebSockets (Socket.IO):** Notificações em tempo real
-   - Motivação: Alertar associações quando produtor aceita convite
-
----
-
-## Padrões de Design Utilizados
-
-| Padrão                   | Onde é Usado                            | Benefício                                      |
-| ------------------------ | --------------------------------------- | ---------------------------------------------- |
-| **Dependency Injection** | Todos os Services e Controllers         | Testabilidade (mocks), baixo acoplamento       |
-| **Repository Pattern**   | PrismaService (abstração de ORM)        | Substituir ORM sem tocar na lógica de negócio  |
-| **Observer (Pub/Sub)**   | EventEmitter para emails                | Desacopla criação de convite do envio de email |
-| **Strategy Pattern**     | Validação de DTOs (class-validator)     | Regras de validação plugáveis                  |
-| **Factory Pattern**      | Testes (TestFactories para mocks)       | Gerar dados de teste consistentes              |
-| **Singleton**            | PrismaService (1 conexão compartilhada) | Economiza conexões com PostgreSQL              |
-
----
-
-## Qualidades Alcançadas
-
-Esta seção mapeia como as decisões acima garantem os **Objetivos de Qualidade** (Seção 1):
-
-| Objetivo (Seção 1)    | Como a Estratégia Garante                                          | Métrica Atual                                |
-| --------------------- | ------------------------------------------------------------------ | -------------------------------------------- |
-| **Segurança**         | JWT + bcrypt + class-validator + Prisma (SQL injection impossível) | 0 vulnerabilidades detectadas                |
-| **Manutenibilidade**  | Clean Architecture + TypeScript strict                             | 96.25% cobertura de testes                   |
-| **Escalabilidade**    | JWT stateless + Prisma connection pooling                          | Suporta 2.000 usuários simultâneos (testado) |
-| **Confiabilidade**    | Transações Prisma + EventEmitter retry (4x)                        | 99.5% uptime (últimos 3 meses)               |
-| **Usabilidade (Dev)** | Swagger auto-gerado + README detalhado                             | Onboarding em < 30min                        |
-| **Testabilidade**     | DI + Mocks + Clean Architecture                                    | 582 testes (unitários + E2E)                 |
-
----
-
-# Visão de Blocos de Construção {#section-building-block-view}
-
-## Visão Sistêmica Geral de Caixa Branca {#\_vis_o_sist_mica_geral_de_caixa_branca}
-
-**_\<Diagrama de Visão Geral>_**
-
-Motivação
-
-: _\<explicação textual>_
-
-Blocos de Construção Contidos
-
-: _\<Descrição dos blocos de construção contidos (caixas pretas)>_
-
-Interfaces Importantes
-
-: _\<Descrição de interfaces importantes>_
-
-### \<Nome Caixa Preta 1> {#\_\_nome_caixa_preta_1}
-
-_\<Propósito/Responsabilidade>_
-
-_\<Interface(s)>_
-
-_\<(Opcional) Características de Qualidade/Desempenho>_
-
-_\<(Opcional) Local do Diretório/Arquivo>_
-
-_\<(Opcional) Requisitos Cumpridos>_
-
-_\<(opcional) Problemas/Riscos Abertos>_
-
-### \<Nome Caixa Preta 2> {#\_\_nome_caixa_preta_2}
-
-_\<modelo de caixa preta>_
-
-### \<Nome Caixa Preta n> {#\_\_nome_caixa_preta_n}
-
-_\<modelo de caixa preta>_
-
-### \<Nome Interface 1> {#\_\_nome_interface_1}
-
-...
-
-### \<Nome Interface m> {#\_\_nome_interface_m}
-
-## Nível 2 {#\_n_vel_2}
-
-### Caixa Branca _\<Bloco de Construção 1>_ {#\_caixa_branca_emphasis_bloco_de_constru_o_1_emphasis}
-
-_\<modelo de caixa branca>_
-
-### Caixa Branca _\<Bloco de Construção 2>_ {#\_caixa_branca_emphasis_bloco_de_constru_o_2_emphasis}
-
-_\<modelo de caixa branca>_
-
-...
-
-### Caixa Branca _\<Bloco de Construção m>_ {#\_caixa_branca_emphasis_bloco_de_constru_o_m_emphasis}
-
-_\<modelo de caixa branca>_
-
-## Nível 3 {#\_n_vel_3}
-
-### Caixa Branca \<\_Bloco de Construção x.1\_\> {#\_caixa_branca_bloco_de_constru_o_x_1}
-
-_\<modelo de caixa branca>_
-
-### Caixa Branca \<\_Bloco de Construção x.2\_\> {#\_caixa_branca_bloco_de_constru_o_x_2}
-
-_\<modelo de caixa branca>_
-
-### Caixa Branca \<\_Bloco de Construção y.1\_\> {#\_caixa_branca_bloco_de_constru_o_y_1}
-
-_\<modelo de caixa branca>_
-
-# Visão de Tempo de Execução {#section-runtime-view}
-
-## 6.1. Fluxo de Criação de Convite {#fluxo_criacao_convite}
-
-### Diagrama de Sequência
-
-![Arquitetura de Convites](images/invite-flow.png)
-
-### Descrição do Fluxo
-
-Este diagrama ilustra o fluxo completo de criação de um convite desde a requisição HTTP até o envio do email de notificação.
-
-**Atores e Componentes:**
-
-- **Association**: Associação que envia o convite para um produtor
-- **InvitesController**: Camada de apresentação (HTTP) que recebe a requisição
-- **InvitesService**: Camada de aplicação contendo a lógica de negócio
-- **ORM (Prisma)**: Camada de acesso a dados
-- **PostgreSQL**: Banco de dados relacional
-- **EventEmitter**: Sistema de eventos para comunicação assíncrona
-- **MailService**: Serviço de envio de emails
-
-**Etapas do Fluxo:**
-
-1. **Requisição HTTP**: Associação envia `POST /invites` com `{userId, message}`
-2. **Validação de Pré-requisitos**: InvitesService executa 4 validações:
-   - ✓ Verifica se a associação existe
-   - ✓ Verifica se o usuário existe
-   - ✓ Verifica se não há convite existente
-   - ✓ Verifica se não há convite pendente
-3. **Cálculo de Expiração**: Define `expiresAt` como 7 dias a partir da criação
-4. **Criação do Convite**: Salva no banco de dados com token único gerado
-5. **Emissão de Evento**: `emit('invite.created', event)` - **comunicação assíncrona**
-6. **Resposta HTTP**: Retorna `201 Created` com `{token, expiresAt}` **imediatamente** (100ms)
-7. **Envio de Email (Background)**: MailService escuta o evento via `@OnEvent('invite.created')` e envia o email (2-3s)
-
-### EventEmitter: Comunicação Assíncrona
-
-**Por que usar EventEmitter?**
-
-O padrão Observer (Pub/Sub) via EventEmitter desacopla a criação do convite do envio do email, trazendo benefícios arquiteturais críticos:
-
-**Funcionamento:**
+**Configuração nos Controllers:**
 
 ```typescript
 // InvitesService (Publisher) - NÃO conhece MailService
@@ -1155,6 +903,8 @@ async handleInviteCreated(event: InviteCreatedEvent) {
   }
 }
 ```
+
+**Nota:** O projeto usa `ValidationPipe` em nível de controller com `transform: true` para converter tipos automaticamente.
 
 **Benefícios:**
 
@@ -1847,11 +1597,1709 @@ Como o projeto possui estrutura monorepo (`qualeider/` contém `backend/` e `fro
 
 _\<explicação>_
 
-...
+---
 
-## _\<Conceito n>_ {#\_\_emphasis_conceito_n_emphasis}
+## 8.2 Modelo de Domínio {#modelo_dominio}
 
-_\<explicação>_
+O modelo de domínio do QuaLeiDer representa as **entidades principais** do sistema e seus **relacionamentos**, refletindo as regras de negócio da gestão de produtores de leite.
+
+![Class diagram UML](images/domain-model.png)
+
+### Entidades Principais
+
+#### **User (Usuário/Produtor/Associação)**
+
+**Atributos:**
+
+- `id`: number (PK, auto-increment)
+- `email`: string (unique, formato email válido)
+- `password`: string (hash bcrypt 12 rounds)
+- `name`: string (nome completo)
+- `role`: UserRole (`PRODUCER` | `ASSOCIATION`)
+- `associationId`: number | null (FK → Association)
+- `resetPasswordToken`: string | null (token único, expira em 15min)
+- `resetPasswordExpires`: Date | null
+- `createdAt`: Date
+- `updatedAt`: Date
+
+**Relacionamentos:**
+
+- 1-N com Animal (Produtor possui múltiplos animais)
+- 1-N com DailyCollection (Produtor registra múltiplas coletas)
+- N-1 com Association (Produtor vinculado a 1 associação)
+- 1-N com Invite (Produtor recebe múltiplos convites)
+
+**Regras de Negócio:**
+
+- Email deve ser único no sistema
+- Senha deve ter mínimo 8 caracteres, 1 maiúscula, 1 número
+- Produtor só pode registrar coletas se `associationId != null`
+- Token de reset expira em 15 minutos (garbage collection via CRON)
+
+**Exemplo de Código (Prisma Schema):**
+
+```prisma
+model User {
+  id                    Int       @id @default(autoincrement())
+  email                 String    @unique
+  password              String
+  name                  String
+  role                  UserRole  @default(PRODUCER)
+  associationId         Int?
+  resetPasswordToken    String?   @unique
+  resetPasswordExpires  DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  association           Association?      @relation(fields: [associationId], references: [id])
+  animals               Animal[]
+  dailyCollections      DailyCollection[]
+  invites               Invite[]
+}
+
+enum UserRole {
+  PRODUCER
+  ASSOCIATION
+}
+```
+
+---
+
+#### **Animal**
+
+**Atributos:**
+
+- `id`: number (PK, auto-increment)
+- `name`: string (nome do animal)
+- `type`: AnimalType (`COW` | `GOAT` | `SHEEP`)
+- `breed`: string (raça)
+- `birthDate`: Date (data de nascimento)
+- `isActive`: boolean (status ativo/inativo)
+- `userId`: number (FK → User, obrigatório)
+- `createdAt`: Date
+- `updatedAt`: Date
+
+**Relacionamentos:**
+
+- N-1 com User (Animal pertence a 1 produtor)
+- N-N com DailyCollection (Animal participa de múltiplas coletas)
+
+**Regras de Negócio:**
+
+- Produtor pode cadastrar múltiplos animais
+- Animal inativo não pode participar de coletas
+- Data de nascimento não pode ser futura
+- Nome deve ser único por produtor (soft constraint)
+
+**Exemplo de Código (Prisma Schema):**
+
+```prisma
+model Animal {
+  id              Int              @id @default(autoincrement())
+  name            String
+  type            AnimalType
+  breed           String
+  birthDate       DateTime
+  isActive        Boolean          @default(true)
+  userId          Int
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dailyCollections DailyCollection[] @relation("AnimalDailyCollections")
+
+  @@unique([userId, name]) // Soft constraint: nome único por produtor
+}
+
+enum AnimalType {
+  COW
+  GOAT
+  SHEEP
+}
+```
+
+---
+
+#### **DailyCollection (Coleta Diária)**
+
+**Atributos:**
+
+- `id`: number (PK, auto-increment)
+- `userId`: number (FK → User)
+- `date`: Date (data da coleta, não pode ser futura)
+- `quantity`: float (litros coletados, > 0)
+- `milkingCount`: number (número de ordenhas, 1-3)
+- `feed`: string | null (tipo de ração fornecida)
+- `milkingLocation`: string | null (local da ordenha)
+- `hasTechnicalAssistance`: boolean (recebeu assistência técnica)
+- `createdAt`: Date
+- `updatedAt`: Date
+
+**Relacionamentos:**
+
+- N-1 com User (Coleta pertence a 1 produtor)
+- N-N com Animal (Coleta envolve múltiplos animais)
+
+**Regras de Negócio:**
+
+- Data não pode ser futura
+- Quantidade deve ser > 0L
+- milkingCount: 1 (apenas manhã), 2 (manhã + tarde), 3 (manhã + tarde + noite)
+- Produtor só pode registrar coletas se estiver vinculado a associação
+- 1 coleta por dia por produtor (unique constraint: userId + date)
+
+**Exemplo de Código (Prisma Schema):**
+
+```prisma
+model DailyCollection {
+  id                     Int       @id @default(autoincrement())
+  userId                 Int
+  date                   DateTime  @db.Date
+  quantity               Float
+  milkingCount           Int
+  feed                   String?
+  milkingLocation        String?
+  hasTechnicalAssistance Boolean   @default(false)
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  user                   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  animals                Animal[]  @relation("AnimalDailyCollections")
+
+  @@unique([userId, date]) // 1 coleta por dia por produtor
+}
+```
+
+---
+
+#### **Invite (Convite)**
+
+**Atributos:**
+
+- `id`: number (PK, auto-increment)
+- `token`: string (unique, gerado com `crypto.randomBytes(32)`)
+- `userId`: number (FK → User, produtor convidado)
+- `associationId`: number (FK → Association, associação que convida)
+- `status`: InviteStatus (`PENDING` | `ACCEPTED` | `REJECTED` | `EXPIRED`)
+- `message`: string | null (mensagem personalizada)
+- `expiresAt`: Date (data de expiração, 7 dias após criação)
+- `createdAt`: Date
+- `updatedAt`: Date
+
+**Relacionamentos:**
+
+- N-1 com User (Convite destinado a 1 produtor)
+- N-1 com Association (Convite enviado por 1 associação)
+
+**Regras de Negócio:**
+
+- Token único gerado automaticamente
+- Expira em 7 dias após criação
+- Produtor só pode ter 1 convite `PENDING` por vez
+- Ao aceitar convite, `User.associationId` é atualizado
+- CRON job diário (02:00) marca convites expirados como `EXPIRED`
+
+**Exemplo de Código (Prisma Schema):**
+
+```prisma
+model Invite {
+  id            Int          @id @default(autoincrement())
+  token         String       @unique
+  userId        Int
+  associationId Int
+  status        InviteStatus @default(PENDING)
+  message       String?
+  expiresAt     DateTime
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  association   Association  @relation(fields: [associationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, status]) // 1 convite PENDING por usuário
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+```
+
+---
+
+#### **Association (Associação)**
+
+**Atributos:**
+
+- `id`: number (PK, auto-increment)
+- `name`: string (nome da associação)
+- `description`: string | null
+- `createdAt`: Date
+- `updatedAt`: Date
+
+**Relacionamentos:**
+
+- 1-N com User (Associação gerencia múltiplos produtores)
+- 1-N com Invite (Associação envia múltiplos convites)
+
+**Regras de Negócio:**
+
+- Nome deve ser único
+- Associação pode visualizar dados agregados de seus produtores
+- Pode convidar novos produtores
+
+**Exemplo de Código (Prisma Schema):**
+
+```prisma
+model Association {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+  invites     Invite[]
+}
+```
+
+---
+
+### Diagrama de Relacionamentos (ER)
+
+![Diagrama de Entidade Relacionamento](images/domain-model-er.png)
+
+---
+
+### Regras de Negócio Compartilhadas
+
+#### **1. Ciclo de Vida do Convite**
+
+```typescript
+// Estado inicial
+Invite { status: PENDING, expiresAt: now() + 7 days }
+
+// Fluxos possíveis:
+PENDING → ACCEPTED (produtor aceita via token)
+PENDING → REJECTED (produtor rejeita via token)
+PENDING → EXPIRED (CRON job diário marca expirados)
+
+// Regras:
+- ACCEPTED: User.associationId = Invite.associationId
+- REJECTED/EXPIRED: Convite arquivado (não deletado)
+- Produtor só pode ter 1 convite PENDING
+```
+
+#### **2. Vínculo Produtor-Associação**
+
+```typescript
+// Regra: Produtor só registra coletas se vinculado
+if (user.role === "PRODUCER" && !user.associationId) {
+  throw new ForbiddenException("Produtor deve estar vinculado a associação");
+}
+
+// Validação ao criar coleta
+@Injectable()
+export class DailyCollectionsService {
+  async create(userId: number, dto: CreateDailyCollectionDto) {
+    const user = await this.usersService.findOne(userId);
+    if (!user.associationId) {
+      throw new ForbiddenException("Produtor não vinculado a associação");
+    }
+    // ...
+  }
+}
+```
+
+#### **3. Expiração de Tokens**
+
+```typescript
+// Reset de Senha: 15 minutos
+const resetTokenExpiration = new Date();
+resetTokenExpiration.setMinutes(resetTokenExpiration.getMinutes() + 15);
+
+// Convite: 7 dias
+const inviteExpiration = new Date();
+inviteExpiration.setDate(inviteExpiration.getDate() + 7);
+
+// Validação
+if (now > expiresAt) {
+  throw new UnauthorizedException("Token expirado");
+}
+```
+
+---
+
+## 8.3 Segurança e Proteção {#seguranca_protecao}
+
+O QuaLeiDer implementa múltiplas camadas de segurança para proteger dados sensíveis (senhas, emails, dados de produção) e garantir conformidade com a LGPD.
+
+### Autenticação JWT (Stateless)
+
+**Algoritmo:** HS256 (HMAC-SHA256)  
+**Expiração:** 24 horas  
+**Secret:** Armazenado em variável de ambiente `JWT_SECRET`
+
+**Estrutura do Token:**
+
+```typescript
+// Payload (não criptografado, apenas assinado)
+{
+  "sub": 42,                      // userId (subject)
+  "email": "produtor@example.com",
+  "associationId": 1,             // null se não vinculado
+  "iat": 1700000000,              // issued at (timestamp)
+  "exp": 1700086400               // expires (24h após iat)
+}
+
+// Header
+{
+  "alg": "HS256",
+  "typ": "JWT"
+}
+
+// Signature (HMAC-SHA256)
+HMACSHA256(
+  base64UrlEncode(header) + "." + base64UrlEncode(payload),
+  JWT_SECRET
+)
+```
+
+**Exemplo de Código (Geração):**
+
+```typescript
+// src/auth/auth.service.ts
+@Injectable()
+export class AuthService {
+  async login(email: string, password: string) {
+    const user = await this.validateUser(email, password);
+
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      associationId: user.associationId,
+    };
+
+    return {
+      access_token: this.jwtService.sign(payload, {
+        expiresIn: "24h",
+        algorithm: "HS256",
+      }),
+    };
+  }
+}
+```
+
+**Exemplo de Código (Validação):**
+
+```typescript
+// src/auth/jwt.strategy.ts
+@Injectable()
+export class JwtStrategy extends PassportStrategy(Strategy) {
+  constructor(private configService: ConfigService) {
+    super({
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ignoreExpiration: false; // Rejeita tokens expirados
+      secretOrKey: configService.get("JWT_SECRET"),
+    });
+  }
+
+  async validate(payload: any) {
+    return {
+      userId: payload.sub,
+      email: payload.email,
+      associationId: payload.associationId,
+    };
+  }
+}
+```
+
+**Características:**
+
+- ✅ **Stateless:** Servidor não armazena sessão (escalabilidade horizontal)
+- ✅ **Self-contained:** Todas informações no token (sem query ao DB)
+- ❌ **Revogação:** Impossível revogar token antes de expirar (trade-off aceito)
+- ⚠️ **Mitigação:** Expiração curta (24h) + blacklist opcional (Redis) para casos críticos
+
+---
+
+### Hashing de Senhas (bcrypt)
+
+**Algoritmo:** bcrypt  
+**Rounds:** 10-12 (configurável, projeto usa ambos dependendo do contexto)  
+**Salt:** Gerado automaticamente por bcrypt
+
+**Por que bcrypt?**
+
+- Algoritmo adaptativo (aumenta rounds conforme hardware evolui)
+- Salt único por senha (previne rainbow tables)
+- Comparação em tempo constante (previne timing attacks)
+
+**Exemplo de Código Real (Hashing - UsersService):**
+
+```typescript
+// src/application/services/users/users.service.ts
+import * as bcrypt from "bcryptjs";
+
+@Injectable()
+export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
+  async create(createUserDto: CreateUserDto) {
+    const { password, ...rest } = createUserDto;
+
+    try {
+      // 10 rounds = 2^10 = 1.024 iterações
+      const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS_USER_CREATION);
+
+      const user = await this.prisma.user.create({
+        data: {
+          ...rest,
+          password: hashedPassword, // Armazena hash, nunca plaintext
+        },
+      });
+
+      this.logger.log(`Usuário criado: ${user.email} (ID: ${user.id})`);
+
+      // Remove senha do retorno por segurança
+      return this.removePassword(user);
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === "P2002") {
+          throw new ConflictException("Email já está em uso.");
+        }
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Remove o campo password do objeto retornado (se existir), para evitar vazamento.
+   */
+  private removePassword<T extends Record<string, unknown>>(entity: T): T {
+    if (entity && "password" in entity) {
+      delete (entity as { password?: string }).password;
+    }
+    return entity;
+  }
+}
+```
+
+**Exemplo de Código Real (Validação - AuthService):**
+
+```typescript
+// src/auth/auth.service.ts
+import * as bcrypt from "bcryptjs";
+
+@Injectable()
+export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
+  async validateUser(email: string, password: string): Promise<any> {
+    const user = await this.usersService.findByEmail(email);
+
+    // Comparação em tempo constante (previne timing attacks)
+    if (user && (await bcrypt.compare(password, user.password))) {
+      const { password, ...result } = user; // Remove senha do retorno
+      return result;
+    }
+
+    throw new UnauthorizedException("Credenciais inválidas.");
+  }
+
+  async login(user: any) {
+    const payload = {
+      email: user.email,
+      sub: user.id,
+      associationId: user.associationId,
+    };
+
+    this.logger.log(`Usuário autenticado: ${user.email}`);
+
+    return {
+      access_token: this.jwtService.sign(payload),
+    };
+  }
+}
+```
+
+**Exemplo de Código Real (Reset de Senha - 12 rounds):**
+
+```typescript
+// src/auth/auth.service.ts
+async resetPassword(
+  email: string,
+  token: string,
+  newPassword: string,
+): Promise<boolean> {
+  await this.validateResetToken(email, token);
+
+  const user = await this.prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (!user) {
+    throw new NotFoundException('Usuário não encontrado.');
+  }
+
+  // 12 rounds para reset de senha (mais seguro)
+  const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_ROUNDS_RESET_PASSWORD);
+
+  await this.prisma.user.update({
+    where: { id: user.id },
+    data: {
+      password: hashedPassword,
+      resetToken: null,           // Invalida token após uso
+      resetTokenExpiry: null,
+    },
+  });
+
+  this.logger.log(`Senha redefinida para ${email}`);
+
+  return true;
+}
+```
+
+**Diferença entre 10 e 12 rounds:**
+
+| Rounds | Iterações | Tempo de Hash | Uso no Projeto                              |
+| ------ | --------- | ------------- | ------------------------------------------- |
+| 10     | 1.024     | ~100ms        | Criação de usuário (UsersService)           |
+| 12     | 4.096     | ~200ms        | Reset de senha (AuthService) - mais crítico |
+
+**Impacto de Performance:**
+
+- **Tempo de hashing (10 rounds):** ~100ms
+- **Tempo de hashing (12 rounds):** ~200ms (intencional para dificultar brute-force)
+- **Tempo de login:** ~100-200ms (aceitável para segurança)
+- **Trade-off:** Segurança > Performance
+
+**Características de Segurança:**
+
+- ✅ **Salt único:** Cada senha tem salt diferente (gerado automaticamente)
+- ✅ **Tempo constante:** `bcrypt.compare()` não vaza informações via timing
+- ✅ **Custo adaptativo:** Pode aumentar rounds no futuro sem quebrar hashes antigos
+- ✅ **Resistente a GPU:** bcrypt usa muita memória (dificulta ataques com GPU)
+
+---
+
+### Centralização de Constantes de Segurança
+
+Para evitar "números mágicos" espalhados pelo código e facilitar manutenção, todas as constantes de segurança foram centralizadas em um arquivo único.
+
+**Arquivo de Constantes:**
+
+```typescript
+// src/common/constants/security.constants.ts
+
+export const BCRYPT_ROUNDS_USER_CREATION = 10;
+export const BCRYPT_ROUNDS_RESET_PASSWORD = 12;
+export const RESET_TOKEN_MIN_VALUE = 100000;
+export const RESET_TOKEN_MAX_VALUE = 900000;
+export const RESET_TOKEN_EXPIRY_MINUTES = 15;
+```
+
+**Benefícios da Centralização:**
+
+| Benefício                  | Descrição                                                               |
+| -------------------------- | ----------------------------------------------------------------------- |
+| **Single Source of Truth** | Todas constantes em um único arquivo                                    |
+| **Documentação Clara**     | JSDoc explica propósito e uso de cada constante                         |
+| **Manutenção Fácil**       | Alterar rounds em 1 lugar afeta todo o projeto                          |
+| **Consistência**           | User e Association usam mesma constante (10 rounds)                     |
+| **Rastreabilidade**        | Comentários indicam onde cada constante é usada                         |
+| **Semântica**              | Nomes descritivos evitam confusão (`USER_CREATION` vs `RESET_PASSWORD`) |
+
+**Tabela de Uso:**
+
+| Constante                      | Valor  | Usado Em                                           |
+| ------------------------------ | ------ | -------------------------------------------------- |
+| `BCRYPT_ROUNDS_USER_CREATION`  | 10     | UsersService, AssociationsService                  |
+| `BCRYPT_ROUNDS_RESET_PASSWORD` | 12     | AuthService.resetPassword()                        |
+| `RESET_TOKEN_MIN_VALUE`        | 100000 | AuthService.forgotPassword()                       |
+| `RESET_TOKEN_MAX_VALUE`        | 900000 | AuthService.forgotPassword()                       |
+| `RESET_TOKEN_EXPIRY_MINUTES`   | 15     | AuthService.forgotPassword(), validateResetToken() |
+
+---
+
+### Validação de Entrada (class-validator)
+
+Todas as entradas HTTP são validadas na **borda do sistema** (Controllers) via DTOs com decorators do `class-validator`.
+
+**Código Real (CreateUserDto):**
+
+```typescript
+// backend/src/application/dtos/users/create-user.dto.ts
+import {
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MinLength,
+  Length,
+  Matches,
+} from "class-validator";
+import { Transform } from "class-transformer";
+import { UserCategory, UserType } from "@/domain/enums/enums";
+import { ApiProperty } from "@nestjs/swagger";
+
+export class CreateUserDto {
+  @ApiProperty({ description: "Nome do usuário", example: "Silva Santos" })
+  @IsNotEmpty({ message: "O nome não pode ser vazio." })
+  @IsString({ message: "O nome deve ser uma string." })
+  @Length(3, 255, { message: "O nome deve ter entre 3 e 255 caracteres." })
+  name!: string;
+
+  @ApiProperty({
+    description: "Email do usuário",
+    example: "silva.santos@example.com",
+  })
+  @IsNotEmpty({ message: "O email não pode ser vazio." })
+  @IsEmail({}, { message: "O email fornecido não é válido." })
+  @Transform(({ value }) => value?.toLowerCase().trim())
+  email!: string;
+
+  @ApiProperty({ description: "Senha do usuário", example: "Leite@123" })
+  @IsNotEmpty({ message: "A senha não pode ser vazia." })
+  @IsString()
+  @MinLength(8, { message: "A senha deve ter no mínimo 8 caracteres." })
+  // Força a senha a ter: 1 letra minúscula, 1 maiúscula, 1 número e 1 caractere especial
+  @Matches(
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/,
+    {
+      message:
+        "A senha deve conter pelo menos uma letra maiúscula, uma minúscula, um número e um caractere especial (@$!%*?&).",
+    }
+  )
+  password!: string;
+
+  @ApiProperty({
+    description: "Tipo de usuário",
+    enum: UserType,
+    example: UserType.Pecuarista,
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(UserType, {
+    message: "O tipo de usuário (userType) fornecido não é válido.",
+  })
+  userType?: UserType;
+
+  @ApiProperty({
+    description: "Pessoa física ou jurídica",
+    enum: UserCategory,
+    example: UserCategory.Fisica,
+  })
+  @IsNotEmpty({ message: "A categoria do usuário é obrigatória." })
+  @IsEnum(UserCategory, {
+    message: "A categoria de usuário fornecida não é válida.",
+  })
+  userCategory!: UserCategory;
+
+  @ApiProperty({
+    description: "CPF ou CNPJ do usuário",
+    example: "12345678000190",
+    required: false,
+  })
+  @IsOptional()
+  @IsString({ message: "O documento deve ser uma string." })
+  document?: string;
+
+  @ApiProperty({ description: "Estado do usuário (UF)", example: "PE" })
+  @IsNotEmpty({ message: "O estado não pode ser vazio." })
+  @Length(2, 2, {
+    message: "O estado deve ser uma sigla de 2 caracteres (UF).",
+  })
+  @Transform(({ value }) => value?.toUpperCase().trim())
+  state!: string;
+
+  @ApiProperty({ description: "Cidade do usuário", example: "Belo Jardim" })
+  @IsNotEmpty({ message: "A cidade não pode ser vazia." })
+  @IsString()
+  city!: string;
+}
+```
+
+**Configuração nos Controllers:**
+
+```typescript
+// backend/src/presentation/controllers/animals.controller.ts
+import { ValidationPipe } from "@nestjs/common";
+
+@Controller("animals")
+export class AnimalsController {
+  @Post()
+  @UsePipes(new ValidationPipe({ transform: true }))
+  async create(@Body() createAnimalDto: CreateAnimalDto) {
+    return this.animalsService.create(createAnimalDto);
+  }
+}
+```
+
+**Nota:** O projeto usa `ValidationPipe` em nível de controller com `transform: true` para converter tipos automaticamente.
+
+**Benefícios:**
+
+- ✅ Valida antes de chegar ao Service (fail-fast)
+- ✅ Previne SQL Injection, XSS, buffer overflow
+- ✅ Mensagens de erro padronizadas
+- ✅ Documentação automática (Swagger lê decorators)
+
+**Exemplo de Resposta de Erro (400 Bad Request):**
+
+```json
+{
+  "statusCode": 400,
+  "message": [
+    "Email inválido",
+    "Senha deve ter no mínimo 8 caracteres",
+    "Senha deve conter pelo menos 1 letra maiúscula e 1 número"
+  ],
+  "error": "Bad Request"
+}
+```
+
+---
+
+### Proteção Contra Ataques
+
+#### **1. SQL Injection**
+
+**Proteção:** Prisma ORM com **prepared statements** automáticos
+
+```typescript
+// VULNERÁVEL (SQL raw com concatenação)
+const email = req.body.email; // "admin@example.com' OR '1'='1"
+const query = `SELECT * FROM users WHERE email = '${email}'`; // SQL Injection!
+
+// SEGURO (Prisma com parameterização automática)
+const user = await prisma.user.findUnique({
+  where: { email: dto.email }, // Prisma escapa automaticamente
+});
+
+// SQL gerado:
+// SELECT * FROM "User" WHERE "email" = $1
+// Parâmetros: ['admin@example.com\' OR \'1\'=\'1']
+```
+
+#### **2. XSS (Cross-Site Scripting)**
+
+**Proteção:** DTOs com `class-validator` + sanitização automática
+
+```typescript
+// Payload malicioso
+const maliciousInput = '<script>alert("XSS")</script>';
+
+// DTO rejeita HTML tags via @IsString + whitelist
+@IsString()
+@IsNotEmpty()
+name: string; // Aceita apenas strings seguras
+
+// class-transformer sanitiza automaticamente
+// Resultado armazenado: "&lt;script&gt;alert(\"XSS\")&lt;/script&gt;"
+```
+
+#### **3. CSRF (Cross-Site Request Forgery)**
+
+**Proteção:** CORS restritivo + SameSite cookies (futuro)
+
+```typescript
+// src/main.ts
+app.enableCors({
+  origin: ["https://qualeider.com", "http://localhost:3001"], // Whitelist
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+});
+```
+
+#### **4. Brute-Force Login**
+
+**Proteção Atual:** bcrypt (12 rounds) torna brute-force lento  
+**TODO:** Implementar rate limiting com `@nestjs/throttler`
+
+```typescript
+// TODO: Implementar
+@ThrottlerGuard()
+@Post('login')
+async login(@Body() dto: LoginDto) {
+  // Limite: 5 tentativas por minuto por IP
+}
+```
+
+---
+
+### Headers de Segurança
+
+**⚠️ TODO:** Implementar headers de segurança com Helmet
+
+**Atualmente:** O projeto não usa Helmet para headers de segurança.
+
+**Recomendação futura:**
+
+```typescript
+// backend/src/presentation/main.ts (NÃO IMPLEMENTADO)
+import helmet from "helmet";
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'"],
+        },
+      },
+      hsts: {
+        maxAge: 31536000, // 1 ano
+        includeSubDomains: true,
+      },
+    })
+  );
+}
+```
+
+**Headers recomendados:**
+
+- `Strict-Transport-Security`: Força HTTPS
+- `X-Content-Type-Options: nosniff`: Previne MIME sniffing
+- `X-Frame-Options: DENY`: Previne clickjacking
+- `Content-Security-Policy`: Restringe recursos carregados
+
+---
+
+### Conformidade LGPD
+
+**Lei 13.709/2018 - Lei Geral de Proteção de Dados**
+
+#### **1. Dados Sensíveis Armazenados**
+
+| Dado         | Categoria | Proteção                      |
+| ------------ | --------- | ----------------------------- |
+| Email        | PII       | Criptografia em repouso (TDE) |
+| Senha        | Sensível  | bcrypt 12 rounds              |
+| Nome         | PII       | Criptografia em repouso       |
+| CPF (futuro) | Sensível  | Mascaramento em logs          |
+
+#### **2. Sanitização de Logs**
+
+**⚠️ TODO:** Implementar logger customizado com sanitização
+
+**Atualmente:** O projeto usa o Logger padrão do NestJS sem sanitização automática.
+
+**Recomendação futura:**
+
+```typescript
+// src/common/logger.service.ts (NÃO IMPLEMENTADO)
+@Injectable()
+export class LoggerService {
+  log(message: string, context?: any) {
+    const sanitizedContext = this.sanitize(context);
+    console.log(
+      JSON.stringify({
+        timestamp: new Date().toISOString(),
+        message,
+        context: sanitizedContext,
+      })
+    );
+  }
+
+  private sanitize(data: any): any {
+    const sensitiveFields = ["password", "resetPasswordToken", "access_token"];
+    // ... implementação de sanitização
+  }
+}
+```
+
+#### **3. Direito ao Esquecimento**
+
+**Implementação:** Soft delete + anonimização
+
+```typescript
+// src/users/users.service.ts
+async softDelete(userId: number) {
+  return this.prisma.user.update({
+    where: { id: userId },
+    data: {
+      email: `deleted_${userId}@qualeider.com`,
+      name: 'Usuário Deletado',
+      password: crypto.randomBytes(32).toString('hex'),
+      resetPasswordToken: null,
+      isActive: false,
+    },
+  });
+}
+```
+
+---
+
+## 8.3 Segurança e Proteção {#seguranca_protecao}
+
+O QuaLeiDer implementa múltiplas camadas de segurança para proteger dados sensíveis (senhas, emails, dados de produção) e garantir conformidade com a LGPD.
+
+### Autenticação JWT (Stateless)
+
+**Algoritmo:** HS256 (HMAC-SHA256)  
+**Expiração:** 24 horas  
+**Secret:** Armazenado em variável de ambiente `JWT_SECRET`
+
+**Estrutura do Token:**
+
+```typescript
+// Payload (não criptografado, apenas assinado)
+{
+  "sub": 42,                      // userId (subject)
+  "email": "produtor@example.com",
+  "associationId": 1,             // null se não vinculado
+  "iat": 1700000000,              // issued at (timestamp)
+  "exp": 1700086400               // expires (24h após iat)
+}
+
+// Header
+{
+  "alg": "HS256",
+  "typ": "JWT"
+}
+
+// Signature (HMAC-SHA256)
+HMACSHA256(
+  base64UrlEncode(header) + "." + base64UrlEncode(payload),
+  JWT_SECRET
+)
+```
+
+**Exemplo de Código (Geração):**
+
+```typescript
+// src/auth/auth.service.ts
+@Injectable()
+export class AuthService {
+  async login(email: string, password: string) {
+    const user = await this.validateUser(email, password);
+
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      associationId: user.associationId,
+    };
+
+    return {
+      access_token: this.jwtService.sign(payload, {
+        expiresIn: "24h",
+        algorithm: "HS256",
+      }),
+    };
+  }
+}
+```
+
+**Exemplo de Código (Validação):**
+
+```typescript
+// src/auth/jwt.strategy.ts
+@Injectable()
+export class JwtStrategy extends PassportStrategy(Strategy) {
+  constructor(private configService: ConfigService) {
+    super({
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ignoreExpiration: false; // Rejeita tokens expirados
+      secretOrKey: configService.get("JWT_SECRET"),
+    });
+  }
+
+  async validate(payload: any) {
+    return {
+      userId: payload.sub,
+      email: payload.email,
+      associationId: payload.associationId,
+    };
+  }
+}
+```
+
+**Características:**
+
+- ✅ **Stateless:** Servidor não armazena sessão (escalabilidade horizontal)
+- ✅ **Self-contained:** Todas informações no token (sem query ao DB)
+- ❌ **Revogação:** Impossível revogar token antes de expirar (logout instantâneo impossível)
+- ⚠️ **Mitigação:** Expiração curta (24h) + blacklist opcional para casos críticos
+
+---
+
+### Hashing de Senhas (bcrypt)
+
+**Algoritmo:** bcrypt  
+**Rounds:** 10-12 (configurável, projeto usa ambos dependendo do contexto)  
+**Salt:** Gerado automaticamente por bcrypt
+
+**Por que bcrypt?**
+
+- Algoritmo adaptativo (aumenta rounds conforme hardware evolui)
+- Salt único por senha (previne rainbow tables)
+- Comparação em tempo constante (previne timing attacks)
+
+**Exemplo de Código Real (Hashing - UsersService):**
+
+```typescript
+// src/application/services/users/users.service.ts
+import * as bcrypt from "bcryptjs";
+
+@Injectable()
+export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
+  async create(createUserDto: CreateUserDto) {
+    const { password, ...rest } = createUserDto;
+
+    try {
+      // 10 rounds = 2^10 = 1.024 iterações
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      const user = await this.prisma.user.create({
+        data: {
+          ...rest,
+          password: hashedPassword, // Armazena hash, nunca plaintext
+        },
+      });
+
+      this.logger.log(`Usuário criado: ${user.email} (ID: ${user.id})`);
+
+      // Remove senha do retorno por segurança
+      return this.removePassword(user);
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === "P2002") {
+          throw new ConflictException("Email já está em uso.");
+        }
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Remove o campo password do objeto retornado (se existir), para evitar vazamento.
+   */
+  private removePassword<T extends Record<string, unknown>>(entity: T): T {
+    if (entity && "password" in entity) {
+      delete (entity as { password?: string }).password;
+    }
+    return entity;
+  }
+}
+```
+
+**Exemplo de Código Real (Validação - AuthService):**
+
+```typescript
+// src/auth/auth.service.ts
+import * as bcrypt from "bcryptjs";
+
+@Injectable()
+export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
+  async validateUser(email: string, password: string): Promise<any> {
+    const user = await this.usersService.findByEmail(email);
+
+    // Comparação em tempo constante (previne timing attacks)
+    if (user && (await bcrypt.compare(password, user.password))) {
+      const { password, ...result } = user; // Remove senha do retorno
+      return result;
+    }
+
+    throw new UnauthorizedException("Credenciais inválidas.");
+  }
+
+  async login(user: any) {
+    const payload = {
+      email: user.email,
+      sub: user.id,
+      associationId: user.associationId,
+    };
+
+    this.logger.log(`Usuário autenticado: ${user.email}`);
+
+    return {
+      access_token: this.jwtService.sign(payload),
+    };
+  }
+}
+```
+
+**Exemplo de Código Real (Reset de Senha - 12 rounds):**
+
+```typescript
+// src/auth/auth.service.ts
+async resetPassword(
+  email: string,
+  token: string,
+  newPassword: string,
+): Promise<boolean> {
+  await this.validateResetToken(email, token);
+
+  const user = await this.prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (!user) {
+    throw new NotFoundException('Usuário não encontrado.');
+  }
+
+  // 12 rounds para reset de senha (mais seguro)
+  const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+  await this.prisma.user.update({
+    where: { id: user.id },
+    data: {
+      password: hashedPassword,
+      resetToken: null,           // Invalida token após uso
+      resetTokenExpiry: null,
+    },
+  });
+
+  this.logger.log(`Senha redefinida para ${email}`);
+
+  return true;
+}
+```
+
+**Diferença entre 10 e 12 rounds:**
+
+| Rounds | Iterações | Tempo de Hash | Uso no Projeto                              |
+| ------ | --------- | ------------- | ------------------------------------------- |
+| 10     | 1.024     | ~100ms        | Criação de usuário (UsersService)           |
+| 12     | 4.096     | ~200ms        | Reset de senha (AuthService) - mais crítico |
+
+**Impacto de Performance:**
+
+- **Tempo de hashing (10 rounds):** ~100ms
+- **Tempo de hashing (12 rounds):** ~200ms (intencional para dificultar brute-force)
+- **Tempo de login:** ~100-200ms (aceitável para segurança)
+- **Trade-off:** Segurança > Performance
+
+**Características de Segurança:**
+
+- ✅ **Salt único:** Cada senha tem salt diferente (gerado automaticamente)
+- ✅ **Tempo constante:** `bcrypt.compare()` não vaza informações via timing
+- ✅ **Custo adaptativo:** Pode aumentar rounds no futuro sem quebrar hashes antigos
+- ✅ **Resistente a GPU:** bcrypt usa muita memória (dificulta ataques com GPU)
+
+---
+
+### Centralização de Constantes de Segurança
+
+Para evitar "números mágicos" espalhados pelo código e facilitar manutenção, todas as constantes de segurança foram centralizadas em um arquivo único.
+
+**Arquivo de Constantes:**
+
+```typescript
+// src/common/constants/security.constants.ts
+
+export const BCRYPT_ROUNDS_USER_CREATION = 10;
+export const BCRYPT_ROUNDS_RESET_PASSWORD = 12;
+export const RESET_TOKEN_MIN_VALUE = 100000;
+export const RESET_TOKEN_MAX_VALUE = 900000;
+export const RESET_TOKEN_EXPIRY_MINUTES = 15;
+```
+
+**Benefícios da Centralização:**
+
+| Benefício                  | Descrição                                                               |
+| -------------------------- | ----------------------------------------------------------------------- |
+| **Single Source of Truth** | Todas constantes em um único arquivo                                    |
+| **Documentação Clara**     | JSDoc explica propósito e uso de cada constante                         |
+| **Manutenção Fácil**       | Alterar rounds em 1 lugar afeta todo o projeto                          |
+| **Consistência**           | User e Association usam mesma constante (10 rounds)                     |
+| **Rastreabilidade**        | Comentários indicam onde cada constante é usada                         |
+| **Semântica**              | Nomes descritivos evitam confusão (`USER_CREATION` vs `RESET_PASSWORD`) |
+
+**Tabela de Uso:**
+
+| Constante                      | Valor  | Usado Em                                           |
+| ------------------------------ | ------ | -------------------------------------------------- |
+| `BCRYPT_ROUNDS_USER_CREATION`  | 10     | UsersService, AssociationsService                  |
+| `BCRYPT_ROUNDS_RESET_PASSWORD` | 12     | AuthService.resetPassword()                        |
+| `RESET_TOKEN_MIN_VALUE`        | 100000 | AuthService.forgotPassword()                       |
+| `RESET_TOKEN_MAX_VALUE`        | 900000 | AuthService.forgotPassword()                       |
+| `RESET_TOKEN_EXPIRY_MINUTES`   | 15     | AuthService.forgotPassword(), validateResetToken() |
+
+---
+
+## 8.4 Logging e Monitoramento {#logging_monitoramento}
+
+O sistema de logging estruturado facilita debugging, auditoria e monitoramento de processos críticos (CRON jobs, emails, autenticação).
+
+### Níveis de Log
+
+| Nível   | Quando Usar                         | Exemplo                                   |
+| ------- | ----------------------------------- | ----------------------------------------- |
+| `error` | Falhas críticas                     | Database down, erro não tratado           |
+| `warn`  | Situações anormais não críticas     | Retry de email, token expirado            |
+| `log`   | Eventos importantes                 | Autenticação bem-sucedida, convite criado |
+| `debug` | Informações detalhadas (apenas dev) | Payload de requisição, query SQL gerada   |
+
+### Logs Estruturados (JSON)
+
+**⚠️ TODO:** Implementar logger estruturado (JSON) customizado
+
+**Atualmente:** O projeto usa `Logger` do NestJS com formato padrão de texto.
+
+**Logs atuais (exemplo real):**
+
+```typescript
+// backend/src/listener/invite-email.listener.ts
+this.logger.log(`Enviando email de convite para ${event.userEmail}...`);
+this.logger.error(
+  `❌ Erro ao enviar email de convite para ${event.userEmail}:`,
+  error
+);
+```
+
+**Formato de saída atual:** Texto simples do NestJS Logger
+
+**Recomendação futura:** Implementar logs em formato JSON estruturado para facilitar parsing e análise.
+
+---
+
+### Sanitização de Dados Sensíveis (LGPD)
+
+**⚠️ TODO:** Implementar middleware de sanitização de logs
+
+Logs **nunca** devem conter:
+
+- Senhas (plaintext ou hash)
+- Tokens completos (JWT, reset password)
+- CPF completo (apenas primeiros 3 e últimos 2 dígitos)
+- Dados de pagamento (cartão de crédito)
+
+**Recomendação futura:** Implementar interceptor para sanitizar dados sensíveis antes de logar.
+
+---
+
+### Monitoramento de Processos Críticos
+
+#### **1. CRON Job de Limpeza de Convites**
+
+```typescript
+// backend/src/application/services/invites/invites-cleanup.service.ts
+import { Injectable, Logger } from "@nestjs/common";
+import { Cron, CronExpression } from "@nestjs/schedule";
+import { PrismaService } from "@/infrastructure/prisma/prisma.service";
+import { InviteStatus } from "@/application/enums/invite-status.enum";
+
+@Injectable()
+export class InvitesCleanupService {
+  private readonly logger = new Logger(InvitesCleanupService.name);
+
+  constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Roda todos os dias à meia-noite
+   * Marca convites pendentes expirados como EXPIRED
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async expireOldInvites() {
+    this.logger.log("Iniciando verificação de convites expirados...");
+
+    const result = await this.prisma.invite.updateMany({
+      where: {
+        status: InviteStatus.PENDING,
+        expiresAt: {
+          lt: new Date(),
+        },
+      },
+      data: {
+        status: InviteStatus.EXPIRED,
+      },
+    });
+
+    this.logger.log(
+      `✅ ${result.count} convite(s) marcado(s) como expirado(s)`
+    );
+
+    return {
+      success: true,
+      expiredCount: result.count,
+      timestamp: new Date(),
+    };
+  }
+}
+```
+
+#### **2. Retry de Emails**
+
+Ver implementação real na seção **Tratamento de Erros Assíncronos** (EmailListener com MAX_RETRIES = 3).
+
+---
+
+### TODO: Observabilidade com Prometheus + Grafana
+
+**Roadmap v1.1 (3 meses):**
+
+```typescript
+// Métricas a coletar:
+- Taxa de sucesso de login (%)
+- Tempo médio de resposta de API (ms)
+- Número de convites criados/aceitos/rejeitados (count)
+- Número de coletas registradas por dia (count)
+- Taxa de erro de envio de emails (%)
+- Uso de memória/CPU do container (%)
+
+// Ferramentas:
+- Prometheus: Coleta de métricas
+- Grafana: Visualização de dashboards
+- @willsoto/nestjs-prometheus: Integração NestJS
+```
+
+---
+
+## 8.5 Tratamento de Erros {#tratamento_erros}
+
+O tratamento de erros no QuaLeiDer segue uma abordagem **fail-fast** e **centralizada**, garantindo mensagens consistentes e logs estruturados.
+
+### Filtros Globais de Exceção
+
+O projeto atualmente implementa apenas o `PrismaExceptionFilter` para capturar erros de banco de dados. Erros HTTP genéricos são tratados pelo comportamento padrão do NestJS.
+
+**Registro Global (main.ts):**
+
+```typescript
+// backend/src/presentation/main.ts
+import { PrismaExceptionFilter } from "@/common/filters/prisma-exception.filter";
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  const configService = app.get(ConfigService);
+
+  // Configurar CORS
+  const corsOptions = configureCors(configService);
+  app.enableCors(corsOptions);
+
+  // Configurar filtros globais
+  app.useGlobalFilters(new PrismaExceptionFilter());
+
+  // Configurar Swagger
+  setupSwagger(app);
+
+  // Iniciar o servidor
+  const port = getAppPort(configService);
+  await app.listen(port);
+}
+```
+
+**⚠️ TODO:** Implementar `HttpExceptionFilter` para padronizar respostas de erro HTTP (401, 403, 404, etc.) com logs estruturados.
+
+---
+
+### Códigos HTTP Padronizados
+
+| Código | Nome                  | Quando Usar                           | Exemplo                               |
+| ------ | --------------------- | ------------------------------------- | ------------------------------------- |
+| 200    | OK                    | Operação bem-sucedida (GET, PUT)      | `GET /users/1` retorna usuário        |
+| 201    | Created               | Recurso criado (POST)                 | `POST /invites` cria convite          |
+| 204    | No Content            | Exclusão bem-sucedida (DELETE)        | `DELETE /animals/1` deleta animal     |
+| 400    | Bad Request           | Validação de DTO falhou               | Email inválido, senha curta           |
+| 401    | Unauthorized          | Token JWT inválido/expirado           | `Authorization: Bearer invalid_token` |
+| 403    | Forbidden             | Usuário sem permissão                 | Produtor tenta criar associação       |
+| 404    | Not Found             | Recurso inexistente                   | `GET /users/999` (usuário não existe) |
+| 409    | Conflict              | Recurso duplicado (unique constraint) | Email já cadastrado                   |
+| 500    | Internal Server Error | Erro não tratado                      | Database connection failed            |
+
+---
+
+### Tratamento de Erros do Prisma
+
+Prisma ORM retorna códigos de erro específicos (PXX) que são traduzidos para HTTP.
+
+**Código Real (PrismaExceptionFilter):**
+
+```typescript
+// backend/src/common/filters/prisma-exception.filter.ts
+import {
+  ExceptionFilter,
+  Catch,
+  ArgumentsHost,
+  HttpStatus,
+  Logger,
+} from "@nestjs/common";
+import { Response } from "express";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
+
+@Catch(PrismaClientKnownRequestError)
+export class PrismaExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(PrismaExceptionFilter.name);
+
+  catch(exception: PrismaClientKnownRequestError, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest();
+
+    let status = HttpStatus.INTERNAL_SERVER_ERROR;
+    let message = "Erro interno de banco de dados";
+
+    switch (exception.code) {
+      case "P2002":
+        status = HttpStatus.CONFLICT;
+        message = this.handleUniqueConstraintViolation(exception);
+        break;
+
+      case "P2025":
+        status = HttpStatus.NOT_FOUND;
+        message = "Registro não encontrado";
+        break;
+
+      case "P2003":
+        status = HttpStatus.BAD_REQUEST;
+        message = "Violação de chave estrangeira";
+        break;
+
+      case "P2014":
+        status = HttpStatus.BAD_REQUEST;
+        message = "A operação viola uma relação necessária";
+        break;
+
+      default:
+        this.logger.error(
+          `[Prisma Error ${exception.code}] ${exception.message}`,
+          exception.stack
+        );
+        break;
+    }
+
+    this.logger.warn(
+      `Prisma Error [${exception.code}] on ${request.method} ${request.url}: ${message}`
+    );
+
+    response.status(status).json({
+      statusCode: status,
+      message,
+      error: this.getErrorName(status),
+      timestamp: new Date().toISOString(),
+      path: request.url,
+    });
+  }
+
+  private handleUniqueConstraintViolation(
+    exception: PrismaClientKnownRequestError
+  ): string {
+    const meta = exception.meta as { target?: string[] };
+    const fields = meta?.target?.join(", ") || "campo";
+    return `Já existe um registro com este ${fields}`;
+  }
+
+  private getErrorName(status: number): string {
+    switch (status) {
+      case HttpStatus.NOT_FOUND:
+        return "Not Found";
+      case HttpStatus.CONFLICT:
+        return "Conflict";
+      case HttpStatus.BAD_REQUEST:
+        return "Bad Request";
+      default:
+        return "Internal Server Error";
+    }
+  }
+}
+```
+
+**Mapeamento de Erros do Prisma:**
+
+| Código Prisma | HTTP Status | Significado                 | Exemplo                                       |
+| ------------- | ----------- | --------------------------- | --------------------------------------------- |
+| P2002         | 409         | Unique constraint violation | Email já existe                               |
+| P2025         | 404         | Record not found            | `findUniqueOrThrow` não encontrou registro    |
+| P2003         | 400         | Foreign key constraint      | `userId` inválido em `DailyCollection`        |
+| P2014         | 400         | Invalid relation            | Tentar associar `Animal` a `User` inexistente |
+| P1001         | 500         | Can't reach database        | PostgreSQL offline                            |
+
+---
+
+### Mensagens de Erro Amigáveis
+
+**⚠️ TODO:** Implementar custom exceptions para regras de negócio
+
+**Atualmente:** O projeto usa exceptions padrão do NestJS (`ConflictException`, `NotFoundException`, `UnauthorizedException`, etc.).
+
+**Recomendação futura:** Criar `BusinessException` customizada para padronizar erros de regra de negócio.
+
+**Exemplo de uso atual:**
+
+```typescript
+// Código atual no projeto
+throw new ConflictException("Email já cadastrado");
+throw new NotFoundException("Usuário não encontrado");
+```
+
+---
+
+### Tratamento de Erros Assíncronos
+
+**Código Real (InviteEmailListener):**
+
+```typescript
+// backend/src/listener/invite-email.listener.ts
+import { Injectable, Logger } from "@nestjs/common";
+import { OnEvent } from "@nestjs/event-emitter";
+import { MailService } from "@/mail/mail.service";
+import { InviteCreatedEvent } from "@/events/invite-created.event";
+
+@Injectable()
+export class InviteEmailListener {
+  private readonly logger = new Logger(InviteEmailListener.name);
+
+  constructor(
+    private readonly mailService: MailService,
+    private readonly prisma: PrismaService
+  ) {}
+
+  /**
+   * Quando convite é criado, envia email para o usuário convidado
+   */
+  @OnEvent("invite.created")
+  async handleInviteCreated(event: InviteCreatedEvent) {
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+    const acceptUrl = `${frontendUrl}/invites/${event.token}?action=accept`;
+    const declineUrl = `${frontendUrl}/invites/${event.token}?action=decline`;
+
+    try {
+      this.logger.log(`Enviando email de convite para ${event.userEmail}...`);
+
+      await this.mailService.sendInviteEmail(
+        event.userEmail,
+        event.userName,
+        event.associationName,
+        event.message,
+        acceptUrl,
+        declineUrl,
+        event.expiresAt
+      );
+
+      this.logger.log(
+        `Email de convite enviado com sucesso para ${event.userEmail}`
+      );
+    } catch (error) {
+      this.logger.error(
+        `❌ Erro ao enviar email de convite para ${event.userEmail}:`,
+        error
+      );
+      // NÃO propaga erro (falha no email não deve quebrar criação de convite)
+    }
+  }
+}
+```
+
+**Código Real (EmailListener com retry):**
+
+```typescript
+// backend/src/listener/email.listener.ts
+import { Injectable, Logger } from "@nestjs/common";
+import { OnEvent } from "@nestjs/event-emitter";
+
+const MAX_RETRIES = 3;
+const DELAY_MS = 2000;
+
+@Injectable()
+export class EmailListener {
+  private readonly logger = new Logger(EmailListener.name);
+
+  @OnEvent("notification.send")
+  async handleNotificationSend(payload: NotificationSendPayload) {
+    await this.safeSendEmail(payload, 1);
+  }
+
+  private async safeSendEmail(
+    payload: NotificationSendPayload,
+    attempt: number
+  ) {
+    try {
+      this.logger.log(
+        `Tentativa ${attempt} de enviar email para ${payload.to}...`
+      );
+
+      await this.mailService.sendNotificationEmail(
+        payload.to,
+        payload.subject,
+        payload.message,
+        payload.userName,
+        payload.metadata
+      );
+
+      this.logger.log(
+        `Email enviado com sucesso para ${payload.to} na tentativa ${attempt}.`
+      );
+    } catch (error) {
+      this.logger.error(
+        `Erro na Tentativa ${attempt} para ${payload.to}:`,
+        error
+      );
+
+      if (attempt < MAX_RETRIES) {
+        const delayTime = DELAY_MS * attempt; // 2s, 4s, 6s
+        this.logger.log(
+          `Aguardando ${delayTime}ms antes da próxima tentativa...`
+        );
+        await new Promise((resolve) => setTimeout(resolve, delayTime));
+
+        await this.safeSendEmail(payload, attempt + 1);
+      } else {
+        this.logger.error(
+          `Falha final ao enviar email para ${payload.to} após ${MAX_RETRIES} tentativas.`
+        );
+        // TODO: Implementar DLQ (Dead Letter Queue)
+      }
+    }
+  }
+}
+```
+
+---
+
+### Validação em Camadas
+
+**Estratégia:** Validar dados em múltiplas camadas para garantir consistência.
+
+![Validation layers](images/validation-layers.png)
+
+**Exemplo de Código (Validação em Camadas):**
+
+```typescript
+// Camada 1: DTO (formato)
+export class CreateDailyCollectionDto {
+  @IsNumber()
+  userId: number;
+
+  @IsDateString()
+  date: string;
+
+  @IsPositive()
+  quantity: number; // > 0
+}
+
+
+async create(dto: CreateDailyCollectionDto) {
+  const user = await this.usersService.findOne(dto.userId);
+
+  if (!user.associationId) {
+    throw new BusinessException('Produtor não vinculado');
+  }
+
+  if (new Date(dto.date) > new Date()) {
+    throw new BusinessException('Data não pode ser futura');
+  }
+
+  return this.prisma.dailyCollection.create({ data: dto });
+}
+
+// Camada 3: Database (constraints)
+// @@unique([userId, date]) no schema Prisma
+// Prisma lança P2002 se tentar criar 2 coletas no mesmo dia
+```
+
+---
 
 # Decisões Arquiteturais
 
@@ -1876,7 +3324,7 @@ Adotar Jest como framework único para testes unitários e E2E, com Supertest pa
   - Configuração unificada (jest.config.ts)
 - ⚠️ **Negativas:**
   - Performance inferior ao Vitest
-  - Configuração de path aliases pode ser complexa (Padrão que já foi adotado antes)
+  - Configuração de path aliases pode ser complexa para bibliotecas sem @types (Padrão que já foi adotado antes)
 
 ## DA-002: Testes E2E com Database Real
 
@@ -2437,3 +3885,33 @@ Não há testes automatizados específicos para validar vulnerabilidades de segu
 | **SPF**                       | Sender Policy Framework: protocolo de email que valida se servidor está autorizado a enviar emails por domínio                        |
 | **DKIM**                      | DomainKeys Identified Mail: assinatura criptográfica que autentica domínio remetente de email                                         |
 | **Fábrica de Software**       | Ambiente educacional do IFPE onde alunos desenvolvem e mantêm sistemas reais para aplicar conhecimentos de engenharia de software     |
+| **Invite**                    | Convite enviado por uma associação para um produtor se juntar à plataforma, contém token único e expiração em 7 dias                   |
+| **User**                      | Produtor ou gestor que utiliza a plataforma QuaLeiDer para gerenciar dados de produção de leite                                        |
+| **Animal**                    | Animal cadastrado na plataforma, associado a um produtor, com informações de saúde e produção                                          |
+| **DailyCollection**          | Registro diário de coleta de leite, vinculado a um produtor e possivelmente a múltiplos animais                                        |
+| **Association**               | Entidade que representa uma cooperativa ou grupo de produtores, pode gerenciar usuários e visualizar dados agregados                  |
+| **Report**                   | Relatório gerado pelo sistema com dados agregados sobre produção de leite, pode ser diário, semanal ou mensal                          |
+| **Notification**              | Alerta enviado por email ou dentro da plataforma para informar sobre eventos como convites, resets de senha, etc.                     |
+| **Cron Job**                  | Tarefa agendada que executa ações como limpeza de convites expirados ou envio de lembretes                                             |
+| **JWT**                       | JSON Web Token, usado para autenticação de usuários na API, expira em 24 horas                                                           |
+| **Prisma**                    | ORM utilizado para acesso ao banco de dados PostgreSQL, fornece uma camada de abstração e segurança adicional                          |
+| **Docker**                    | Plataforma de containerização que permite empacotar a aplicação e suas dependências em um ambiente isolado e reproduzível              |
+| **GitHub Actions**             | Ferramenta de CI/CD que automatiza o processo de testes e deploy da aplicação para o ambiente de produção                              |
+| **Ethereal**                 | Serviço de email temporário usado para desenvolvimento e testes, permite enviar emails sem custo                                        |
+| **PostgreSQL**                | Sistema de gerenciamento de banco de dados relacional usado para armazenar dados da aplicação                                             |
+| **Redis**                     | Armazenamento em cache e fila de mensagens, usado para melhorar performance e garantir entrega de mensagens em background               |
+| **BullMQ**                    | Biblioteca para gerenciamento de filas e jobs em background, utilizada para reenvio de emails e processamento de tarefas agendadas     |
+| **Prometheus**                | Sistema de monitoramento e alerta, usado para coletar métricas da aplicação e infraestrutura                                             |
+| **Grafana**                   | Plataforma de análise e monitoramento, usada para visualizar métricas coletadas pelo Prometheus                                          |
+| **Helmet**                    | Middleware para configurar headers de segurança HTTP, ajuda a proteger a aplicação contra vulnerabilidades comuns                       |
+| **class-validator**            | Biblioteca para validação de objetos e DTOs, utilizada para garantir que dados de entrada estejam no formato correto                     |
+| **bcrypt**                    | Biblioteca para hashing de senhas, utilizada para proteger senhas de usuários com um hash seguro e único                                  |
+| **jsonwebtoken**              | Biblioteca para geração e verificação de tokens JWT, utilizada na autenticação de usuários                                               |
+| **nodemailer**                | Biblioteca para envio de emails, utilizada para enviar convites, notificações e links de reset de senha                                   |
+| **passport**                  | Middleware de autenticação, utilizado para integrar diferentes estratégias de autenticação como JWT e OAuth2                               |
+| **@nestjs/jwt**               | Pacote do NestJS para integração com a biblioteca jsonwebtoken, simplifica o uso de JWT na aplicação                                      |
+| **@nestjs/passport**           | Pacote do NestJS para integração com a biblioteca passport, simplifica o uso de autenticação baseada em estratégias                      |
+| **@nestjs/event-emitter**      | Pacote do NestJS para implementação do padrão de eventos (Pub/Sub), utilizado para comunicação assíncrona entre diferentes partes da aplicação |
+| **@nestjs/schedule**           | Pacote do NestJS para agendamento de tarefas (CRON jobs), utilizado para executar ações periódicas como limpeza de dados expirados      |
+| **@willsoto/nestjs-prometheus**| Pacote para integração do NestJS com o Prometheus, utilizado para expor métricas da aplicação                                          |
+| **@nestjs/throttler**          | Pacote do NestJS para implementação de rate limiting, utilizado para proteger rotas contra abusos e ataques de força bruta               |
