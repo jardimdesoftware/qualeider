@@ -1,7 +1,7 @@
 import { setupE2ETests, teardownE2ETests } from '../setup';
 import { TestApp, AuthHelper } from '../helpers';
-import { UserCategory } from '@/domain/enums/enums';
 import { UserFactory } from '../factories';
+import { HttpStatus } from '@nestjs/common';
 
 describe('E2E: Auth - Login', () => {
   let testApp: TestApp;
@@ -35,11 +35,13 @@ describe('E2E: Auth - Login', () => {
           email: user.email,
           password: user.password,
         })
-        .expect(201);
+        .expect(HttpStatus.OK);
 
-      expect(response.body).toHaveProperty('access_token');
-      expect(typeof response.body.access_token).toBe('string');
-      expect(response.body.access_token.length).toBeGreaterThan(0);
+      expect(response.body).toHaveProperty('statusCode', HttpStatus.OK);
+      expect(response.body).toHaveProperty('message', 'Login realizado com sucesso');
+      expect(response.body.data).toHaveProperty('access_token');
+      expect(typeof response.body.data.access_token).toBe('string');
+      expect(response.body.data.access_token.length).toBeGreaterThan(0);
     });
 
     it('deve retornar 401 com senha incorreta', async () => {
@@ -57,7 +59,7 @@ describe('E2E: Auth - Login', () => {
           email: user.email,
           password: 'WrongPassword',
         })
-        .expect(401);
+        .expect(HttpStatus.UNAUTHORIZED);
     });
 
     it('deve retornar 401 com email inexistente', async () => {
@@ -68,10 +70,10 @@ describe('E2E: Auth - Login', () => {
           email: 'nonexistent@example.com',
           password: 'Test@1234',
         })
-        .expect(401);
+        .expect(HttpStatus.UNAUTHORIZED);
     });
 
-    it('deve retornar 400 com dados inválidos (email sem @)', async () => {
+    it('deve retornar 400 com dados inválidos', async () => {
       await testApp
         .request()
         .post('/auth/login')
@@ -79,11 +81,11 @@ describe('E2E: Auth - Login', () => {
           email: 'invalid-email',
           password: 'Test@1234',
         })
-        .expect(400);
+        .expect(HttpStatus.BAD_REQUEST);
     });
 
     it('deve retornar 400 com dados vazios', async () => {
-      await testApp.request().post('/auth/login').send({}).expect(400);
+      await testApp.request().post('/auth/login').send({}).expect(HttpStatus.BAD_REQUEST);
     });
 
     it('deve retornar 400 sem senha', async () => {
@@ -93,7 +95,7 @@ describe('E2E: Auth - Login', () => {
         .send({
           email: 'test@example.com',
         })
-        .expect(400);
+        .expect(HttpStatus.BAD_REQUEST);
     });
 
     it('deve retornar 400 sem email', async () => {
@@ -103,7 +105,7 @@ describe('E2E: Auth - Login', () => {
         .send({
           password: 'Test@1234',
         })
-        .expect(400);
+        .expect(HttpStatus.BAD_REQUEST);
     });
   });
 

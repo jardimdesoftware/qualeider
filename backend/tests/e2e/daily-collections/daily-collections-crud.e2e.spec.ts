@@ -15,7 +15,6 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
     await testApp.setup();
     authHelper = new AuthHelper(testApp);
 
-    // Criar usuário para testes
     const userData = UserFactory.buildProducer({
       email: 'producer@collections.com',
       password: 'Producer@1234',
@@ -187,7 +186,6 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
 
   describe('GET /daily-collections/:id (Buscar por ID)', () => {
     it('deve buscar coleta por ID', async () => {
-      // Criar coleta primeiro
       const collectionData = DailyCollectionFactory.build({ userId });
       const created = await testApp
         .request()
@@ -213,7 +211,6 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
 
   describe('PUT /daily-collections/:id (Atualizar)', () => {
     it('deve atualizar coleta com dados válidos', async () => {
-      // Criar coleta
       const collectionData = DailyCollectionFactory.build({
         userId,
         quantity: 20,
@@ -226,7 +223,6 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
 
       const collectionId = created.body.data.id;
 
-      // Atualizar coleta
       const response = await testApp
         .request()
         .put(`/daily-collections/${collectionId}`)
@@ -245,18 +241,17 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
       expect(response.body.data.numAnimals).toBe(8);
     });
 
-    it('deve retornar 400 ao atualizar ID inexistente', async () => {
+    it('deve retornar 404 ao atualizar ID inexistente', async () => {
       await testApp
         .request()
         .put('/daily-collections/99999')
         .send({ quantity: 30 })
-        .expect(400);
+        .expect(404);
     });
   });
 
   describe('DELETE /daily-collections/:id (Deletar)', () => {
-    it('deve fazer soft delete de coleta', async () => {
-      // Criar coleta
+    it('deve deletar coleta com sucesso', async () => {
       const collectionData = DailyCollectionFactory.build({
         userId,
       });
@@ -268,7 +263,6 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
 
       const collectionId = created.body.data.id;
 
-      // Deletar coleta
       const response = await testApp
         .request()
         .delete(`/daily-collections/${collectionId}`)
@@ -280,15 +274,14 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
         'Coleta excluída com sucesso',
       );
 
-      // Verificar que não retorna mais
       await testApp
         .request()
         .get(`/daily-collections/${collectionId}`)
         .expect(404);
     });
 
-    it('deve retornar 500 ao deletar ID inexistente', async () => {
-      await testApp.request().delete('/daily-collections/99999').expect(500);
+    it('deve retornar 404 ao deletar ID inexistente', async () => {
+      await testApp.request().delete('/daily-collections/99999').expect(404);
     });
   });
 });

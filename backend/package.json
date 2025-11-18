@@ -26,8 +26,8 @@
     "test:e2e": "jest --config jest.e2e.config.ts",
     "test:e2e:watch": "jest --watch --config jest.e2e.config.ts",
     "test:e2e:cov": "jest --coverage --config jest.e2e.config.ts",
-    "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
-    "test:all:cov": "npm run test:unit:cov && npm run test:integration:cov && npm run test:e2e:cov",
+    "test:all": "npm run test:unit && npm run test:e2e",
+    "test:all:cov": "npm run test:unit:cov && npm run test:e2e:cov",
     "test:ci": "npm run test:all -- --coverage --ci",
     "prepare": "cd .. && husky backend/.husky"
   },

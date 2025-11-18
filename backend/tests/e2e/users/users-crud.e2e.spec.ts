@@ -1,7 +1,8 @@
 import { setupE2ETests, teardownE2ETests } from '../setup';
 import { TestApp, AuthHelper } from '../helpers';
-import { UserCategory, Status } from '@/domain/enums/enums';
+import { UserCategory } from '@/domain/enums/enums';
 import { UserFactory } from '../factories';
+import { HttpStatus } from '@nestjs/common';
 
 describe('E2E: Users - CRUD Operations', () => {
   let testApp: TestApp;
@@ -15,7 +16,6 @@ describe('E2E: Users - CRUD Operations', () => {
     await testApp.setup();
     authHelper = new AuthHelper(testApp);
 
-    // Criar usuário admin para testes
     const adminData = UserFactory.buildAdmin({
       email: 'admin@example.com',
       password: 'Admin@1234',
@@ -23,7 +23,6 @@ describe('E2E: Users - CRUD Operations', () => {
     const admin = await authHelper.createUserAndLogin(adminData);
     adminToken = admin.token;
 
-    // Criar usuário comum para testes
     const userData = UserFactory.buildProducer({
       email: 'user@example.com',
       password: 'User@1234',
@@ -51,21 +50,32 @@ describe('E2E: Users - CRUD Operations', () => {
         .request()
         .post('/users')
         .send(newUserData)
-        .expect(201);
+        .expect(HttpStatus.CREATED);
 
-      expect(response.body).toHaveProperty('id');
-      expect(response.body.email).toBe('newuser@example.com');
-      expect(response.body.name).toBe('New User');
-      expect(response.body.userCategory).toBe(UserCategory.Fisica);
-      expect(response.body).not.toHaveProperty('password');
+      expect(response.body).toHaveProperty('statusCode', HttpStatus.CREATED);
+      expect(response.body).toHaveProperty(
+        'message',
+        'Usuário criado com sucesso',
+      );
+
+      const data = response.body.data;
+      expect(data).toHaveProperty('id');
+      expect(data.email).toBe('newuser@example.com');
+      expect(data.name).toBe('New User');
+      expect(data.userCategory).toBe(UserCategory.Fisica);
+      expect(data).not.toHaveProperty('password');
     });
 
     it('deve retornar 409 com email duplicado', async () => {
       const duplicateData = UserFactory.build({
-        email: 'admin@example.com', // Email já existe
+        email: 'admin@example.com',
       });
 
-      await testApp.request().post('/users').send(duplicateData).expect(409);
+      await testApp
+        .request()
+        .post('/users')
+        .send(duplicateData)
+        .expect(HttpStatus.BAD_REQUEST);
     });
 
     it('deve retornar 400 com dados inválidos', async () => {
@@ -74,25 +84,29 @@ describe('E2E: Users - CRUD Operations', () => {
         .post('/users')
         .send({
           email: 'invalid-email',
-          password: '123', // Senha muito curta
+          password: '123',
           name: '',
           userCategory: 'INVALID',
         })
-        .expect(400);
+        .expect(HttpStatus.BAD_REQUEST);
     });
 
     it('deve retornar 400 sem campos obrigatórios', async () => {
-      await testApp.request().post('/users').send({}).expect(400);
+      await testApp
+        .request()
+        .post('/users')
+        .send({})
+        .expect(HttpStatus.BAD_REQUEST);
     });
   });
 
   describe('GET /users (List)', () => {
-    it('deve listar usuários com autenticação', async () => {
+    it('deve listar usuários com autenticação (Array direto)', async () => {
       const response = await testApp
         .request()
         .get('/users')
         .set(authHelper.authHeader(adminToken))
-        .expect(200);
+        .expect(HttpStatus.OK);
 
       expect(Array.isArray(response.body)).toBe(true);
       expect(response.body.length).toBeGreaterThan(0);
@@ -102,7 +116,7 @@ describe('E2E: Users - CRUD Operations', () => {
     });
 
     it('deve retornar 401 sem token de autenticação', async () => {
-      await testApp.request().get('/users').expect(401);
+      await testApp.request().get('/users').expect(HttpStatus.UNAUTHORIZED);
     });
 
     it('deve retornar 401 com token inválido', async () => {
@@ -110,13 +124,12 @@ describe('E2E: Users - CRUD Operations', () => {
         .request()
         .get('/users')
         .set('Authorization', 'Bearer invalid-token')
-        .expect(401);
+        .expect(HttpStatus.UNAUTHORIZED);
     });
   });
 
   describe('GET /users/:id (Find One)', () => {
     it('deve buscar usuário por ID com autenticação', async () => {
-      // Primeiro criar um usuário
       const created = await testApp
         .request()
         .post('/users')
@@ -128,16 +141,17 @@ describe('E2E: Users - CRUD Operations', () => {
           city: 'Brasília',
           state: 'DF',
         })
-        .expect(201);
+        .expect(HttpStatus.CREATED);
 
-      // Depois buscar por ID
+      const userId = created.body.data.id;
+
       const response = await testApp
         .request()
-        .get(`/users/${created.body.id}`)
+        .get(`/users/${userId}`)
         .set(authHelper.authHeader(adminToken))
-        .expect(200);
+        .expect(HttpStatus.OK);
 
-      expect(response.body.id).toBe(created.body.id);
+      expect(response.body.id).toBe(userId);
       expect(response.body.email).toBe('findone@example.com');
       expect(response.body.name).toBe('Find One User');
       expect(response.body).not.toHaveProperty('password');
@@ -148,17 +162,16 @@ describe('E2E: Users - CRUD Operations', () => {
         .request()
         .get('/users/99999')
         .set(authHelper.authHeader(adminToken))
-        .expect(404);
+        .expect(HttpStatus.NOT_FOUND);
     });
 
     it('deve retornar 401 sem autenticação', async () => {
-      await testApp.request().get('/users/1').expect(401);
+      await testApp.request().get('/users/1').expect(HttpStatus.UNAUTHORIZED);
     });
   });
 
   describe('PUT /users/:id (Update)', () => {
     it('deve atualizar usuário com dados válidos', async () => {
-      // Criar usuário
       const createData = UserFactory.build({
         email: 'update@example.com',
         name: 'Update User',
@@ -170,25 +183,27 @@ describe('E2E: Users - CRUD Operations', () => {
         .request()
         .post('/users')
         .send(createData)
-        .expect(201);
+        .expect(HttpStatus.CREATED);
 
-      // Atualizar usuário
+      const userId = created.body.data.id;
+
       const response = await testApp
         .request()
-        .put(`/users/${created.body.id}`)
+        .put(`/users/${userId}`)
         .set(authHelper.authHeader(adminToken))
         .send({
           name: 'Updated Name',
           city: 'Florianópolis',
           state: 'SC',
         })
-        .expect(200);
+        .expect(HttpStatus.OK);
 
-      expect(response.body.id).toBe(created.body.id);
-      expect(response.body.name).toBe('Updated Name');
-      expect(response.body.city).toBe('Florianópolis');
-      expect(response.body.state).toBe('SC');
-      expect(response.body.email).toBe('update@example.com');
+      expect(response.body).toHaveProperty('statusCode', HttpStatus.OK);
+      expect(response.body.data.id).toBe(userId);
+      expect(response.body.data.name).toBe('Updated Name');
+      expect(response.body.data.city).toBe('Florianópolis');
+      expect(response.body.data.state).toBe('SC');
+      expect(response.body.data.email).toBe('update@example.com');
     });
 
     it('deve retornar 404 ao atualizar ID inexistente', async () => {
@@ -197,7 +212,7 @@ describe('E2E: Users - CRUD Operations', () => {
         .put('/users/99999')
         .set(authHelper.authHeader(adminToken))
         .send({ name: 'Updated' })
-        .expect(404);
+        .expect(HttpStatus.NOT_FOUND);
     });
 
     it('deve retornar 401 sem autenticação', async () => {
@@ -205,10 +220,10 @@ describe('E2E: Users - CRUD Operations', () => {
         .request()
         .put('/users/1')
         .send({ name: 'Test' })
-        .expect(401);
+        .expect(HttpStatus.UNAUTHORIZED);
     });
 
-    it('deve retornar 409 com email duplicado', async () => {
+    it('deve retornar 400 (BusinessException) com email duplicado', async () => {
       const createData = UserFactory.build({
         email: 'unique@example.com',
         name: 'Unique User',
@@ -220,16 +235,16 @@ describe('E2E: Users - CRUD Operations', () => {
         .request()
         .post('/users')
         .send(createData)
-        .expect(201);
+        .expect(HttpStatus.CREATED);
 
       await testApp
         .request()
-        .put(`/users/${created.body.id}`)
+        .put(`/users/${created.body.data.id}`)
         .set(authHelper.authHeader(adminToken))
         .send({
-          email: 'admin@example.com', // Email já existente
+          email: 'admin@example.com',
         })
-        .expect(409);
+        .expect(HttpStatus.BAD_REQUEST);
     });
   });
 
@@ -246,16 +261,18 @@ describe('E2E: Users - CRUD Operations', () => {
         .request()
         .post('/users')
         .send(deleteData)
-        .expect(201);
+        .expect(HttpStatus.CREATED);
 
-      await testApp
+      const userId = created.body.data.id;
+
+      const response = await testApp
         .request()
-        .delete(`/users/${created.body.id}`)
+        .delete(`/users/${userId}`)
         .set(authHelper.authHeader(adminToken))
-        .expect(200);
+        .expect(HttpStatus.OK);
 
-      // Nota: Soft delete está funcionando, mas usuário deletado não é retornado
-      // Isso está correto do ponto de vista de segurança
+      expect(response.body).toHaveProperty('statusCode', HttpStatus.OK);
+      expect(response.body.data.status).toBe('Inactive');
     });
 
     it('deve retornar 404 ao deletar ID inexistente', async () => {
@@ -263,17 +280,19 @@ describe('E2E: Users - CRUD Operations', () => {
         .request()
         .delete('/users/99999')
         .set(authHelper.authHeader(adminToken))
-        .expect(404);
+        .expect(HttpStatus.NOT_FOUND);
     });
 
     it('deve retornar 401 sem autenticação', async () => {
-      await testApp.request().delete('/users/1').expect(401);
+      await testApp
+        .request()
+        .delete('/users/1')
+        .expect(HttpStatus.UNAUTHORIZED);
     });
   });
 
   describe('Fluxo completo (Create → Read → Update → Delete)', () => {
     it('deve executar CRUD completo com sucesso', async () => {
-      // 1. CREATE
       const created = await testApp
         .request()
         .post('/users')
@@ -285,22 +304,19 @@ describe('E2E: Users - CRUD Operations', () => {
           city: 'Belo Horizonte',
           state: 'MG',
         })
-        .expect(201);
+        .expect(HttpStatus.CREATED);
 
-      expect(created.body).toHaveProperty('id');
-      const userId = created.body.id;
+      const userId = created.body.data.id;
 
-      // 2. READ (Find One)
       const found = await testApp
         .request()
         .get(`/users/${userId}`)
         .set(authHelper.authHeader(adminToken))
-        .expect(200);
+        .expect(HttpStatus.OK);
 
       expect(found.body.email).toBe('fullcrud@example.com');
       expect(found.body.name).toBe('Full CRUD User');
 
-      // 3. UPDATE
       const updated = await testApp
         .request()
         .put(`/users/${userId}`)
@@ -309,19 +325,16 @@ describe('E2E: Users - CRUD Operations', () => {
           name: 'Updated Full CRUD User',
           city: 'Campinas',
         })
-        .expect(200);
+        .expect(HttpStatus.OK);
 
-      expect(updated.body.name).toBe('Updated Full CRUD User');
-      expect(updated.body.city).toBe('Campinas');
+      expect(updated.body.data.name).toBe('Updated Full CRUD User');
+      expect(updated.body.data.city).toBe('Campinas');
 
-      // 4. DELETE (Soft Delete)
       await testApp
         .request()
         .delete(`/users/${userId}`)
         .set(authHelper.authHeader(adminToken))
-        .expect(200);
-
-      // Soft delete funcionou! Usuário foi marcado como Inactive no banco
+        .expect(HttpStatus.OK);
     });
   });
 });

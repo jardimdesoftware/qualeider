@@ -4,7 +4,7 @@ import baseConfig from './jest.config';
 const config: Config = {
   ...baseConfig,
   displayName: 'e2e',
-  testMatch: ['<rootDir>/tests/e2e/**/*.e2e-spec.ts'],
+  testMatch: ['<rootDir>/tests/e2e/**/*.e2e.spec.ts'],
   coverageDirectory: './coverage/e2e',
   collectCoverageFrom: ['src/**/*.(t|j)s'],
   coverageThreshold: {

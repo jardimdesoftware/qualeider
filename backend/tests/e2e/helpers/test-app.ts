@@ -4,7 +4,9 @@ import { AppModule } from '@/presentation/app.module';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { MailService } from '@/mail/mail.service';
 import { MockMailService } from '../../mocks/mail.mock';
-import * as request from 'supertest';
+import request = require('supertest');
+import { HttpExceptionFilter } from '@/common/filters/http-exception.filter';
+import { PrismaExceptionFilter } from '@/common/filters/prisma-exception.filter';
 
 /**
  * Classe helper para criar e gerenciar a aplicação de testes E2E
@@ -25,6 +27,11 @@ export class TestApp {
       .compile();
 
     this.app = this.moduleRef.createNestApplication();
+
+    this.app.useGlobalFilters(
+      new HttpExceptionFilter(),
+      new PrismaExceptionFilter()
+    );
 
     // Configura validation pipe global (igual ao main.ts)
     this.app.useGlobalPipes(

@@ -69,9 +69,10 @@ export class AuthHelper {
       .request()
       .post('/auth/login')
       .send({ email, password })
-      .expect(201);
+      .expect(200); // ✅ Corrigido para 200 OK
 
-    return response.body.access_token;
+    // ✅ Corrigido para acessar o token dentro do wrapper 'data'
+    return response.body.data.access_token;
   }
 
   /**

@@ -51,12 +51,14 @@ describe('E2E: Animais - Operações CRUD', () => {
         'message',
         'Animal criado com sucesso',
       );
-      expect(response.body.data).toHaveProperty('id');
-      expect(response.body.data.name).toBe('Mimosa');
-      expect(response.body.data.animalType).toBe(AnimalType.Vaca);
-      expect(response.body.data.breed).toBe('Holandês');
-      expect(response.body.data.age).toBe(5);
-      expect(response.body.data.userId).toBe(userId);
+
+      const data = response.body.data;
+      expect(data).toHaveProperty('id');
+      expect(data.name).toBe('Mimosa');
+      expect(data.animalType).toBe(AnimalType.Vaca);
+      expect(data.breed).toBe('Holandês');
+      expect(data.age).toBe(5);
+      expect(data.userId).toBe(userId);
     });
 
     it('deve criar animal sem nome (opcional)', async () => {
@@ -78,12 +80,18 @@ describe('E2E: Animais - Operações CRUD', () => {
       expect(response.body.data.animalType).toBe(AnimalType.Cabra);
     });
 
-    it('deve retornar 404 com userId inexistente', async () => {
+    it('deve retornar 404 com userId inexistente (EntityNotFound)', async () => {
       const animalData = AnimalFactory.build({
         userId: 99999,
       });
 
-      await testApp.request().post('/animals').send(animalData).expect(404);
+      const response = await testApp
+        .request()
+        .post('/animals')
+        .send(animalData)
+        .expect(404);
+
+      expect(response.body.message[0]).toContain('não encontrado');
     });
 
     it('deve retornar 400 com dados inválidos', async () => {
@@ -104,7 +112,7 @@ describe('E2E: Animais - Operações CRUD', () => {
   });
 
   describe('GET /animals (Listar)', () => {
-    it('deve listar todos os animais', async () => {
+    it('deve listar todos os animais (Array direto)', async () => {
       const response = await testApp.request().get('/animals').expect(200);
 
       expect(Array.isArray(response.body)).toBe(true);
@@ -143,7 +151,7 @@ describe('E2E: Animais - Operações CRUD', () => {
   });
 
   describe('GET /animals/:id (Buscar por ID)', () => {
-    it('deve buscar animal por ID', async () => {
+    it('deve buscar animal por ID (Objeto direto)', async () => {
       const animalData = AnimalFactory.buildVaca({ userId });
       const created = await testApp
         .request()
@@ -200,12 +208,12 @@ describe('E2E: Animais - Operações CRUD', () => {
       expect(response.body.data.age).toBe(4);
     });
 
-    it('deve retornar 400 ao atualizar ID inexistente', async () => {
+    it('deve retornar 404 ao atualizar ID inexistente', async () => {
       await testApp
         .request()
         .put('/animals/99999')
         .send({ name: 'Test' })
-        .expect(400);
+        .expect(404);
     });
   });
 
@@ -239,8 +247,8 @@ describe('E2E: Animais - Operações CRUD', () => {
       expect(getResponse.body).toHaveProperty('status', 'Inactive');
     });
 
-    it('deve retornar 500 ao deletar ID inexistente', async () => {
-      await testApp.request().delete('/animals/99999').expect(500);
+    it('deve retornar 404 ao deletar ID inexistente', async () => {
+      await testApp.request().delete('/animals/99999').expect(404);
     });
   });
 });
