@@ -1,7 +1,8 @@
-// backend/src/events/notification.events.ts
+
+import { NotificationType } from '@/domain/enums/enums';
 export class NotificationEvent {
   constructor(
-    public readonly type: 'individual' | 'collective',
+    public readonly type: NotificationType,
     public readonly associationId: number,
     public readonly subject: string,
     public readonly message: string,

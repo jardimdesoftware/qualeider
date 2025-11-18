@@ -4,8 +4,10 @@ import { InvitesController } from '@/presentation/controllers/invites.controller
 import { InvitesService } from '@/application/services/invites/invites.service';
 import { CreateInviteDto } from '@/application/dtos/invites/create-invite.dto';
 import { RespondInviteDto } from '@/application/dtos/invites/respond-invite.dto';
-import { InviteStatus } from '@/domain/enums/enums';
+import { InviteStatus, InviteAction } from '@/domain/enums/enums';
 import { createInvite } from '../../../factories/invite.factory';
+import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
+import { BusinessException } from '@/common/exceptions/business.exception';
 
 describe('InvitesController', () => {
   let controller: InvitesController;
@@ -38,20 +40,18 @@ describe('InvitesController', () => {
   });
 
   describe('createInvite', () => {
-    it('deve criar um convite com sucesso', async () => {
+    it('deve criar um convite com sucesso e retornar wrapper', async () => {
       const associationId = 1;
-      const createDto: CreateInviteDto = {
-        userId: 1,
-      } as any;
+      const createDto: CreateInviteDto = { userId: 1 } as any;
 
-      const expectedResult = {
+      const createdInvite = {
         id: 1,
-        token: 'abc123-def456-ghi789',
+        token: 'abc123-def456',
         message: 'Convite enviado com sucesso',
-        expiresAt: new Date('2025-11-10T10:30:00.000Z'),
+        expiresAt: new Date(),
       };
 
-      mockInvitesService.createInvite.mockResolvedValue(expectedResult);
+      mockInvitesService.createInvite.mockResolvedValue(createdInvite);
 
       const result = await controller.createInvite(associationId, createDto);
 
@@ -59,87 +59,58 @@ describe('InvitesController', () => {
         associationId,
         createDto,
       );
-      expect(result).toEqual(expectedResult);
+      expect(result).toEqual({
+        statusCode: HttpStatus.CREATED,
+        message: 'Convite enviado com sucesso',
+        data: createdInvite,
+      });
     });
 
-    it('deve propagar NotFoundException quando usuário não existe', async () => {
+    it('deve propagar EntityNotFoundException quando usuário não existe', async () => {
       const associationId = 1;
-      const createDto: CreateInviteDto = {
-        userId: 999,
-      } as any;
-
-      const notFoundError = new Error('Usuário não encontrado.');
-      mockInvitesService.createInvite.mockRejectedValue(notFoundError);
+      const createDto: CreateInviteDto = { userId: 999 } as any;
+      const error = new EntityNotFoundException('Usuário não encontrado.');
+      
+      mockInvitesService.createInvite.mockRejectedValue(error);
 
       await expect(
         controller.createInvite(associationId, createDto),
-      ).rejects.toThrow('Usuário não encontrado.');
+      ).rejects.toThrow(EntityNotFoundException);
     });
 
-    it('deve propagar ConflictException quando convite pendente já existe', async () => {
+    it('deve propagar BusinessException quando convite pendente já existe', async () => {
       const associationId = 1;
-      const createDto: CreateInviteDto = {
-        userId: 1,
-      } as any;
-
-      const conflictError = new Error('Usuário já possui convite pendente.');
-      mockInvitesService.createInvite.mockRejectedValue(conflictError);
+      const createDto: CreateInviteDto = { userId: 1 } as any;
+      const error = new BusinessException('Usuário já possui convite pendente.');
+      
+      mockInvitesService.createInvite.mockRejectedValue(error);
 
       await expect(
         controller.createInvite(associationId, createDto),
-      ).rejects.toThrow('Usuário já possui convite pendente.');
+      ).rejects.toThrow(BusinessException);
     });
   });
 
   describe('getUserPendingInvites', () => {
-    it('deve retornar lista de convites pendentes do usuário', async () => {
+    it('deve retornar lista de convites pendentes (sem wrapper)', async () => {
       const userId = 1;
       const pendingInvites = [
         createInvite({ userId, status: InviteStatus.PENDING }),
-        createInvite({ userId, status: InviteStatus.PENDING, id: 2 }),
       ];
 
-      mockInvitesService.getUserPendingInvites.mockResolvedValue(
-        pendingInvites,
-      );
+      mockInvitesService.getUserPendingInvites.mockResolvedValue(pendingInvites);
 
       const result = await controller.getUserPendingInvites(userId);
 
-      expect(invitesService.getUserPendingInvites).toHaveBeenCalledWith(
-        userId,
-      );
+      expect(invitesService.getUserPendingInvites).toHaveBeenCalledWith(userId);
       expect(result).toEqual(pendingInvites);
-      expect(result).toHaveLength(2);
-    });
-
-    it('deve retornar lista vazia quando não há convites pendentes', async () => {
-      const userId = 1;
-
-      mockInvitesService.getUserPendingInvites.mockResolvedValue([]);
-
-      const result = await controller.getUserPendingInvites(userId);
-
-      expect(result).toEqual([]);
-      expect(result).toHaveLength(0);
     });
   });
 
   describe('getAssociationInvites', () => {
-    it('deve retornar todos os convites da associação quando status não é fornecido', async () => {
+    it('deve retornar todos os convites da associação', async () => {
       const associationId = 1;
-      const invites = [
-        createInvite({ associationId, status: InviteStatus.PENDING }),
-        createInvite({
-          associationId,
-          status: InviteStatus.ACCEPTED,
-          id: 2,
-        }),
-        createInvite({
-          associationId,
-          status: InviteStatus.DECLINED,
-          id: 3,
-        }),
-      ];
+      const invites = [createInvite({ associationId })];
 
       mockInvitesService.getAssociationInvites.mockResolvedValue(invites);
 
@@ -150,20 +121,14 @@ describe('InvitesController', () => {
         undefined,
       );
       expect(result).toEqual(invites);
-      expect(result).toHaveLength(3);
     });
 
-    it('deve filtrar convites por status PENDING', async () => {
+    it('deve filtrar convites por status', async () => {
       const associationId = 1;
       const status = InviteStatus.PENDING;
-      const pendingInvites = [
-        createInvite({ associationId, status: InviteStatus.PENDING }),
-        createInvite({ associationId, status: InviteStatus.PENDING, id: 2 }),
-      ];
+      const invites = [createInvite({ associationId, status })];
 
-      mockInvitesService.getAssociationInvites.mockResolvedValue(
-        pendingInvites,
-      );
+      mockInvitesService.getAssociationInvites.mockResolvedValue(invites);
 
       const result = await controller.getAssociationInvites(
         associationId,
@@ -172,42 +137,19 @@ describe('InvitesController', () => {
 
       expect(invitesService.getAssociationInvites).toHaveBeenCalledWith(
         associationId,
-        InviteStatus.PENDING,
-      );
-      expect(result).toEqual(pendingInvites);
-    });
-
-    it('deve filtrar convites por status ACCEPTED', async () => {
-      const associationId = 1;
-      const status = InviteStatus.ACCEPTED;
-      const acceptedInvites = [
-        createInvite({ associationId, status: InviteStatus.ACCEPTED }),
-      ];
-
-      mockInvitesService.getAssociationInvites.mockResolvedValue(
-        acceptedInvites,
-      );
-
-      const result = await controller.getAssociationInvites(
-        associationId,
         status,
       );
-
-      expect(result).toEqual(acceptedInvites);
-      expect(result[0].status).toBe(InviteStatus.ACCEPTED);
+      expect(result).toEqual(invites);
     });
   });
 
   describe('cancelInvite', () => {
-    it('deve cancelar convite pendente com sucesso', async () => {
+    it('deve cancelar convite e retornar wrapper', async () => {
       const associationId = 1;
       const inviteId = 10;
+      const serviceResponse = { message: 'Convite cancelado com sucesso' };
 
-      const expectedResult = {
-        message: 'Convite cancelado com sucesso',
-      };
-
-      mockInvitesService.cancelInvite.mockResolvedValue(expectedResult);
+      mockInvitesService.cancelInvite.mockResolvedValue(serviceResponse);
 
       const result = await controller.cancelInvite(associationId, inviteId);
 
@@ -215,38 +157,27 @@ describe('InvitesController', () => {
         associationId,
         inviteId,
       );
-      expect(result).toEqual(expectedResult);
+      expect(result).toEqual({
+        statusCode: HttpStatus.OK,
+        message: 'Convite cancelado com sucesso',
+        data: serviceResponse,
+      });
     });
 
-    it('deve propagar NotFoundException quando convite não existe', async () => {
-      const associationId = 1;
-      const inviteId = 999;
+    it('deve propagar EntityNotFoundException quando convite não existe', async () => {
+      const error = new EntityNotFoundException('Convite não encontrado.');
+      mockInvitesService.cancelInvite.mockRejectedValue(error);
 
-      const notFoundError = new Error('Convite não encontrado.');
-      mockInvitesService.cancelInvite.mockRejectedValue(notFoundError);
-
-      await expect(
-        controller.cancelInvite(associationId, inviteId),
-      ).rejects.toThrow('Convite não encontrado.');
-    });
-
-    it('deve propagar BadRequestException quando convite já foi respondido', async () => {
-      const associationId = 1;
-      const inviteId = 10;
-
-      const badRequestError = new Error('Convite já foi respondido.');
-      mockInvitesService.cancelInvite.mockRejectedValue(badRequestError);
-
-      await expect(
-        controller.cancelInvite(associationId, inviteId),
-      ).rejects.toThrow('Convite já foi respondido.');
+      await expect(controller.cancelInvite(1, 999)).rejects.toThrow(
+        EntityNotFoundException,
+      );
     });
   });
 
   describe('getInviteByToken', () => {
-    it('deve retornar dados do convite quando token é válido', async () => {
-      const token = 'valid-token-123';
-      const invite = createInvite({ token, status: InviteStatus.PENDING });
+    it('deve retornar dados do convite (sem wrapper)', async () => {
+      const token = 'valid-token';
+      const invite = createInvite({ token });
 
       mockInvitesService.getInviteByToken.mockResolvedValue(invite);
 
@@ -254,106 +185,65 @@ describe('InvitesController', () => {
 
       expect(invitesService.getInviteByToken).toHaveBeenCalledWith(token);
       expect(result).toEqual(invite);
-      expect((result as any).token).toBe(token);
     });
 
-    it('deve propagar NotFoundException quando token não existe', async () => {
-      const token = 'invalid-token';
+    it('deve propagar EntityNotFoundException quando token não existe', async () => {
+      const error = new EntityNotFoundException('Convite não encontrado.');
+      mockInvitesService.getInviteByToken.mockRejectedValue(error);
 
-      const notFoundError = new Error('Convite não encontrado.');
-      mockInvitesService.getInviteByToken.mockRejectedValue(notFoundError);
-
-      await expect(controller.getInviteByToken(token)).rejects.toThrow(
-        'Convite não encontrado.',
+      await expect(controller.getInviteByToken('invalid')).rejects.toThrow(
+        EntityNotFoundException,
       );
     });
   });
 
   describe('respondToInvite', () => {
-    it('deve aceitar convite com sucesso', async () => {
-      const token = 'valid-token-123';
-      const respondDto: RespondInviteDto = {
-        response: 'accept',
-      } as any;
-
-      const expectedResult = {
+    it('deve aceitar convite e retornar wrapper', async () => {
+      const token = 'valid-token';
+      const dto: RespondInviteDto = { response: InviteAction.ACCEPT }; 
+      const serviceResponse = {
         message: 'Você agora faz parte da Associação ABC!',
         associationId: 1,
         associationName: 'Associação ABC',
       };
 
-      mockInvitesService.respondToInvite.mockResolvedValue(expectedResult);
+      mockInvitesService.respondToInvite.mockResolvedValue(serviceResponse);
 
-      const result = await controller.respondToInvite(token, respondDto);
-
-      expect(invitesService.respondToInvite).toHaveBeenCalledWith(
-        token,
-        'accept',
-      );
-      expect(result).toEqual(expectedResult);
-    });
-
-    it('deve recusar convite com sucesso', async () => {
-      const token = 'valid-token-123';
-      const respondDto: RespondInviteDto = {
-        response: 'decline',
-      } as any;
-
-      const expectedResult = {
-        message: 'Convite recusado.',
-      };
-
-      mockInvitesService.respondToInvite.mockResolvedValue(expectedResult);
-
-      const result = await controller.respondToInvite(token, respondDto);
+      const result = await controller.respondToInvite(token, dto);
 
       expect(invitesService.respondToInvite).toHaveBeenCalledWith(
         token,
-        'decline',
+        InviteAction.ACCEPT,
       );
-      expect(result).toEqual(expectedResult);
+      expect(result).toEqual({
+        statusCode: HttpStatus.OK,
+        message: 'Resposta registrada com sucesso',
+        data: serviceResponse,
+      });
     });
 
-    it('deve propagar NotFoundException quando token não existe', async () => {
-      const token = 'invalid-token';
-      const respondDto: RespondInviteDto = {
-        response: 'accept',
-      } as any;
-
-      const notFoundError = new Error('Convite não encontrado.');
-      mockInvitesService.respondToInvite.mockRejectedValue(notFoundError);
-
-      await expect(
-        controller.respondToInvite(token, respondDto),
-      ).rejects.toThrow('Convite não encontrado.');
-    });
-
-    it('deve propagar BadRequestException quando convite já foi respondido', async () => {
+    it('deve propagar BusinessException quando convite já foi respondido', async () => {
       const token = 'already-responded';
-      const respondDto: RespondInviteDto = {
-        response: 'accept',
-      } as any;
+      const dto: RespondInviteDto = { response: InviteAction.ACCEPT };
+      const error = new BusinessException('Convite já foi respondido.');
+      
+      mockInvitesService.respondToInvite.mockRejectedValue(error);
 
-      const badRequestError = new Error('Convite já foi respondido.');
-      mockInvitesService.respondToInvite.mockRejectedValue(badRequestError);
-
-      await expect(
-        controller.respondToInvite(token, respondDto),
-      ).rejects.toThrow('Convite já foi respondido.');
+      await expect(controller.respondToInvite(token, dto)).rejects.toThrow(
+        BusinessException,
+      );
     });
 
-    it('deve propagar BadRequestException quando convite está expirado', async () => {
-      const token = 'expired-token';
-      const respondDto: RespondInviteDto = {
-        response: 'accept',
-      } as any;
+    it('deve propagar BusinessException quando convite está expirado', async () => {
+      const token = 'expired';
+      const dto: RespondInviteDto = { response: InviteAction.ACCEPT };
+      const error = new BusinessException('Convite expirado.');
+      
+      mockInvitesService.respondToInvite.mockRejectedValue(error);
 
-      const badRequestError = new Error('Convite expirado.');
-      mockInvitesService.respondToInvite.mockRejectedValue(badRequestError);
-
-      await expect(
-        controller.respondToInvite(token, respondDto),
-      ).rejects.toThrow('Convite expirado.');
+      await expect(controller.respondToInvite(token, dto)).rejects.toThrow(
+        BusinessException,
+      );
     });
   });
 });

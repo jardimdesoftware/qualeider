@@ -42,4 +42,9 @@ export enum InviteStatus {
   CANCELED = 'CANCELED',
 }
 
+export enum NotificationType {
+  INDIVIDUAL = 'Individual', 
+  COLLECTIVE = 'Collective',       
+}
+
 export type ID = number;

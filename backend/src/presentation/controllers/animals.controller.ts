@@ -6,9 +6,7 @@ import {
   Param,
   Put,
   Delete,
-  HttpException,
   HttpStatus,
-  NotFoundException,
   ParseIntPipe,
   ValidationPipe,
   UsePipes,
@@ -23,8 +21,8 @@ import {
   ApiParam,
   ApiResponse,
   ApiTags,
+  ApiQuery,
 } from '@nestjs/swagger';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 @ApiTags('Animais')
 @Controller('animals')
@@ -36,207 +34,70 @@ export class AnimalsController {
   @ApiResponse({ status: 201, description: 'Animal cadastrado com sucesso' })
   @ApiResponse({ status: 400, description: 'Dados inválidos' })
   @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
-  @ApiResponse({ status: 500, description: 'Erro interno do servidor' })
   @Post()
   @UsePipes(new ValidationPipe({ transform: true }))
   async create(@Body() createAnimalDto: CreateAnimalDto) {
-    try {
-      const result = await this.animalsService.create(createAnimalDto);
-      return {
-        statusCode: HttpStatus.CREATED,
-        message: 'Animal criado com sucesso',
-        data: result,
-      };
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw new HttpException(
-          { status: HttpStatus.NOT_FOUND, error: error.message },
-          HttpStatus.NOT_FOUND,
-        );
-      } else if (error instanceof PrismaClientKnownRequestError) {
-        throw new HttpException(
-          {
-            status: HttpStatus.BAD_REQUEST,
-            error: 'Dados inválidos.',
-            details: error.message,
-          },
-          HttpStatus.BAD_REQUEST,
-        );
-      } else {
-        throw new HttpException(
-          {
-            status: HttpStatus.INTERNAL_SERVER_ERROR,
-            error: 'Ocorreu um erro ao criar o animal.',
-            details: error.message,
-          },
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-    }
+    const result = await this.animalsService.create(createAnimalDto);
+    return {
+      statusCode: HttpStatus.CREATED,
+      message: 'Animal criado com sucesso',
+      data: result,
+    };
   }
 
   @ApiOperation({ summary: 'Listar todos os animais' })
+  @ApiQuery({ name: 'associationId', required: false, type: Number })
   @ApiResponse({ status: 200, description: 'Animais listados com sucesso' })
-  @ApiResponse({ status: 500, description: 'Erro interno do servidor' })
   @Get()
   async findAll(@Query('associationId') associationId?: string) {
-    try {
-      const assocId = associationId ? +associationId : undefined;
-      if (associationId && isNaN(assocId)) {
-        throw new HttpException(
-          { status: HttpStatus.BAD_REQUEST, error: 'associationId inválido' },
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-      const result = await this.animalsService.findAll(assocId);
-      return result;
-    } catch (error) {
-      throw new HttpException(
-        {
-          status: HttpStatus.INTERNAL_SERVER_ERROR,
-          error: 'Ocorreu um erro ao listar os animais.',
-          details: error.message,
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+    const assocId = associationId ? Number(associationId) : undefined;
+    
+    return this.animalsService.findAll(assocId);
   }
 
   @ApiOperation({ summary: 'Buscar um animal pelo ID' })
   @ApiParam({ name: 'id', description: 'ID do animal', type: Number })
   @ApiResponse({ status: 200, description: 'Animal encontrado com sucesso' })
   @ApiResponse({ status: 404, description: 'Animal não encontrado' })
-  @ApiResponse({ status: 500, description: 'Erro interno do servidor' })
   @Get(':id')
-  async findOne(@Param('id', new ParseIntPipe()) id: number) {
-    try {
-      const result = await this.animalsService.findOne(id);
-      return result;
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw new HttpException(
-          { status: HttpStatus.NOT_FOUND, error: error.message },
-          HttpStatus.NOT_FOUND,
-        );
-      } else {
-        throw new HttpException(
-          {
-            status: HttpStatus.INTERNAL_SERVER_ERROR,
-            error: 'Ocorreu um erro ao buscar o animal.',
-            details: error.message,
-          },
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-    }
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.animalsService.findOne(id);
   }
 
-  @ApiOperation({ summary: 'Atualizar todos os dados de um animal pelo ID' })
+  @ApiOperation({ summary: 'Atualizar dados de um animal' })
   @ApiBearerAuth()
   @ApiParam({ name: 'id', description: 'ID do animal', type: Number })
   @ApiResponse({ status: 200, description: 'Animal atualizado com sucesso' })
-  @ApiResponse({ status: 400, description: 'Dados inválidos' })
   @ApiResponse({ status: 404, description: 'Animal não encontrado' })
-  @ApiResponse({ status: 500, description: 'Erro interno do servidor' })
   @Put(':id')
   @UsePipes(new ValidationPipe({ transform: true }))
   async update(
-    @Param('id', new ParseIntPipe()) id: number,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateAnimalDto: UpdateAnimalDto,
   ) {
-    try {
-      const result = await this.animalsService.update(id, updateAnimalDto);
-      return {
-        statusCode: HttpStatus.OK,
-        message: 'Animal atualizado com sucesso',
-        data: result,
-      };
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw new HttpException(
-          { status: HttpStatus.NOT_FOUND, error: error.message },
-          HttpStatus.NOT_FOUND,
-        );
-      } else if (error instanceof PrismaClientKnownRequestError) {
-        throw new HttpException(
-          {
-            status: HttpStatus.BAD_REQUEST,
-            error: 'Dados inválidos.',
-            details: error.message,
-          },
-          HttpStatus.BAD_REQUEST,
-        );
-      } else {
-        throw new HttpException(
-          {
-            status: HttpStatus.INTERNAL_SERVER_ERROR,
-            error: 'Ocorreu um erro ao atualizar o animal.',
-            details: error.message,
-          },
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-    }
+    const result = await this.animalsService.update(id, updateAnimalDto);
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Animal atualizado com sucesso',
+      data: result,
+    };
   }
 
-  @ApiOperation({ summary: 'Excluir um animal pelo ID' })
+  @ApiOperation({ summary: 'Excluir (desativar) um animal' })
   @ApiBearerAuth()
   @ApiParam({ name: 'id', description: 'ID do animal', type: Number })
   @ApiResponse({ status: 200, description: 'Animal excluído com sucesso' })
   @ApiResponse({ status: 404, description: 'Animal não encontrado' })
-  @ApiResponse({ status: 500, description: 'Erro interno do servidor' })
   @Delete(':id')
-  async remove(@Param('id', new ParseIntPipe()) id: number) {
-    try {
-      const result = await this.animalsService.remove(id);
-      return result;
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw new HttpException(
-          { status: HttpStatus.NOT_FOUND, error: error.message },
-          HttpStatus.NOT_FOUND,
-        );
-      } else {
-        throw new HttpException(
-          {
-            status: HttpStatus.INTERNAL_SERVER_ERROR,
-            error: 'Ocorreu um erro ao desativar o animal.',
-            details: error.message,
-          },
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-    }
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    return this.animalsService.remove(id);
   }
 
-  @ApiOperation({ summary: 'Buscar animais do usuário pelo ID do usuário' })
-  @ApiParam({ name: 'id', description: 'ID do usuário', type: Number })
-  @ApiResponse({ status: 200, description: 'Animais do usuário encontrado' })
-  @ApiResponse({
-    status: 404,
-    description: 'Animais do usuário não encontrado',
-  })
+  @ApiOperation({ summary: 'Buscar animais de um usuário específico' })
+  @ApiParam({ name: 'userId', description: 'ID do usuário', type: Number })
+  @ApiResponse({ status: 200, description: 'Lista de animais do usuário' })
   @Get('user/:userId')
-  async findAllByUserId(@Param('userId', new ParseIntPipe()) userId: number) {
-    try {
-      const animals = await this.animalsService.findAllByUserId(Number(userId));
-      return animals;
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw new HttpException(
-          { status: HttpStatus.NOT_FOUND, error: error.message },
-          HttpStatus.NOT_FOUND,
-        );
-      } else {
-        throw new HttpException(
-          {
-            status: HttpStatus.INTERNAL_SERVER_ERROR,
-            error: 'Ocorreu um erro ao buscar os animais.',
-            details: error.message,
-          },
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-    }
+  async findAllByUserId(@Param('userId', ParseIntPipe) userId: number) {
+    return this.animalsService.findAllByUserId(userId);
   }
 }

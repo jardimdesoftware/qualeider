@@ -27,7 +27,7 @@ export class NotificationsService {
   }
 
   private async getTargetUsers(event: NotificationEvent) {
-    if (event.type === 'individual') {
+    if (event.type === 'Individual') {
       return this.prisma.user.findMany({
         where: {
           id: { in: event.userIds },

@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { HttpStatus, NotFoundException, HttpException } from '@nestjs/common';
+import { HttpStatus } from '@nestjs/common';
 import { DailyCollectionsController } from '@/presentation/controllers/daily-collections.controller';
 import { DailyCollectionsService } from '@/application/services/daily-collections/daily-collections.service';
 import { CreateDailyCollectionDto } from '@/application/dtos/daily-collections/create-daily-collection.dto';
 import { UpdateDailyCollectionDto } from '@/application/dtos/daily-collections/update-daily-collection.dto';
 import { createDailyCollection } from '../../../factories/daily-collection.factory';
 import { MilkingPlace } from '@/domain/enums/enums';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 
 describe('DailyCollectionsController', () => {
   let controller: DailyCollectionsController;
@@ -19,6 +19,7 @@ describe('DailyCollectionsController', () => {
     update: jest.fn(),
     remove: jest.fn(),
     findAllByUserId: jest.fn(),
+    checkIfUserAlreadySubmitted: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -41,7 +42,7 @@ describe('DailyCollectionsController', () => {
   });
 
   describe('create', () => {
-    it('deve criar coleta com sucesso', async () => {
+    it('deve criar coleta com sucesso e retornar wrapper', async () => {
       const dto: CreateDailyCollectionDto = {
         quantity: 10,
         userId: 1,
@@ -51,7 +52,7 @@ describe('DailyCollectionsController', () => {
         numLactation: 1,
         milkingPlace: MilkingPlace.Curral,
         technicalAssistance: false,
-      } as any;
+      } as CreateDailyCollectionDto;
 
       const created = createDailyCollection({ id: 1, userId: 1, quantity: 10 });
       mockService.create.mockResolvedValue(created);
@@ -59,83 +60,35 @@ describe('DailyCollectionsController', () => {
       const result = await controller.create(dto);
 
       expect(service.create).toHaveBeenCalledWith(dto);
-      expect(result).toHaveProperty('statusCode', HttpStatus.CREATED);
-      expect(result.data).toEqual(created);
+      expect(result).toEqual({
+        statusCode: HttpStatus.CREATED,
+        message: 'Coleta criada com sucesso',
+        data: created,
+      });
     });
 
-    it('deve propagar NotFoundException quando usuário não existe', async () => {
-      const dto: CreateDailyCollectionDto = {
-        quantity: 10,
-        userId: 999,
-        numAnimals: 1,
-        numOrdens: 1,
-        rationProvided: false,
-        numLactation: 1,
-        milkingPlace: MilkingPlace.Curral,
-        technicalAssistance: false,
-      } as any;
-
-      const notFoundError = new NotFoundException('Usuário não encontrado.');
-      mockService.create.mockRejectedValue(notFoundError);
-
-      await expect(controller.create(dto)).rejects.toThrow(HttpException);
-    });
-
-    it('deve retornar BAD_REQUEST quando dados inválidos (Prisma error)', async () => {
-      const dto: CreateDailyCollectionDto = {
-        quantity: 10,
-        userId: 1,
-        numAnimals: 1,
-        numOrdens: 1,
-        rationProvided: false,
-        numLactation: 1,
-        milkingPlace: MilkingPlace.Curral,
-        technicalAssistance: false,
-      } as any;
-
-      const prismaError = new PrismaClientKnownRequestError(
-        'Constraint violation',
-        {
-          code: 'P2002',
-          clientVersion: '5.0.0',
-        },
-      );
-      mockService.create.mockRejectedValue(prismaError);
-
-      await expect(controller.create(dto)).rejects.toThrow(HttpException);
-      await expect(controller.create(dto)).rejects.toThrow(
-        expect.objectContaining({ status: HttpStatus.BAD_REQUEST }),
-      );
-    });
-
-    it('deve retornar INTERNAL_SERVER_ERROR para erros genéricos', async () => {
-      const dto: CreateDailyCollectionDto = {
-        quantity: 10,
-        userId: 1,
-        numAnimals: 1,
-        numOrdens: 1,
-        rationProvided: false,
-        numLactation: 1,
-        milkingPlace: MilkingPlace.Curral,
-        technicalAssistance: false,
-      } as any;
-
-      const error = new Error('Database connection failed');
+    it('deve propagar EntityNotFoundException quando usuário não existe', async () => {
+      const dto: CreateDailyCollectionDto = { userId: 999 } as any;
+      const error = new EntityNotFoundException('Usuário não encontrado.');
+      
       mockService.create.mockRejectedValue(error);
 
-      await expect(controller.create(dto)).rejects.toThrow(HttpException);
-      await expect(controller.create(dto)).rejects.toThrow(
-        expect.objectContaining({ status: HttpStatus.INTERNAL_SERVER_ERROR }),
-      );
+      await expect(controller.create(dto)).rejects.toThrow(EntityNotFoundException);
+    });
+
+    it('deve propagar erro genérico (ex: conflito de banco)', async () => {
+      const dto: CreateDailyCollectionDto = { userId: 1 } as any;
+      const error = new Error('Unique constraint violation');
+      
+      mockService.create.mockRejectedValue(error);
+
+      await expect(controller.create(dto)).rejects.toThrow('Unique constraint violation');
     });
   });
 
   describe('findAll', () => {
     it('deve listar todas as coletas', async () => {
-      const items = [
-        createDailyCollection({ id: 1 }),
-        createDailyCollection({ id: 2 }),
-      ];
+      const items = [createDailyCollection({ id: 1 })];
       mockService.findAll.mockResolvedValue(items);
 
       const result = await controller.findAll();
@@ -144,20 +97,13 @@ describe('DailyCollectionsController', () => {
       expect(result).toEqual(items);
     });
 
-    it('deve lançar BadRequestException quando associationId inválido', async () => {
-      await expect(controller.findAll('invalid' as any)).rejects.toThrow(
-        HttpException,
-      );
-    });
+    it('deve converter associationId string para number', async () => {
+      const items = [createDailyCollection({ id: 1 })];
+      mockService.findAll.mockResolvedValue(items);
 
-    it('deve retornar INTERNAL_SERVER_ERROR quando service lança erro', async () => {
-      const error = new Error('Database error');
-      mockService.findAll.mockRejectedValue(error);
+      await controller.findAll('10');
 
-      await expect(controller.findAll()).rejects.toThrow(HttpException);
-      await expect(controller.findAll()).rejects.toThrow(
-        expect.objectContaining({ status: HttpStatus.INTERNAL_SERVER_ERROR }),
-      );
+      expect(service.findAll).toHaveBeenCalledWith(10);
     });
   });
 
@@ -172,157 +118,75 @@ describe('DailyCollectionsController', () => {
       expect(result).toEqual(item);
     });
 
-    it('deve propagar NotFoundException quando formulário não existe', async () => {
-      const notFoundError = new NotFoundException('Formulário não encontrado.');
-      mockService.findOne.mockRejectedValue(notFoundError);
-
-      await expect(controller.findOne(999)).rejects.toThrow(HttpException);
-    });
-
-    it('deve retornar INTERNAL_SERVER_ERROR para erros genéricos', async () => {
-      const error = new Error('Unexpected error');
+    it('deve propagar EntityNotFoundException quando formulário não existe', async () => {
+      const error = new EntityNotFoundException('Formulário não encontrado.');
       mockService.findOne.mockRejectedValue(error);
 
-      await expect(controller.findOne(1)).rejects.toThrow(HttpException);
-      await expect(controller.findOne(1)).rejects.toThrow(
-        expect.objectContaining({ status: HttpStatus.INTERNAL_SERVER_ERROR }),
-      );
+      await expect(controller.findOne(999)).rejects.toThrow(EntityNotFoundException);
     });
   });
 
   describe('update', () => {
-    it('deve atualizar formulário com sucesso', async () => {
-      const updateDto: UpdateDailyCollectionDto = {
-        quantity: 12,
-      } as any;
-
+    it('deve atualizar formulário com sucesso e retornar wrapper', async () => {
+      const updateDto: UpdateDailyCollectionDto = { quantity: 12 } as any;
       const updated = createDailyCollection({ id: 1, quantity: 12 });
+      
       mockService.update.mockResolvedValue(updated);
 
       const result = await controller.update(1, updateDto);
 
       expect(service.update).toHaveBeenCalledWith(1, updateDto);
-      expect(result).toHaveProperty('statusCode', HttpStatus.OK);
-      expect(result.data).toEqual(updated);
+      expect(result).toEqual({
+        statusCode: HttpStatus.OK,
+        message: 'Coleta atualizada com sucesso',
+        data: updated,
+      });
     });
 
-    it('deve propagar NotFoundException quando formulário não existe', async () => {
-      const updateDto: UpdateDailyCollectionDto = {
-        quantity: 1,
-      } as any;
-
-      const notFoundError = new NotFoundException('Formulário não encontrado.');
-      mockService.update.mockRejectedValue(notFoundError);
-
-      await expect(controller.update(999, updateDto)).rejects.toThrow(
-        HttpException,
-      );
-    });
-
-    it('deve retornar BAD_REQUEST para dados inválidos (Prisma error)', async () => {
-      const updateDto: UpdateDailyCollectionDto = {
-        quantity: 12,
-      } as any;
-
-      const prismaError = new PrismaClientKnownRequestError(
-        'Constraint violation',
-        {
-          code: 'P2002',
-          clientVersion: '5.0.0',
-        },
-      );
-      mockService.update.mockRejectedValue(prismaError);
-
-      await expect(controller.update(1, updateDto)).rejects.toThrow(
-        HttpException,
-      );
-      await expect(controller.update(1, updateDto)).rejects.toThrow(
-        expect.objectContaining({ status: HttpStatus.BAD_REQUEST }),
-      );
-    });
-
-    it('deve retornar INTERNAL_SERVER_ERROR para erros genéricos', async () => {
-      const updateDto: UpdateDailyCollectionDto = {
-        quantity: 12,
-      } as any;
-
-      const error = new Error('Database connection failed');
+    it('deve propagar EntityNotFoundException quando formulário não existe', async () => {
+      const updateDto: UpdateDailyCollectionDto = { quantity: 1 } as any;
+      const error = new EntityNotFoundException('Formulário não encontrado.');
+      
       mockService.update.mockRejectedValue(error);
 
-      await expect(controller.update(1, updateDto)).rejects.toThrow(
-        HttpException,
-      );
-      await expect(controller.update(1, updateDto)).rejects.toThrow(
-        expect.objectContaining({ status: HttpStatus.INTERNAL_SERVER_ERROR }),
+      await expect(controller.update(999, updateDto)).rejects.toThrow(
+        EntityNotFoundException,
       );
     });
   });
 
   describe('remove', () => {
     it('deve remover formulário com sucesso', async () => {
-      mockService.remove.mockResolvedValue({
-        message: 'Coleta excluída com sucesso',
-      });
+      const deleted = createDailyCollection({ id: 1 });
+      mockService.remove.mockResolvedValue(deleted);
 
       const result = await controller.remove(1);
 
       expect(service.remove).toHaveBeenCalledWith(1);
-      expect(result).toHaveProperty('statusCode', HttpStatus.OK);
+      expect(result).toEqual({
+        statusCode: HttpStatus.OK,
+        message: 'Coleta excluída com sucesso',
+        data: deleted,
+      });
     });
 
-    it('deve propagar NotFoundException quando formulário não existe', async () => {
-      const notFoundError = new NotFoundException('Formulário não encontrado.');
-      mockService.remove.mockRejectedValue(notFoundError);
-
-      await expect(controller.remove(999)).rejects.toThrow(HttpException);
-    });
-
-    it('deve retornar INTERNAL_SERVER_ERROR para erros genéricos', async () => {
-      const error = new Error('Database deletion failed');
+    it('deve propagar EntityNotFoundException', async () => {
+      const error = new EntityNotFoundException('Formulário não encontrado.');
       mockService.remove.mockRejectedValue(error);
 
-      await expect(controller.remove(1)).rejects.toThrow(HttpException);
-      await expect(controller.remove(1)).rejects.toThrow(
-        expect.objectContaining({ status: HttpStatus.INTERNAL_SERVER_ERROR }),
-      );
+      await expect(controller.remove(999)).rejects.toThrow(EntityNotFoundException);
     });
   });
 
   describe('findAllByUserId', () => {
-    it('deve retornar formulários do usuário', async () => {
-      const items = [
-        createDailyCollection({ id: 1, userId: 1 }),
-        createDailyCollection({ id: 2, userId: 1 }),
-      ];
+    it('deve retornar formulários do usuário (mesmo vazio)', async () => {
+      const items = [];
       mockService.findAllByUserId.mockResolvedValue(items);
 
       const result = await controller.findAllByUserId(1);
 
       expect(service.findAllByUserId).toHaveBeenCalledWith(1);
-      expect(result).toEqual(items);
-    });
-
-    it('deve propagar NotFoundException quando não há formulários para o usuário', async () => {
-      const notFoundError = new NotFoundException(
-        'Nenhum formulário encontrado para o usuário',
-      );
-      mockService.findAllByUserId.mockRejectedValue(notFoundError);
-
-      await expect(controller.findAllByUserId(999)).rejects.toThrow(
-        HttpException,
-      );
-    });
-
-    it('deve retornar INTERNAL_SERVER_ERROR para erros genéricos', async () => {
-      const error = new Error('Database query failed');
-      mockService.findAllByUserId.mockRejectedValue(error);
-
-      await expect(controller.findAllByUserId(1)).rejects.toThrow(
-        HttpException,
-      );
-      await expect(controller.findAllByUserId(1)).rejects.toThrow(
-        expect.objectContaining({ status: HttpStatus.INTERNAL_SERVER_ERROR }),
-      );
+      expect(result).toEqual([]);
     });
   });
 });

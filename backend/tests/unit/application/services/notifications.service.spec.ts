@@ -6,6 +6,7 @@ import { createMockPrismaService } from '../../../mocks/prisma.mock';
 import { createMockEventEmitter } from '../../../mocks/event-emitter.mock';
 import { createUser } from '../../../factories/user.factory';
 import { NotificationEvent } from '@/events/notification.events';
+import { NotificationType } from '@/domain/enums/enums';
 
 describe('NotificationsService', () => {
   let service: NotificationsService;
@@ -51,7 +52,7 @@ describe('NotificationsService', () => {
       });
 
       const event: NotificationEvent = {
-        type: 'individual',
+        type: NotificationType.INDIVIDUAL,
         associationId: 1,
         userIds: [1, 2],
         subject: 'Novo convite',
@@ -105,7 +106,7 @@ describe('NotificationsService', () => {
       });
 
       const event: NotificationEvent = {
-        type: 'collective',
+        type: NotificationType.COLLECTIVE,
         associationId: 5,
         subject: 'Comunicado Geral',
         message: 'Reunião amanhã às 10h',
@@ -124,7 +125,7 @@ describe('NotificationsService', () => {
 
     it('não deve notificar se não houver usuários', async () => {
       const event: NotificationEvent = {
-        type: 'individual',
+        type: NotificationType.INDIVIDUAL,
         associationId: 1,
         userIds: [999],
         subject: 'Teste',
@@ -140,7 +141,7 @@ describe('NotificationsService', () => {
 
     it('deve filtrar usuários por associationId em notificações individuais', async () => {
       const event: NotificationEvent = {
-        type: 'individual',
+        type: NotificationType.INDIVIDUAL,
         associationId: 3,
         userIds: [1, 2, 3],
         subject: 'Teste',
@@ -167,7 +168,7 @@ describe('NotificationsService', () => {
       });
 
       const event: NotificationEvent = {
-        type: 'individual',
+        type: NotificationType.INDIVIDUAL,
         associationId: 1,
         userIds: [10],
         subject: 'Assunto Importante',

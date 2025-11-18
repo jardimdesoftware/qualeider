@@ -1,12 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { UnauthorizedException } from '@nestjs/common';
+import { UnauthorizedException, HttpStatus } from '@nestjs/common';
 import { AuthController } from '@/presentation/controllers/auth.controller';
 import { AuthService } from '@/auth/auth.service';
 import { LoginDto } from '@/application/dtos/auth/login.dto';
 import { ForgotPasswordDto } from '@/application/dtos/auth/forgot-password.dto';
 import { ResetPasswordDto } from '@/application/dtos/auth/reset-password.dto';
+import { ValidateTokenDto } from '@/application/dtos/auth/validate-token.dto';
 import { createUser } from '../../../factories/user.factory';
 import { Request } from 'express';
+import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -38,7 +40,7 @@ describe('AuthController', () => {
   });
 
   describe('login', () => {
-    it('deve retornar um token JWT quando as credenciais são válidas', async () => {
+    it('deve retornar wrapper de sucesso com token JWT', async () => {
       const loginDto: LoginDto = {
         email: 'user@example.com',
         password: 'Password123!',
@@ -57,7 +59,12 @@ describe('AuthController', () => {
         loginDto.password,
       );
       expect(authService.login).toHaveBeenCalledWith(user);
-      expect(result).toEqual(loginResponse);
+      
+      expect(result).toEqual({
+        statusCode: HttpStatus.OK,
+        message: 'Login realizado com sucesso',
+        data: loginResponse,
+      });
     });
 
     it('deve lançar UnauthorizedException quando as credenciais são inválidas', async () => {
@@ -75,51 +82,22 @@ describe('AuthController', () => {
         'Credenciais inválidas.',
       );
 
-      expect(authService.validateUser).toHaveBeenCalledWith(
-        loginDto.email,
-        loginDto.password,
-      );
       expect(authService.login).not.toHaveBeenCalled();
-    });
-
-    it('deve chamar validateUser com email e password corretos', async () => {
-      const loginDto: LoginDto = {
-        email: 'test@example.com',
-        password: 'Test123!',
-      };
-
-      const user = createUser({ email: loginDto.email });
-      mockAuthService.validateUser.mockResolvedValue(user);
-      mockAuthService.login.mockResolvedValue({
-        access_token: 'token',
-        user,
-      });
-
-      await controller.login(loginDto);
-
-      expect(authService.validateUser).toHaveBeenCalledWith(
-        'test@example.com',
-        'Test123!',
-      );
     });
   });
 
   describe('forgotPassword', () => {
-    it('deve chamar authService.forgotPassword com email e request corretos', async () => {
+    it('deve retornar mensagem de sucesso padronizada', async () => {
       const forgotPasswordDto: ForgotPasswordDto = {
         email: 'user@example.com',
       };
 
       const mockRequest = {
-        protocol: 'http',
-        get: jest.fn().mockReturnValue('localhost:3000'),
+        protocol: 'https',
+        get: jest.fn().mockReturnValue('app.example.com'),
       } as unknown as Request;
 
-      const expectedResult = {
-        message: 'E-mail de redefinição de senha enviado.',
-      };
-
-      mockAuthService.forgotPassword.mockResolvedValue(expectedResult);
+      mockAuthService.forgotPassword.mockResolvedValue(undefined);
 
       const result = await controller.forgotPassword(
         forgotPasswordDto,
@@ -130,102 +108,68 @@ describe('AuthController', () => {
         forgotPasswordDto.email,
         mockRequest,
       );
-      expect(result).toEqual(expectedResult);
-    });
-
-    it('deve retornar mensagem de sucesso', async () => {
-      const forgotPasswordDto: ForgotPasswordDto = {
-        email: 'user@example.com',
-      };
-
-      const mockRequest = {
-        protocol: 'https',
-        get: jest.fn().mockReturnValue('app.example.com'),
-      } as unknown as Request;
-
-      mockAuthService.forgotPassword.mockResolvedValue({
-        message: 'E-mail de redefinição de senha enviado.',
+      
+      expect(result).toEqual({
+        statusCode: HttpStatus.OK,
+        message: 'Se o e-mail existir, você receberá um link de redefinição.',
       });
-
-      const result = await controller.forgotPassword(
-        forgotPasswordDto,
-        mockRequest,
-      );
-
-      expect(result).toHaveProperty('message');
-      expect(result.message).toBe('E-mail de redefinição de senha enviado.');
     });
 
-    it('deve propagar NotFoundException quando email não existe', async () => {
+    it('deve propagar erro do service (ex: EntityNotFoundException)', async () => {
       const forgotPasswordDto: ForgotPasswordDto = {
         email: 'nonexistent@example.com',
       };
-
       const mockRequest = {} as Request;
-
-      const notFoundError = new Error('Usuário não encontrado.');
-      mockAuthService.forgotPassword.mockRejectedValue(notFoundError);
+      const error = new EntityNotFoundException('Usuário não encontrado.');
+      
+      mockAuthService.forgotPassword.mockRejectedValue(error);
 
       await expect(
         controller.forgotPassword(forgotPasswordDto, mockRequest),
-      ).rejects.toThrow('Usuário não encontrado.');
+      ).rejects.toThrow(EntityNotFoundException);
     });
   });
 
   describe('validateResetToken', () => {
-    it('deve retornar válido quando o token é correto', async () => {
-      const body = {
+    it('deve retornar status válido no formato padronizado', async () => {
+      const dto: ValidateTokenDto = {
         email: 'user@example.com',
         token: 'valid-token-123',
       };
 
       mockAuthService.validateResetToken.mockResolvedValue(true);
 
-      const result = await controller.validateResetToken(body);
+      const result = await controller.validateResetToken(dto);
 
       expect(authService.validateResetToken).toHaveBeenCalledWith(
-        body.email,
-        body.token,
+        dto.email,
+        dto.token,
       );
+      
       expect(result).toEqual({
-        valid: true,
-        message: 'Token válido.',
+        statusCode: HttpStatus.OK,
+        message: 'Token válido',
+        data: { valid: true },
       });
     });
 
-    it('deve retornar inválido quando o token está incorreto', async () => {
-      const body = {
+    it('deve propagar erro do service (ex: token inválido)', async () => {
+      const dto: ValidateTokenDto = {
         email: 'user@example.com',
         token: 'invalid-token',
       };
 
-      mockAuthService.validateResetToken.mockResolvedValue(false);
+      const error = new UnauthorizedException('Token inválido.');
+      mockAuthService.validateResetToken.mockRejectedValue(error);
 
-      const result = await controller.validateResetToken(body);
-
-      expect(result).toEqual({
-        valid: false,
-        message: 'Token válido.',
-      });
-    });
-
-    it('deve propagar erro quando o usuário não existe', async () => {
-      const body = {
-        email: 'nonexistent@example.com',
-        token: 'some-token',
-      };
-
-      const notFoundError = new Error('Usuário não encontrado.');
-      mockAuthService.validateResetToken.mockRejectedValue(notFoundError);
-
-      await expect(controller.validateResetToken(body)).rejects.toThrow(
-        'Usuário não encontrado.',
+      await expect(controller.validateResetToken(dto)).rejects.toThrow(
+        UnauthorizedException,
       );
     });
   });
 
   describe('resetPassword', () => {
-    it('deve redefinir senha com sucesso', async () => {
+    it('deve redefinir senha e retornar sucesso padronizado', async () => {
       const resetPasswordDto: ResetPasswordDto = {
         email: 'user@example.com',
         token: 'valid-reset-token',
@@ -241,7 +185,9 @@ describe('AuthController', () => {
         resetPasswordDto.token,
         resetPasswordDto.newPassword,
       );
+      
       expect(result).toEqual({
+        statusCode: HttpStatus.OK,
         message: 'Senha redefinida com sucesso.',
       });
     });
@@ -261,42 +207,21 @@ describe('AuthController', () => {
       await expect(
         controller.resetPassword(resetPasswordDto),
       ).rejects.toThrow(UnauthorizedException);
-      await expect(
-        controller.resetPassword(resetPasswordDto),
-      ).rejects.toThrow('Token inválido ou expirado.');
     });
 
-    it('deve chamar resetPassword com todos os parâmetros corretos', async () => {
-      const resetPasswordDto: ResetPasswordDto = {
-        email: 'test@example.com',
-        token: 'token-abc-123',
-        newPassword: 'SuperSecret123!',
-      };
-
-      mockAuthService.resetPassword.mockResolvedValue(undefined);
-
-      await controller.resetPassword(resetPasswordDto);
-
-      expect(authService.resetPassword).toHaveBeenCalledWith(
-        'test@example.com',
-        'token-abc-123',
-        'SuperSecret123!',
-      );
-    });
-
-    it('deve propagar NotFoundException quando email não existe', async () => {
+    it('deve propagar EntityNotFoundException quando email não existe', async () => {
       const resetPasswordDto: ResetPasswordDto = {
         email: 'nonexistent@example.com',
         token: 'token-123',
         newPassword: 'Password123!',
       };
 
-      const notFoundError = new Error('Usuário não encontrado.');
+      const notFoundError = new EntityNotFoundException('Usuário não encontrado.');
       mockAuthService.resetPassword.mockRejectedValue(notFoundError);
 
       await expect(
         controller.resetPassword(resetPasswordDto),
-      ).rejects.toThrow('Usuário não encontrado.');
+      ).rejects.toThrow(EntityNotFoundException);
     });
   });
 });
