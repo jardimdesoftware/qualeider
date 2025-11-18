@@ -71,7 +71,7 @@ O **QuaLeiDer** é uma plataforma web para gestão de produtores de leite e suas
 
 | Prioridade | Objetivo de Qualidade | Cenário Mensurável                                                                                                                               |
 | ---------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1          | **Segurança**         | Tokens JWT expiram em 24h; senhas com hash bcrypt (12 rounds); reset de senha expira em 15 min; proteção contra SQL injection via Prisma ORM     |
+| 1          | **Segurança**         | Tokens JWT expiram em 24h; senhas com hash bcrypt (12 rounds); reset de senha expira em 15 min; proteção contra SQL injection via Prisma ORM; Headers HTTP seguros via Helmet     |
 | 2          | **Manutenibilidade**  | Clean Architecture com 4 camadas (Domain, Application, Infrastructure, Presentation);                                                            |
 | 3          | **Escalabilidade**    | Sistema suporta 50 associações e 2.000 produtores simultâneos; API responde < 300ms com 500 req/min; preparado para crescimento horizontal       |
 | 4          | **Confiabilidade**    | Jobs CRON registram falhas em log; emails com 3 tentativas de reenvio (5, 15, 30 min); 99% de uptime para operações críticas                     |
@@ -87,6 +87,7 @@ O **QuaLeiDer** é uma plataforma web para gestão de produtores de leite e suas
 - Validação rigorosa de DTOs com decorators
 - Proteção contra SQL injection via Prisma ORM
 - Tokens de reset de senha com expiração de 15 minutos
+- Proteção adicional contra ataques comuns de HTTP configurando headers via Helmet.
 
 **Manutenibilidade:**
 
@@ -188,8 +189,6 @@ O **QuaLeiDer** é uma plataforma web para gestão de produtores de leite e suas
 
 Este capítulo documenta as **limitações técnicas, organizacionais e convencionais** que restringem as escolhas arquiteturais do QuaLeiDer. Compreender essas restrições é fundamental para entender por que certas decisões foram tomadas e quais alternativas foram descartadas.
 
----
-
 ## Restrições Técnicas
 
 Estas são as limitações impostas pela escolha de tecnologias, frameworks, plataformas e ferramentas utilizadas no projeto.
@@ -206,6 +205,7 @@ Estas são as limitações impostas pela escolha de tecnologias, frameworks, pla
 | **TypeScript >= 5.1.x**                | Superset de JavaScript com tipagem estática               | Type-safety obrigatório para reduzir bugs em tempo de compilação                               | Tempo de build aumenta; configuração de tipos pode ser complexa para bibliotecas sem @types                                                                                                                     |
 | **REST API (Padrão HTTP)**             | Protocolo de comunicação entre frontend e backend         | Simplicidade, cacheable, stateless, amplo suporte em bibliotecas                               | Não permite GraphQL (flexibilidade de queries); overfetching/underfetching podem ocorrer                                                                                                                        |
 | **Versionamento de API: /api/v1/**     | Prefixo obrigatório em todas as rotas                     | Permite evolução da API sem quebrar clientes existentes                                        | Aumenta tamanho de URLs; força planejamento de breaking changes                                                                                                                                                 |
+| **Helmet Middleware**                  | Middleware obrigatório para headers HTTP seguros         | Requisito de segurança para evitar vulnerabilidades conhecidas                                | Headers configurados automaticamente em todas respostas HTTP                                                                                                                                                    |
 
 ---
 
@@ -2433,14 +2433,12 @@ async login(@Body() dto: LoginDto) {
 
 ### Headers de Segurança
 
-**⚠️ TODO:** Implementar headers de segurança com Helmet
+**Implementado:** Helmet e remoção do header X-Powered-By
 
-**Atualmente:** O projeto não usa Helmet para headers de segurança.
-
-**Recomendação futura:**
+O projeto agora usa Helmet para aplicar headers de segurança e o servidor foi configurado para não expor a tecnologia usada (removido `X-Powered-By`).
 
 ```typescript
-// backend/src/presentation/main.ts (NÃO IMPLEMENTADO)
+// backend/src/presentation/main.ts
 import helmet from "helmet";
 
 async function bootstrap() {
@@ -2451,26 +2449,23 @@ async function bootstrap() {
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'unsafe-inline'"],
+          // Swagger precisa de 'unsafe-inline' e 'unsafe-eval' para funcionar corretamente
+          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", "data:", "https:"],
         },
       },
-      hsts: {
-        maxAge: 31536000, // 1 ano
-        includeSubDomains: true,
-      },
-    })
+    }),
   );
 }
 ```
 
-**Headers recomendados:**
+Headers aplicados:
 
-- `Strict-Transport-Security`: Força HTTPS
-- `X-Content-Type-Options: nosniff`: Previne MIME sniffing
-- `X-Frame-Options: DENY`: Previne clickjacking
-- `Content-Security-Policy`: Restringe recursos carregados
-
----
+- `Strict-Transport-Security`: Força HTTPS  
+- `X-Content-Type-Options: nosniff`: Previne MIME sniffing  
+- `X-Frame-Options: DENY`: Previne clickjacking  
+- `Content-Security-Policy`: Restringe recursos carregados  
 
 ### Conformidade LGPD
 
@@ -3915,3 +3910,4 @@ Não há testes automatizados específicos para validar vulnerabilidades de segu
 | **@nestjs/schedule**           | Pacote do NestJS para agendamento de tarefas (CRON jobs), utilizado para executar ações periódicas como limpeza de dados expirados      |
 | **@willsoto/nestjs-prometheus**| Pacote para integração do NestJS com o Prometheus, utilizado para expor métricas da aplicação                                          |
 | **@nestjs/throttler**          | Pacote do NestJS para implementação de rate limiting, utilizado para proteger rotas contra abusos e ataques de força bruta               |
+| **Helmet:**                    | Middleware para configurar headers de segurança HTTP, protege contra vulnerabilidades comuns.                                          |

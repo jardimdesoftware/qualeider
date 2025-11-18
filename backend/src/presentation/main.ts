@@ -5,6 +5,7 @@ import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
 import { PrismaExceptionFilter } from '@/common/filters/prisma-exception.filter';
+import helmet from 'helmet';
 
 /**
  * Configura as opções de CORS baseadas nas variáveis de ambiente.
@@ -90,6 +91,21 @@ async function logAppStatus(
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
+
+  // Configurar Helmet para segurança HTTP
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          // Swagger precisa de 'unsafe-inline' e 'unsafe-eval' para funcionar corretamente
+          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:', 'https:'],
+        },
+      },
+    }),
+  );
 
   // 1. Configurar CORS
   const corsOptions = configureCors(configService);
