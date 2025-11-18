@@ -1,11 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  ConflictException,
-  InternalServerErrorException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -13,8 +6,10 @@ import { InviteCreatedEvent } from '@/events/invite-created.event';
 import { InviteAcceptedEvent } from '@/events/invite-accepted.event';
 import { InviteDeclinedEvent } from '@/events/invite-declined.event';
 import { CreateInviteDto } from '@/application/dtos/invites/create-invite.dto';
-import { InviteStatus } from '@/application/enums/invite-status.enum';
-
+import { BusinessException } from '@/common/exceptions/business.exception';
+import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
+import { INVITE_EXPIRATION_DAYS } from '@/common/constants/business-rules.constants';
+import { InviteStatus, InviteAction } from '@/domain/enums/enums';
 @Injectable()
 export class InvitesService {
   private readonly logger = new Logger(InvitesService.name);
@@ -33,7 +28,7 @@ export class InvitesService {
     });
 
     if (!association) {
-      throw new NotFoundException('Associação não encontrada');
+      throw new EntityNotFoundException('Associação não encontrada');
     }
 
     const user = await this.prisma.user.findUnique({
@@ -42,11 +37,11 @@ export class InvitesService {
     });
 
     if (!user) {
-      throw new NotFoundException('Usuário não encontrado');
+      throw new EntityNotFoundException('Usuário não encontrado');
     }
 
     if (user.associationId === associationId) {
-      throw new ConflictException(
+      throw new BusinessException(
         'Usuário já está vinculado a esta associação',
       );
     }
@@ -60,7 +55,7 @@ export class InvitesService {
     });
 
     if (existingInvite) {
-      throw new ConflictException(
+      throw new BusinessException(
         'Já existe um convite pendente para este usuário',
       );
     }
@@ -70,174 +65,141 @@ export class InvitesService {
 
   /**
    * Associação envia convite para um usuário
-   * @param associationId ID da associação que está enviando o convite
-   * @param dto Dados do convite (userId e mensagem opcional)
-   * @returns Dados do convite criado
    */
   async createInvite(associationId: number, dto: CreateInviteDto) {
-    try {
-      const { user, association } = await this.validateInvitePrerequisites(
+    const { user, association } = await this.validateInvitePrerequisites(
+      associationId,
+      dto.userId,
+    );
+
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + INVITE_EXPIRATION_DAYS);
+
+    const invite = await this.prisma.invite.create({
+      data: {
         associationId,
-        dto.userId,
-      );
+        userId: dto.userId,
+        message: dto.message,
+        expiresAt,
+        status: InviteStatus.PENDING,
+      },
+      include: {
+        user: true,
+        association: true,
+      },
+    });
 
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7);
+    const event = new InviteCreatedEvent(
+      invite.id,
+      user.id,
+      user.name,
+      user.email,
+      association.id,
+      association.name,
+      invite.message,
+      invite.token,
+      invite.expiresAt,
+    );
 
-      const invite = await this.prisma.invite.create({
-        data: {
-          associationId,
-          userId: dto.userId,
-          message: dto.message,
-          expiresAt,
-          status: InviteStatus.PENDING,
-        },
-        include: {
-          user: true,
-          association: true,
-        },
-      });
+    this.eventEmitter.emit('invite.created', event);
 
-      const event = new InviteCreatedEvent(
-        invite.id,
-        user.id,
-        user.name,
-        user.email,
-        association.id,
-        association.name,
-        invite.message,
-        invite.token,
-        invite.expiresAt,
-      );
-
-      this.eventEmitter.emit('invite.created', event);
-
-      return {
-        id: invite.id,
-        token: invite.token,
-        message: 'Convite enviado com sucesso',
-        expiresAt: invite.expiresAt,
-      };
-    } catch (error) {
-      if (
-        error instanceof NotFoundException ||
-        error instanceof ConflictException
-      ) {
-        throw error;
-      }
-      this.logger.error('Erro desconhecido ao criar convite:', error);
-      throw new InternalServerErrorException(
-        'Erro interno ao processar o convite.',
-      );
-    }
+    return {
+      id: invite.id,
+      token: invite.token,
+      message: 'Convite enviado com sucesso',
+      expiresAt: invite.expiresAt,
+    };
   }
 
   /**
    * Usuário aceita ou recusa convite via token
-   * @param token Token único do convite
-   * @param response 'accept' ou 'decline'
-   * @returns Resultado da resposta
    */
-  async respondToInvite(token: string, response: 'accept' | 'decline') {
-    try {
-      const invite = await this.prisma.invite.findUnique({
-        where: { token },
-        include: {
-          user: true,
-          association: true,
+  async respondToInvite(token: string, response: InviteAction) {
+    const invite = await this.prisma.invite.findUnique({
+      where: { token },
+      include: {
+        user: true,
+        association: true,
+      },
+    });
+
+    if (!invite) {
+      throw new EntityNotFoundException('Convite não encontrado');
+    }
+
+    if (invite.status !== InviteStatus.PENDING) {
+      throw new BusinessException(
+        `Convite já foi ${invite.status.toLowerCase()}`,
+      );
+    }
+
+    if (new Date() > invite.expiresAt) {
+      await this.prisma.invite.update({
+        where: { id: invite.id },
+        data: { status: InviteStatus.EXPIRED },
+      });
+      throw new BusinessException('Convite expirado');
+    }
+
+    if (response === InviteAction.ACCEPT) {
+      await this.prisma.$transaction([
+        this.prisma.invite.update({
+          where: { id: invite.id },
+          data: {
+            status: InviteStatus.ACCEPTED,
+            respondedAt: new Date(),
+          },
+        }),
+        this.prisma.user.update({
+          where: { id: invite.userId },
+          data: { associationId: invite.associationId },
+        }),
+      ]);
+
+      const event = new InviteAcceptedEvent(
+        invite.id,
+        invite.user.id,
+        invite.user.name,
+        invite.association.id,
+        invite.association.name,
+      );
+
+      this.eventEmitter.emit('invite.accepted', event);
+
+      return {
+        message: `Você agora faz parte da ${invite.association.name}!`,
+        associationId: invite.associationId,
+        associationName: invite.association.name,
+      };
+    } else {
+      // Implicitamente é DECLINE, pois o Controller/DTO deve validar o Enum
+      await this.prisma.invite.update({
+        where: { id: invite.id },
+        data: {
+          status: InviteStatus.DECLINED,
+          respondedAt: new Date(),
         },
       });
 
-      if (!invite) {
-        throw new NotFoundException('Convite não encontrado');
-      }
-
-      if (invite.status !== InviteStatus.PENDING) {
-        throw new BadRequestException(
-          `Convite já foi ${invite.status.toLowerCase()}`,
-        );
-      }
-
-      if (new Date() > invite.expiresAt) {
-        await this.prisma.invite.update({
-          where: { id: invite.id },
-          data: { status: InviteStatus.EXPIRED },
-        });
-        throw new BadRequestException('Convite expirado');
-      }
-
-      if (response === 'accept') {
-        await this.prisma.$transaction([
-          this.prisma.invite.update({
-            where: { id: invite.id },
-            data: {
-              status: InviteStatus.ACCEPTED,
-              respondedAt: new Date(),
-            },
-          }),
-          this.prisma.user.update({
-            where: { id: invite.userId },
-            data: { associationId: invite.associationId },
-          }),
-        ]);
-
-        const event = new InviteAcceptedEvent(
-          invite.id,
-          invite.user.id,
-          invite.user.name,
-          invite.association.id,
-          invite.association.name,
-        );
-
-        this.eventEmitter.emit('invite.accepted', event);
-
-        return {
-          message: `Você agora faz parte da ${invite.association.name}!`,
-          associationId: invite.associationId,
-          associationName: invite.association.name,
-        };
-      } else {
-        await this.prisma.invite.update({
-          where: { id: invite.id },
-          data: {
-            status: InviteStatus.DECLINED,
-            respondedAt: new Date(),
-          },
-        });
-
-        const event = new InviteDeclinedEvent(
-          invite.id,
-          invite.user.id,
-          invite.user.name,
-          invite.association.id,
-          invite.association.name,
-        );
-
-        this.eventEmitter.emit('invite.declined', event);
-
-        return {
-          message: 'Convite recusado',
-        };
-      }
-    } catch (error) {
-      if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException
-      ) {
-        throw error;
-      }
-      this.logger.error('Erro na transação de resposta do convite:', error);
-      throw new InternalServerErrorException(
-        'Erro interno ao responder ao convite.',
+      const event = new InviteDeclinedEvent(
+        invite.id,
+        invite.user.id,
+        invite.user.name,
+        invite.association.id,
+        invite.association.name,
       );
+
+      this.eventEmitter.emit('invite.declined', event);
+
+      return {
+        message: 'Convite recusado',
+      };
     }
   }
 
-  /**
-   * Listar convites pendentes de um usuário
-   * @param userId ID do usuário
-   * @returns Lista de convites pendentes não expirados
-   */
+  // ... Resto dos métodos (getUserPendingInvites, getAssociationInvites, etc) permanecem iguais
+  // pois não tinham números mágicos críticos.
+
   async getUserPendingInvites(userId: number) {
     return this.prisma.invite.findMany({
       where: {
@@ -260,12 +222,6 @@ export class InvitesService {
     });
   }
 
-  /**
-   * Listar convites enviados por uma associação
-   * @param associationId ID da associação
-   * @param status Filtro opcional por status
-   * @returns Lista de convites
-   */
   async getAssociationInvites(associationId: number, status?: InviteStatus) {
     const where: Prisma.InviteWhereInput = {
       associationId,
@@ -289,12 +245,6 @@ export class InvitesService {
     });
   }
 
-  /**
-   * Cancelar convite pendente (apenas associação pode cancelar)
-   * @param associationId ID da associação
-   * @param inviteId ID do convite
-   * @returns Confirmação de cancelamento
-   */
   async cancelInvite(associationId: number, inviteId: number) {
     const invite = await this.prisma.invite.findFirst({
       where: {
@@ -305,7 +255,7 @@ export class InvitesService {
     });
 
     if (!invite) {
-      throw new NotFoundException(
+      throw new EntityNotFoundException(
         'Convite não encontrado ou já foi respondido',
       );
     }
@@ -321,11 +271,6 @@ export class InvitesService {
     return { message: 'Convite cancelado com sucesso' };
   }
 
-  /**
-   * Buscar convite pelo token (para visualização antes de responder)
-   * @param token Token único do convite
-   * @returns Dados do convite
-   */
   async getInviteByToken(token: string) {
     const invite = await this.prisma.invite.findUnique({
       where: { token },
@@ -350,10 +295,9 @@ export class InvitesService {
     });
 
     if (!invite) {
-      throw new NotFoundException('Convite não encontrado');
+      throw new EntityNotFoundException('Convite não encontrado');
     }
 
-    // Verificar se expirado
     const isExpired = new Date() > invite.expiresAt;
 
     return {

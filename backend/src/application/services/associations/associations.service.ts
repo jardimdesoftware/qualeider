@@ -1,8 +1,9 @@
-import { Injectable, ConflictException, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { CreateAssociationDto } from '@/application/dtos/associations/create-association.dto';
 import * as bcrypt from 'bcryptjs';
 import { BCRYPT_ROUNDS_USER_CREATION } from '@/common/constants/security.constants';
+import { BusinessException } from '@/common/exceptions/business.exception';
 
 @Injectable()
 export class AssociationsService {
@@ -44,12 +45,12 @@ export class AssociationsService {
 
     const emailExists = await this.checkEmailExists(email);
     if (emailExists) {
-      throw new ConflictException('Email já cadastrado.');
+      throw new BusinessException('Email já cadastrado.');
     }
 
     const cnpjExists = await this.checkCnpjExists(cnpj);
     if (cnpjExists) {
-      throw new ConflictException('CNPJ já cadastrado.');
+      throw new BusinessException('CNPJ já cadastrado.');
     }
 
     const hashedPassword = await bcrypt.hash(

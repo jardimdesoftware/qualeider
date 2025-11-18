@@ -1,5 +1,6 @@
 import { IsEnum } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { InviteAction } from '@/domain/enums/enums';
 
 /**
  * DTO para responder a um convite
@@ -8,11 +9,11 @@ import { ApiProperty } from '@nestjs/swagger';
 export class RespondInviteDto {
   @ApiProperty({
     description: 'Resposta ao convite: aceitar ou recusar',
-    enum: ['accept', 'decline'],
-    example: 'accept',
+    enum: InviteAction,
+    example: InviteAction.ACCEPT,
   })
-  @IsEnum(['accept', 'decline'], {
-    message: 'Resposta deve ser "accept" ou "decline"',
+  @IsEnum(InviteAction, {
+    message: 'Resposta deve ser "Accept" ou "Decline"',
   })
-  response: 'accept' | 'decline';
+  response: InviteAction;
 }

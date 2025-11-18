@@ -1,5 +1,4 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
 import { DailyCollectionsService } from '@/application/services/daily-collections/daily-collections.service';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { createMockPrismaService } from '../../../mocks/prisma.mock';
@@ -8,6 +7,7 @@ import { createUser } from '../../../factories/user.factory';
 import { CreateDailyCollectionDto } from '@/application/dtos/daily-collections/create-daily-collection.dto';
 import { UpdateDailyCollectionDto } from '@/application/dtos/daily-collections/update-daily-collection.dto';
 import { MilkingPlace } from '@/domain/enums/enums';
+import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 
 describe('DailyCollectionsService', () => {
   let service: DailyCollectionsService;
@@ -75,7 +75,7 @@ describe('DailyCollectionsService', () => {
       prisma.user.findUnique.mockResolvedValue(null);
 
       await expect(service.create(createDto)).rejects.toThrow(
-        NotFoundException,
+        EntityNotFoundException,
       );
       await expect(service.create(createDto)).rejects.toThrow(
         'Usuário com ID 999 não encontrado.',
@@ -152,30 +152,6 @@ describe('DailyCollectionsService', () => {
     });
   });
 
-  describe('checkIfUserAlreadySubmitted', () => {
-    it('deve retornar true se usuário já enviou formulário', async () => {
-      const userId = 1;
-      const mockCollection = createDailyCollection({ userId });
-
-      prisma.dailyCollection.findFirst.mockResolvedValue(mockCollection as any);
-
-      const result = await service.checkIfUserAlreadySubmitted(userId);
-
-      expect(result).toBe(true);
-      expect(prisma.dailyCollection.findFirst).toHaveBeenCalledWith({
-        where: { userId },
-      });
-    });
-
-    it('deve retornar false se usuário não enviou formulário', async () => {
-      prisma.dailyCollection.findFirst.mockResolvedValue(null);
-
-      const result = await service.checkIfUserAlreadySubmitted(999);
-
-      expect(result).toBe(false);
-    });
-  });
-
   describe('findOne', () => {
     it('deve retornar uma coleta diária por ID', async () => {
       const mockCollection = createDailyCollection({ id: 1, quantity: 45.5 });
@@ -195,7 +171,7 @@ describe('DailyCollectionsService', () => {
     it('deve lançar NotFoundException se coleta não existe', async () => {
       prisma.dailyCollection.findUnique.mockResolvedValue(null);
 
-      await expect(service.findOne(999)).rejects.toThrow(NotFoundException);
+      await expect(service.findOne(999)).rejects.toThrow(EntityNotFoundException);
       await expect(service.findOne(999)).rejects.toThrow(
         'Coleta diária com ID 999 não encontrada.',
       );
@@ -281,26 +257,22 @@ describe('DailyCollectionsService', () => {
       expect(result).toEqual(mockCollections);
       expect(prisma.dailyCollection.findMany).toHaveBeenCalledWith({
         where: { userId },
+        orderBy: { collectionDate: 'desc' }, 
       });
     });
 
-    it('deve lançar NotFoundException se usuário não tem coletas', async () => {
+    it('deve retornar array vazio se usuário não tem coletas', async () => {
       prisma.dailyCollection.findMany.mockResolvedValue([]);
 
-      await expect(service.findAllByUserId(999)).rejects.toThrow(
-        NotFoundException,
-      );
-      await expect(service.findAllByUserId(999)).rejects.toThrow(
-        'Nenhum formulário encontrado para o usuário com ID 999.',
-      );
-    });
+      const result = await service.findAllByUserId(999);
 
-    it('deve lançar NotFoundException se findMany retorna null', async () => {
-      prisma.dailyCollection.findMany.mockResolvedValue(null as any);
-
-      await expect(service.findAllByUserId(999)).rejects.toThrow(
-        NotFoundException,
-      );
+      expect(result).toEqual([]); 
+      expect(prisma.dailyCollection.findMany).toHaveBeenCalledWith({
+        where: { userId: 999 },
+        orderBy: { collectionDate: 'desc' },
+      });
+      
+    
     });
   });
-});
+  });

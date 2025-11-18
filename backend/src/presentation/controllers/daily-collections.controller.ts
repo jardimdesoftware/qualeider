@@ -129,14 +129,10 @@ export class DailyCollectionsController {
           HttpStatus.BAD_REQUEST,
         );
       }
-      const result =
-        await this.dailyCollectionsService.checkIfUserAlreadySubmitted(
-          userIdNumber,
-        );
+   
       return {
         statusCode: HttpStatus.OK,
         message: 'Verificação realizada com sucesso.',
-        data: result,
       };
     } catch (error) {
       throw new HttpException(

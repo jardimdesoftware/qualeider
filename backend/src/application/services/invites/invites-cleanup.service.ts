@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
-import { InviteStatus } from '@/application/enums/invite-status.enum';
+import { InviteStatus } from '@/domain/enums/enums';
 
 @Injectable()
 export class InvitesCleanupService {

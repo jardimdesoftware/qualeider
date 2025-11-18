@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { CreateDailyCollectionDto } from '@/application/dtos/daily-collections/create-daily-collection.dto';
 import { UpdateDailyCollectionDto } from '@/application/dtos/daily-collections/update-daily-collection.dto';
 import { Prisma } from '@prisma/client';
+import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 
 @Injectable()
 export class DailyCollectionsService {
@@ -10,21 +11,21 @@ export class DailyCollectionsService {
 
   constructor(private prisma: PrismaService) {}
 
-  private async getActiveUser(userId: number) {
+  private async validateUser(userId: number) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
     if (!user) {
-      throw new NotFoundException(`Usuário com ID ${userId} não encontrado.`);
+      throw new EntityNotFoundException(`Usuário com ID ${userId} não encontrado.`);
     }
     return user;
   }
 
   async create(createDailyCollectionDto: CreateDailyCollectionDto) {
-    await this.getActiveUser(createDailyCollectionDto.userId);
+    await this.validateUser(createDailyCollectionDto.userId);
 
     const dailyCollection = await this.prisma.dailyCollection.create({
-      data: { ...createDailyCollectionDto },
+      data: createDailyCollectionDto,
     });
 
     this.logger.log(
@@ -43,7 +44,7 @@ export class DailyCollectionsService {
       };
     }
 
-    const dailyCollections = await this.prisma.dailyCollection.findMany({
+    return this.prisma.dailyCollection.findMany({
       where,
       include: {
         user: {
@@ -58,14 +59,6 @@ export class DailyCollectionsService {
         collectionDate: 'desc',
       },
     });
-    return dailyCollections;
-  }
-
-  async checkIfUserAlreadySubmitted(userId: number) {
-    const submission = await this.prisma.dailyCollection.findFirst({
-      where: { userId },
-    });
-    return !!submission;
   }
 
   async findOne(id: number) {
@@ -74,37 +67,30 @@ export class DailyCollectionsService {
     });
 
     if (!dailyCollection) {
-      throw new NotFoundException(`Coleta diária com ID ${id} não encontrada.`);
+      throw new EntityNotFoundException(`Coleta diária com ID ${id} não encontrada.`);
     }
     return dailyCollection;
   }
 
   async update(id: number, updateDailyCollectionDto: UpdateDailyCollectionDto) {
-    const updated = await this.prisma.dailyCollection.update({
+    return this.prisma.dailyCollection.update({
       where: { id },
       data: updateDailyCollectionDto,
     });
-
-    return updated;
   }
 
   async remove(id: number) {
-    const deleted = await this.prisma.dailyCollection.delete({
+    return this.prisma.dailyCollection.delete({
       where: { id },
     });
-    return deleted;
   }
 
   async findAllByUserId(userId: number) {
     const dailyCollections = await this.prisma.dailyCollection.findMany({
       where: { userId },
+      orderBy: { collectionDate: 'desc' },
     });
 
-    if (!dailyCollections || dailyCollections.length === 0) {
-      throw new NotFoundException(
-        `Nenhum formulário encontrado para o usuário com ID ${userId}.`,
-      );
-    }
     return dailyCollections;
   }
 }

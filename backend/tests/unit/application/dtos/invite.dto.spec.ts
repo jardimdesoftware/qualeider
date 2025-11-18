@@ -141,25 +141,25 @@ describe('Invite DTOs', () => {
         expect(responseError?.constraints).toHaveProperty('isEnum');
       });
 
-      it('deve aceitar response "accept"', async () => {
+      it('deve aceitar response "Accept"', async () => {
         const dto = plainToInstance(RespondInviteDto, {
-          response: 'accept',
+          response: 'Accept',
         });
 
         const errors = await validate(dto);
         expect(errors.length).toBe(0);
       });
 
-      it('deve aceitar response "decline"', async () => {
+      it('deve aceitar response "Decline"', async () => {
         const dto = plainToInstance(RespondInviteDto, {
-          response: 'decline',
+          response: 'Decline',
         });
 
         const errors = await validate(dto);
         expect(errors.length).toBe(0);
       });
 
-      it('deve rejeitar valores além de accept/decline', async () => {
+      it('deve rejeitar valores além de Accept/Decline', async () => {
         const invalidValues = ['rejected', 'pending', 'yes', 'no', 'cancel'];
 
         for (const value of invalidValues) {

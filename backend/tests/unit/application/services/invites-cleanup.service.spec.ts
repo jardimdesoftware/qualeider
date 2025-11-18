@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { InvitesCleanupService } from '@/application/services/invites/invites-cleanup.service';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { createMockPrismaService } from '../../../mocks/prisma.mock';
-import { InviteStatus } from '@/application/enums/invite-status.enum';
+import { InviteStatus } from '@/domain/enums/enums';
 
 describe('InvitesCleanupService', () => {
   let service: InvitesCleanupService;

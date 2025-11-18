@@ -29,4 +29,17 @@ export enum Status {
   Inactive = 'Inactive',
 }
 
+export enum InviteAction {
+  ACCEPT = 'Accept',
+  DECLINE = 'Decline',
+}
+
+export enum InviteStatus {
+  PENDING = 'PENDING',
+  ACCEPTED = 'ACCEPTED',
+  DECLINED = 'DECLINED',
+  EXPIRED = 'EXPIRED',
+  CANCELED = 'CANCELED',
+}
+
 export type ID = number;

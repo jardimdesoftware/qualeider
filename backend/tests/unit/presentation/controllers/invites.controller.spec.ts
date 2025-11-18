@@ -4,7 +4,7 @@ import { InvitesController } from '@/presentation/controllers/invites.controller
 import { InvitesService } from '@/application/services/invites/invites.service';
 import { CreateInviteDto } from '@/application/dtos/invites/create-invite.dto';
 import { RespondInviteDto } from '@/application/dtos/invites/respond-invite.dto';
-import { InviteStatus } from '@/application/enums/invite-status.enum';
+import { InviteStatus } from '@/domain/enums/enums';
 import { createInvite } from '../../../factories/invite.factory';
 
 describe('InvitesController', () => {

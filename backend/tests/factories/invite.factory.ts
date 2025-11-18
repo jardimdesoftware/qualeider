@@ -1,4 +1,4 @@
-import { InviteStatus } from '@/application/enums/invite-status.enum';
+import { InviteStatus } from '@/domain/enums/enums';
 
 /**
  * Interface para representar um Invite (baseado no schema Prisma)

@@ -4,9 +4,30 @@ import {
   AnimalType,
   MilkingPlace,
   Status,
+  InviteAction,
 } from '@/domain/enums/enums';
 
 describe('Domain Enums', () => {
+  describe('InviteAction', () => {
+    it('deve ter valor ACCEPT', () => {
+      expect(InviteAction.ACCEPT).toBe('Accept');
+    });
+
+    it('deve ter valor DECLINE', () => {
+      expect(InviteAction.DECLINE).toBe('Decline');
+    });
+
+    it('deve ter exatamente 2 valores', () => {
+      const values = Object.values(InviteAction);
+      expect(values).toHaveLength(2);
+      expect(values).toEqual(['Accept', 'Decline']);
+    });
+
+    it('deve ser atribuível a variável string', () => {
+      const action: string = InviteAction.ACCEPT;
+      expect(typeof action).toBe('string');
+    });
+  });
   describe('UserType', () => {
     it('deve ter valor Pecuarista', () => {
       expect(UserType.Pecuarista).toBe('Pecuarista');

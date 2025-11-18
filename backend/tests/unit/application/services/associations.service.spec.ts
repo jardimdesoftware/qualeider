@@ -1,11 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConflictException } from '@nestjs/common';
 import { AssociationsService } from '@/application/services/associations/associations.service';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { createMockPrismaService } from '../../../mocks/prisma.mock';
 import { createAssociation } from '../../../factories/association.factory';
 import * as bcrypt from 'bcryptjs';
 import { BCRYPT_ROUNDS_USER_CREATION } from '@/common/constants/security.constants';
+import { BusinessException } from '@/common/exceptions/business.exception';
 
 jest.mock('bcryptjs');
 
@@ -192,7 +192,7 @@ describe('AssociationsService', () => {
       );
 
       await expect(service.create(createDto as any)).rejects.toThrow(
-        new ConflictException('Email já cadastrado.'),
+        new BusinessException('Email já cadastrado.'),
       );
 
       expect(prisma.association.create).not.toHaveBeenCalled();
@@ -206,7 +206,7 @@ describe('AssociationsService', () => {
       ); // cnpj existe
 
       await expect(service.create(createDto as any)).rejects.toThrow(
-        new ConflictException('CNPJ já cadastrado.'),
+        new BusinessException('CNPJ já cadastrado.'),
       );
 
       expect(prisma.association.create).not.toHaveBeenCalled();

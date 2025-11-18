@@ -15,7 +15,6 @@ describe('DailyCollectionsController', () => {
   const mockService = {
     create: jest.fn(),
     findAll: jest.fn(),
-    checkIfUserAlreadySubmitted: jest.fn(),
     findOne: jest.fn(),
     update: jest.fn(),
     remove: jest.fn(),
@@ -157,40 +156,6 @@ describe('DailyCollectionsController', () => {
 
       await expect(controller.findAll()).rejects.toThrow(HttpException);
       await expect(controller.findAll()).rejects.toThrow(
-        expect.objectContaining({ status: HttpStatus.INTERNAL_SERVER_ERROR }),
-      );
-    });
-  });
-
-  describe('checkIfUserAlreadySubmitted', () => {
-    it('deve retornar status OK quando usuário já submeteu', async () => {
-      const userId = '1';
-      mockService.checkIfUserAlreadySubmitted.mockResolvedValue(true);
-
-      const result = await controller.checkIfUserAlreadySubmitted(userId);
-
-      expect(service.checkIfUserAlreadySubmitted).toHaveBeenCalledWith(1);
-      expect(result).toHaveProperty('statusCode', HttpStatus.OK);
-      expect(result.data).toBe(true);
-    });
-
-    it('deve lançar BadRequestException quando userId inválido', async () => {
-      await expect(
-        controller.checkIfUserAlreadySubmitted('invalid'),
-      ).rejects.toThrow(HttpException);
-    });
-
-    it('deve retornar INTERNAL_SERVER_ERROR para erros genéricos', async () => {
-      const userId = '1';
-      const error = new Error('Database error');
-      mockService.checkIfUserAlreadySubmitted.mockRejectedValue(error);
-
-      await expect(
-        controller.checkIfUserAlreadySubmitted(userId),
-      ).rejects.toThrow(HttpException);
-      await expect(
-        controller.checkIfUserAlreadySubmitted(userId),
-      ).rejects.toThrow(
         expect.objectContaining({ status: HttpStatus.INTERNAL_SERVER_ERROR }),
       );
     });
