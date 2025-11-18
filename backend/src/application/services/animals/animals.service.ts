@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { CreateAnimalDto } from '@/application/dtos/animals/create-animal.dto';
 import { UpdateAnimalDto } from '@/application/dtos/animals/update-animal.dto';
 import { Prisma } from '@prisma/client';
+import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 
 @Injectable()
 export class AnimalsService {
@@ -15,14 +16,13 @@ export class AnimalsService {
       where: { id: userId },
     });
     if (!user) {
-      throw new NotFoundException(`Usuário com ID ${userId} não encontrado.`);
+      throw new EntityNotFoundException(`Usuário com ID ${userId} não encontrado.`);
     }
     return user;
   }
 
   async create(createAnimalDto: CreateAnimalDto) {
     await this.validateUser(createAnimalDto.userId);
-
     const animal = await this.prisma.animal.create({
       data: createAnimalDto,
     });
@@ -43,7 +43,7 @@ export class AnimalsService {
       };
     }
 
-    const animals = await this.prisma.animal.findMany({
+    return this.prisma.animal.findMany({
       where,
       include: {
         user: {
@@ -55,43 +55,35 @@ export class AnimalsService {
         },
       },
     });
-    return animals;
   }
 
   async findOne(id: number) {
     const animal = await this.prisma.animal.findUnique({ where: { id } });
 
     if (!animal) {
-      throw new NotFoundException(`Animal com ID ${id} não encontrado.`);
+      throw new EntityNotFoundException(`Animal com ID ${id} não encontrado.`);
     }
     return animal;
   }
 
   async update(id: number, updateAnimalDto: UpdateAnimalDto) {
-    const updatedAnimal = await this.prisma.animal.update({
+    return this.prisma.animal.update({
       where: { id },
       data: updateAnimalDto,
     });
-    return updatedAnimal;
   }
 
   async remove(id: number) {
-    const deactivated = await this.prisma.animal.update({
+    return this.prisma.animal.update({
       where: { id },
       data: { status: 'Inactive' },
     });
-    return deactivated;
   }
 
   async findAllByUserId(userId: number) {
     const animals = await this.prisma.animal.findMany({
       where: { userId, status: 'Active' },
     });
-    if (!animals || animals.length === 0) {
-      throw new NotFoundException(
-        `Nenhum animal encontrado para o usuário com ID ${userId}.`,
-      );
-    }
     return animals;
   }
 }

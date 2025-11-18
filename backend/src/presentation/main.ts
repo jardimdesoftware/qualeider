@@ -6,6 +6,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
 import { PrismaExceptionFilter } from '@/common/filters/prisma-exception.filter';
 import helmet from 'helmet';
+import { HttpExceptionFilter } from '@/common/filters/http-exception.filter';
 
 /**
  * Configura as opções de CORS baseadas nas variáveis de ambiente.
@@ -113,6 +114,7 @@ async function bootstrap() {
 
   // 2. Configurar filtros globais
   app.useGlobalFilters(new PrismaExceptionFilter());
+  app.useGlobalFilters(new HttpExceptionFilter());
 
   // 3. Configurar Swagger
   setupSwagger(app);

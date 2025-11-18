@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 import { AnimalsService } from '@/application/services/animals/animals.service';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { createMockPrismaService } from '../../../mocks/prisma.mock';
@@ -66,7 +66,7 @@ describe('AnimalsService', () => {
       prisma.user.findUnique.mockResolvedValue(null);
 
       await expect(service.create(createDto)).rejects.toThrow(
-        NotFoundException,
+        EntityNotFoundException,
       );
       await expect(service.create(createDto)).rejects.toThrow(
         'Usuário com ID 999 não encontrado.',
@@ -155,7 +155,9 @@ describe('AnimalsService', () => {
     it('deve lançar NotFoundException se animal não existe', async () => {
       prisma.animal.findUnique.mockResolvedValue(null);
 
-      await expect(service.findOne(999)).rejects.toThrow(NotFoundException);
+      await expect(service.findOne(999)).rejects.toThrow(
+        EntityNotFoundException,
+      );
       await expect(service.findOne(999)).rejects.toThrow(
         'Animal com ID 999 não encontrado.',
       );
@@ -236,23 +238,15 @@ describe('AnimalsService', () => {
       });
     });
 
-    it('deve lançar NotFoundException se usuário não tem animais', async () => {
+    it('deve retonar uma lista vazia se usuário não tem animais', async () => {
       prisma.animal.findMany.mockResolvedValue([]);
 
-      await expect(service.findAllByUserId(999)).rejects.toThrow(
-        NotFoundException,
-      );
-      await expect(service.findAllByUserId(999)).rejects.toThrow(
-        'Nenhum animal encontrado para o usuário com ID 999.',
-      );
-    });
+      const result = await service.findAllByUserId(999);
 
-    it('deve lançar NotFoundException se findMany retorna null', async () => {
-      prisma.animal.findMany.mockResolvedValue(null as any);
-
-      await expect(service.findAllByUserId(999)).rejects.toThrow(
-        NotFoundException,
-      );
+      expect(result).toEqual([]);
+      expect(prisma.animal.findMany).toHaveBeenCalledWith({
+        where: { userId: 999, status: 'Active' },
+      });
     });
   });
 });

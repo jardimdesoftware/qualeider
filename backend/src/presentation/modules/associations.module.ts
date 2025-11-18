@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { AssociationsController } from '@/presentation/controllers/associations/associations.controller';
+import { AssociationsController } from '@/presentation/controllers/associations.controller';
 import { AssociationsApplicationModule } from '@/application/services/associations/associations.module';
 import { PrismaModule } from '@/infrastructure/prisma/prisma.module';
 
