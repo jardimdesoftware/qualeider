@@ -100,6 +100,48 @@ describe('UsersService', () => {
         'Email já está em uso.',
       );
     });
+    it('should rethrow unknown Prisma errors', async () => {
+      const createDto: CreateUserDto = {
+        name: 'John Doe',
+        email: 'john@example.com',
+        password: 'password123',
+        userCategory: UserCategory.Fisica,
+        city: 'São Paulo',
+        state: 'SP',
+      };
+
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashedPassword');
+
+      const prismaError = new Prisma.PrismaClientKnownRequestError(
+        'Unknown database error',
+        { code: 'P2000', clientVersion: '5.0.0' } as any,
+      );
+      prismaService.user.create.mockRejectedValue(prismaError);
+
+      await expect(service.create(createDto)).rejects.toThrow(
+        Prisma.PrismaClientKnownRequestError,
+      );
+    });
+
+    it('should rethrow non-Prisma errors', async () => {
+      const createDto: CreateUserDto = {
+        name: 'John Doe',
+        email: 'john@example.com',
+        password: 'password123',
+        userCategory: UserCategory.Fisica,
+        city: 'São Paulo',
+        state: 'SP',
+      };
+
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashedPassword');
+
+      const genericError = new Error('Network failure');
+      prismaService.user.create.mockRejectedValue(genericError);
+
+      await expect(service.create(createDto)).rejects.toThrow(
+        'Network failure',
+      );
+    });
   });
 
   describe('findAll', () => {
@@ -239,15 +281,67 @@ describe('UsersService', () => {
       const updateDto: UpdateUserDto = { email: 'taken@test.com' };
       const mockUser = createUser({ id: 1 });
 
-      // First findUnique (validateUser)
       prismaService.user.findUnique.mockResolvedValueOnce(mockUser);
-      // Second findUnique (email check) -> returns DIFFERENT user
       prismaService.user.findUnique.mockResolvedValueOnce(
         createUser({ id: 2, email: 'taken@test.com' }),
       );
 
       await expect(service.update(1, updateDto)).rejects.toThrow(
         BusinessException,
+      );
+    });
+
+    it('should handle P2002 error during update and throw BusinessException', async () => {
+      const updateDto: UpdateUserDto = {
+        name: 'Updated Name',
+        city: 'Updated City',
+      };
+      const mockUser = createUser({ id: 1, status: Status.Active });
+
+      prismaService.user.findUnique.mockResolvedValue(mockUser);
+
+      const prismaError = new Prisma.PrismaClientKnownRequestError(
+        'Unique constraint failed',
+        { code: 'P2002', clientVersion: '5.0.0' } as any,
+      );
+      prismaService.user.update.mockRejectedValue(prismaError);
+
+      await expect(service.update(1, updateDto)).rejects.toThrow(
+        BusinessException,
+      );
+      await expect(service.update(1, updateDto)).rejects.toThrow(
+        'Email já cadastrado',
+      );
+    });
+
+    it('should rethrow non-P2002 Prisma errors during update', async () => {
+      const updateDto: UpdateUserDto = { name: 'Updated Name' };
+      const mockUser = createUser({ id: 1, status: Status.Active });
+
+      prismaService.user.findUnique.mockResolvedValue(mockUser);
+
+      const prismaError = new Prisma.PrismaClientKnownRequestError(
+        'Foreign key constraint failed',
+        { code: 'P2003', clientVersion: '5.0.0' } as any,
+      );
+      prismaService.user.update.mockRejectedValue(prismaError);
+
+      await expect(service.update(1, updateDto)).rejects.toThrow(
+        Prisma.PrismaClientKnownRequestError,
+      );
+    });
+
+    it('should rethrow generic errors during update', async () => {
+      const updateDto: UpdateUserDto = { name: 'Updated Name' };
+      const mockUser = createUser({ id: 1, status: Status.Active });
+
+      prismaService.user.findUnique.mockResolvedValue(mockUser);
+
+      const genericError = new Error('Database connection lost');
+      prismaService.user.update.mockRejectedValue(genericError);
+
+      await expect(service.update(1, updateDto)).rejects.toThrow(
+        'Database connection lost',
       );
     });
   });
@@ -266,19 +360,22 @@ describe('UsersService', () => {
       const result = await service.partialUpdate(1, updateDto);
       expect(result.city).toBe('New City');
     });
+    
+    it('should handle P2002 error during partial update and throw BusinessException', async () => {
+      const updateDto = { city: 'New City' } as UpdatePartialUserDto;
+      const mockUser = createUser({ id: 1, status: Status.Active });
 
-      it('should throw EntityNotFoundException when user not found', async () => {
-      prismaService.user.findUnique.mockResolvedValue(null);
+      prismaService.user.findUnique.mockResolvedValue(mockUser);
 
-      await expect(
-        service.partialUpdate(999, {
-          name: 'Name',
-          email: 'name@example.com',
-          userCategory: UserCategory.Fisica,
-          state: 'SP',
-          city: 'City',
-        }),
-      ).rejects.toThrow(EntityNotFoundException);
+      const prismaError = new Prisma.PrismaClientKnownRequestError(
+        'Unique constraint failed',
+        { code: 'P2002', clientVersion: '5.0.0' } as any,
+      );
+      prismaService.user.update.mockRejectedValue(prismaError);
+
+      await expect(service.partialUpdate(1, updateDto)).rejects.toThrow(
+        BusinessException,
+      );
     });
   });
 

@@ -58,7 +58,7 @@ export class UsersService {
           throw new BusinessException('Email já está em uso.');
         }
       }
-      throw error;
+      throw error;  
     }
   }
 

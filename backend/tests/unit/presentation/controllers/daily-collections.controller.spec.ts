@@ -19,7 +19,6 @@ describe('DailyCollectionsController', () => {
     update: jest.fn(),
     remove: jest.fn(),
     findAllByUserId: jest.fn(),
-    checkIfUserAlreadySubmitted: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -70,19 +69,23 @@ describe('DailyCollectionsController', () => {
     it('deve propagar EntityNotFoundException quando usuário não existe', async () => {
       const dto: CreateDailyCollectionDto = { userId: 999 } as any;
       const error = new EntityNotFoundException('Usuário não encontrado.');
-      
+
       mockService.create.mockRejectedValue(error);
 
-      await expect(controller.create(dto)).rejects.toThrow(EntityNotFoundException);
+      await expect(controller.create(dto)).rejects.toThrow(
+        EntityNotFoundException,
+      );
     });
 
     it('deve propagar erro genérico (ex: conflito de banco)', async () => {
       const dto: CreateDailyCollectionDto = { userId: 1 } as any;
       const error = new Error('Unique constraint violation');
-      
+
       mockService.create.mockRejectedValue(error);
 
-      await expect(controller.create(dto)).rejects.toThrow('Unique constraint violation');
+      await expect(controller.create(dto)).rejects.toThrow(
+        'Unique constraint violation',
+      );
     });
   });
 
@@ -122,7 +125,9 @@ describe('DailyCollectionsController', () => {
       const error = new EntityNotFoundException('Formulário não encontrado.');
       mockService.findOne.mockRejectedValue(error);
 
-      await expect(controller.findOne(999)).rejects.toThrow(EntityNotFoundException);
+      await expect(controller.findOne(999)).rejects.toThrow(
+        EntityNotFoundException,
+      );
     });
   });
 
@@ -130,7 +135,7 @@ describe('DailyCollectionsController', () => {
     it('deve atualizar formulário com sucesso e retornar wrapper', async () => {
       const updateDto: UpdateDailyCollectionDto = { quantity: 12 } as any;
       const updated = createDailyCollection({ id: 1, quantity: 12 });
-      
+
       mockService.update.mockResolvedValue(updated);
 
       const result = await controller.update(1, updateDto);
@@ -146,7 +151,7 @@ describe('DailyCollectionsController', () => {
     it('deve propagar EntityNotFoundException quando formulário não existe', async () => {
       const updateDto: UpdateDailyCollectionDto = { quantity: 1 } as any;
       const error = new EntityNotFoundException('Formulário não encontrado.');
-      
+
       mockService.update.mockRejectedValue(error);
 
       await expect(controller.update(999, updateDto)).rejects.toThrow(
@@ -174,7 +179,9 @@ describe('DailyCollectionsController', () => {
       const error = new EntityNotFoundException('Formulário não encontrado.');
       mockService.remove.mockRejectedValue(error);
 
-      await expect(controller.remove(999)).rejects.toThrow(EntityNotFoundException);
+      await expect(controller.remove(999)).rejects.toThrow(
+        EntityNotFoundException,
+      );
     });
   });
 

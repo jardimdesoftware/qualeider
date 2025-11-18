@@ -4,7 +4,11 @@ import { UsersService } from '@/application/services/users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { MailService } from '@/mail/mail.service';
-import { UnauthorizedException, NotFoundException } from '@nestjs/common';
+import {
+  UnauthorizedException,
+  NotFoundException,
+  Logger,
+} from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { createUser } from '../../../factories';
 import { createMockPrismaService } from '../../../mocks';
@@ -227,6 +231,25 @@ describe('AuthService', () => {
       expect(capturedToken).toMatch(/^\d{6}$/);
     });
 
+    it('should catch and log errors during forgotPassword', async () => {
+      const loggerErrorSpy = jest.spyOn(Logger.prototype, 'error');
+      const mockUser = createUser({ email: 'test@example.com' });
+
+      prismaService.user.findUnique.mockResolvedValue(mockUser);
+      prismaService.user.update.mockRejectedValue(new Error('DB error'));
+
+      await expect(service.forgotPassword('test@example.com')).rejects.toThrow(
+        'DB error',
+      );
+
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        'Erro ao processar reset de senha:',
+        expect.any(Error),
+      );
+
+      loggerErrorSpy.mockRestore();
+    });
+
     it('should set token expiry to 15 minutes from now', async () => {
       const mockUser = createUser({ email: 'test@example.com' });
       const now = new Date();
@@ -248,7 +271,7 @@ describe('AuthService', () => {
       expect(diff).toBeLessThanOrEqual(16 * 60 * 1000); // At most 16 minutes
     });
 
-    it('should include request metadata when request is provided', async () => {
+    it('should include basic request metadata (IP) when request is provided', async () => {
       const mockUser = createUser({ email: 'test@example.com' });
       const mockRequest = {
         headers: { 'user-agent': 'Mozilla/5.0 (Windows NT 10.0) Chrome/91.0' },
@@ -266,282 +289,14 @@ describe('AuthService', () => {
         expect.any(String),
         expect.any(String),
         expect.objectContaining({
-          device: 'Windows 10',
-          browser: 'Chrome',
-          ipAddress: '192.168.1.1',
+          device: 'Não disponível', // Removido parse
+          browser: 'Não disponível', // Removido parse
+          ipAddress: '192.168.1.1', // Mantido
         }),
       );
     });
 
-    it('should detect Windows 8.1 OS from user agent', async () => {
-      const mockUser = createUser({ email: 'test@example.com' });
-      const mockRequest = {
-        headers: { 'user-agent': 'Mozilla/5.0 (Windows NT 6.3) Chrome/91.0' },
-        ip: '127.0.0.1',
-      };
-
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
-      prismaService.user.update.mockResolvedValue(mockUser);
-      mailService.sendResetPasswordEmail.mockResolvedValue(undefined);
-
-      await service.forgotPassword('test@example.com', mockRequest);
-
-      expect(mailService.sendResetPasswordEmail).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(String),
-        expect.any(String),
-        expect.objectContaining({
-          device: 'Windows 8.1',
-        }),
-      );
-    });
-
-    it('should detect Windows 8 OS from user agent', async () => {
-      const mockUser = createUser({ email: 'test@example.com' });
-      const mockRequest = {
-        headers: { 'user-agent': 'Mozilla/5.0 (Windows NT 6.2) Chrome/91.0' },
-        ip: '127.0.0.1',
-      };
-
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
-      prismaService.user.update.mockResolvedValue(mockUser);
-      mailService.sendResetPasswordEmail.mockResolvedValue(undefined);
-
-      await service.forgotPassword('test@example.com', mockRequest);
-
-      expect(mailService.sendResetPasswordEmail).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(String),
-        expect.any(String),
-        expect.objectContaining({
-          device: 'Windows 8',
-        }),
-      );
-    });
-
-    it('should detect Windows 7 OS from user agent', async () => {
-      const mockUser = createUser({ email: 'test@example.com' });
-      const mockRequest = {
-        headers: { 'user-agent': 'Mozilla/5.0 (Windows NT 6.1) Chrome/91.0' },
-        ip: '127.0.0.1',
-      };
-
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
-      prismaService.user.update.mockResolvedValue(mockUser);
-      mailService.sendResetPasswordEmail.mockResolvedValue(undefined);
-
-      await service.forgotPassword('test@example.com', mockRequest);
-
-      expect(mailService.sendResetPasswordEmail).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(String),
-        expect.any(String),
-        expect.objectContaining({
-          device: 'Windows 7',
-        }),
-      );
-    });
-
-    it('should detect macOS from user agent', async () => {
-      const mockUser = createUser({ email: 'test@example.com' });
-      const mockRequest = {
-        headers: {
-          'user-agent': 'Mozilla/5.0 (Mac OS X 10_15_7) Safari/537.36',
-        },
-        ip: '127.0.0.1',
-      };
-
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
-      prismaService.user.update.mockResolvedValue(mockUser);
-      mailService.sendResetPasswordEmail.mockResolvedValue(undefined);
-
-      await service.forgotPassword('test@example.com', mockRequest);
-
-      expect(mailService.sendResetPasswordEmail).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(String),
-        expect.any(String),
-        expect.objectContaining({
-          device: 'macOS',
-        }),
-      );
-    });
-
-    it('should detect Linux OS from user agent', async () => {
-      const mockUser = createUser({ email: 'test@example.com' });
-      const mockRequest = {
-        headers: {
-          'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) Firefox/89.0',
-        },
-        ip: '127.0.0.1',
-      };
-
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
-      prismaService.user.update.mockResolvedValue(mockUser);
-      mailService.sendResetPasswordEmail.mockResolvedValue(undefined);
-
-      await service.forgotPassword('test@example.com', mockRequest);
-
-      expect(mailService.sendResetPasswordEmail).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(String),
-        expect.any(String),
-        expect.objectContaining({
-          device: 'Linux',
-        }),
-      );
-    });
-
-    it('should detect Android OS from user agent (detected as Linux due to order)', async () => {
-      const mockUser = createUser({ email: 'test@example.com' });
-      const mockRequest = {
-        headers: {
-          'user-agent': 'Mozilla/5.0 (Linux; Android 11) Chrome/91.0',
-        },
-        ip: '127.0.0.1',
-      };
-
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
-      prismaService.user.update.mockResolvedValue(mockUser);
-      mailService.sendResetPasswordEmail.mockResolvedValue(undefined);
-
-      await service.forgotPassword('test@example.com', mockRequest);
-
-      // Bug no código: Android é detectado como Linux porque "Linux" vem antes de "Android"
-      expect(mailService.sendResetPasswordEmail).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(String),
-        expect.any(String),
-        expect.objectContaining({
-          device: 'Linux',
-        }),
-      );
-    });
-
-    it('should detect iOS from user agent (detected as macOS due to order)', async () => {
-      const mockUser = createUser({ email: 'test@example.com' });
-      const mockRequest = {
-        headers: {
-          'user-agent':
-            'Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) Safari/604.1',
-        },
-        ip: '127.0.0.1',
-      };
-
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
-      prismaService.user.update.mockResolvedValue(mockUser);
-      mailService.sendResetPasswordEmail.mockResolvedValue(undefined);
-
-      await service.forgotPassword('test@example.com', mockRequest);
-
-      // Bug no código: iOS é detectado como macOS porque "Mac OS X" vem antes de "iOS"
-      expect(mailService.sendResetPasswordEmail).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(String),
-        expect.any(String),
-        expect.objectContaining({
-          device: 'macOS',
-        }),
-      );
-    });
-
-    it('should detect Edge browser from user agent', async () => {
-      const mockUser = createUser({ email: 'test@example.com' });
-      const mockRequest = {
-        headers: {
-          'user-agent': 'Mozilla/5.0 (Windows NT 10.0) Edg/91.0.864.59',
-        },
-        ip: '127.0.0.1',
-      };
-
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
-      prismaService.user.update.mockResolvedValue(mockUser);
-      mailService.sendResetPasswordEmail.mockResolvedValue(undefined);
-
-      await service.forgotPassword('test@example.com', mockRequest);
-
-      expect(mailService.sendResetPasswordEmail).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(String),
-        expect.any(String),
-        expect.objectContaining({
-          browser: 'Edge',
-        }),
-      );
-    });
-
-    it('should detect Firefox browser from user agent', async () => {
-      const mockUser = createUser({ email: 'test@example.com' });
-      const mockRequest = {
-        headers: { 'user-agent': 'Mozilla/5.0 (Windows NT 10.0) Firefox/89.0' },
-        ip: '127.0.0.1',
-      };
-
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
-      prismaService.user.update.mockResolvedValue(mockUser);
-      mailService.sendResetPasswordEmail.mockResolvedValue(undefined);
-
-      await service.forgotPassword('test@example.com', mockRequest);
-
-      expect(mailService.sendResetPasswordEmail).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(String),
-        expect.any(String),
-        expect.objectContaining({
-          browser: 'Firefox',
-        }),
-      );
-    });
-
-    it('should detect Safari browser from user agent', async () => {
-      const mockUser = createUser({ email: 'test@example.com' });
-      const mockRequest = {
-        headers: {
-          'user-agent': 'Mozilla/5.0 (Mac OS X 10_15_7) Safari/605.1.15',
-        },
-        ip: '127.0.0.1',
-      };
-
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
-      prismaService.user.update.mockResolvedValue(mockUser);
-      mailService.sendResetPasswordEmail.mockResolvedValue(undefined);
-
-      await service.forgotPassword('test@example.com', mockRequest);
-
-      expect(mailService.sendResetPasswordEmail).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(String),
-        expect.any(String),
-        expect.objectContaining({
-          browser: 'Safari',
-        }),
-      );
-    });
-
-    it('should detect Opera browser from user agent', async () => {
-      const mockUser = createUser({ email: 'test@example.com' });
-      const mockRequest = {
-        headers: {
-          'user-agent': 'Mozilla/5.0 (Windows NT 10.0) OPR/76.0.4017.177',
-        },
-        ip: '127.0.0.1',
-      };
-
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
-      prismaService.user.update.mockResolvedValue(mockUser);
-      mailService.sendResetPasswordEmail.mockResolvedValue(undefined);
-
-      await service.forgotPassword('test@example.com', mockRequest);
-
-      expect(mailService.sendResetPasswordEmail).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(String),
-        expect.any(String),
-        expect.objectContaining({
-          browser: 'Opera',
-        }),
-      );
-    });
+    // REMOVIDOS: Todos os testes "should detect..." (Windows, Linux, iOS, etc)
 
     it('should extract IP from request.connection.remoteAddress if request.ip not available', async () => {
       const mockUser = createUser({ email: 'test@example.com' });

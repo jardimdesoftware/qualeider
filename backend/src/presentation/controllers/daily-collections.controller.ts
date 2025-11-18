@@ -61,26 +61,6 @@ export class DailyCollectionsController {
     return this.dailyCollectionsService.findAll(assocId);
   }
 
-  @ApiOperation({ summary: 'Verificar se o usuário já enviou um formulário' })
-  @ApiQuery({ name: 'userId', description: 'ID do usuário', type: Number })
-  @ApiResponse({
-    status: 200,
-    description: 'Verificação realizada com sucesso',
-  })
-  @Get('check')
-  async checkIfUserAlreadySubmitted(@Query('userId') userId: string) {
-    const userIdNumber = Number(userId);
-    
-    if (isNaN(userIdNumber)) {
-      throw new BusinessException('O ID do usuário deve ser um número válido.');
-    }
-   
-    return {
-      statusCode: HttpStatus.OK,
-      message: 'Verificação realizada com sucesso.',
-    };
-  }
-
   @ApiOperation({ summary: 'Buscar um formulário pelo ID' })
   @ApiParam({ name: 'id', description: 'ID do formulário', type: Number })
   @ApiResponse({

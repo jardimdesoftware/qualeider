@@ -197,9 +197,6 @@ export class InvitesService {
     }
   }
 
-  // ... Resto dos métodos (getUserPendingInvites, getAssociationInvites, etc) permanecem iguais
-  // pois não tinham números mágicos críticos.
-
   async getUserPendingInvites(userId: number) {
     return this.prisma.invite.findMany({
       where: {

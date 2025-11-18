@@ -83,45 +83,18 @@ export class AuthService {
         },
       });
 
-      let metadata = {
+      const metadata = {
         expiryDate: resetTokenExpiry,
         device: 'Não disponível',
         browser: 'Não disponível',
         ipAddress: 'Não disponível',
       };
 
+      // Apenas extrai o IP se o request existir, sem parsing complexo de User-Agent
       if (request) {
-        const userAgent = request.headers['user-agent'] || '';
         const ip =
           request.ip || request.connection.remoteAddress || 'Não disponível';
-
-        const getOS = (ua: string) => {
-          if (ua.includes('Windows NT 10.0')) return 'Windows 10';
-          if (ua.includes('Windows NT 6.3')) return 'Windows 8.1';
-          if (ua.includes('Windows NT 6.2')) return 'Windows 8';
-          if (ua.includes('Windows NT 6.1')) return 'Windows 7';
-          if (ua.includes('Mac OS X')) return 'macOS';
-          if (ua.includes('Linux')) return 'Linux';
-          if (ua.includes('Android')) return 'Android';
-          if (ua.includes('iOS')) return 'iOS';
-          return 'Desconhecido';
-        };
-
-        const getBrowser = (ua: string) => {
-          if (ua.includes('Edg/')) return 'Edge';
-          if (ua.includes('Chrome/')) return 'Chrome';
-          if (ua.includes('Firefox/')) return 'Firefox';
-          if (ua.includes('Safari/') && !ua.includes('Chrome')) return 'Safari';
-          if (ua.includes('Opera/') || ua.includes('OPR/')) return 'Opera';
-          return 'Desconhecido';
-        };
-
-        metadata = {
-          expiryDate: resetTokenExpiry,
-          device: getOS(userAgent),
-          browser: getBrowser(userAgent),
-          ipAddress: ip,
-        };
+        metadata.ipAddress = ip;
       }
 
       await this.mailService.sendResetPasswordEmail(
@@ -187,10 +160,6 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { email },
     });
-
-    if (!user) {
-      throw new NotFoundException('Usuário não encontrado.');
-    }
 
     const hashedPassword = await bcrypt.hash(
       newPassword,
