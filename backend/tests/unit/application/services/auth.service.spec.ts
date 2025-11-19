@@ -66,7 +66,7 @@ describe('AuthService', () => {
   });
 
   describe('validateUser', () => {
-    it('should return user without password when credentials are valid', async () => {
+    it('deve retornar usuário sem senha quando credenciais são válidas', async () => {
       const mockUser = createUser({
         email: 'test@example.com',
         password: 'hashedPassword',
@@ -89,7 +89,7 @@ describe('AuthService', () => {
       expect(result.email).toBe('test@example.com');
     });
 
-    it('should throw UnauthorizedException when user not found', async () => {
+    it('deve lançar UnauthorizedException quando usuário não for encontrado', async () => {
       usersService.findByEmail.mockResolvedValue(null);
 
       await expect(
@@ -97,7 +97,7 @@ describe('AuthService', () => {
       ).rejects.toThrow(UnauthorizedException);
     });
 
-    it('should throw UnauthorizedException when password is incorrect', async () => {
+    it('deve lançar UnauthorizedException quando a senha estiver incorreta', async () => {
       const mockUser = createUser({
         email: 'test@example.com',
         password: 'hashedPassword',
@@ -113,7 +113,7 @@ describe('AuthService', () => {
   });
 
   describe('login', () => {
-    it('should return access token with correct payload', async () => {
+    it('deve retornar token de acesso com payload correto', async () => {
       const mockUser = {
         id: 1,
         email: 'test@example.com',
@@ -132,7 +132,7 @@ describe('AuthService', () => {
       expect(result).toEqual({ access_token: 'mock-jwt-token' });
     });
 
-    it('should handle user without associationId', async () => {
+    it('deve tratar usuário sem associationId', async () => {
       const mockUser = {
         id: 2,
         email: 'independent@example.com',
@@ -153,7 +153,7 @@ describe('AuthService', () => {
   });
 
   describe('forgotPassword', () => {
-    it('should generate reset token and send email', async () => {
+    it('deve gerar token de reset e enviar email', async () => {
       const mockUser = createUser({
         id: 1,
         email: 'test@example.com',
@@ -191,7 +191,7 @@ describe('AuthService', () => {
       expect(result.message).toContain('enviado com sucesso');
     });
 
-    it('should normalize email to lowercase', async () => {
+    it('deve normalizar email para lowercase', async () => {
       const mockUser = createUser({ email: 'test@example.com' });
 
       prismaService.user.findUnique.mockResolvedValue(mockUser);
@@ -205,7 +205,7 @@ describe('AuthService', () => {
       });
     });
 
-    it('should throw NotFoundException when email not found', async () => {
+    it('deve lançar NotFoundException quando email não for encontrado', async () => {
       prismaService.user.findUnique.mockResolvedValue(null);
 
       await expect(
@@ -213,7 +213,7 @@ describe('AuthService', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('should generate 6-digit token', async () => {
+    it('deve gerar token de 6 dígitos', async () => {
       const mockUser = createUser({ email: 'test@example.com' });
 
       prismaService.user.findUnique.mockResolvedValue(mockUser);
@@ -231,7 +231,7 @@ describe('AuthService', () => {
       expect(capturedToken).toMatch(/^\d{6}$/);
     });
 
-    it('should catch and log errors during forgotPassword', async () => {
+    it('deve capturar e logar erros durante forgotPassword', async () => {
       const loggerErrorSpy = jest.spyOn(Logger.prototype, 'error');
       const mockUser = createUser({ email: 'test@example.com' });
 
@@ -250,7 +250,7 @@ describe('AuthService', () => {
       loggerErrorSpy.mockRestore();
     });
 
-    it('should set token expiry to 15 minutes from now', async () => {
+    it('deve definir expiração do token para 15 minutos a partir de agora', async () => {
       const mockUser = createUser({ email: 'test@example.com' });
       const now = new Date();
 
@@ -273,7 +273,7 @@ describe('AuthService', () => {
   });
 
   describe('validateResetToken', () => {
-    it('should return true for valid token', async () => {
+    it('deve retornar true para token válido', async () => {
       const futureDate = new Date();
       futureDate.setMinutes(futureDate.getMinutes() + 10);
 
@@ -300,7 +300,7 @@ describe('AuthService', () => {
       });
     });
 
-    it('should extend token expiry by 15 minutes after validation', async () => {
+    it('deve estender expiração do token em 15 minutos após validação', async () => {
       const futureDate = new Date();
       futureDate.setMinutes(futureDate.getMinutes() + 5);
 
@@ -326,7 +326,7 @@ describe('AuthService', () => {
       expect(diff).toBeLessThanOrEqual(16 * 60 * 1000);
     });
 
-    it('should throw NotFoundException when user not found', async () => {
+    it('deve lançar NotFoundException quando usuário não for encontrado', async () => {
       prismaService.user.findUnique.mockResolvedValue(null);
 
       await expect(
@@ -334,7 +334,7 @@ describe('AuthService', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('should throw UnauthorizedException when token does not match', async () => {
+    it('deve lançar UnauthorizedException quando token não coincidir', async () => {
       const mockUser = createUser({
         email: 'test@example.com',
         resetToken: '123456',
@@ -348,7 +348,7 @@ describe('AuthService', () => {
       ).rejects.toThrow(UnauthorizedException);
     });
 
-    it('should throw UnauthorizedException when token is null', async () => {
+    it('deve lançar UnauthorizedException quando token for nulo', async () => {
       const mockUser = createUser({
         email: 'test@example.com',
         resetToken: null,
@@ -361,7 +361,7 @@ describe('AuthService', () => {
       ).rejects.toThrow(UnauthorizedException);
     });
 
-    it('should throw UnauthorizedException when token is expired', async () => {
+    it('deve lançar UnauthorizedException quando token estiver expirado', async () => {
       const pastDate = new Date();
       pastDate.setMinutes(pastDate.getMinutes() - 10);
 
@@ -380,7 +380,7 @@ describe('AuthService', () => {
   });
 
   describe('resetPassword', () => {
-    it('should reset password successfully', async () => {
+    it('deve resetar a senha com sucesso', async () => {
       const futureDate = new Date();
       futureDate.setMinutes(futureDate.getMinutes() + 10);
 
@@ -418,7 +418,7 @@ describe('AuthService', () => {
       );
     });
 
-    it('should validate token before resetting password', async () => {
+    it('deve validar token antes de resetar a senha', async () => {
       const pastDate = new Date();
       pastDate.setMinutes(pastDate.getMinutes() - 10);
 
@@ -437,7 +437,7 @@ describe('AuthService', () => {
       expect(bcrypt.hash).not.toHaveBeenCalled();
     });
 
-    it('should throw NotFoundException when user not found', async () => {
+    it('deve lançar NotFoundException quando usuário não for encontrado', async () => {
       // First findUnique (in validateResetToken) returns null
       prismaService.user.findUnique.mockResolvedValueOnce(null);
 
@@ -450,7 +450,7 @@ describe('AuthService', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('should hash password with bcrypt salt rounds of 12', async () => {
+    it('deve hashear a senha com 12 salt rounds do bcrypt', async () => {
       const futureDate = new Date();
       futureDate.setMinutes(futureDate.getMinutes() + 10);
 
@@ -476,7 +476,7 @@ describe('AuthService', () => {
       );
     });
 
-    it('should clear reset token and expiry after successful reset', async () => {
+    it('deve limpar reset token e expiry após reset bem-sucedido', async () => {
       const futureDate = new Date();
       futureDate.setMinutes(futureDate.getMinutes() + 10);
 

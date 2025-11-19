@@ -1216,13 +1216,13 @@ tests/
 │   │   └── enums/
 │   └── presentation/
 │       └── controllers/          # Endpoints HTTP (100% cobertura)
-├── e2e/                           # Testes end-to-end (110 testes)
-│   ├── auth/                     # Login, Reset de Senha (24 testes)
-│   ├── users/                    # CRUD de Usuários (18 testes)
-│   ├── animals/                  # CRUD de Animais (16 testes)
-│   ├── daily-collections/        # CRUD de Coletas (14 testes)
-│   ├── invites/                  # Sistema de Convites (17 testes)
-│   ├── associations/             # CRUD de Associações (21 testes)
+├── e2e/                           # Testes end-to-end (97 testes)
+│   ├── auth/                     # Login, Reset de Senha 
+│   ├── users/                    # CRUD de Usuários 
+│   ├── animals/                  # CRUD de Animais 
+│   ├── daily-collections/        # CRUD de Coletas 
+│   ├── invites/                  # Sistema de Convites 
+│   ├── associations/             # CRUD de Associações 
 │   ├── factories/                # Test Factories para dados de teste
 │   └── helpers/                  # Helpers para autenticação e setup
 ├── mocks/                         # Mocks reutilizáveis
@@ -1231,13 +1231,24 @@ tests/
 
 ### Test Factories Pattern
 
-Factories geram dados de teste consistentes e reutilizáveis:
+O padrão Test Factories abstrai a complexidade da criação de dados de teste, atuando como uma "linha de montagem" configurável
+
+- Criação centralizada e consistente de objetos complexos
+
+- Flexibilidade através de sobreposições (overrides)
+
+![Factory Pattern](images/factory-pattern.png)
+
+- Factory: Responsável por instanciar o objeto e gerenciar regras de criação
+
+- Default Values: Dados pré-definidos que garantem que o objeto gerado seja sempre válido para o banco de dados
+
+- Overrides: Mecanismo que permite ao teste injetar apenas os dados específicos que importam para aquele cenário (ex: { hat: true } ou { age: 17 }), sobrescrevendo os padrões.
+
+- Specialized Methods: Atalhos para configurações frequentes de negócio, como buildAdmin() ou buildProducer().
+
 
 ```typescript
-// Exemplo: UserFactory
-UserFactory.buildProducer(); // Produtor com dados válidos
-UserFactory.buildAssociation(); // Associação
-
 // Exemplo: AnimalFactory
 AnimalFactory.buildVaca(); // Vaca com dados padrão
 AnimalFactory.buildCabra(); // Cabra
@@ -1246,17 +1257,18 @@ AnimalFactory.build({ age: 5 }); // Animal personalizado
 
 **Benefícios:**
 
-- Reduz duplicação de código nos testes
-- Garante dados válidos por padrão
-- Facilita manutenção quando DTOs mudam
-- Aumenta legibilidade dos testes
+- O código de teste foca no comportamento, não na configuração de dados
+- Se uma entidade ganha um novo campo obrigatório, você atualiza apenas a Factory, sem quebrar centenas de testes
+- Todos os testes partem de uma base de dados válida e controlada
 
-### Estratégias de Mock
+### Estratégias de Mock & Isolamento
 
 **1. Mocks de Serviços Externos**
 
 - `MailService`: Mock para evitar envio de emails reais em testes
 - `PrismaService`: Mock para testes unitários de services
+
+![Mock External Services](images/mock-external-services.png)
 
 **2. Test Doubles**
 
@@ -1264,11 +1276,15 @@ AnimalFactory.build({ age: 5 }); // Animal personalizado
 - **Spies:** Verificam se métodos foram chamados com argumentos corretos
 - **Mocks:** Simulam comportamento completo de dependências
 
+![Test Doubles](images/test-doubles.png)
+
 **3. Database em Testes E2E**
 
 - Database real (PostgreSQL) isolado para testes
 - Setup/Teardown automático entre testes
 - Transações rollback para garantir isolamento
+
+![Test Database E2E](images/test-database-e2e.png)
 
 ### Padrões de Nomenclatura
 
@@ -1296,7 +1312,7 @@ describe('E2E: Animais - Operações CRUD', () => {
 | --------------------- | ------ | ------ | ------ |
 | Cobertura Geral       | > 80%  | 96.25% | ✅     |
 | Cobertura DTOs        | 100%   | 100%   | ✅     |
-| Cobertura Services    | > 90%  | 100%+   | ✅     |
+| Cobertura Services    | > 90%  | 100%   | ✅     |
 | Cobertura Controllers | > 90%  | 100%    | ✅     |
 | Testes Unitários      | > 300  | 453    | ✅     |
 | Testes E2E            | > 80   | 110    | ✅     |

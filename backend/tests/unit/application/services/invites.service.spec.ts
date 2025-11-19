@@ -42,7 +42,7 @@ describe('InvitesService', () => {
   });
 
   describe('createInvite', () => {
-    it('should create invite successfully', async () => {
+    it('deve criar um convite com sucesso', async () => {
       const associationId = 1;
       const createDto: CreateInviteDto = {
         userId: 2,
@@ -90,7 +90,7 @@ describe('InvitesService', () => {
       );
     });
 
-    it('should throw EntityNotFoundException when association not found', async () => {
+    it('deve lançar EntityNotFoundException quando associação não for encontrada', async () => {
       const createDto: CreateInviteDto = {
         userId: 2,
         message: 'Test',
@@ -106,7 +106,7 @@ describe('InvitesService', () => {
       );
     });
 
-    it('should throw EntityNotFoundException when user not found', async () => {
+    it('deve lançar EntityNotFoundException quando usuário não for encontrado', async () => {
       const createDto: CreateInviteDto = {
         userId: 999,
         message: 'Test',
@@ -126,7 +126,7 @@ describe('InvitesService', () => {
       );
     });
 
-    it('should throw BusinessException when user already belongs to association', async () => {
+    it('deve lançar BusinessException quando usuário já pertence à associação', async () => {
       const createDto: CreateInviteDto = {
         userId: 2,
         message: 'Test',
@@ -149,7 +149,7 @@ describe('InvitesService', () => {
       );
     });
 
-    it('should throw BusinessException when pending invite already exists', async () => {
+    it('deve lançar BusinessException quando já existe convite pendente', async () => {
       const createDto: CreateInviteDto = {
         userId: 2,
         message: 'Test',
@@ -178,7 +178,7 @@ describe('InvitesService', () => {
   });
 
   describe('respondToInvite', () => {
-    it('should accept invite successfully', async () => {
+    it('deve aceitar convite com sucesso', async () => {
       const token = 'valid-token';
       const mockInvite = {
         id: 1,
@@ -203,7 +203,7 @@ describe('InvitesService', () => {
       );
     });
 
-    it('should decline invite successfully', async () => {
+    it('deve recusar convite com sucesso', async () => {
       const token = 'valid-token';
       const mockInvite = {
         id: 1,
@@ -228,7 +228,7 @@ describe('InvitesService', () => {
       );
     });
 
-    it('should throw EntityNotFoundException when invite not found', async () => {
+    it('deve lançar EntityNotFoundException quando convite não for encontrado', async () => {
       prismaService.invite.findUnique.mockResolvedValue(null);
 
       await expect(
@@ -239,7 +239,7 @@ describe('InvitesService', () => {
       ).rejects.toThrow('Convite não encontrado');
     });
 
-    it('should throw BusinessException when invite already responded', async () => {
+    it('deve lançar BusinessException quando convite já foi respondido', async () => {
       const mockInvite = {
         id: 1,
         status: InviteStatus.ACCEPTED,
@@ -256,7 +256,7 @@ describe('InvitesService', () => {
       ).rejects.toThrow('Convite já foi accepted');
     });
 
-    it('should throw BusinessException and mark as expired when invite is expired', async () => {
+    it('deve lançar BusinessException e marcar como expirado quando convite estiver expirado', async () => {
       const mockInvite = {
         id: 1,
         status: InviteStatus.PENDING,
@@ -281,7 +281,7 @@ describe('InvitesService', () => {
   });
 
   describe('cancelInvite', () => {
-    it('should cancel invite successfully', async () => {
+    it('deve cancelar convite com sucesso', async () => {
       const mockInvite = {
         id: 1,
         associationId: 1,
@@ -303,7 +303,7 @@ describe('InvitesService', () => {
       });
     });
 
-    it('should throw EntityNotFoundException when invite not found', async () => {
+    it('deve lançar EntityNotFoundException quando convite não for encontrado', async () => {
       prismaService.invite.findFirst.mockResolvedValue(null);
 
       await expect(service.cancelInvite(1, 999)).rejects.toThrow(
@@ -316,7 +316,7 @@ describe('InvitesService', () => {
   });
 
   describe('getInviteByToken', () => {
-    it('should return invite details with expired flag', async () => {
+    it('deve retornar detalhes do convite com flag de expirado', async () => {
       const mockInvite = {
         id: 1,
         status: InviteStatus.PENDING,
@@ -335,7 +335,7 @@ describe('InvitesService', () => {
       expect(result.association.name).toBe('Test');
     });
 
-    it('should throw EntityNotFoundException when invite not found', async () => {
+    it('deve lançar EntityNotFoundException quando convite não for encontrado', async () => {
       prismaService.invite.findUnique.mockResolvedValue(null);
 
       await expect(service.getInviteByToken('invalid-token')).rejects.toThrow(
@@ -347,7 +347,7 @@ describe('InvitesService', () => {
     });
   });
   describe('getUserPendingInvites', () => {
-    it('should return pending invites for user', async () => {
+    it('deve retornar convites pendentes para o usuário', async () => {
       const userId = 2;
       const mockInvites = [
         {
@@ -407,7 +407,7 @@ describe('InvitesService', () => {
       expect(result[0].association.name).toBe('Association A');
     });
 
-    it('should return empty array when user has no pending invites', async () => {
+    it('deve retornar array vazio quando usuário não tiver convites pendentes', async () => {
       prismaService.invite.findMany.mockResolvedValue([]);
 
       const result = await service.getUserPendingInvites(999);
@@ -416,7 +416,7 @@ describe('InvitesService', () => {
       expect(result).toHaveLength(0);
     });
 
-    it('should filter out expired invites', async () => {
+    it('deve filtrar convites expirados', async () => {
       const userId = 2;
 
       prismaService.invite.findMany.mockResolvedValue([]);
@@ -435,7 +435,7 @@ describe('InvitesService', () => {
   });
 
   describe('getAssociationInvites', () => {
-    it('should return all invites for association when status not provided', async () => {
+    it('deve retornar todos os convites da associação quando status não for informado', async () => {
       const associationId = 1;
       const mockInvites = [
         {
@@ -491,7 +491,7 @@ describe('InvitesService', () => {
       expect(result[0].user.name).toBe('John Doe');
     });
 
-    it('should filter invites by status when provided', async () => {
+    it('deve filtrar convites por status quando informado', async () => {
       const associationId = 1;
       const mockInvites = [
         {
@@ -538,7 +538,7 @@ describe('InvitesService', () => {
       expect(result[0].status).toBe(InviteStatus.PENDING);
     });
 
-    it('should return empty array when association has no invites', async () => {
+    it('deve retornar array vazio quando associação não tiver convites', async () => {
       prismaService.invite.findMany.mockResolvedValue([]);
 
       const result = await service.getAssociationInvites(999);
@@ -547,7 +547,7 @@ describe('InvitesService', () => {
       expect(result).toHaveLength(0);
     });
 
-    it('should filter by ACCEPTED status', async () => {
+    it('deve filtrar por status ACCEPTED', async () => {
       const associationId = 1;
       const mockInvites = [
         {
@@ -584,7 +584,7 @@ describe('InvitesService', () => {
       expect(result[0].status).toBe(InviteStatus.ACCEPTED);
     });
 
-    it('should filter by DECLINED status', async () => {
+    it('deve filtrar por status DECLINED', async () => {
       const associationId = 1;
 
       prismaService.invite.findMany.mockResolvedValue([]);

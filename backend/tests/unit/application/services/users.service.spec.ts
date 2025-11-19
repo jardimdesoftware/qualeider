@@ -41,7 +41,7 @@ describe('UsersService', () => {
   });
 
   describe('create', () => {
-    it('should create a new user with hashed password', async () => {
+    it('deve criar um novo usuário com senha criptografada', async () => {
       const createDto: CreateUserDto = {
         name: 'John Doe',
         email: 'john@example.com',
@@ -75,7 +75,7 @@ describe('UsersService', () => {
       expect(result.email).toBe('john@example.com');
     });
 
-    it('should throw BusinessException when email already exists', async () => {
+    it('deve lançar BusinessException quando email já está em uso', async () => {
       const createDto: CreateUserDto = {
         name: 'Jane Doe',
         email: 'existing@example.com',
@@ -100,7 +100,7 @@ describe('UsersService', () => {
         'Email já está em uso.',
       );
     });
-    it('should rethrow unknown Prisma errors', async () => {
+    it('deve relançar erros desconhecidos do Prisma', async () => {
       const createDto: CreateUserDto = {
         name: 'John Doe',
         email: 'john@example.com',
@@ -123,7 +123,7 @@ describe('UsersService', () => {
       );
     });
 
-    it('should rethrow non-Prisma errors', async () => {
+    it('deve relançar erros genéricos (não-Prisma)', async () => {
       const createDto: CreateUserDto = {
         name: 'John Doe',
         email: 'john@example.com',
@@ -145,7 +145,7 @@ describe('UsersService', () => {
   });
 
   describe('findAll', () => {
-    it('should return all active users', async () => {
+    it('deve retornar todos os usuários ativos', async () => {
       const mockUsers = [
         createUser({ id: 1, status: Status.Active }),
         createUser({ id: 2, status: Status.Active }),
@@ -162,7 +162,7 @@ describe('UsersService', () => {
       expect(result).toHaveLength(2);
     });
 
-    it('should filter users by associationId when provided', async () => {
+    it('deve filtrar usuários por associationId quando informado', async () => {
       const mockUsers = [createUser({ id: 1, associationId: 10 })];
       prismaService.user.findMany.mockResolvedValue(mockUsers);
 
@@ -176,7 +176,7 @@ describe('UsersService', () => {
   });
 
   describe('findOne', () => {
-    it('should return a single active user by id', async () => {
+    it('deve retornar um único usuário ativo por id', async () => {
       const mockUser = createUser({ id: 1, status: Status.Active });
       prismaService.user.findUnique.mockResolvedValue(mockUser);
 
@@ -189,7 +189,7 @@ describe('UsersService', () => {
       expect(result.id).toBe(1);
     });
 
-    it('should throw EntityNotFoundException when user not found', async () => {
+    it('deve lançar EntityNotFoundException quando usuário não for encontrado', async () => {
       prismaService.user.findUnique.mockResolvedValue(null);
 
       await expect(service.findOne(999)).rejects.toThrow(
@@ -197,7 +197,7 @@ describe('UsersService', () => {
       );
     });
 
-    it('should throw EntityNotFoundException when user is inactive', async () => {
+    it('deve lançar EntityNotFoundException quando usuário estiver inativo', async () => {
       // findUnique where status='Active' returns null for inactive users
       prismaService.user.findUnique.mockResolvedValue(null);
 
@@ -206,7 +206,7 @@ describe('UsersService', () => {
   });
 
   describe('update', () => {
-    it('should update user successfully', async () => {
+    it('deve atualizar usuário com sucesso', async () => {
       const mockUser = createUser({ id: 1, status: Status.Active });
       const updateDto: UpdateUserDto = {
         name: 'Updated Name',
@@ -228,7 +228,7 @@ describe('UsersService', () => {
       expect(result.name).toBe('Updated Name');
     });
 
-    it('should hash password when updating', async () => {
+    it('deve hashear a senha ao atualizar', async () => {
       const mockUser = createUser({ id: 1, status: Status.Active });
       const updateDto: UpdateUserDto = { password: 'newPassword123' };
 
@@ -251,7 +251,7 @@ describe('UsersService', () => {
       });
     });
 
-    it('should not hash empty password', async () => {
+    it('não deve hashear senha vazia', async () => {
       const mockUser = createUser({ id: 1, status: Status.Active });
       const updateDto: UpdateUserDto = { name: 'Updated', password: '' };
 
@@ -268,7 +268,7 @@ describe('UsersService', () => {
       });
     });
 
-    it('should throw EntityNotFoundException when user not found', async () => {
+    it('deve lançar EntityNotFoundException quando usuário não for encontrado', async () => {
       const updateDto: UpdateUserDto = { name: 'New Name' };
       prismaService.user.findUnique.mockResolvedValue(null);
 
@@ -277,7 +277,7 @@ describe('UsersService', () => {
       );
     });
 
-    it('should throw BusinessException when email already exists', async () => {
+    it('deve lançar BusinessException quando email já existe', async () => {
       const updateDto: UpdateUserDto = { email: 'taken@test.com' };
       const mockUser = createUser({ id: 1 });
 
@@ -291,7 +291,7 @@ describe('UsersService', () => {
       );
     });
 
-    it('should handle P2002 error during update and throw BusinessException', async () => {
+    it('deve tratar erro P2002 durante atualização e lançar BusinessException', async () => {
       const updateDto: UpdateUserDto = {
         name: 'Updated Name',
         city: 'Updated City',
@@ -314,7 +314,7 @@ describe('UsersService', () => {
       );
     });
 
-    it('should rethrow non-P2002 Prisma errors during update', async () => {
+    it('deve relançar erros Prisma não-P2002 durante atualização', async () => {
       const updateDto: UpdateUserDto = { name: 'Updated Name' };
       const mockUser = createUser({ id: 1, status: Status.Active });
 
@@ -331,7 +331,7 @@ describe('UsersService', () => {
       );
     });
 
-    it('should rethrow generic errors during update', async () => {
+    it('deve relançar erros genéricos durante atualização', async () => {
       const updateDto: UpdateUserDto = { name: 'Updated Name' };
       const mockUser = createUser({ id: 1, status: Status.Active });
 
@@ -347,7 +347,7 @@ describe('UsersService', () => {
   });
 
   describe('partialUpdate', () => {
-    it('should partially update user', async () => {
+    it('deve atualizar parcialmente o usuário', async () => {
       const mockUser = createUser({ id: 1, status: Status.Active });
       const updateDto = { city: 'New City' } as UpdatePartialUserDto;
 
@@ -360,8 +360,8 @@ describe('UsersService', () => {
       const result = await service.partialUpdate(1, updateDto);
       expect(result.city).toBe('New City');
     });
-    
-    it('should handle P2002 error during partial update and throw BusinessException', async () => {
+
+    it('deve tratar erro P2002 durante atualização parcial e lançar BusinessException', async () => {
       const updateDto = { city: 'New City' } as UpdatePartialUserDto;
       const mockUser = createUser({ id: 1, status: Status.Active });
 
@@ -380,7 +380,7 @@ describe('UsersService', () => {
   });
 
   describe('remove', () => {
-    it('should soft delete user', async () => {
+    it('deve desativar o usuário (soft delete)', async () => {
       const mockUser = createUser({ id: 1, status: Status.Active });
 
       prismaService.user.findUnique.mockResolvedValue(mockUser);
@@ -398,7 +398,7 @@ describe('UsersService', () => {
       expect(result.status).toBe(Status.Inactive);
     });
 
-    it('should throw EntityNotFoundException when user not found', async () => {
+    it('deve lançar EntityNotFoundException quando usuário não for encontrado', async () => {
       prismaService.user.findUnique.mockResolvedValue(null);
       await expect(service.remove(999)).rejects.toThrow(
         EntityNotFoundException,
@@ -407,7 +407,7 @@ describe('UsersService', () => {
   });
 
   describe('findByEmail', () => {
-    it('should return user by email', async () => {
+    it('deve retornar usuário por email', async () => {
       const mockUser = createUser({ email: 'test@example.com' });
       prismaService.user.findUnique.mockResolvedValue(mockUser);
 
@@ -415,7 +415,7 @@ describe('UsersService', () => {
       expect(result?.email).toBe('test@example.com');
     });
 
-    it('should return null when email not found', async () => {
+    it('deve retornar null quando email não for encontrado', async () => {
       prismaService.user.findUnique.mockResolvedValue(null);
       const result = await service.findByEmail('nonexistent@example.com');
       expect(result).toBeNull();
