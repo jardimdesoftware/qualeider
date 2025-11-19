@@ -145,10 +145,10 @@ O **QuaLeiDer** é uma plataforma web para gestão de produtores de leite e suas
 
 - **Cobertura de Testes (Atual: 96.25%):**
 
-  - **Testes Unitários:** 472 testes cobrindo DTOs, Services, Controllers, Entities
+  - **Testes Unitários:** 450 testes cobrindo DTOs, Services, Controllers, Entities
     - DTOs: 100% de cobertura (validação de dados de entrada)
-    - Services (Application): 95%+ de cobertura (lógica de negócio)
-    - Controllers (Presentation): 97% de cobertura (endpoints HTTP)
+    - Services (Application): 100% de cobertura (lógica de negócio)
+    - Controllers (Presentation): 100% de cobertura (endpoints HTTP)
     - Entities (Domain): 100% de cobertura (regras de negócio)
   - **Testes E2E:** 110 testes integrando backend completo (API + Database)
     - 7 suítes de testes: Auth (24), Users (18), Animals (16), Daily Collections (14), Invites (17), Associations (21)
@@ -419,6 +419,7 @@ Content-Type: application/json
 - `401 Unauthorized`: Token JWT inválido/expirado
 - `403 Forbidden`: Usuário sem permissão
 - `404 Not Found`: Recurso inexistente
+- `409 Conflit`: Conflito
 - `500 Internal Server Error`: Erro não tratado
 
 ---
@@ -585,7 +586,6 @@ A arquitetura do QuaLeiDer foi projetada para balancear **simplicidade** (time p
 | ---------------- | ------------------------------------ | ----------------------------------------------------- |
 | **Equipe**       | 1-2 desenvolvedores conseguem manter | Exige time de 5+ pessoas                              |
 | **Complexidade** | Deploy único, logs centralizados     | Requer orquestração (Kubernetes), tracing distribuído |
-| **Custo**        | 1 container ($5/mês no Render)       | Mínimo 3 serviços ($15/mês)                           |
 | **Latência**     | Chamadas de função (nanossegundos)   | Chamadas HTTP entre serviços (milissegundos)          |
 | **Transações**   | ACID nativo do PostgreSQL            | Saga Pattern ou 2PC (complexo)                        |
 
@@ -1064,188 +1064,24 @@ O token é validado automaticamente pelo `JwtAuthGuard` em endpoints protegidos 
 ![Registro de Coleta Diária](images/daily-collection-flow.png)
 
 ### Descrição do Fluxo
-
-Este diagrama ilustra o processo completo de registro de uma coleta diária de leite, incluindo todas as validações de negócio necessárias antes da persistência.
+Este documento descreve o processo técnico de registro de uma coleta diária de leite
 
 **Atores e Componentes:**
 
 - **User (Produtor)**: Produtor de leite registrando a coleta diária
 - **DailyCollectionsController**: Camada de apresentação (HTTP)
 - **DailyCollectionsService**: Camada de aplicação com lógica de negócio e validações
-- **UsersService**: Serviço de validação de produtores
-- **AnimalsService**: Serviço de validação de animais
 - **ORM (Prisma)**: Camada de acesso a dados (PostgreSQL)
 - **PostgreSQL**: Banco de dados relacional
 
 **Etapas do Fluxo:**
 
 1. **Requisição HTTP**: Produtor envia `POST /daily-collections` com dados da coleta
-2. **Validações de Pré-requisitos** (6 validações executadas):
-   - ✓ **Produtor existe e está ativo** (consulta UsersService)
-   - ✓ **Produtor vinculado a uma associação** (valida `associationId`)
-   - ✓ **Animais pertencem ao produtor** (consulta AnimalsService)
-   - ✓ **Data da coleta não é futura** (validação de negócio)
-   - ✓ **Quantidade de leite > 0 litros** (validação de negócio)
-   - ✓ **Número de ordenhas válido** (1-3 por dia)
-3. **Criação Atômica**: Transação que cria registro de coleta + relacionamentos N-to-N com animais
-4. **Persistência**: 2 operações SQL executadas em transação:
+2. **Validações de Pré-requisitos**:
+   - ✓ **Produtor existe e está ativo** 
+3. **Persistência**: 2 operações SQL executadas em transação:
    - `INSERT INTO "DailyCollection"` (coleta principal)
-   - `INSERT INTO "_AnimalToDailyCollection"` (relacionamento Many-to-Many)
-5. **Resposta HTTP**: Retorna `201 Created` com dados da coleta e lista de animais
-
-### Validações de Negócio
-
-**Validações Executadas (DailyCollectionsService):**
-
-```
-┌─────────────────────────────────────────────┐
-│ VALIDAÇÕES DE PRÉ-REQUISITOS (6 checks)    │
-├─────────────────────────────────────────────┤
-│ 1. ✓ Produtor existe e está ativo          │
-│ 2. ✓ Produtor vinculado a uma associação   │
-│ 3. ✓ Todos animais pertencem ao produtor   │
-│ 4. ✓ Data da coleta não é futura           │
-│ 5. ✓ Quantidade de leite > 0 litros        │
-│ 6. ✓ Número de ordenhas válido (1-3/dia)   │
-└─────────────────────────────────────────────┘
-```
-
-**Código de Validação:**
-
-```typescript
-// DailyCollectionsService.create()
-
-const user = await this.usersService.findById(dto.userId);
-if (!user) {
-  throw new NotFoundException("Produtor não encontrado");
-}
-
-if (!user.associationId) {
-  throw new BadRequestException(
-    "Produtor deve estar vinculado a uma associação"
-  );
-}
-
-const animals = await this.animalsService.findMany({
-  where: {
-    id: { in: dto.animalIds },
-    userId: dto.userId,
-  },
-});
-
-if (animals.length !== dto.animalIds.length) {
-  throw new BadRequestException(
-    "Alguns animais não pertencem ao produtor ou não existem"
-  );
-}
-
-if (new Date(dto.date) > new Date()) {
-  throw new BadRequestException("Data não pode ser futura");
-}
-
-if (dto.quantity <= 0) {
-  throw new BadRequestException("Quantidade deve ser maior que zero");
-}
-
-if (dto.milkingCount < 1 || dto.milkingCount > 3) {
-  throw new BadRequestException("Número de ordenhas deve ser entre 1 e 3");
-}
-```
-
-### Relacionamento Many-to-Many
-
-**Tabela de Junção:**
-
-O sistema utiliza relacionamento Many-to-Many entre `Animal` e `DailyCollection`, permitindo rastrear quais animais contribuíram para cada coleta:
-
-```sql
-CREATE TABLE "_AnimalToDailyCollection" (
-  "A" INTEGER NOT NULL REFERENCES "Animal"("id"),
-  "B" INTEGER NOT NULL REFERENCES "DailyCollection"("id"),
-  PRIMARY KEY ("A", "B")
-);
-```
-
-**Criação Atômica:**
-
-```typescript
-const collection = await this.prisma.dailyCollection.create({
-  data: {
-    userId: dto.userId,
-    date: dto.date,
-    quantity: dto.quantity,
-    milkingCount: dto.milkingCount,
-    hasTechnicalAssistance: dto.hasTechnicalAssistance,
-    feed: dto.feed,
-    milkingLocation: dto.milkingLocation,
-    animals: {
-      connect: dto.animalIds.map((id) => ({ id })),
-    },
-  },
-  include: {
-    animals: true,
-  },
-});
-```
-
-### Dados Técnicos Coletados
-
-| Campo                      | Tipo    | Descrição                                      | Exemplo           |
-| -------------------------- | ------- | ---------------------------------------------- | ----------------- |
-| **quantity**               | Float   | Quantidade de leite em litros                  | 45.5              |
-| **milkingCount**           | Integer | Número de ordenhas realizadas (1-3)            | 2                 |
-| **hasTechnicalAssistance** | Boolean | Se recebeu assistência técnica                 | true              |
-| **feed**                   | String  | Tipo de alimentação fornecida                  | "Silagem + Ração" |
-| **milkingLocation**        | String  | Local onde a ordenha foi realizada             | "Sala de Ordenha" |
-| **date**                   | Date    | Data da coleta (não pode ser futura)           | "2025-11-16"      |
-| **animals**                | Array   | IDs dos animais que contribuíram para a coleta | [1, 2, 3]         |
-
-### Cenários de Erro
-
-**1. Produtor Não Encontrado:**
-
-```
-POST /daily-collections {userId: 999, ...}
-→ UsersService.findById(999) retorna null
-→ throw NotFoundException("Produtor não encontrado")
-→ Response: 404 Not Found
-```
-
-**2. Produtor Sem Associação:**
-
-```
-POST /daily-collections {userId: 1, ...}
-→ user.associationId === null
-→ throw BadRequestException("Produtor deve estar vinculado a uma associação")
-→ Response: 400 Bad Request
-```
-
-**3. Animais Não Pertencem ao Produtor:**
-
-```
-POST /daily-collections {userId: 1, animalIds: [1, 2, 999], ...}
-→ AnimalsService retorna apenas 2 animais (esperado: 3)
-→ throw BadRequestException("Alguns animais não pertencem ao produtor")
-→ Response: 400 Bad Request
-```
-
-**4. Data Futura:**
-
-```
-POST /daily-collections {date: "2025-12-31", ...}
-→ new Date(dto.date) > new Date()
-→ throw BadRequestException("Data não pode ser futura")
-→ Response: 400 Bad Request
-```
-
-**5. Quantidade Inválida:**
-
-```
-POST /daily-collections {quantity: -10, ...}
-→ dto.quantity <= 0
-→ throw BadRequestException("Quantidade deve ser maior que zero")
-→ Response: 400 Bad Request
-```
+4. **Resposta HTTP**: Retorna `201 Created` com dados da coleta
 
 ### Características de Qualidade
 
@@ -1262,13 +1098,12 @@ POST /daily-collections {quantity: -10, ...}
 
 - **Rastreabilidade**:
 
-  - Relacionamento N-to-N permite saber quais animais contribuíram
   - Histórico completo de coletas por produtor
-  - Dados técnicos para análise de produtividade
+  - Dados técnicos para análise de produtividade (TO DO)
 
 - **Validação Rigorosa**:
-  - 6 validações de negócio antes de persistir
-  - Garante integridade referencial (produtor, animais, associação)
+  - validações de negócio antes de persistir
+  - Garante integridade referencial 
   - Previne dados inconsistentes no banco
 
 # Visão de Implantação {#section-deployment-view}
@@ -1372,15 +1207,15 @@ O princípio de Separation of Concerns divide responsabilidades em camadas disti
 
 ```
 tests/
-├── unit/                          # Testes unitários (472 testes)
+├── unit/                          # Testes unitários (450 testes)
 │   ├── application/
 │   │   ├── dtos/                 # Validação de DTOs (100% cobertura)
-│   │   └── services/             # Lógica de negócio (95%+ cobertura)
+│   │   └── services/             # Lógica de negócio (100%+ cobertura)
 │   ├── domain/
 │   │   ├── entities/             # Regras de domínio (100% cobertura)
 │   │   └── enums/
 │   └── presentation/
-│       └── controllers/          # Endpoints HTTP (97% cobertura)
+│       └── controllers/          # Endpoints HTTP (100% cobertura)
 ├── e2e/                           # Testes end-to-end (110 testes)
 │   ├── auth/                     # Login, Reset de Senha (24 testes)
 │   ├── users/                    # CRUD de Usuários (18 testes)
@@ -1461,9 +1296,9 @@ describe('E2E: Animais - Operações CRUD', () => {
 | --------------------- | ------ | ------ | ------ |
 | Cobertura Geral       | > 80%  | 96.25% | ✅     |
 | Cobertura DTOs        | 100%   | 100%   | ✅     |
-| Cobertura Services    | > 90%  | 95%+   | ✅     |
-| Cobertura Controllers | > 90%  | 97%    | ✅     |
-| Testes Unitários      | > 300  | 472    | ✅     |
+| Cobertura Services    | > 90%  | 100%+   | ✅     |
+| Cobertura Controllers | > 90%  | 100%    | ✅     |
+| Testes Unitários      | > 300  | 453    | ✅     |
 | Testes E2E            | > 80   | 110    | ✅     |
 | Tempo Exec. Unit      | < 60s  | 50s    | ✅     |
 | Tempo Exec. E2E       | < 120s | 90s    | ✅     |
@@ -1688,7 +1523,6 @@ enum UserRole {
 
 - Produtor pode cadastrar múltiplos animais
 - Animal inativo não pode participar de coletas
-- Data de nascimento não pode ser futura
 - Nome deve ser único por produtor (soft constraint)
 
 **Exemplo de Código (Prisma Schema):**

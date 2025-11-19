@@ -83,25 +83,11 @@ export class AuthService {
         },
       });
 
-      const metadata = {
-        expiryDate: resetTokenExpiry,
-        device: 'Não disponível',
-        browser: 'Não disponível',
-        ipAddress: 'Não disponível',
-      };
-
-      // Apenas extrai o IP se o request existir, sem parsing complexo de User-Agent
-      if (request) {
-        const ip =
-          request.ip || request.connection.remoteAddress || 'Não disponível';
-        metadata.ipAddress = ip;
-      }
-
       await this.mailService.sendResetPasswordEmail(
         user.email,
         resetToken,
         user.name,
-        metadata,
+        { expiryDate: resetTokenExpiry },
       );
 
       this.logger.log(`Token de reset enviado para ${user.email}`);
