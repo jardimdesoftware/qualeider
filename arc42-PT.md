@@ -3995,7 +3995,7 @@ Não há testes automatizados específicos para validar vulnerabilidades de segu
 | **Helmet:**                     | Middleware para configurar headers de segurança HTTP, protege contra vulnerabilidades comuns.                                                  |
 | **Rate Limiting (Throttling)**  | Técnica de limitar o número de requisições que um cliente pode fazer à API em um período de tempo, prevenindo abuso e ataques DoS              |
 | **DoS**                         | Denial of Service: ataque que tenta sobrecarregar um sistema tornando-o indisponível para usuários legítimos através de requisições excessivas |
-| **TTL (Time To Live)**          | Janela de tempo em segundos usada no rate limiting para determinar o período em que as requisições são contadas                                |
+| **TTL (Time To Live)**          | Janela de tempo (ex: segundos ou milissegundos) usada no rate limiting para determinar o período em que as requisições são contadas |
 | **X-RateLimit-Limit**           | Header HTTP que informa o número máximo de requisições permitidas em uma janela de tempo                                                       |
 | **X-RateLimit-Remaining**       | Header HTTP que informa quantas requisições restam na janela de tempo atual antes de atingir o limite                                          |
 | **X-RateLimit-Reset**           | Header HTTP que informa o timestamp Unix de quando o contador de requisições será resetado                                                     |

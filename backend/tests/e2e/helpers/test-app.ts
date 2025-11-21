@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { AppModule } from '@/presentation/app.module';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { MailService } from '@/mail/mail.service';
 import { MockMailService } from '../../mocks/mail.mock';
@@ -19,6 +18,13 @@ export class TestApp {
    * Cria e inicializa a aplicação de testes
    */
   async setup(): Promise<INestApplication> {
+    // Forçar modo de teste para o Throttler (TTL curto) sem alterar NODE_ENV (que quebraria DB)
+    process.env.TEST_THROTTLING = 'true';
+
+    // Importar AppModule dinamicamente APÓS definir a variável de ambiente
+    // Isso garante que o throttler.config.ts seja avaliado com a nova configuração
+    const { AppModule } = await import('@/presentation/app.module');
+
     this.moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     })

@@ -16,9 +16,10 @@ import { ThrottlerModuleOptions } from '@nestjs/throttler';
  * @see {@link https://docs.nestjs.com/security/rate-limiting} Documentação oficial
  */
 
-// Helper para obter TTL baseado no ambiente
-const getTTL = (prodTTL: number): number => {
-  return process.env.NODE_ENV === 'test' ? 2 : prodTTL;
+// Helper para obter TTL baseado no ambiente (Retorna em MILISSEGUNDOS para Throttler v6)
+const getTTL = (prodSeconds: number): number => {
+  const isTest = process.env.NODE_ENV === 'test' || process.env.TEST_THROTTLING === 'true';
+  return isTest ? 2000 : prodSeconds * 1000;
 };
 
 // Exportar valores para uso em decorators personalizados
