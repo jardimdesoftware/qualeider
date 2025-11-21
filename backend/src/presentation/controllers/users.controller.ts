@@ -12,6 +12,8 @@ import {
   HttpStatus,
   ParseIntPipe,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import { THROTTLE_TTL } from '@/common/throttler/throttler.config';
 import { JwtAuthGuard } from '@/application/guards/jwt-auth.guard';
 import {
   ApiTags,
@@ -32,6 +34,7 @@ import { BusinessException } from '@/common/exceptions/business.exception';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  @Throttle({ default: { limit: 5, ttl: THROTTLE_TTL.LONG } }) 
   @ApiOperation({ summary: 'Criar um usuário' })
   @ApiBearerAuth()
   @ApiResponse({ status: 201, description: 'Usuário criado com sucesso' })

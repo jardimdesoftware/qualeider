@@ -46,6 +46,8 @@ jobs:
 
       - name: Executar migrations
         working-directory: backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/qualeider_test
         run: npx prisma migrate deploy
 
       - name: Executar testes unitários com cobertura
@@ -54,6 +56,9 @@ jobs:
 
       - name: Executar testes E2E
         working-directory: backend
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/qualeider_test
         run: npm run test:e2e
 
       # - name: Upload coverage para Codecov (falar com elton pra talvez fazer isso depois)

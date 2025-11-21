@@ -7,6 +7,8 @@ import {
   Req,
   HttpStatus,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import { THROTTLE_TTL } from '@/common/throttler/throttler.config';
 import { AuthService } from '@/auth/auth.service';
 import { LoginDto } from '@/application/dtos/auth/login.dto';
 import { ForgotPasswordDto } from '@/application/dtos/auth/forgot-password.dto';
@@ -20,6 +22,7 @@ import { Request } from 'express';
 export class AuthController {
   constructor(private authService: AuthService) {}
 
+  @Throttle({ default: { limit: 3, ttl: THROTTLE_TTL.SHORT } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Realizar login' })
@@ -47,6 +50,7 @@ export class AuthController {
     };
   }
 
+  @Throttle({ default: { limit: 3, ttl: THROTTLE_TTL.LONG } }) // 3 tentativas por 5min (300s prod, 2s test)
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Solicitar redefinição de senha' })
@@ -67,6 +71,7 @@ export class AuthController {
     };
   }
 
+  @Throttle({ default: { limit: 5, ttl: THROTTLE_TTL.SHORT } }) // 5 tentativas por minuto (60s prod, 2s test) 
   @Post('validate-reset-token')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Validar token de redefinição de senha' })
@@ -85,6 +90,7 @@ export class AuthController {
     };
   }
 
+  @Throttle({ default: { limit: 3, ttl: THROTTLE_TTL.LONG } }) // 3 tentativas por 5min (300s prod, 2s test)
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Redefinir senha' })

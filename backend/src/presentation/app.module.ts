@@ -12,13 +12,16 @@ import { NotificationsPresentationModule } from './modules/notifications.module'
 import { MailModule } from '@/mail/mail.module';
 import { WinstonModule } from 'nest-winston';
 import { winstonConfig } from '@/common/logger/logger.config';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { throttlerConfig } from '@/common/throttler/throttler.config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import * as path from 'path';
+import { APP_GUARD } from '@nestjs/core';
+import { AppThrottlerGuard } from '@/guards/app-throttler-guards';
 
 @Module({
   imports: [
-    WinstonModule.forRoot(winstonConfig),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: [
@@ -29,6 +32,8 @@ import * as path from 'path';
         ),
       ],
     }),
+    WinstonModule.forRoot(winstonConfig),
+    ThrottlerModule.forRoot(throttlerConfig),
     EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),
     PrismaModule,
@@ -43,6 +48,11 @@ import * as path from 'path';
     MailModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: AppThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}
