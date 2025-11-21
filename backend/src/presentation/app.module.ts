@@ -18,6 +18,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import * as path from 'path';
 import { APP_GUARD } from '@nestjs/core';
+import { AppThrottlerGuard } from '@/guards/app-throttler-guards';
 
 @Module({
   imports: [
@@ -50,7 +51,7 @@ import { APP_GUARD } from '@nestjs/core';
   providers: [
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      useClass: AppThrottlerGuard,
     },
   ],
 })

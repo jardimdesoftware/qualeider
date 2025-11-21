@@ -2451,11 +2451,58 @@ ThrottlerModule.forRoot([
 
 ---
 
+**Como os testes são afetados?**
+
+Para garantir que nossos testes E2E rodem com velocidade máxima sem serem bloqueados falsamente pelo Rate Limiter (erro 429), implementamos uma estratégia de "Passe VIP".
+
+**Problema**
+
+O Rate Limiter padrão do NestJS (ThrottlerGuard) bloqueia IPs que fazem muitas requisições em pouco tempo. Como os testes E2E executam centenas de requisições por segundo (CRUDs de usuários, login, etc.), eles eram bloqueados constantemente, gerando falhas falsas.
+
+**Solução**
+
+Substituímos o guardião padrão pelo AppThrottlerGuard. Ele possui uma "porta dos fundos" segura que só funciona em ambiente de testes.
+
+![Teste de Rate Limiting](images/rate-limiting-e2e.png)
+
+**Como utilizar nos Testes**
+
+A classe `TestApp` fornece dois métodos para fazer requisições. Escolha o correto baseando-se no que você quer testar.
+
+**1. Para Testes Funcionais (CRUDs, Fluxos de Negócio)**
+
+Use `.request()`.
+
+Este método injeta automaticamente o "Passe VIP". Use para 99% dos testes.
+
+```typescript
+// ✅ Nunca será bloqueado, ideal para testar lógica de negócio
+it('deve criar usuário', async () => {
+  await testApp.request().post('/users').send(data).expect(201);
+});
+```
+
+**2. Para Testar o Próprio Rate Limit**
+
+Use `.throttledRequest()`.
+
+Este método envia a requisição "crua", sem o header VIP. O Guardião irá contar essa requisição e bloqueá-la se passar do limite.
+
+```typescript
+// 🛡️ Será bloqueado se exceder o limite
+it('deve bloquear spam', async () => {
+  for(let i=0; i<10; i++) {
+     await testApp.throttledRequest().post('/login').send(data);
+  }
+  await testApp.throttledRequest().post('/login').expect(429); // Bloqueado!
+});
+```
+
 ### Headers de Segurança
 
 **Implementado:** Helmet e remoção do header X-Powered-By
 
-O projeto agora usa Helmet para aplicar headers de segurança e o servidor foi configurado para não expor a tecnologia usada (removido `X-Powered-By`).
+O projeto usa Helmet para aplicar headers de segurança e o servidor foi configurado para não expor a tecnologia usada (removido `X-Powered-By`).
 
 ```typescript
 // backend/src/presentation/main.ts

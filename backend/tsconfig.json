@@ -26,7 +26,8 @@
       "@/auth/*": ["src/auth/*"],
       "@/mail/*": ["src/mail/*"],
       "@/events/*": ["src/events/*"],
-      "@/listener/*": ["src/listener/*"]
+      "@/listener/*": ["src/listener/*"],
+      "@/guards/*": ["src/guards/*"],
     }
   },
   "exclude": [

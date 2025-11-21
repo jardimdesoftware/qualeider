@@ -36,7 +36,7 @@ describe('E2E: Rate Limiting (Throttling)', () => {
       // Todas devem retornar 401 (não 429)
       for (let i = 1; i <= 3; i++) {
         const response = await testApp
-          .request()
+          .throttledRequest() // 👈 USO DO MÉTODO SEM BYPASS
           .post('/auth/login')
           .set('X-Forwarded-For', fakeIP) // Simula IP específico
           .send(credentials);
@@ -56,7 +56,7 @@ describe('E2E: Rate Limiting (Throttling)', () => {
       // Fazer 3 requisições válidas
       for (let i = 1; i <= 3; i++) {
         await testApp
-          .request()
+          .throttledRequest() // 👈 USO DO MÉTODO SEM BYPASS
           .post('/auth/login')
           .set('X-Forwarded-For', fakeIP)
           .send(credentials);
@@ -64,7 +64,7 @@ describe('E2E: Rate Limiting (Throttling)', () => {
 
       // 4ª requisição deve ser bloqueada
       const response = await testApp
-        .request()
+        .throttledRequest() // 👈 USO DO MÉTODO SEM BYPASS
         .post('/auth/login')
         .set('X-Forwarded-For', fakeIP) // Mesmo IP do loop acima
         .send(credentials);
@@ -72,9 +72,6 @@ describe('E2E: Rate Limiting (Throttling)', () => {
       expect(response.status).toBe(HttpStatus.TOO_MANY_REQUESTS);
       expect(response.body.statusCode).toBe(429);
       
-      // expect(response.headers).toHaveProperty('x-ratelimit-limit');
-      // expect(response.headers).toHaveProperty('x-ratelimit-remaining');
-      // expect(response.headers).toHaveProperty('x-ratelimit-reset');
       expect(response.headers).toHaveProperty('retry-after');
     });
 
@@ -88,7 +85,7 @@ describe('E2E: Rate Limiting (Throttling)', () => {
       // Fazer 3 requisições para atingir o limite
       for (let i = 1; i <= 3; i++) {
         await testApp
-          .request()
+          .throttledRequest()
           .post('/auth/login')
           .set('X-Forwarded-For', fakeIP)
           .send(credentials);
@@ -99,7 +96,7 @@ describe('E2E: Rate Limiting (Throttling)', () => {
 
       // Nova requisição deve passar (limite resetado)
       const response = await testApp
-        .request()
+        .throttledRequest()
         .post('/auth/login')
         .set('X-Forwarded-For', fakeIP) // Mesmo IP, mas após reset
         .send(credentials);
@@ -121,7 +118,7 @@ describe('E2E: Rate Limiting (Throttling)', () => {
         });
 
         const response = await testApp
-          .request()
+          .throttledRequest() // 👈 USO DO MÉTODO SEM BYPASS
           .post('/users')
           .set('X-Forwarded-For', fakeIP)
           .send(userData);
@@ -142,7 +139,7 @@ describe('E2E: Rate Limiting (Throttling)', () => {
         });
 
         await testApp
-          .request()
+          .throttledRequest()
           .post('/users')
           .set('X-Forwarded-For', fakeIP)
           .send(userData);
@@ -155,7 +152,7 @@ describe('E2E: Rate Limiting (Throttling)', () => {
       });
 
       const response = await testApp
-        .request()
+        .throttledRequest()
         .post('/users')
         .set('X-Forwarded-For', fakeIP)
         .send(userData);
@@ -181,7 +178,7 @@ describe('E2E: Rate Limiting (Throttling)', () => {
         };
 
         await testApp
-          .request()
+          .throttledRequest()
           .post('/associations')
           .set('X-Forwarded-For', fakeIP)
           .send(assocData);
@@ -198,7 +195,7 @@ describe('E2E: Rate Limiting (Throttling)', () => {
       };
 
       const response = await testApp
-        .request()
+        .throttledRequest()
         .post('/associations')
         .set('X-Forwarded-For', fakeIP)
         .send(assocData);
@@ -218,7 +215,7 @@ describe('E2E: Rate Limiting (Throttling)', () => {
       // Atingir o limite (3 requisições)
       for (let i = 1; i <= 3; i++) {
         await testApp
-          .request()
+          .throttledRequest()
           .post('/auth/login')
           .set('X-Forwarded-For', fakeIP)
           .send(credentials);
@@ -226,21 +223,14 @@ describe('E2E: Rate Limiting (Throttling)', () => {
 
       // Requisição bloqueada
       const response = await testApp
-        .request()
+        .throttledRequest()
         .post('/auth/login')
         .set('X-Forwarded-For', fakeIP)
         .send(credentials)
         .expect(429);
 
       // Validar headers
-      // expect(response.headers['x-ratelimit-limit']).toBeDefined();
-      // expect(response.headers['x-ratelimit-remaining']).toBeDefined();
-      // expect(response.headers['x-ratelimit-reset']).toBeDefined();
       expect(response.headers['retry-after']).toBeDefined();
-
-      // Validar valores
-      // expect(Number(response.headers['x-ratelimit-limit'])).toBe(3);
-      // expect(Number(response.headers['x-ratelimit-remaining'])).toBe(0);
       expect(Number(response.headers['retry-after'])).toBeGreaterThan(0);
     });
   });
