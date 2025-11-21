@@ -54,6 +54,8 @@ jobs:
 
       - name: Executar testes E2E
         working-directory: backend
+        env:
+          NODE_ENV: test
         run: npm run test:e2e
 
       # - name: Upload coverage para Codecov (falar com elton pra talvez fazer isso depois)
