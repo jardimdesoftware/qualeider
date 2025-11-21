@@ -2328,7 +2328,7 @@ Headers aplicados:
 | Email        | PII       | Criptografia em repouso (TDE) |
 | Senha        | Sensível  | bcrypt 12 rounds              |
 | Nome         | PII       | Criptografia em repouso       |
-| CPF (futuro) | Sensível  | Mascaramento em logs          |
+| CPF          | Sensível  | Mascaramento em logs          |
 
 #### **2. Sanitização de Logs**
 
@@ -2686,7 +2686,7 @@ export const RESET_TOKEN_EXPIRY_MINUTES = 15;
 
 ## 8.4 Logging e Monitoramento {#logging_monitoramento}
 
-O sistema de logging estruturado facilita debugging, auditoria e monitoramento de processos críticos (CRON jobs, emails, autenticação).
+O sistema utiliza uma estratégia de Logging Estruturado baseada na biblioteca winston, integrada nativamente ao Logger do NestJS. Isso garante que todos os logs do sistema (incluindo erros não tratados e queries do Prisma) sigam um padrão uniforme, facilitando a ingestão por ferramentas de observabilidade(Quando escolher qual vou usar citar aqui TODO).
 
 ### Níveis de Log
 
@@ -2699,39 +2699,58 @@ O sistema de logging estruturado facilita debugging, auditoria e monitoramento d
 
 ### Logs Estruturados (JSON)
 
-**⚠️ TODO:** Implementar logger estruturado (JSON) customizado
+Diferente do logger padrão (texto simples), o sistema emite logs em formato JSON. Isso permite filtrar logs por campos específicos (ex: context: 'AuthService') sem necessidade de regex complexo.
 
-**Atualmente:** O projeto usa `Logger` do NestJS com formato padrão de texto.
+**Exemplo de estrutura de log atual:**
 
-**Logs atuais (exemplo real):**
-
-```typescript
-// backend/src/listener/invite-email.listener.ts
-this.logger.log(`Enviando email de convite para ${event.userEmail}...`);
-this.logger.error(
-  `❌ Erro ao enviar email de convite para ${event.userEmail}:`,
-  error
-);
+```json
+{
+  "timestamp": "2025-11-20 15:30:00",
+  "level": "info",
+  "message": "Usuário autenticado com sucesso",
+  "context": "AuthService",
+  "userId": "uuid-1234-5678",
+  "meta": {
+    "ip": "192.168.1.50",
+    "userAgent": "Mozilla/5.0..."
+  }
+}
 ```
-
-**Formato de saída atual:** Texto simples do NestJS Logger
-
-**Recomendação futura:** Implementar logs em formato JSON estruturado para facilitar parsing e análise.
 
 ---
 
 ### Sanitização de Dados Sensíveis (LGPD)
 
-**⚠️ TODO:** Implementar middleware de sanitização de logs
+O sistema possui um Middleware de Sanitização (Custom Formatter) que intercepta todos os logs antes da escrita. Um algoritmo recursivo varre o objeto de log (mensagem e metadados) em busca de chaves sensíveis e as ofusca automaticamente.
 
 Logs **nunca** devem conter:
 
 - Senhas (plaintext ou hash)
-- Tokens completos (JWT, reset password)
-- CPF completo (apenas primeiros 3 e últimos 2 dígitos)
-- Dados de pagamento (cartão de crédito)
+- Tokens (JWT, reset password)
+- CPF
 
-**Recomendação futura:** Implementar interceptor para sanitizar dados sensíveis antes de logar.
+
+**Sanitização de logs atualmente:**
+
+```json
+// Código (Input)
+this.logger.log({ 
+  msg: 'Criando usuário', 
+  data: { name: 'Marcelo', password: '123' } 
+});
+
+// Log Gerado (Output Seguro)
+{
+  "timestamp": "...",
+  "message": {
+    "msg": "Criando usuário",
+    "data": { 
+      "name": "Marcelo", 
+      "password": "***[REDACTED]***" // <--- Protegido automaticamente
+    }
+  }
+}
+```
 
 ---
 

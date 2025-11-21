@@ -7,4 +7,5 @@ export const SENSITIVE_KEYS = [
   'authorization',
   'accessToken',
   'refreshToken',
+  'cpf'
 ];
