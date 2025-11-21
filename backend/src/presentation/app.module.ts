@@ -10,12 +10,15 @@ import { AssociationsPresentationModule } from './modules/associations.module';
 import { InvitesPresentationModule } from './modules/invites.module';
 import { NotificationsPresentationModule } from './modules/notifications.module';
 import { MailModule } from '@/mail/mail.module';
+import { WinstonModule } from 'nest-winston';
+import { winstonConfig } from '@/common/logger/logger.config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import * as path from 'path';
 
 @Module({
   imports: [
+    WinstonModule.forRoot(winstonConfig),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: [

@@ -2332,33 +2332,43 @@ Headers aplicados:
 
 #### **2. Sanitização de Logs**
 
-**⚠️ TODO:** Implementar logger customizado com sanitização
+![Sanitização de logs](images/log-sanitization.png)
 
-**Atualmente:** O projeto usa o Logger padrão do NestJS sem sanitização automática.
+Estratégia de Sanitização: Utilizamos o winston com um Custom Formatter para garantir a conformidade com a LGPD e segurança da informação. A sanitização ocorre em memória antes do flush para o stdout ou arquivos.
 
-**Recomendação futura:**
+**Codigo real:**
 
 ```typescript
-// src/common/logger.service.ts (NÃO IMPLEMENTADO)
-@Injectable()
-export class LoggerService {
-  log(message: string, context?: any) {
-    const sanitizedContext = this.sanitize(context);
-    console.log(
-      JSON.stringify({
-        timestamp: new Date().toISOString(),
-        message,
-        context: sanitizedContext,
-      })
-    );
+// src/common/logger.config.ts 
+export const sanitizeData = (data: any): any => {
+  if (!data) return data;
+  
+  if (typeof data === 'object') {
+    if (Array.isArray(data)) {
+      return data.map((item) => sanitizeData(item));
+    }
+
+    const sanitized = { ...data };
+    for (const key in sanitized) {
+      if (SENSITIVE_KEYS.includes(key)) {
+        sanitized[key] = '***[REDACTED]***'; 
+      } else {
+        sanitized[key] = sanitizeData(sanitized[key]); // Recursão
+      }
+    }
+    return sanitized;
   }
 
-  private sanitize(data: any): any {
-    const sensitiveFields = ["password", "resetPasswordToken", "access_token"];
-    // ... implementação de sanitização
-  }
-}
+  return data;
+};
+
+const sanitizerFormat = winston.format((info) => {
+  //implementação
+  return info;
+});
 ```
+
+Extensibilidade: Para adicionar novas chaves à lista de bloqueio, edite o arquivo constant: src/common/logger/sensitive-keys.ts.
 
 #### **3. Direito ao Esquecimento**
 

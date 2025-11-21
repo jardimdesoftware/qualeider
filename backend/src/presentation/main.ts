@@ -4,9 +4,10 @@ import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
-import { PrismaExceptionFilter } from '@/common/filters/prisma-exception.filter';
 import helmet from 'helmet';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { HttpExceptionFilter } from '@/common/filters/http-exception.filter';
+import { PrismaExceptionFilter } from '@/common/filters/prisma-exception.filter';
 
 /**
  * Configura as opções de CORS baseadas nas variáveis de ambiente.
@@ -90,7 +91,7 @@ async function logAppStatus(
  * Função principal que inicializa a aplicação NestJS.
  */
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
   const configService = app.get(ConfigService);
 
   // Configurar Helmet para segurança HTTP
@@ -107,6 +108,7 @@ async function bootstrap() {
       },
     }),
   );
+  app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
 
   // 1. Configurar CORS
   const corsOptions = configureCors(configService);

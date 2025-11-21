@@ -47,12 +47,14 @@
     "crypto": "^1.0.1",
     "handlebars": "^4.7.8",
     "helmet": "^8.1.0",
+    "nest-winston": "^1.10.2",
     "nodemailer": "^6.10.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1",
-    "swagger-ui-express": "^5.0.1"
+    "swagger-ui-express": "^5.0.1",
+    "winston": "^3.18.3"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",
