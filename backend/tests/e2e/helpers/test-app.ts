@@ -42,6 +42,11 @@ export class TestApp {
       }),
     );
 
+    // Habilita trust proxy para que o Throttler leia o IP do header X-Forwarded-For
+    // Necessário para testes E2E de rate limiting com IPs simulados
+    const expressInstance = this.app.getHttpAdapter().getInstance();
+    expressInstance.set('trust proxy', true);
+
     await this.app.init();
 
     return this.app;

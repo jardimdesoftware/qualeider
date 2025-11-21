@@ -7,6 +7,8 @@ import {
   Get,
   Query,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import { THROTTLE_TTL } from '@/common/throttler/throttler.config';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { AssociationsService } from '@/application/services/associations/associations.service';
 import { CreateAssociationDto } from '@/application/dtos/associations/create-association.dto';
@@ -17,6 +19,7 @@ import { BusinessException } from '@/common/exceptions/business.exception';
 export class AssociationsController {
   constructor(private readonly associationsService: AssociationsService) {}
 
+  @Throttle({ default: { limit: 5, ttl: THROTTLE_TTL.LONG } })
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Criar uma nova associação' })

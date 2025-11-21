@@ -206,8 +206,7 @@ Estas são as limitações impostas pela escolha de tecnologias, frameworks, pla
 | **REST API (Padrão HTTP)**             | Protocolo de comunicação entre frontend e backend         | Simplicidade, cacheable, stateless, amplo suporte em bibliotecas                               | Não permite GraphQL (flexibilidade de queries); overfetching/underfetching podem ocorrer                                                                                                                        |
 | **Versionamento de API: /api/v1/**     | Prefixo obrigatório em todas as rotas                     | Permite evolução da API sem quebrar clientes existentes                                        | Aumenta tamanho de URLs; força planejamento de breaking changes                                                                                                                                                 |
 | **Helmet Middleware**                  | Middleware obrigatório para headers HTTP seguros          | Requisito de segurança para evitar vulnerabilidades conhecidas                                 | Headers configurados automaticamente em todas respostas HTTP                                                                                                                                                    |
-
----
+| **Rate Limiting (Throttler)**          | Middleware obrigatório para limitar requisições por IP/usuário | Requisito de segurança para prevenir ataques de força bruta e DoS                               | Limites configurados por rota; rotas críticas (login, reset de senha) têm limites mais restritos; retorna HTTP 429 quando excedido                                                                             |
 
 ## Restrições Organizacionais
 
@@ -420,6 +419,7 @@ Content-Type: application/json
 - `403 Forbidden`: Usuário sem permissão
 - `404 Not Found`: Recurso inexistente
 - `409 Conflit`: Conflito
+- `429 Too Many Requests`: Limite de rate limiting excedido
 - `500 Internal Server Error`: Erro não tratado
 
 ---
@@ -2393,19 +2393,61 @@ app.enableCors({
 });
 ```
 
-#### **4. Brute-Force Login**
 
-**Proteção Atual:** bcrypt (12 rounds) torna brute-force lento  
-**TODO:** Implementar rate limiting com `@nestjs/throttler`
+### **3. Rate Limiting: Proteção Contra Abuso**
 
+O sistema implementa **rate limiting** usando `@nestjs/throttler` para prevenir:
+- **Ataques de força bruta** em endpoints de autenticação
+- **Criação massiva de recursos** (spam de usuários, associações, convites)
+- **DoS (Denial of Service)** por sobrecarga intencional da API
+
+![Fluxo de Rate Limiting](images/rate-limiting.png)
+
+**Configuração Global:**
 ```typescript
-// TODO: Implementar
-@ThrottlerGuard()
-@Post('login')
-async login(@Body() dto: LoginDto) {
-  // Limite: 5 tentativas por minuto por IP
+// src/common/throttler/throttler.config.ts
+export const THROTTLE_TTL = {
+  SHORT: getTTL(60),    // 60s em prod, 2s em test
+  LONG: getTTL(300),    // 300s em prod, 2s em test
+};
+ThrottlerModule.forRoot([
+  {
+    ttl: THROTTLE_TTL.SHORT,
+    limit: 10
+  },
+  {
+    ttl: THROTTLE_TTL.LONG,
+    limit: 10
+  }
+])
+```
+
+**Limites Personalizados por Endpoint:**
+
+| Endpoint | Limite | Janela (TTL) | Justificativa |
+| --- | --- | --- | --- |
+| `POST /auth/login` | 3 requisições | 60s | Prevenir brute force de credenciais |
+| `POST /auth/forgot-password` | 3 requisições | 300s | Prevenir spam de emails |
+| `POST /auth/reset-password` | 3 requisições | 300s | Prevenir adivinhação de tokens |
+| `POST /users` | 5 requisições | 300s | Prevenir criação massiva de contas |
+| `POST /associations` | 5 requisições | 300s | Prevenir criação massiva de associações |
+| `POST /notifications/send` | 5 requisições | 300s | Prevenir spam de notificações |
+| `POST /invites/...` | 10 requisições | 300s | Limitar envio de convites |
+| Demais rotas | 10 requisições | 60s | Limite padrão global |
+
+**Resposta ao Exceder Limite:**
+```json
+{
+  "statusCode": 429,
+  "message": "ThrottlerException: Too Many Requests"
 }
 ```
+
+**Headers HTTP Retornados:**
+- `X-RateLimit-Limit`: Limite máximo configurado
+- `X-RateLimit-Remaining`: Requisições restantes
+- `X-RateLimit-Reset`: Timestamp de reset Unix
+- `Retry-After`: Tempo em segundos para próxima tentativa
 
 ---
 
@@ -3951,3 +3993,11 @@ Não há testes automatizados específicos para validar vulnerabilidades de segu
 | **@willsoto/nestjs-prometheus** | Pacote para integração do NestJS com o Prometheus, utilizado para expor métricas da aplicação                                                  |
 | **@nestjs/throttler**           | Pacote do NestJS para implementação de rate limiting, utilizado para proteger rotas contra abusos e ataques de força bruta                     |
 | **Helmet:**                     | Middleware para configurar headers de segurança HTTP, protege contra vulnerabilidades comuns.                                                  |
+| **Rate Limiting (Throttling)**  | Técnica de limitar o número de requisições que um cliente pode fazer à API em um período de tempo, prevenindo abuso e ataques DoS              |
+| **DoS**                         | Denial of Service: ataque que tenta sobrecarregar um sistema tornando-o indisponível para usuários legítimos através de requisições excessivas |
+| **TTL (Time To Live)**          | Janela de tempo em segundos usada no rate limiting para determinar o período em que as requisições são contadas                                |
+| **X-RateLimit-Limit**           | Header HTTP que informa o número máximo de requisições permitidas em uma janela de tempo                                                       |
+| **X-RateLimit-Remaining**       | Header HTTP que informa quantas requisições restam na janela de tempo atual antes de atingir o limite                                          |
+| **X-RateLimit-Reset**           | Header HTTP que informa o timestamp Unix de quando o contador de requisições será resetado                                                     |
+| **Retry-After**                 | Header HTTP que informa ao cliente quantos segundos deve aguardar antes de tentar fazer uma nova requisição após atingir o limite              |
+

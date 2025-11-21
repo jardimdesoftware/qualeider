@@ -11,6 +11,8 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import { THROTTLE_TTL } from '@/common/throttler/throttler.config';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { InvitesService } from '@/application/services/invites/invites.service';
 import { CreateInviteDto } from '@/application/dtos/invites/create-invite.dto';
@@ -22,6 +24,7 @@ import { InviteStatus } from '@/domain/enums/enums';
 export class InvitesController {
   constructor(private readonly invitesService: InvitesService) {}
 
+  @Throttle({ default: { limit: 10, ttl: THROTTLE_TTL.LONG } })
   @Post('association/:associationId')
   @ApiOperation({ summary: 'Associação envia convite para um usuário' })
   @ApiParam({ name: 'associationId', description: 'ID da associação' })
