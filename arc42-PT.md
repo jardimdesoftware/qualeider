@@ -69,14 +69,14 @@ O **QuaLeiDer** é uma plataforma web para gestão de produtores de leite e suas
 
 ## Objetivos de Qualidade
 
-| Prioridade | Objetivo de Qualidade | Cenário Mensurável                                                                                                                               |
-| ---------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1          | **Segurança**         | Tokens JWT expiram em 24h; senhas com hash bcrypt (12 rounds); reset de senha expira em 15 min; proteção contra SQL injection via Prisma ORM; Headers HTTP seguros via Helmet     |
-| 2          | **Manutenibilidade**  | Clean Architecture com 4 camadas (Domain, Application, Infrastructure, Presentation);                                                            |
-| 3          | **Escalabilidade**    | Sistema suporta 50 associações e 2.000 produtores simultâneos; API responde < 300ms com 500 req/min; preparado para crescimento horizontal       |
-| 4          | **Confiabilidade**    | Jobs CRON registram falhas em log; emails com 3 tentativas de reenvio (5, 15, 30 min); 99% de uptime para operações críticas                     |
-| 5          | **Usabilidade**       | Produtor registra coleta em < 45s via smartphone; taxa de sucesso de 95% na aceitação de convites sem ajuda; API RESTful documentada com Swagger |
-| 6          | **Testabilidade**     | Dependency Injection em 100% dos serviços; ports/adapters pattern; cobertura de testes > 80% em camadas críticas (Application, Domain)           |
+| Prioridade | Objetivo de Qualidade | Cenário Mensurável                                                                                                                                                            |
+| ---------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1          | **Segurança**         | Tokens JWT expiram em 24h; senhas com hash bcrypt (12 rounds); reset de senha expira em 15 min; proteção contra SQL injection via Prisma ORM; Headers HTTP seguros via Helmet |
+| 2          | **Manutenibilidade**  | Clean Architecture com 4 camadas (Domain, Application, Infrastructure, Presentation);                                                                                         |
+| 3          | **Escalabilidade**    | Sistema suporta 50 associações e 2.000 produtores simultâneos; API responde < 300ms com 500 req/min; preparado para crescimento horizontal                                    |
+| 4          | **Confiabilidade**    | Jobs CRON registram falhas em log; emails com 3 tentativas de reenvio (5, 15, 30 min); 99% de uptime para operações críticas                                                  |
+| 5          | **Usabilidade**       | Produtor registra coleta em < 45s via smartphone; taxa de sucesso de 95% na aceitação de convites sem ajuda; API RESTful documentada com Swagger                              |
+| 6          | **Testabilidade**     | Dependency Injection em 100% dos serviços; ports/adapters pattern; cobertura de testes > 80% em camadas críticas (Application, Domain)                                        |
 
 ### Detalhamento dos Objetivos
 
@@ -205,7 +205,7 @@ Estas são as limitações impostas pela escolha de tecnologias, frameworks, pla
 | **TypeScript >= 5.1.x**                | Superset de JavaScript com tipagem estática               | Type-safety obrigatório para reduzir bugs em tempo de compilação                               | Tempo de build aumenta; configuração de tipos pode ser complexa para bibliotecas sem @types                                                                                                                     |
 | **REST API (Padrão HTTP)**             | Protocolo de comunicação entre frontend e backend         | Simplicidade, cacheable, stateless, amplo suporte em bibliotecas                               | Não permite GraphQL (flexibilidade de queries); overfetching/underfetching podem ocorrer                                                                                                                        |
 | **Versionamento de API: /api/v1/**     | Prefixo obrigatório em todas as rotas                     | Permite evolução da API sem quebrar clientes existentes                                        | Aumenta tamanho de URLs; força planejamento de breaking changes                                                                                                                                                 |
-| **Helmet Middleware**                  | Middleware obrigatório para headers HTTP seguros         | Requisito de segurança para evitar vulnerabilidades conhecidas                                | Headers configurados automaticamente em todas respostas HTTP                                                                                                                                                    |
+| **Helmet Middleware**                  | Middleware obrigatório para headers HTTP seguros          | Requisito de segurança para evitar vulnerabilidades conhecidas                                 | Headers configurados automaticamente em todas respostas HTTP                                                                                                                                                    |
 
 ---
 
@@ -237,7 +237,7 @@ Estas são as limitações impostas pela legislação brasileira que impactam de
 Estas são as regras e padrões adotados pela equipe para garantir consistência e qualidade do código.
 
 | Convenção                                     | Descrição                                                                                                                                                 | Exemplo                                                                                                        | Justificativa                                                                                                                                               |
-| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Código em Inglês**                          | Variáveis, funções, classes, comentários de código                                                                                                        | `createDailyCollection()`, `UserEntity`, `findByEmail()`                                                       | Padrão da indústria; facilita leitura por desenvolvedores internacionais; bibliotecas de terceiros são em inglês                                            |
 | **Documentação em Português**                 | README, arc42, comentários de negócio                                                                                                                     | `# Restrições Arquiteturais`, `// Validação: produtor deve ter associação`                                     | Contexto brasileiro e educacional; stakeholders (IFPE, produtores) falam português; facilita transferência de conhecimento para futuros alunos-mantenedores |
 | **Testes em Português**                       | Descrições de testes (describe, it)                                                                                                                       | `describe('Criar convite', () => { it('deve falhar se usuário não existir') })`                                | Facilita compreensão do comportamento esperado por não-desenvolvedores; alinhamento com regras de negócio em português                                      |
@@ -592,16 +592,23 @@ A arquitetura do QuaLeiDer foi projetada para balancear **simplicidade** (time p
 **Referência de Código:**
 
 ```typescript
-// src/app.module.ts - Todos os módulos em um só monólito
+// src/presentation/app.module.ts - Todos os módulos em um só monólito
 @Module({
   imports: [
-    UsersModule,
-    AnimalsModule,
-    InvitesModule,
-    DailyCollectionsModule,
-    AuthModule,
-    MailModule,
+    WinstonModule.forRoot(winstonConfig),          // Logger estruturado
+    ConfigModule.forRoot({ isGlobal: true }),
+    EventEmitterModule.forRoot(),
+    ScheduleModule.forRoot(),                      // CRON jobs
     PrismaModule,
+    InfrastructureModule,
+    UsersPresentationModule,
+    AnimalsPresentationModule,
+    DailyCollectionsPresentationModule,
+    AuthPresentationModule,
+    AssociationsPresentationModule,
+    InvitesPresentationModule,
+    NotificationsPresentationModule,               // Módulo de notificações
+    MailModule,
   ],
 })
 export class AppModule {}
@@ -801,7 +808,7 @@ services:
   backend:
     build: .
     ports:
-      - "3000:3000"
+      - "8080:8080"
     depends_on:
       - postgres
     environment:
@@ -1064,6 +1071,7 @@ O token é validado automaticamente pelo `JwtAuthGuard` em endpoints protegidos 
 ![Registro de Coleta Diária](images/daily-collection-flow.png)
 
 ### Descrição do Fluxo
+
 Este documento descreve o processo técnico de registro de uma coleta diária de leite
 
 **Atores e Componentes:**
@@ -1078,7 +1086,7 @@ Este documento descreve o processo técnico de registro de uma coleta diária de
 
 1. **Requisição HTTP**: Produtor envia `POST /daily-collections` com dados da coleta
 2. **Validações de Pré-requisitos**:
-   - ✓ **Produtor existe e está ativo** 
+   - ✓ **Produtor existe e está ativo**
 3. **Persistência**: 2 operações SQL executadas em transação:
    - `INSERT INTO "DailyCollection"` (coleta principal)
 4. **Resposta HTTP**: Retorna `201 Created` com dados da coleta
@@ -1103,7 +1111,7 @@ Este documento descreve o processo técnico de registro de uma coleta diária de
 
 - **Validação Rigorosa**:
   - validações de negócio antes de persistir
-  - Garante integridade referencial 
+  - Garante integridade referencial
   - Previne dados inconsistentes no banco
 
 # Visão de Implantação {#section-deployment-view}
@@ -1217,12 +1225,12 @@ tests/
 │   └── presentation/
 │       └── controllers/          # Endpoints HTTP (100% cobertura)
 ├── e2e/                           # Testes end-to-end (97 testes)
-│   ├── auth/                     # Login, Reset de Senha 
-│   ├── users/                    # CRUD de Usuários 
-│   ├── animals/                  # CRUD de Animais 
-│   ├── daily-collections/        # CRUD de Coletas 
-│   ├── invites/                  # Sistema de Convites 
-│   ├── associations/             # CRUD de Associações 
+│   ├── auth/                     # Login, Reset de Senha
+│   ├── users/                    # CRUD de Usuários
+│   ├── animals/                  # CRUD de Animais
+│   ├── daily-collections/        # CRUD de Coletas
+│   ├── invites/                  # Sistema de Convites
+│   ├── associations/             # CRUD de Associações
 │   ├── factories/                # Test Factories para dados de teste
 │   └── helpers/                  # Helpers para autenticação e setup
 ├── mocks/                         # Mocks reutilizáveis
@@ -1246,7 +1254,6 @@ O padrão Test Factories abstrai a complexidade da criação de dados de teste, 
 - Overrides: Mecanismo que permite ao teste injetar apenas os dados específicos que importam para aquele cenário (ex: { hat: true } ou { age: 17 }), sobrescrevendo os padrões.
 
 - Specialized Methods: Atalhos para configurações frequentes de negócio, como buildAdmin() ou buildProducer().
-
 
 ```typescript
 // Exemplo: AnimalFactory
@@ -1313,7 +1320,7 @@ describe('E2E: Animais - Operações CRUD', () => {
 | Cobertura Geral       | > 80%  | 96.25% | ✅     |
 | Cobertura DTOs        | 100%   | 100%   | ✅     |
 | Cobertura Services    | > 90%  | 100%   | ✅     |
-| Cobertura Controllers | > 90%  | 100%    | ✅     |
+| Cobertura Controllers | > 90%  | 100%   | ✅     |
 | Testes Unitários      | > 300  | 453    | ✅     |
 | Testes E2E            | > 80   | 110    | ✅     |
 | Tempo Exec. Unit      | < 60s  | 50s    | ✅     |
@@ -1458,59 +1465,75 @@ O modelo de domínio do QuaLeiDer representa as **entidades principais** do sist
 
 ### Entidades Principais
 
-#### **User (Usuário/Produtor/Associação)**
+#### **User (Usuário/Produtor)**
 
 **Atributos:**
 
 - `id`: number (PK, auto-increment)
-- `email`: string (unique, formato email válido)
-- `password`: string (hash bcrypt 12 rounds)
-- `name`: string (nome completo)
-- `role`: UserRole (`PRODUCER` | `ASSOCIATION`)
 - `associationId`: number | null (FK → Association)
-- `resetPasswordToken`: string | null (token único, expira em 15min)
-- `resetPasswordExpires`: Date | null
-- `createdAt`: Date
-- `updatedAt`: Date
+- `name`: string (nome completo)
+- `email`: string (unique, formato email válido)
+- `password`: string (hash bcrypt)
+- `userType`: UserType | null (`Pecuarista` | `Cooperativa` | `Associacao` | `Outro`)
+- `userCategory`: UserCategory (`Fisica` | `Juridica`)
+- `document`: string | null (CPF ou CNPJ, unique)
+- `city`: string (cidade)
+- `state`: string (estado)
+- `status`: string (padrão: "Active")
+- `resetToken`: string | null (token único de reset, expira em 15min)
+- `resetTokenExpiry`: DateTime | null
+- `createdAt`: DateTime
+- `updatedAt`: DateTime
 
 **Relacionamentos:**
 
-- 1-N com Animal (Produtor possui múltiplos animais)
-- 1-N com DailyCollection (Produtor registra múltiplas coletas)
-- N-1 com Association (Produtor vinculado a 1 associação)
-- 1-N com Invite (Produtor recebe múltiplos convites)
+- 1-N com Animal (Usuário possui múltiplos animais)
+- 1-N com DailyCollection (Usuário registra múltiplas coletas)
+- N-1 com Association (Usuário vinculado a 1 associação)
+- 1-N com Invite (Usuário recebe múltiplos convites)
 
 **Regras de Negócio:**
 
-- Email deve ser único no sistema
+- Email e document devem ser únicos no sistema
 - Senha deve ter mínimo 8 caracteres, 1 maiúscula, 1 número
-- Produtor só pode registrar coletas se `associationId != null`
-- Token de reset expira em 15 minutos (garbage collection via CRON)
+- Token de reset expira em 15 minutos
+- Associação é opcional (usuário pode ou não estar vinculado)
 
 **Exemplo de Código (Prisma Schema):**
 
 ```prisma
 model User {
-  id                    Int       @id @default(autoincrement())
-  email                 String    @unique
-  password              String
-  name                  String
-  role                  UserRole  @default(PRODUCER)
+  id                    Int              @id @default(autoincrement())
   associationId         Int?
-  resetPasswordToken    String?   @unique
-  resetPasswordExpires  DateTime?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-
-  association           Association?      @relation(fields: [associationId], references: [id])
+  association           Association?     @relation(fields: [associationId], references: [id])
+  name                  String
+  email                 String           @unique
+  password              String
+  userType              UserType?
+  userCategory          UserCategory
+  document              String?          @unique // CPF ou CNPJ
+  city                  String
+  state                 String
+  status                String           @default("Active")
+  resetToken            String?
+  resetTokenExpiry      DateTime?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
   animals               Animal[]
   dailyCollections      DailyCollection[]
   invites               Invite[]
 }
 
-enum UserRole {
-  PRODUCER
-  ASSOCIATION
+enum UserType {
+  Pecuarista
+  Cooperativa
+  Associacao
+  Outro
+}
+
+enum UserCategory {
+  Fisica
+  Juridica
 }
 ```
 
@@ -1521,50 +1544,47 @@ enum UserRole {
 **Atributos:**
 
 - `id`: number (PK, auto-increment)
-- `name`: string (nome do animal)
-- `type`: AnimalType (`COW` | `GOAT` | `SHEEP`)
+- `name`: string | null (nome do animal)
+- `animalType`: AnimalType (`Vaca` | `Cabra` | `Ovelha` | `Bufala` | `Outro`)
 - `breed`: string (raça)
-- `birthDate`: Date (data de nascimento)
-- `isActive`: boolean (status ativo/inativo)
+- `age`: number (idade em anos)
 - `userId`: number (FK → User, obrigatório)
-- `createdAt`: Date
-- `updatedAt`: Date
+- `status`: string (padrão: "Active")
+- `createdAt`: DateTime
+- `updatedAt`: DateTime
 
 **Relacionamentos:**
 
-- N-1 com User (Animal pertence a 1 produtor)
-- N-N com DailyCollection (Animal participa de múltiplas coletas)
+- N-1 com User (Animal pertence a 1 usuário)
 
 **Regras de Negócio:**
 
-- Produtor pode cadastrar múltiplos animais
-- Animal inativo não pode participar de coletas
-- Nome deve ser único por produtor (soft constraint)
+- Usuário pode cadastrar múltiplos animais
+- Animal com status inativo não participa de coletas
+- Nome opcional
 
 **Exemplo de Código (Prisma Schema):**
 
 ```prisma
 model Animal {
   id              Int              @id @default(autoincrement())
-  name            String
-  type            AnimalType
+  name            String?
+  animalType      AnimalType
   breed           String
-  birthDate       DateTime
-  isActive        Boolean          @default(true)
+  age             Int
   userId          Int
+  status          String           @default("Active")
+  user            User             @relation(fields: [userId], references: [id])
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
-
-  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  dailyCollections DailyCollection[] @relation("AnimalDailyCollections")
-
-  @@unique([userId, name]) // Soft constraint: nome único por produtor
 }
 
 enum AnimalType {
-  COW
-  GOAT
-  SHEEP
+  Vaca
+  Cabra
+  Ovelha
+  Bufala
+  Outro
 }
 ```
 
@@ -1575,48 +1595,50 @@ enum AnimalType {
 **Atributos:**
 
 - `id`: number (PK, auto-increment)
-- `userId`: number (FK → User)
-- `date`: Date (data da coleta, não pode ser futura)
 - `quantity`: float (litros coletados, > 0)
-- `milkingCount`: number (número de ordenhas, 1-3)
-- `feed`: string | null (tipo de ração fornecida)
-- `milkingLocation`: string | null (local da ordenha)
-- `hasTechnicalAssistance`: boolean (recebeu assistência técnica)
-- `createdAt`: Date
-- `updatedAt`: Date
+- `collectionDate`: DateTime (data e hora da coleta)
+- `userId`: number (FK → User)
+- `numAnimals`: number (número de animais ordenados)
+- `numOrdens`: number (número de ordenhas realizadas)
+- `rationProvided`: boolean (ração foi fornecida)
+- `numLactation`: number (número de lactações)
+- `milkingPlace`: MilkingPlace (`Aberto` | `Curral` | `Ambos`)
+- `technicalAssistance`: boolean (recebeu assistência técnica)
+- `createdAt`: DateTime
+- `updatedAt`: DateTime
 
 **Relacionamentos:**
 
-- N-1 com User (Coleta pertence a 1 produtor)
-- N-N com Animal (Coleta envolve múltiplos animais)
+- N-1 com User (Coleta pertence a 1 usuário)
 
 **Regras de Negócio:**
 
-- Data não pode ser futura
 - Quantidade deve ser > 0L
-- milkingCount: 1 (apenas manhã), 2 (manhã + tarde), 3 (manhã + tarde + noite)
-- Produtor só pode registrar coletas se estiver vinculado a associação
-- 1 coleta por dia por produtor (unique constraint: userId + date)
+- Usuário pode registrar coletas com ou sem vínculo a uma associação
 
 **Exemplo de Código (Prisma Schema):**
 
 ```prisma
 model DailyCollection {
-  id                     Int       @id @default(autoincrement())
-  userId                 Int
-  date                   DateTime  @db.Date
-  quantity               Float
-  milkingCount           Int
-  feed                   String?
-  milkingLocation        String?
-  hasTechnicalAssistance Boolean   @default(false)
-  createdAt              DateTime  @default(now())
-  updatedAt              DateTime  @updatedAt
+  id                    Int              @id @default(autoincrement())
+  quantity              Float
+  collectionDate        DateTime         @default(now())
+  userId                Int
+  user                  User             @relation(fields: [userId], references: [id])
+  numAnimals            Int
+  numOrdens             Int
+  rationProvided        Boolean
+  numLactation          Int
+  milkingPlace          MilkingPlace
+  technicalAssistance   Boolean
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+}
 
-  user                   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  animals                Animal[]  @relation("AnimalDailyCollections")
-
-  @@unique([userId, date]) // 1 coleta por dia por produtor
+enum MilkingPlace {
+  Aberto
+  Curral
+  Ambos
 }
 ```
 
@@ -1627,25 +1649,27 @@ model DailyCollection {
 **Atributos:**
 
 - `id`: number (PK, auto-increment)
-- `token`: string (unique, gerado com `crypto.randomBytes(32)`)
-- `userId`: number (FK → User, produtor convidado)
-- `associationId`: number (FK → Association, associação que convida)
-- `status`: InviteStatus (`PENDING` | `ACCEPTED` | `REJECTED` | `EXPIRED`)
-- `message`: string | null (mensagem personalizada)
-- `expiresAt`: Date (data de expiração, 7 dias após criação)
-- `createdAt`: Date
-- `updatedAt`: Date
+- `associationId`: number (FK → Association)
+- `userId`: number (FK → User, convidado)
+- `token`: string (unique, UUID gerado automaticamente)
+- `status`: InviteStatus (`PENDING` | `ACCEPTED` | `DECLINED` | `EXPIRED` | `CANCELED`)
+- `message`: string | null
+- `customMessage`: string | null (mensagem personalizada)
+- `sentAt`: DateTime (quando foi enviado)
+- `expiresAt`: DateTime (data de expiração)
+- `respondedAt`: DateTime | null (quando foi respondido)
+- `createdAt`: DateTime
+- `updatedAt`: DateTime
 
 **Relacionamentos:**
 
-- N-1 com User (Convite destinado a 1 produtor)
+- N-1 com User (Convite destinado a 1 usuário)
 - N-1 com Association (Convite enviado por 1 associação)
 
 **Regras de Negócio:**
 
-- Token único gerado automaticamente
+- Token UUID gerado automaticamente
 - Expira em 7 dias após criação
-- Produtor só pode ter 1 convite `PENDING` por vez
 - Ao aceitar convite, `User.associationId` é atualizado
 - CRON job diário (02:00) marca convites expirados como `EXPIRED`
 
@@ -1653,27 +1677,34 @@ model DailyCollection {
 
 ```prisma
 model Invite {
-  id            Int          @id @default(autoincrement())
-  token         String       @unique
-  userId        Int
-  associationId Int
-  status        InviteStatus @default(PENDING)
-  message       String?
-  expiresAt     DateTime
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  id                    Int              @id @default(autoincrement())
+  associationId         Int
+  association           Association      @relation(fields: [associationId], references: [id])
+  userId                Int
+  user                  User             @relation(fields: [userId], references: [id])
+  token                 String           @unique @default(uuid())
+  status                InviteStatus     @default(PENDING)
+  message               String?
+  customMessage         String?
+  sentAt                DateTime         @default(now())
+  expiresAt             DateTime
+  respondedAt           DateTime?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
 
-  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  association   Association  @relation(fields: [associationId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, status]) // 1 convite PENDING por usuário
+  @@index([associationId])
+  @@index([userId])
+  @@index([status])
+  @@index([token])
+  @@index([expiresAt])
 }
 
 enum InviteStatus {
   PENDING
   ACCEPTED
-  REJECTED
+  DECLINED
   EXPIRED
+  CANCELED
 }
 ```
 
@@ -1681,37 +1712,127 @@ enum InviteStatus {
 
 #### **Association (Associação)**
 
-**Atributos:**
+**Atributos principais:**
 
 - `id`: number (PK, auto-increment)
-- `name`: string (nome da associação)
-- `description`: string | null
-- `createdAt`: Date
-- `updatedAt`: Date
+- `name`: string (razão social)
+- `tradeName`: string | null (nome fantasia)
+- `cnpj`: string (unique)
+- `stateRegistration`: string | null (inscrição estadual)
+- `email`: string (unique)
+- `password`: string (hash bcrypt)
+- `landlinePhone`: string (telefone fixo)
+- `mobilePhone`: string | null (celular)
+- `website`: string | null
+- `zipCode`: string (CEP)
+- `state`: string (UF)
+- `city`: string (município)
+- `street`: string (logradouro)
+- `number`: string (número)
+- `complement`: string | null
+- `neighborhood`: string (bairro)
+- `foundationDate`: DateTime | null
+- `numberOfMembers`: number | null (número de associados)
+- `coverageArea`: CoverageArea (`Municipal` | `Regional` | `Estadual`)
+- `presidentName`: string (nome do presidente)
+- `presidentCpf`: string (CPF do presidente)
+- `presidentEmail`: string (email do presidente)
+- `presidentPhone`: string (telefone do presidente)
+- `status`: string (padrão: "Active")
+- `createdAt`: DateTime
+- `updatedAt`: DateTime
 
 **Relacionamentos:**
 
-- 1-N com User (Associação gerencia múltiplos produtores)
+- 1-N com User (Associação gerencia múltiplos usuários)
 - 1-N com Invite (Associação envia múltiplos convites)
 
 **Regras de Negócio:**
 
-- Nome deve ser único
-- Associação pode visualizar dados agregados de seus produtores
-- Pode convidar novos produtores
+- CNPJ e email devem ser únicos
+- Associação pode visualizar dados agregados de seus usuários
+- Pode convidar novos usuários
+
+**Exemplo de Código (Prisma Schema - simplificado):**
+
+```prisma
+model Association {
+  id                    Int              @id @default(autoincrement())
+  name                  String
+  tradeName             String?
+  cnpj                  String           @unique
+  stateRegistration     String?
+  email                 String           @unique
+  password              String
+  landlinePhone         String
+  mobilePhone           String?
+  website               String?
+  zipCode               String
+  state                 String
+  city                  String
+  street                String
+  number                String
+  complement            String?
+  neighborhood          String
+  foundationDate        DateTime?
+  numberOfMembers       Int?
+  coverageArea          CoverageArea
+  presidentName         String
+  presidentCpf          String
+  presidentEmail        String
+  presidentPhone        String
+  status                String           @default("Active")
+  users                 User[]
+  invites               Invite[]
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  @@index([city, state])
+  @@index([status])
+  @@index([cnpj])
+}
+
+enum CoverageArea {
+  Municipal
+  Regional
+  Estadual
+}
+```
+
+---
+
+#### **Notification (Notificação)**
+
+**Atributos:**
+
+- `id`: number (PK, auto-increment)
+- `associationId`: number (ID da associação)
+- `subject`: string (assunto)
+- `message`: string (mensagem)
+- `metadata`: string | null (JSON com dados adicionais)
+- `createdAt`: DateTime
+
+**Relacionamentos:**
+
+- Associado a uma Association via `associationId` (não éFK formal)
+
+**Regras de Negócio:**
+
+- Sistema de notificações para associações
+- Metadata armazena informações adicionais em formato JSON
 
 **Exemplo de Código (Prisma Schema):**
 
 ```prisma
-model Association {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model Notification {
+  id                    Int              @id @default(autoincrement())
+  associationId         Int
+  subject               String
+  message               String
+  metadata              String?          // JSON string
+  createdAt             DateTime         @default(now())
 
-  users       User[]
-  invites     Invite[]
+  @@index([associationId])
+  @@index([createdAt])
 }
 ```
 
@@ -1739,26 +1860,30 @@ PENDING → EXPIRED (CRON job diário marca expirados)
 // Regras:
 - ACCEPTED: User.associationId = Invite.associationId
 - REJECTED/EXPIRED: Convite arquivado (não deletado)
-- Produtor só pode ter 1 convite PENDING
 ```
 
-#### **2. Vínculo Produtor-Associação**
+#### **2. Vínculo Produtor-Associação (Opcional)**
 
 ```typescript
-// Regra: Produtor só registra coletas se vinculado
-if (user.role === "PRODUCER" && !user.associationId) {
-  throw new ForbiddenException("Produtor deve estar vinculado a associação");
+// Vínculo é opcional - usuário pode ou não estar vinculado a uma associação
+// O campo associationId pode ser null
+
+// Ao aceitar um convite, o usuário é vinculado à associação
+if (invite.status === InviteStatus.ACCEPTED) {
+  await this.usersService.update(userId, {
+    associationId: invite.associationId
+  });
 }
 
-// Validação ao criar coleta
+// Usuário pode registrar coletas independentemente de estar vinculado
+// NÃO há validação de associationId obrigatória
 @Injectable()
 export class DailyCollectionsService {
   async create(userId: number, dto: CreateDailyCollectionDto) {
-    const user = await this.usersService.findOne(userId);
-    if (!user.associationId) {
-      throw new ForbiddenException("Produtor não vinculado a associação");
-    }
-    // ...
+    // Usuários com ou sem associação podem registrar coletas
+    return this.prisma.dailyCollection.create({
+      data: { userId, ...dto }
+    });
   }
 }
 ```
@@ -1902,7 +2027,10 @@ export class UsersService {
 
     try {
       // 10 rounds = 2^10 = 1.024 iterações
-      const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS_USER_CREATION);
+      const hashedPassword = await bcrypt.hash(
+        password,
+        BCRYPT_ROUNDS_USER_CREATION
+      );
 
       const user = await this.prisma.user.create({
         data: {
@@ -2305,17 +2433,17 @@ async function bootstrap() {
           imgSrc: ["'self'", "data:", "https:"],
         },
       },
-    }),
+    })
   );
 }
 ```
 
 Headers aplicados:
 
-- `Strict-Transport-Security`: Força HTTPS  
-- `X-Content-Type-Options: nosniff`: Previne MIME sniffing  
-- `X-Frame-Options: DENY`: Previne clickjacking  
-- `Content-Security-Policy`: Restringe recursos carregados  
+- `Strict-Transport-Security`: Força HTTPS
+- `X-Content-Type-Options: nosniff`: Previne MIME sniffing
+- `X-Frame-Options: DENY`: Previne clickjacking
+- `Content-Security-Policy`: Restringe recursos carregados
 
 ### Conformidade LGPD
 
@@ -2323,12 +2451,12 @@ Headers aplicados:
 
 #### **1. Dados Sensíveis Armazenados**
 
-| Dado         | Categoria | Proteção                      |
-| ------------ | --------- | ----------------------------- |
-| Email        | PII       | Criptografia em repouso (TDE) |
-| Senha        | Sensível  | bcrypt 12 rounds              |
-| Nome         | PII       | Criptografia em repouso       |
-| CPF          | Sensível  | Mascaramento em logs          |
+| Dado  | Categoria | Proteção                      |
+| ----- | --------- | ----------------------------- |
+| Email | PII       | Criptografia em repouso (TDE) |
+| Senha | Sensível  | bcrypt 12 rounds              |
+| Nome  | PII       | Criptografia em repouso       |
+| CPF   | Sensível  | Mascaramento em logs          |
 
 #### **2. Sanitização de Logs**
 
@@ -2339,11 +2467,11 @@ Estratégia de Sanitização: Utilizamos o winston com um Custom Formatter para 
 **Codigo real:**
 
 ```typescript
-// src/common/logger.config.ts 
+// src/common/logger.config.ts
 export const sanitizeData = (data: any): any => {
   if (!data) return data;
-  
-  if (typeof data === 'object') {
+
+  if (typeof data === "object") {
     if (Array.isArray(data)) {
       return data.map((item) => sanitizeData(item));
     }
@@ -2351,7 +2479,7 @@ export const sanitizeData = (data: any): any => {
     const sanitized = { ...data };
     for (const key in sanitized) {
       if (SENSITIVE_KEYS.includes(key)) {
-        sanitized[key] = '***[REDACTED]***'; 
+        sanitized[key] = "***[REDACTED]***";
       } else {
         sanitized[key] = sanitizeData(sanitized[key]); // Recursão
       }
@@ -2729,14 +2857,13 @@ Logs **nunca** devem conter:
 - Tokens (JWT, reset password)
 - CPF
 
-
 **Sanitização de logs atualmente:**
 
 ```json
 // Código (Input)
-this.logger.log({ 
-  msg: 'Criando usuário', 
-  data: { name: 'Marcelo', password: '123' } 
+this.logger.log({
+  msg: 'Criando usuário',
+  data: { name: 'Marcelo', password: '123' }
 });
 
 // Log Gerado (Output Seguro)
@@ -2744,8 +2871,8 @@ this.logger.log({
   "timestamp": "...",
   "message": {
     "msg": "Criando usuário",
-    "data": { 
-      "name": "Marcelo", 
+    "data": {
+      "name": "Marcelo",
       "password": "***[REDACTED]***" // <--- Protegido automaticamente
     }
   }
@@ -2864,8 +2991,6 @@ async function bootstrap() {
   await app.listen(port);
 }
 ```
-
-**⚠️ TODO:** Implementar `HttpExceptionFilter` para padronizar respostas de erro HTTP (401, 403, 404, etc.) com logs estruturados.
 
 ---
 
@@ -2994,19 +3119,51 @@ export class PrismaExceptionFilter implements ExceptionFilter {
 
 ### Mensagens de Erro Amigáveis
 
-**⚠️ TODO:** Implementar custom exceptions para regras de negócio
+### Mensagens de Erro Amigáveis
 
-**Atualmente:** O projeto usa exceptions padrão do NestJS (`ConflictException`, `NotFoundException`, `UnauthorizedException`, etc.).
+O projeto implementa uma exception customizada chamada `BusinessException` para padronizar erros de regra de negócio, além das exceptions padrão do NestJS (`ConflictException`, `NotFoundException`, `UnauthorizedException`, etc.).
 
-**Recomendação futura:** Criar `BusinessException` customizada para padronizar erros de regra de negócio.
-
-**Exemplo de uso atual:**
+**Implementação real:**
 
 ```typescript
-// Código atual no projeto
-throw new ConflictException("Email já cadastrado");
-throw new NotFoundException("Usuário não encontrado");
+// src/common/exceptions/business.exception.ts
+import { HttpException, HttpStatus } from "@nestjs/common";
+
+export class BusinessException extends HttpException {
+  constructor(message: string, status: HttpStatus = HttpStatus.BAD_REQUEST) {
+    super({ message, error: "BusinessException" }, status);
+  }
+}
 ```
+
+**Exemplo de uso:**
+
+```typescript
+// Uso em regras de negócio
+if (!user.associationId) {
+  throw new BusinessException("Produtor não vinculado");
+}
+
+if (new Date(dto.date) > new Date()) {
+  throw new BusinessException("Data não pode ser futura");
+}
+```
+
+**Exemplo de resposta:**
+
+```json
+{
+  "statusCode": 400,
+  "message": "Produtor não vinculado",
+  "error": "BusinessException"
+}
+```
+
+**Vantagens:**
+
+- Padroniza mensagens de erro de negócio
+- Facilita internacionalização e testes
+- Permite distinguir erros de regra de negócio dos demais
 
 ---
 
@@ -3656,137 +3813,141 @@ Não há testes automatizados específicos para validar vulnerabilidades de segu
 
 # Glossário
 
-| Termo                         | Definição                                                                                                                             |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **AAA Pattern**               | Arrange-Act-Assert: padrão de estruturação de testes dividido em 3 etapas (preparar, executar, verificar)                             |
-| **CI/CD**                     | Continuous Integration/Continuous Deployment: prática de integração e deploy contínuos com validação automatizada                     |
-| **Cobertura de Código**       | Métrica que indica percentual de código executado durante testes automatizados                                                        |
-| **Dependency Injection (DI)** | Padrão de design onde dependências são fornecidas externamente ao invés de criadas internamente, facilitando testes                   |
-| **E2E (End-to-End)**          | Testes que validam fluxo completo do sistema, do endpoint HTTP até o banco de dados                                                   |
-| **Flaky Test**                | Teste instável que falha intermitentemente sem mudanças no código, geralmente por não-determinismo                                    |
-| **Mock**                      | Objeto que simula comportamento de dependência real, usado para isolar código em testes                                               |
-| **Ports & Adapters**          | Padrão arquitetural (Hexagonal Architecture) que separa lógica de negócio de detalhes de infraestrutura via interfaces                |
-| **Stub**                      | Tipo de test double que retorna dados pré-definidos, mais simples que mocks                                                           |
-| **Test Double**               | Termo genérico para objetos que substituem dependências reais em testes (mocks, stubs, spies, fakes)                                  |
-| **Test Factory**              | Padrão de criação de objetos de teste com dados válidos por padrão, reduzindo duplicação de código                                    |
-| **Test Isolation**            | Princípio de que cada teste deve ser independente e não afetar outros testes                                                          |
-| **Testes de Contrato**        | Testes que validam se a interface entre sistemas externos permanece compatível                                                        |
-| **Testes Unitários**          | Testes que validam pequenas unidades de código (funções, métodos) de forma isolada                                                    |
-| **JWT**                       | JSON Web Token: padrão de token para autenticação stateless                                                                           |
-| **DTO**                       | Data Transfer Object: objeto que transporta dados entre camadas, usado para validação de entrada                                      |
-| **ORM**                       | Object-Relational Mapping: framework que mapeia objetos para tabelas de banco de dados (ex: Prisma)                                   |
-| **CRON Job**                  | Tarefa agendada que executa automaticamente em intervalos definidos                                                                   |
-| **Clean Architecture**        | Arquitetura em camadas que separa lógica de negócio de frameworks e infraestrutura                                                    |
-| **Prisma**                    | ORM TypeScript-first utilizado no projeto para acesso ao PostgreSQL                                                                   |
-| **NestJS**                    | Framework Node.js para construção de aplicações server-side escaláveis                                                                |
-| **Supertest**                 | Biblioteca para testes de APIs HTTP em Node.js                                                                                        |
-| **Jest**                      | Framework JavaScript para testes unitários e E2E                                                                                      |
-| **DRY**                       | Don't Repeat Yourself: princípio de evitar duplicação de código através de abstração e reutilização                                   |
-| **SRP**                       | Single Responsibility Principle: cada classe/módulo deve ter uma única responsabilidade                                               |
-| **DIP**                       | Dependency Inversion Principle: depender de abstrações (interfaces) ao invés de implementações concretas                              |
-| **SOLID**                     | Conjunto de 5 princípios de design orientado a objetos (SRP, OCP, LSP, ISP, DIP)                                                      |
-| **KISS**                      | Keep It Simple, Stupid: princípio de manter soluções simples e evitar complexidade desnecessária                                      |
-| **YAGNI**                     | You Aren't Gonna Need It: não implementar funcionalidades até que sejam realmente necessárias                                         |
-| **TDD**                       | Test-Driven Development: metodologia de desenvolver testes antes do código de produção                                                |
-| **Refactoring**               | Processo de melhorar estrutura interna do código sem alterar comportamento externo                                                    |
-| **Code Smell**                | Indicador de possível problema no código que merece atenção (ex: funções muito longas, duplicação)                                    |
-| **Path Alias**                | Atalho de importação (ex: `@/application`) que simplifica caminhos relativos no código                                                |
-| **Clean Code**                | Conjunto de práticas para escrever código legível, simples e fácil de manter                                                          |
-| **Git Hooks**                 | Scripts automatizados que executam em eventos específicos do Git (commit, push, merge) para validações personalizadas                 |
-| **Husky**                     | Ferramenta Node.js que facilita configuração e gerenciamento de Git Hooks em projetos JavaScript/TypeScript                           |
-| **Pre-commit**                | Hook do Git que executa antes de finalizar um commit, usado para validar código antes de salvá-lo no histórico                        |
-| **Pre-push**                  | Hook do Git que executa antes de enviar commits ao repositório remoto, última validação local antes do push                           |
-| **--no-verify**               | Flag do Git que ignora execução de hooks configurados (bypass), deve ser usado apenas em emergências                                  |
-| **Time-to-Market**            | Tempo entre a concepção de uma ideia/produto e sua disponibilização ao mercado; quanto menor, mais rápido o feedback                  |
-| **Load Balancer**             | Componente que distribui tráfego entre múltiplas instâncias de uma aplicação, garantindo disponibilidade e performance                |
-| **Stateless**                 | Arquitetura onde o servidor não armazena estado de sessão; cada requisição contém todas as informações necessárias                    |
-| **Stateful**                  | Arquitetura onde o servidor mantém estado de sessão entre requisições (oposto de stateless)                                           |
-| **Connection Pooling**        | Técnica de reutilizar conexões de banco de dados ao invés de criar novas a cada requisição, melhorando performance                    |
-| **Query N+1**                 | Anti-pattern onde uma query principal gera N queries adicionais, causando problemas de performance                                    |
-| **Soft Delete**               | Técnica de marcar registros como deletados (flag `deleted_at`) ao invés de removê-los fisicamente do banco                            |
-| **Hard Delete**               | Remoção física de registros do banco de dados (DELETE FROM), sem possibilidade de recuperação                                         |
-| **Prepared Statement**        | Query SQL pré-compilada com placeholders, prevenindo SQL injection e melhorando performance                                           |
-| **SQL Injection**             | Ataque onde código SQL malicioso é inserido em inputs para manipular ou acessar banco de dados indevidamente                          |
-| **XSS**                       | Cross-Site Scripting: ataque que injeta scripts maliciosos em páginas web para roubar dados ou executar ações não autorizadas         |
-| **CORS**                      | Cross-Origin Resource Sharing: mecanismo de segurança que controla quais domínios podem acessar recursos da API                       |
-| **ACID**                      | Atomicidade, Consistência, Isolamento, Durabilidade: propriedades que garantem confiabilidade de transações em bancos de dados        |
-| **Migration**                 | Script versionado que altera schema do banco de dados de forma controlada e rastreável                                                |
-| **Seed**                      | Script que popula banco de dados com dados iniciais para desenvolvimento ou testes                                                    |
-| **Schema**                    | Estrutura de tabelas, colunas, índices e relacionamentos do banco de dados                                                            |
-| **Foreign Key**               | Restrição que garante integridade referencial entre tabelas relacionadas no banco de dados                                            |
-| **SMTP**                      | Simple Mail Transfer Protocol: protocolo para envio de emails                                                                         |
-| **TLS**                       | Transport Layer Security: protocolo de criptografia para comunicação segura em redes (sucessor do SSL)                                |
-| **SSL**                       | Secure Sockets Layer: protocolo antigo de criptografia, substituído pelo TLS (mas termo ainda usado)                                  |
-| **MIME**                      | Multipurpose Internet Mail Extensions: padrão para formatar emails com conteúdo HTML, anexos, etc.                                    |
-| **LGPD**                      | Lei Geral de Proteção de Dados (Lei 13.709/2018): legislação brasileira sobre privacidade e proteção de dados pessoais                |
-| **PII**                       | Personally Identifiable Information: dados que podem identificar uma pessoa (nome, CPF, email, etc.)                                  |
-| **Hash**                      | Função criptográfica que transforma dados em string fixa e irreversível, usada para armazenar senhas com segurança                    |
-| **Salt**                      | Dado aleatório adicionado a senhas antes do hash para prevenir ataques com rainbow tables                                             |
-| **Rainbow Table**             | Tabela pré-computada de hashes comuns usada para quebrar senhas fracas rapidamente                                                    |
-| **Brute Force**               | Ataque que tenta todas as combinações possíveis para quebrar senha ou criptografia                                                    |
-| **Token**                     | String única e temporária usada para autenticação, reset de senha, ou autorização de ações específicas                                |
-| **Bearer Token**              | Tipo de token de autorização enviado no header HTTP `Authorization: Bearer <token>`                                                   |
-| **Payload**                   | Dados úteis transportados em requisição HTTP, token JWT, ou mensagem de fila                                                          |
-| **Endpoint**                  | URL específica de uma API que aceita requisições HTTP (ex: `POST /api/v1/users`)                                                      |
-| **RESTful**                   | API que segue princípios REST: recursos identificados por URLs, verbos HTTP semânticos, stateless                                     |
-| **Idempotente**               | Operação que pode ser executada múltiplas vezes sem alterar resultado além da primeira execução (ex: GET, PUT, DELETE)                |
-| **Webhook**                   | Callback HTTP que notifica sistema externo sobre eventos (ex: GitHub Actions notifica CI/CD sobre push)                               |
-| **Multi-Stage Build**         | Técnica de Docker que usa múltiplos `FROM` para reduzir tamanho final da imagem, separando build de produção                          |
-| **Container**                 | Unidade de software que empacota aplicação e suas dependências de forma isolada e portável                                            |
-| **Image**                     | Template imutável usado para criar containers Docker, contém código e runtime                                                         |
-| **Registry**                  | Repositório de imagens Docker (ex: Docker Hub, GitHub Container Registry, AWS ECR)                                                    |
-| **Orchestration**             | Gerenciamento automatizado de múltiplos containers (deploy, scaling, networking) via ferramentas como Kubernetes                      |
-| **Horizontal Scaling**        | Adicionar mais instâncias da aplicação para lidar com carga crescente (scale-out)                                                     |
-| **Vertical Scaling**          | Aumentar recursos (CPU, RAM) de uma única instância para lidar com carga crescente (scale-up)                                         |
-| **Monolith**                  | Aplicação única e indivisível onde todos os módulos rodam no mesmo processo                                                           |
-| **Microservices**             | Arquitetura onde sistema é dividido em múltiplos serviços independentes que se comunicam via rede                                     |
-| **Event-Driven**              | Arquitetura onde componentes se comunicam via eventos assíncronos ao invés de chamadas síncronas                                      |
-| **Pub/Sub**                   | Publish/Subscribe: padrão onde produtores publicam eventos e consumidores se inscrevem para recebê-los                                |
-| **Message Queue**             | Fila de mensagens que permite comunicação assíncrona entre serviços (ex: RabbitMQ, Redis, Kafka)                                      |
-| **DLQ**                       | Dead Letter Queue: fila de mensagens que falharam após múltiplas tentativas de processamento                                          |
-| **Retry Logic**               | Lógica que tenta reexecutar operação falhada após intervalo de tempo, com limite de tentativas                                        |
-| **Exponential Backoff**       | Estratégia de retry onde intervalo entre tentativas aumenta exponencialmente (1s, 2s, 4s, 8s...)                                      |
-| **Circuit Breaker**           | Padrão que previne cascata de falhas ao desligar temporariamente comunicação com serviço instável                                     |
-| **Saga Pattern**              | Padrão para transações distribuídas em microserviços, coordenando operações via eventos ou orquestração                               |
-| **2PC**                       | Two-Phase Commit: protocolo de transação distribuída que garante atomicidade em múltiplos bancos de dados                             |
-| **CAP Theorem**               | Teorema que afirma ser impossível ter simultaneamente Consistência, Disponibilidade e Tolerância a Partições em sistemas distribuídos |
-| **Eventual Consistency**      | Modelo onde dados podem ficar inconsistentes temporariamente, mas eventualmente convergem para estado consistente                     |
-| **MVP**                       | Minimum Viable Product: versão mínima de produto com funcionalidades essenciais para validar hipótese com usuários                    |
-| **Tech Debt**                 | Technical Debt: custo acumulado de escolhas técnicas rápidas que sacrificam qualidade e exigem refatoração futura                     |
-| **Overfetching**              | Problema REST onde API retorna mais dados que o necessário, desperdiçando banda e processamento                                       |
-| **Underfetching**             | Problema REST onde API retorna menos dados que o necessário, exigindo múltiplas requisições                                           |
-| **GraphQL**                   | Linguagem de query para APIs que permite cliente especificar exatamente quais dados deseja, resolvendo over/underfetching             |
-| **SPF**                       | Sender Policy Framework: protocolo de email que valida se servidor está autorizado a enviar emails por domínio                        |
-| **DKIM**                      | DomainKeys Identified Mail: assinatura criptográfica que autentica domínio remetente de email                                         |
-| **Fábrica de Software**       | Ambiente educacional do IFPE onde alunos desenvolvem e mantêm sistemas reais para aplicar conhecimentos de engenharia de software     |
-| **Invite**                    | Convite enviado por uma associação para um produtor se juntar à plataforma, contém token único e expiração em 7 dias                   |
-| **User**                      | Produtor ou gestor que utiliza a plataforma QuaLeiDer para gerenciar dados de produção de leite                                        |
-| **Animal**                    | Animal cadastrado na plataforma, associado a um produtor, com informações de saúde e produção                                          |
-| **DailyCollection**          | Registro diário de coleta de leite, vinculado a um produtor e possivelmente a múltiplos animais                                        |
-| **Association**               | Entidade que representa uma cooperativa ou grupo de produtores, pode gerenciar usuários e visualizar dados agregados                  |
-| **Report**                   | Relatório gerado pelo sistema com dados agregados sobre produção de leite, pode ser diário, semanal ou mensal                          |
-| **Notification**              | Alerta enviado por email ou dentro da plataforma para informar sobre eventos como convites, resets de senha, etc.                     |
-| **Cron Job**                  | Tarefa agendada que executa ações como limpeza de convites expirados ou envio de lembretes                                             |
-| **JWT**                       | JSON Web Token, usado para autenticação de usuários na API, expira em 24 horas                                                           |
-| **Prisma**                    | ORM utilizado para acesso ao banco de dados PostgreSQL, fornece uma camada de abstração e segurança adicional                          |
-| **Docker**                    | Plataforma de containerização que permite empacotar a aplicação e suas dependências em um ambiente isolado e reproduzível              |
-| **GitHub Actions**             | Ferramenta de CI/CD que automatiza o processo de testes e deploy da aplicação para o ambiente de produção                              |
-| **Ethereal**                 | Serviço de email temporário usado para desenvolvimento e testes, permite enviar emails sem custo                                        |
-| **PostgreSQL**                | Sistema de gerenciamento de banco de dados relacional usado para armazenar dados da aplicação                                             |
-| **Redis**                     | Armazenamento em cache e fila de mensagens, usado para melhorar performance e garantir entrega de mensagens em background               |
-| **BullMQ**                    | Biblioteca para gerenciamento de filas e jobs em background, utilizada para reenvio de emails e processamento de tarefas agendadas     |
-| **Prometheus**                | Sistema de monitoramento e alerta, usado para coletar métricas da aplicação e infraestrutura                                             |
-| **Grafana**                   | Plataforma de análise e monitoramento, usada para visualizar métricas coletadas pelo Prometheus                                          |
-| **Helmet**                    | Middleware para configurar headers de segurança HTTP, ajuda a proteger a aplicação contra vulnerabilidades comuns                       |
-| **class-validator**            | Biblioteca para validação de objetos e DTOs, utilizada para garantir que dados de entrada estejam no formato correto                     |
-| **bcrypt**                    | Biblioteca para hashing de senhas, utilizada para proteger senhas de usuários com um hash seguro e único                                  |
-| **jsonwebtoken**              | Biblioteca para geração e verificação de tokens JWT, utilizada na autenticação de usuários                                               |
-| **nodemailer**                | Biblioteca para envio de emails, utilizada para enviar convites, notificações e links de reset de senha                                   |
-| **passport**                  | Middleware de autenticação, utilizado para integrar diferentes estratégias de autenticação como JWT e OAuth2                               |
-| **@nestjs/jwt**               | Pacote do NestJS para integração com a biblioteca jsonwebtoken, simplifica o uso de JWT na aplicação                                      |
-| **@nestjs/passport**           | Pacote do NestJS para integração com a biblioteca passport, simplifica o uso de autenticação baseada em estratégias                      |
-| **@nestjs/event-emitter**      | Pacote do NestJS para implementação do padrão de eventos (Pub/Sub), utilizado para comunicação assíncrona entre diferentes partes da aplicação |
-| **@nestjs/schedule**           | Pacote do NestJS para agendamento de tarefas (CRON jobs), utilizado para executar ações periódicas como limpeza de dados expirados      |
-| **@willsoto/nestjs-prometheus**| Pacote para integração do NestJS com o Prometheus, utilizado para expor métricas da aplicação                                          |
-| **@nestjs/throttler**          | Pacote do NestJS para implementação de rate limiting, utilizado para proteger rotas contra abusos e ataques de força bruta               |
-| **Helmet:**                    | Middleware para configurar headers de segurança HTTP, protege contra vulnerabilidades comuns.                                          |
+| Termo                           | Definição                                                                                                                                      |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| **AAA Pattern**                 | Arrange-Act-Assert: padrão de estruturação de testes dividido em 3 etapas (preparar, executar, verificar)                                      |
+| **CI/CD**                       | Continuous Integration/Continuous Deployment: prática de integração e deploy contínuos com validação automatizada                              |
+| **Cobertura de Código**         | Métrica que indica percentual de código executado durante testes automatizados                                                                 |
+| **Dependency Injection (DI)**   | Padrão de design onde dependências são fornecidas externamente ao invés de criadas internamente, facilitando testes                            |
+| **E2E (End-to-End)**            | Testes que validam fluxo completo do sistema, do endpoint HTTP até o banco de dados                                                            |
+| **Flaky Test**                  | Teste instável que falha intermitentemente sem mudanças no código, geralmente por não-determinismo                                             |
+| **Mock**                        | Objeto que simula comportamento de dependência real, usado para isolar código em testes                                                        |
+| **Ports & Adapters**            | Padrão arquitetural (Hexagonal Architecture) que separa lógica de negócio de detalhes de infraestrutura via interfaces                         |
+| **Stub**                        | Tipo de test double que retorna dados pré-definidos, mais simples que mocks                                                                    |
+| **Test Double**                 | Termo genérico para objetos que substituem dependências reais em testes (mocks, stubs, spies, fakes)                                           |
+| **Test Factory**                | Padrão de criação de objetos de teste com dados válidos por padrão, reduzindo duplicação de código                                             |
+| **Test Isolation**              | Princípio de que cada teste deve ser independente e não afetar outros testes                                                                   |
+| **Testes de Contrato**          | Testes que validam se a interface entre sistemas externos permanece compatível                                                                 |
+| **Testes Unitários**            | Testes que validam pequenas unidades de código (funções, métodos) de forma isolada                                                             |
+| **JWT**                         | JSON Web Token: padrão de token para autenticação stateless                                                                                    |
+| **DTO**                         | Data Transfer Object: objeto que transporta dados entre camadas, usado para validação de entrada                                               |
+| **ORM**                         | Object-Relational Mapping: framework que mapeia objetos para tabelas de banco de dados (ex: Prisma)                                            |
+| **CRON Job**                    | Tarefa agendada que executa automaticamente em intervalos definidos                                                                            |
+| **Clean Architecture**          | Arquitetura em camadas que separa lógica de negócio de frameworks e infraestrutura                                                             |
+| **Prisma**                      | ORM TypeScript-first utilizado no projeto para acesso ao PostgreSQL                                                                            |
+| **NestJS**                      | Framework Node.js para construção de aplicações server-side escaláveis                                                                         |
+| **Supertest**                   | Biblioteca para testes de APIs HTTP em Node.js                                                                                                 |
+| **Jest**                        | Framework JavaScript para testes unitários e E2E                                                                                               |
+| **DRY**                         | Don't Repeat Yourself: princípio de evitar duplicação de código através de abstração e reutilização                                            |
+| **SRP**                         | Single Responsibility Principle: cada classe/módulo deve ter uma única responsabilidade                                                        |
+| **DIP**                         | Dependency Inversion Principle: depender de abstrações (interfaces) ao invés de implementações concretas                                       |
+| **SOLID**                       | Conjunto de 5 princípios de design orientado a objetos (SRP, OCP, LSP, ISP, DIP)                                                               |
+| **KISS**                        | Keep It Simple, Stupid: princípio de manter soluções simples e evitar complexidade desnecessária                                               |
+| **YAGNI**                       | You Aren't Gonna Need It: não implementar funcionalidades até que sejam realmente necessárias                                                  |
+| **TDD**                         | Test-Driven Development: metodologia de desenvolver testes antes do código de produção                                                         |
+| **Refactoring**                 | Processo de melhorar estrutura interna do código sem alterar comportamento externo                                                             |
+| **Code Smell**                  | Indicador de possível problema no código que merece atenção (ex: funções muito longas, duplicação)                                             |
+| **Path Alias**                  | Atalho de importação (ex: `@/application`) que simplifica caminhos relativos no código                                                         |
+| **Clean Code**                  | Conjunto de práticas para escrever código legível, simples e fácil de manter                                                                   |
+| **Git Hooks**                   | Scripts automatizados que executam em eventos específicos do Git (commit, push, merge) para validações personalizadas                          |
+| **Husky**                       | Ferramenta Node.js que facilita configuração e gerenciamento de Git Hooks em projetos JavaScript/TypeScript                                    |
+| **Pre-commit**                  | Hook do Git que executa antes de finalizar um commit, usado para validar código antes de salvá-lo no histórico                                 |
+| **Pre-push**                    | Hook do Git que executa antes de enviar commits ao repositório remoto, última validação local antes do push                                    |
+| **--no-verify**                 | Flag do Git que ignora execução de hooks configurados (bypass), deve ser usado apenas em emergências                                           |
+| **Time-to-Market**              | Tempo entre a concepção de uma ideia/produto e sua disponibilização ao mercado; quanto menor, mais rápido o feedback                           |
+| **Load Balancer**               | Componente que distribui tráfego entre múltiplas instâncias de uma aplicação, garantindo disponibilidade e performance                         |
+| **Stateless**                   | Arquitetura onde o servidor não armazena estado de sessão; cada requisição contém todas as informações necessárias                             |
+| **Stateful**                    | Arquitetura onde o servidor mantém estado de sessão entre requisições (oposto de stateless)                                                    |
+| **Connection Pooling**          | Técnica de reutilizar conexões de banco de dados ao invés de criar novas a cada requisição, melhorando performance                             |
+| **Query N+1**                   | Anti-pattern onde uma query principal gera N queries adicionais, causando problemas de performance                                             |
+| **Soft Delete**                 | Técnica de marcar registros como deletados (flag `deleted_at`) ao invés de removê-los fisicamente do banco                                     |
+| **Hard Delete**                 | Remoção física de registros do banco de dados (DELETE FROM), sem possibilidade de recuperação                                                  |
+| **Prepared Statement**          | Query SQL pré-compilada com placeholders, prevenindo SQL injection e melhorando performance                                                    |
+| **SQL Injection**               | Ataque onde código SQL malicioso é inserido em inputs para manipular ou acessar banco de dados indevidamente                                   |
+| **XSS**                         | Cross-Site Scripting: ataque que injeta scripts maliciosos em páginas web para roubar dados ou executar ações não autorizadas                  |
+| **CORS**                        | Cross-Origin Resource Sharing: mecanismo de segurança que controla quais domínios podem acessar recursos da API                                |
+| **ACID**                        | Atomicidade, Consistência, Isolamento, Durabilidade: propriedades que garantem confiabilidade de transações em bancos de dados                 |
+| **Migration**                   | Script versionado que altera schema do banco de dados de forma controlada e rastreável                                                         |
+| **Seed**                        | Script que popula banco de dados com dados iniciais para desenvolvimento ou testes                                                             |
+| **Schema**                      | Estrutura de tabelas, colunas, índices e relacionamentos do banco de dados                                                                     |
+| **Foreign Key**                 | Restrição que garante integridade referencial entre tabelas relacionadas no banco de dados                                                     |
+| **SMTP**                        | Simple Mail Transfer Protocol: protocolo para envio de emails                                                                                  |
+| **TLS**                         | Transport Layer Security: protocolo de criptografia para comunicação segura em redes (sucessor do SSL)                                         |
+| **SSL**                         | Secure Sockets Layer: protocolo antigo de criptografia, substituído pelo TLS (mas termo ainda usado)                                           |
+| **MIME**                        | Multipurpose Internet Mail Extensions: padrão para formatar emails com conteúdo HTML, anexos, etc.                                             |
+| **LGPD**                        | Lei Geral de Proteção de Dados (Lei 13.709/2018): legislação brasileira sobre privacidade e proteção de dados pessoais                         |
+| **PII**                         | Personally Identifiable Information: dados que podem identificar uma pessoa (nome, CPF, email, etc.)                                           |
+| **Hash**                        | Função criptográfica que transforma dados em string fixa e irreversível, usada para armazenar senhas com segurança                             |
+| **Salt**                        | Dado aleatório adicionado a senhas antes do hash para prevenir ataques com rainbow tables                                                      |
+| **Rainbow Table**               | Tabela pré-computada de hashes comuns usada para quebrar senhas fracas rapidamente                                                             |
+| **Brute Force**                 | Ataque que tenta todas as combinações possíveis para quebrar senha ou criptografia                                                             |
+| **Token**                       | String única e temporária usada para autenticação, reset de senha, ou autorização de ações específicas                                         |
+| **Bearer Token**                | Tipo de token de autorização enviado no header HTTP `Authorization: Bearer <token>`                                                            |
+| **Payload**                     | Dados úteis transportados em requisição HTTP, token JWT, ou mensagem de fila                                                                   |
+| **Endpoint**                    | URL específica de uma API que aceita requisições HTTP (ex: `POST /api/v1/users`)                                                               |
+| **RESTful**                     | API que segue princípios REST: recursos identificados por URLs, verbos HTTP semânticos, stateless                                              |
+| **Idempotente**                 | Operação que pode ser executada múltiplas vezes sem alterar resultado além da primeira execução (ex: GET, PUT, DELETE)                         |
+| **Webhook**                     | Callback HTTP que notifica sistema externo sobre eventos (ex: GitHub Actions notifica CI/CD sobre push)                                        |
+| **Multi-Stage Build**           | Técnica de Docker que usa múltiplos `FROM` para reduzir tamanho final da imagem, separando build de produção                                   |
+| **Container**                   | Unidade de software que empacota aplicação e suas dependências de forma isolada e portável                                                     |
+| **Image**                       | Template imutável usado para criar containers Docker, contém código e runtime                                                                  |
+| **Registry**                    | Repositório de imagens Docker (ex: Docker Hub, GitHub Container Registry, AWS ECR)                                                             |
+| **Orchestration**               | Gerenciamento automatizado de múltiplos containers (deploy, scaling, networking) via ferramentas como Kubernetes                               |
+| **Horizontal Scaling**          | Adicionar mais instâncias da aplicação para lidar com carga crescente (scale-out)                                                              |
+| **Vertical Scaling**            | Aumentar recursos (CPU, RAM) de uma única instância para lidar com carga crescente (scale-up)                                                  |
+| **Monolith**                    | Aplicação única e indivisível onde todos os módulos rodam no mesmo processo                                                                    |
+| **Microservices**               | Arquitetura onde sistema é dividido em múltiplos serviços independentes que se comunicam via rede                                              |
+| **Event-Driven**                | Arquitetura onde componentes se comunicam via eventos assíncronos ao invés de chamadas síncronas                                               |
+| **Pub/Sub**                     | Publish/Subscribe: padrão onde produtores publicam eventos e consumidores se inscrevem para recebê-los                                         |
+| **Message Queue**               | Fila de mensagens que permite comunicação assíncrona entre serviços (ex: RabbitMQ, Redis, Kafka)                                               |
+| **DLQ**                         | Dead Letter Queue: fila de mensagens que falharam após múltiplas tentativas de processamento                                                   |
+| **Retry Logic**                 | Lógica que tenta reexecutar operação falhada após intervalo de tempo, com limite de tentativas                                                 |
+| **Exponential Backoff**         | Estratégia de retry onde intervalo entre tentativas aumenta exponencialmente (1s, 2s, 4s, 8s...)                                               |
+| **BusinessException**           | Exception customizada para erros de regra de negócio, padroniza respostas e facilita testes/internacionalização                                |
+| **Logger Estruturado**          | Logger que emite logs em formato JSON, facilitando análise, filtragem e ingestão por ferramentas de observabilidade                            |
+| **Sanitização de Logs**         | Processo de ofuscar dados sensíveis (senhas, tokens, CPF) nos logs para conformidade com LGPD e segurança                                      |
+| **Helmet**                      | Middleware para configurar headers de segurança HTTP, protege contra vulnerabilidades comuns                                                   |
+| **PrismaExceptionFilter**       | Filtro global que traduz erros do Prisma ORM em respostas HTTP padronizadas, facilitando tratamento de erros de banco de dados                 |
+| **Circuit Breaker**             | Padrão que previne cascata de falhas ao desligar temporariamente comunicação com serviço instável                                              |
+| **Saga Pattern**                | Padrão para transações distribuídas em microserviços, coordenando operações via eventos ou orquestração                                        |
+| **2PC**                         | Two-Phase Commit: protocolo de transação distribuída que garante atomicidade em múltiplos bancos de dados                                      |
+| **CAP Theorem**                 | Teorema que afirma ser impossível ter simultaneamente Consistência, Disponibilidade e Tolerância a Partições em sistemas distribuídos          |
+| **Eventual Consistency**        | Modelo onde dados podem ficar inconsistentes temporariamente, mas eventualmente convergem para estado consistente                              |
+| **MVP**                         | Minimum Viable Product: versão mínima de produto com funcionalidades essenciais para validar hipótese com usuários                             |
+| **Tech Debt**                   | Technical Debt: custo acumulado de escolhas técnicas rápidas que sacrificam qualidade e exigem refatoração futura                              |
+| **Overfetching**                | Problema REST onde API retorna mais dados que o necessário, desperdiçando banda e processamento                                                |
+| **Underfetching**               | Problema REST onde API retorna menos dados que o necessário, exigindo múltiplas requisições                                                    |
+| **GraphQL**                     | Linguagem de query para APIs que permite cliente especificar exatamente quais dados deseja, resolvendo over/underfetching                      |
+| **SPF**                         | Sender Policy Framework: protocolo de email que valida se servidor está autorizado a enviar emails por domínio                                 |
+| **DKIM**                        | DomainKeys Identified Mail: assinatura criptográfica que autentica domínio remetente de email                                                  |
+| **Fábrica de Software**         | Ambiente educacional do IFPE onde alunos desenvolvem e mantêm sistemas reais para aplicar conhecimentos de engenharia de software              |
+| **Invite**                      | Convite enviado por uma associação para um produtor se juntar à plataforma, contém token único e expiração em 7 dias                           |
+| **User**                        | Produtor ou gestor que utiliza a plataforma QuaLeiDer para gerenciar dados de produção de leite                                                |
+| **Animal**                      | Animal cadastrado na plataforma, associado a um produtor, com informações de saúde e produção                                                  |
+| **DailyCollection**             | Registro diário de coleta de leite, vinculado a um produtor e possivelmente a múltiplos animais                                                |
+| **Association**                 | Entidade que representa uma cooperativa ou grupo de produtores, pode gerenciar usuários e visualizar dados agregados                           |
+| **Report**                      | Relatório gerado pelo sistema com dados agregados sobre produção de leite, pode ser diário, semanal ou mensal                                  |
+| **Notification**                | Alerta enviado por email ou dentro da plataforma para informar sobre eventos como convites, resets de senha, etc.                              |
+| **Cron Job**                    | Tarefa agendada que executa ações como limpeza de convites expirados ou envio de lembretes                                                     |
+| **JWT**                         | JSON Web Token, usado para autenticação de usuários na API, expira em 24 horas                                                                 |
+| **Prisma**                      | ORM utilizado para acesso ao banco de dados PostgreSQL, fornece uma camada de abstração e segurança adicional                                  |
+| **Docker**                      | Plataforma de containerização que permite empacotar a aplicação e suas dependências em um ambiente isolado e reproduzível                      |
+| **GitHub Actions**              | Ferramenta de CI/CD que automatiza o processo de testes e deploy da aplicação para o ambiente de produção                                      |
+| **Ethereal**                    | Serviço de email temporário usado para desenvolvimento e testes, permite enviar emails sem custo                                               |
+| **PostgreSQL**                  | Sistema de gerenciamento de banco de dados relacional usado para armazenar dados da aplicação                                                  |
+| **Redis**                       | Armazenamento em cache e fila de mensagens, usado para melhorar performance e garantir entrega de mensagens em background                      |
+| **BullMQ**                      | Biblioteca para gerenciamento de filas e jobs em background, utilizada para reenvio de emails e processamento de tarefas agendadas             |
+| **Prometheus**                  | Sistema de monitoramento e alerta, usado para coletar métricas da aplicação e infraestrutura                                                   |
+| **Grafana**                     | Plataforma de análise e monitoramento, usada para visualizar métricas coletadas pelo Prometheus                                                |
+| **class-validator**             | Biblioteca para validação de objetos e DTOs, utilizada para garantir que dados de entrada estejam no formato correto                           |
+| **bcrypt**                      | Biblioteca para hashing de senhas, utilizada para proteger senhas de usuários com um hash seguro e único                                       |
+| **jsonwebtoken**                | Biblioteca para geração e verificação de tokens JWT, utilizada na autenticação de usuários                                                     |
+| **nodemailer**                  | Biblioteca para envio de emails, utilizada para enviar convites, notificações e links de reset de senha                                        |
+| **passport**                    | Middleware de autenticação, utilizado para integrar diferentes estratégias de autenticação como JWT e OAuth2                                   |
+| **@nestjs/jwt**                 | Pacote do NestJS para integração com a biblioteca jsonwebtoken, simplifica o uso de JWT na aplicação                                           |
+| **@nestjs/passport**            | Pacote do NestJS para integração com a biblioteca passport, simplifica o uso de autenticação baseada em estratégias                            |
+| **@nestjs/event-emitter**       | Pacote do NestJS para implementação do padrão de eventos (Pub/Sub), utilizado para comunicação assíncrona entre diferentes partes da aplicação |
+| **@nestjs/schedule**            | Pacote do NestJS para agendamento de tarefas (CRON jobs), utilizado para executar ações periódicas como limpeza de dados expirados             |
+| **@willsoto/nestjs-prometheus** | Pacote para integração do NestJS com o Prometheus, utilizado para expor métricas da aplicação                                                  |
+| **@nestjs/throttler**           | Pacote do NestJS para implementação de rate limiting, utilizado para proteger rotas contra abusos e ataques de força bruta                     |
+| **Helmet:**                     | Middleware para configurar headers de segurança HTTP, protege contra vulnerabilidades comuns.                                                  |
