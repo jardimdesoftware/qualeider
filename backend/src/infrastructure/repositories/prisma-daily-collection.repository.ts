@@ -1,24 +1,21 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { IDailyCollectionRepository } from '@/domain/repositories/daily-collection.repository';
-import { DailyCollectionEntity } from '@/domain/entities/daily-collection.entity';
 import { ID } from '@/domain/enums/enums';
+import { DailyCollectionEntity } from '@/domain/entities/daily-collection.entity';
 import { DailyCollectionCriteria } from '@/domain/criteria/daily-collection.criteria';
 
 @Injectable()
-export class PrismaDailyCollectionRepository
-  implements IDailyCollectionRepository
-{
+export class PrismaDailyCollectionRepository implements IDailyCollectionRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(
-    data: Omit<DailyCollectionEntity, 'id' | 'createdAt' | 'updatedAt'>,
-  ): Promise<DailyCollectionEntity> {
+  async create(data: Omit<DailyCollectionEntity, 'id' | 'createdAt' | 'updatedAt'>): Promise<DailyCollectionEntity> {
     const created = await this.prisma.dailyCollection.create({
       data: {
+        userId: data.userId,
         quantity: data.quantity,
         collectionDate: data.collectionDate,
-        userId: data.userId,
         numAnimals: data.numAnimals,
         numOrdens: data.numOrdens,
         rationProvided: data.rationProvided,
@@ -30,27 +27,39 @@ export class PrismaDailyCollectionRepository
     return created as any;
   }
 
-  async findAll(criteria?: DailyCollectionCriteria): Promise<DailyCollectionEntity[]> {
-    const where: any = {};
+  async findAll(criteria: DailyCollectionCriteria = {}): Promise<DailyCollectionEntity[]> {
+    // 1. Definição do WHERE com tipagem correta
+    const where: Prisma.DailyCollectionWhereInput = {};
 
-    if (criteria?.userId) {
+    if (criteria.userId) {
       where.userId = criteria.userId;
     }
 
-    if (criteria?.associationId) {
+    if (criteria.associationId) {
       where.user = {
         associationId: criteria.associationId,
       };
     }
 
-    if (criteria?.dateRange) {
+    if (criteria.dateRange) {
       where.collectionDate = {
         gte: criteria.dateRange.start,
         lte: criteria.dateRange.end,
       };
     }
 
-    const list = await this.prisma.dailyCollection.findMany({ where });
+    const include: Prisma.DailyCollectionInclude = {};
+
+    if (criteria.includeUser) {
+      include.user = true;
+    }
+
+    const list = await this.prisma.dailyCollection.findMany({
+      where,
+      include: Object.keys(include).length > 0 ? include : undefined,
+      orderBy: { collectionDate: 'desc' },
+    });
+
     return list as any;
   }
 
@@ -81,21 +90,45 @@ export class PrismaDailyCollectionRepository
     return updated as any;
   }
 
+  async remove(id: ID): Promise<DailyCollectionEntity> {
+    const deleted = await this.prisma.dailyCollection.delete({
+      where: { id },
+    });
+    return deleted as any;
+  }
+
   async delete(id: ID): Promise<void> {
-    await this.prisma.dailyCollection.delete({ where: { id } });
+    await this.prisma.dailyCollection.delete({
+      where: { id },
+    });
   }
 
   async checkIfUserAlreadySubmitted(userId: ID): Promise<boolean> {
-    const submission = await this.prisma.dailyCollection.findFirst({
-      where: { userId },
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const existing = await this.prisma.dailyCollection.findFirst({
+      where: {
+        userId,
+        collectionDate: {
+          gte: today,
+          lt: tomorrow,
+        },
+      },
     });
-    return !!submission;
+
+    return !!existing;
   }
 
   async findAllByUserId(userId: ID): Promise<DailyCollectionEntity[]> {
     const list = await this.prisma.dailyCollection.findMany({
       where: { userId },
+      orderBy: { collectionDate: 'desc' },
     });
     return list as any;
   }
 }
+
