@@ -169,4 +169,13 @@ model Notification {
   @@index([createdAt])
 }
 
+model FailedEmail {
+  id          String   @id @default(uuid())
+  payload     Json     
+  errorReason String   
+  retryCount  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
+  @@map("failed_emails")
+}
