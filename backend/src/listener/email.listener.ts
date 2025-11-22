@@ -67,6 +67,7 @@ export class EmailListener {
               template: 'notification',
               context: {
                 userName: payload.userName,
+                subject: payload.subject,
                 message: payload.message,
                 metadata: payload.metadata,
               },
