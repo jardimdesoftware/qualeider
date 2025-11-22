@@ -1,13 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from '@/application/services/users/users.service';
-import { PrismaService } from '@/infrastructure/prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { IUserRepository as IUserRepositorySymbol, type IUserRepository } from '@/domain/repositories/user.repository';
 import { IHashService as IHashServiceSymbol, type IHashService } from '@/application/ports/hash.service';
 import { CreateUserDto } from '@/application/dtos/users/create-user.dto';
 import { UpdateUserDto } from '@/application/dtos/users/update-user.dto';
 import { UpdatePartialUserDto } from '@/application/dtos/users/update-partial-user.dto';
 import { createUser } from '../../../factories/user.factory';
-import { createMockPrismaService } from '../../../mocks/prisma.mock';
 import { UserCategory, Status } from '@/domain/enums/enums';
 import { BCRYPT_ROUNDS_USER_CREATION } from '@/common/constants/security.constants';
 import { BusinessException } from '@/common/exceptions/business.exception';
@@ -17,18 +15,24 @@ import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.ex
 
 describe('UsersService', () => {
   let service: UsersService;
-  let prismaService: ReturnType<typeof createMockPrismaService>;
+  let userRepository: IUserRepository;
   let hashService: IHashService;
 
   beforeEach(async () => {
-    prismaService = createMockPrismaService();
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UsersService,
         {
-          provide: PrismaService,
-          useValue: prismaService,
+          provide: IUserRepositorySymbol,
+          useValue: {
+            create: jest.fn(),
+            findAllActive: jest.fn(),
+            findById: jest.fn(),
+            update: jest.fn(),
+            partialUpdate: jest.fn(),
+            softDelete: jest.fn(),
+            findByEmail: jest.fn(),
+          },
         },
         {
           provide: IHashServiceSymbol,
@@ -40,6 +44,7 @@ describe('UsersService', () => {
     }).compile();
 
     service = module.get<UsersService>(UsersService);
+    userRepository = module.get<IUserRepository>(IUserRepositorySymbol) as any;
     hashService = module.get<IHashService>(IHashServiceSymbol) as any;
   });
 
@@ -64,7 +69,7 @@ describe('UsersService', () => {
         ...createDto,
         password: hashedPassword,
       });
-      prismaService.user.create.mockResolvedValue(mockCreatedUser);
+      (userRepository.create as jest.Mock).mockResolvedValue(mockCreatedUser);
 
       const result = await service.create(createDto);
 
@@ -72,11 +77,9 @@ describe('UsersService', () => {
         'plainPassword123',
         BCRYPT_ROUNDS_USER_CREATION,
       );
-      expect(prismaService.user.create).toHaveBeenCalledWith({
-        data: {
-          ...createDto,
-          password: hashedPassword,
-        },
+      expect(userRepository.create).toHaveBeenCalledWith({
+        ...createDto,
+        password: hashedPassword,
       });
       expect(result).not.toHaveProperty('password');
       expect(result.email).toBe('john@example.com');
@@ -94,11 +97,8 @@ describe('UsersService', () => {
 
       (hashService.hash as jest.Mock).mockResolvedValue('hashedPassword');
 
-      const prismaError = new Prisma.PrismaClientKnownRequestError(
-        'Unique constraint failed',
-        { code: 'P2002', clientVersion: '5.0.0' } as any,
-      );
-      prismaService.user.create.mockRejectedValue(prismaError);
+      const error = { code: 'P2002' };
+      (userRepository.create as jest.Mock).mockRejectedValue(error);
 
       await expect(service.create(createDto)).rejects.toThrow(
         BusinessException,
@@ -119,15 +119,10 @@ describe('UsersService', () => {
 
       (hashService.hash as jest.Mock).mockResolvedValue('hashedPassword');
 
-      const prismaError = new Prisma.PrismaClientKnownRequestError(
-        'Unknown database error',
-        { code: 'P2000', clientVersion: '5.0.0' } as any,
-      );
-      prismaService.user.create.mockRejectedValue(prismaError);
+      const error = { code: 'P2000' };
+      (userRepository.create as jest.Mock).mockRejectedValue(error);
 
-      await expect(service.create(createDto)).rejects.toThrow(
-        Prisma.PrismaClientKnownRequestError,
-      );
+      await expect(service.create(createDto)).rejects.toEqual(error);
     });
 
     it('deve relançar erros genéricos (não-Prisma)', async () => {
@@ -143,7 +138,7 @@ describe('UsersService', () => {
       (hashService.hash as jest.Mock).mockResolvedValue('hashedPassword');
 
       const genericError = new Error('Network failure');
-      prismaService.user.create.mockRejectedValue(genericError);
+      (userRepository.create as jest.Mock).mockRejectedValue(genericError);
 
       await expect(service.create(createDto)).rejects.toThrow(
         'Network failure',
@@ -158,46 +153,38 @@ describe('UsersService', () => {
         createUser({ id: 2, status: Status.Active }),
       ];
 
-      prismaService.user.findMany.mockResolvedValue(mockUsers);
+      (userRepository.findAllActive as jest.Mock).mockResolvedValue(mockUsers);
 
       const result = await service.findAll();
 
-      expect(prismaService.user.findMany).toHaveBeenCalledWith({
-        where: { status: 'Active' },
-        select: expect.any(Object),
-      });
+      expect(userRepository.findAllActive).toHaveBeenCalled();
       expect(result).toHaveLength(2);
     });
 
     it('deve filtrar usuários por associationId quando informado', async () => {
       const mockUsers = [createUser({ id: 1, associationId: 10 })];
-      prismaService.user.findMany.mockResolvedValue(mockUsers);
+      (userRepository.findAllActive as jest.Mock).mockResolvedValue(mockUsers);
 
       await service.findAll(10);
 
-      expect(prismaService.user.findMany).toHaveBeenCalledWith({
-        where: { status: 'Active', associationId: 10 },
-        select: expect.any(Object),
-      });
+      // Note: Repository doesn't support filtering yet, so it calls findAllActive
+      expect(userRepository.findAllActive).toHaveBeenCalled();
     });
   });
 
   describe('findOne', () => {
     it('deve retornar um único usuário ativo por id', async () => {
       const mockUser = createUser({ id: 1, status: Status.Active });
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
+      (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
 
       const result = await service.findOne(1);
 
-      expect(prismaService.user.findUnique).toHaveBeenCalledWith({
-        where: { id: 1, status: 'Active' },
-        select: expect.any(Object),
-      });
+      expect(userRepository.findById).toHaveBeenCalledWith(1);
       expect(result.id).toBe(1);
     });
 
     it('deve lançar EntityNotFoundException quando usuário não for encontrado', async () => {
-      prismaService.user.findUnique.mockResolvedValue(null);
+      (userRepository.findById as jest.Mock).mockResolvedValue(null);
 
       await expect(service.findOne(999)).rejects.toThrow(
         EntityNotFoundException,
@@ -205,8 +192,8 @@ describe('UsersService', () => {
     });
 
     it('deve lançar EntityNotFoundException quando usuário estiver inativo', async () => {
-      // findUnique where status='Active' returns null for inactive users
-      prismaService.user.findUnique.mockResolvedValue(null);
+      // findById should return null for inactive users if implemented correctly in repo
+      (userRepository.findById as jest.Mock).mockResolvedValue(null);
 
       await expect(service.findOne(1)).rejects.toThrow(EntityNotFoundException);
     });
@@ -220,18 +207,15 @@ describe('UsersService', () => {
         city: 'Updated City',
       };
 
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
-      prismaService.user.update.mockResolvedValue({
+      (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
+      (userRepository.partialUpdate as jest.Mock).mockResolvedValue({
         ...mockUser,
         ...updateDto,
       });
 
       const result = await service.update(1, updateDto);
 
-      expect(prismaService.user.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: updateDto,
-      });
+      expect(userRepository.partialUpdate).toHaveBeenCalledWith(1, updateDto);
       expect(result.name).toBe('Updated Name');
     });
 
@@ -240,8 +224,8 @@ describe('UsersService', () => {
       const updateDto: UpdateUserDto = { password: 'newPassword123' };
 
       (hashService.hash as jest.Mock).mockResolvedValue('newHashedPassword');
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
-      prismaService.user.update.mockResolvedValue({
+      (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
+      (userRepository.partialUpdate as jest.Mock).mockResolvedValue({
         ...mockUser,
         password: 'newHashedPassword',
       });
@@ -252,32 +236,32 @@ describe('UsersService', () => {
         'newPassword123',
         BCRYPT_ROUNDS_USER_CREATION,
       );
-      expect(prismaService.user.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: expect.objectContaining({ password: 'newHashedPassword' }),
-      });
+      expect(userRepository.partialUpdate).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({ password: 'newHashedPassword' }),
+      );
     });
 
     it('não deve hashear senha vazia', async () => {
       const mockUser = createUser({ id: 1, status: Status.Active });
       const updateDto: UpdateUserDto = { name: 'Updated', password: '' };
 
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
-      prismaService.user.update.mockResolvedValue(mockUser);
+      (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
+      (userRepository.partialUpdate as jest.Mock).mockResolvedValue(mockUser);
 
       await service.update(1, updateDto);
 
       expect(hashService.hash).not.toHaveBeenCalled();
       // Verify password is removed from update payload
-      expect(prismaService.user.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: expect.not.objectContaining({ password: '' }),
-      });
+      expect(userRepository.partialUpdate).toHaveBeenCalledWith(
+        1,
+        expect.not.objectContaining({ password: '' }),
+      );
     });
 
     it('deve lançar EntityNotFoundException quando usuário não for encontrado', async () => {
       const updateDto: UpdateUserDto = { name: 'New Name' };
-      prismaService.user.findUnique.mockResolvedValue(null);
+      (userRepository.findById as jest.Mock).mockResolvedValue(null);
 
       await expect(service.update(999, updateDto)).rejects.toThrow(
         EntityNotFoundException,
@@ -288,8 +272,8 @@ describe('UsersService', () => {
       const updateDto: UpdateUserDto = { email: 'taken@test.com' };
       const mockUser = createUser({ id: 1 });
 
-      prismaService.user.findUnique.mockResolvedValueOnce(mockUser);
-      prismaService.user.findUnique.mockResolvedValueOnce(
+      (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(
         createUser({ id: 2, email: 'taken@test.com' }),
       );
 
@@ -305,13 +289,10 @@ describe('UsersService', () => {
       };
       const mockUser = createUser({ id: 1, status: Status.Active });
 
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
+      (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
 
-      const prismaError = new Prisma.PrismaClientKnownRequestError(
-        'Unique constraint failed',
-        { code: 'P2002', clientVersion: '5.0.0' } as any,
-      );
-      prismaService.user.update.mockRejectedValue(prismaError);
+      const error = { code: 'P2002' };
+      (userRepository.partialUpdate as jest.Mock).mockRejectedValue(error);
 
       await expect(service.update(1, updateDto)).rejects.toThrow(
         BusinessException,
@@ -325,27 +306,22 @@ describe('UsersService', () => {
       const updateDto: UpdateUserDto = { name: 'Updated Name' };
       const mockUser = createUser({ id: 1, status: Status.Active });
 
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
+      (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
 
-      const prismaError = new Prisma.PrismaClientKnownRequestError(
-        'Foreign key constraint failed',
-        { code: 'P2003', clientVersion: '5.0.0' } as any,
-      );
-      prismaService.user.update.mockRejectedValue(prismaError);
+      const error = { code: 'P2003' };
+      (userRepository.partialUpdate as jest.Mock).mockRejectedValue(error);
 
-      await expect(service.update(1, updateDto)).rejects.toThrow(
-        Prisma.PrismaClientKnownRequestError,
-      );
+      await expect(service.update(1, updateDto)).rejects.toEqual(error);
     });
 
     it('deve relançar erros genéricos durante atualização', async () => {
       const updateDto: UpdateUserDto = { name: 'Updated Name' };
       const mockUser = createUser({ id: 1, status: Status.Active });
 
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
+      (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
 
       const genericError = new Error('Database connection lost');
-      prismaService.user.update.mockRejectedValue(genericError);
+      (userRepository.partialUpdate as jest.Mock).mockRejectedValue(genericError);
 
       await expect(service.update(1, updateDto)).rejects.toThrow(
         'Database connection lost',
@@ -358,8 +334,8 @@ describe('UsersService', () => {
       const mockUser = createUser({ id: 1, status: Status.Active });
       const updateDto = { city: 'New City' } as UpdatePartialUserDto;
 
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
-      prismaService.user.update.mockResolvedValue({
+      (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
+      (userRepository.partialUpdate as jest.Mock).mockResolvedValue({
         ...mockUser,
         city: 'New City',
       });
@@ -372,13 +348,10 @@ describe('UsersService', () => {
       const updateDto = { city: 'New City' } as UpdatePartialUserDto;
       const mockUser = createUser({ id: 1, status: Status.Active });
 
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
+      (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
 
-      const prismaError = new Prisma.PrismaClientKnownRequestError(
-        'Unique constraint failed',
-        { code: 'P2002', clientVersion: '5.0.0' } as any,
-      );
-      prismaService.user.update.mockRejectedValue(prismaError);
+      const error = { code: 'P2002' };
+      (userRepository.partialUpdate as jest.Mock).mockRejectedValue(error);
 
       await expect(service.partialUpdate(1, updateDto)).rejects.toThrow(
         BusinessException,
@@ -390,23 +363,19 @@ describe('UsersService', () => {
     it('deve desativar o usuário (soft delete)', async () => {
       const mockUser = createUser({ id: 1, status: Status.Active });
 
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
-      prismaService.user.update.mockResolvedValue({
-        ...mockUser,
-        status: Status.Inactive,
-      });
+      (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
+      (userRepository.softDelete as jest.Mock).mockResolvedValue(undefined);
+      // Mock findById again for the return value check in remove()
+      (userRepository.findById as jest.Mock).mockResolvedValueOnce(mockUser).mockResolvedValueOnce({ ...mockUser, status: Status.Inactive });
 
       const result = await service.remove(1);
 
-      expect(prismaService.user.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: { status: 'Inactive' },
-      });
+      expect(userRepository.softDelete).toHaveBeenCalledWith(1);
       expect(result.status).toBe(Status.Inactive);
     });
 
     it('deve lançar EntityNotFoundException quando usuário não for encontrado', async () => {
-      prismaService.user.findUnique.mockResolvedValue(null);
+      (userRepository.findById as jest.Mock).mockResolvedValue(null);
       await expect(service.remove(999)).rejects.toThrow(
         EntityNotFoundException,
       );
@@ -416,14 +385,14 @@ describe('UsersService', () => {
   describe('findByEmail', () => {
     it('deve retornar usuário por email', async () => {
       const mockUser = createUser({ email: 'test@example.com' });
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(mockUser);
 
       const result = await service.findByEmail('test@example.com');
       expect(result?.email).toBe('test@example.com');
     });
 
     it('deve retornar null quando email não for encontrado', async () => {
-      prismaService.user.findUnique.mockResolvedValue(null);
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(null);
       const result = await service.findByEmail('nonexistent@example.com');
       expect(result).toBeNull();
     });

@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsBoolean,
+  IsDate,
   IsEnum,
   IsInt,
   IsNotEmpty,
@@ -47,4 +48,8 @@ export class CreateDailyCollectionDto {
   @ApiProperty({ description: 'Utilizou assistência técnica', example: true })
   @IsBoolean()
   technicalAssistance!: boolean;
+  
+  @ApiProperty({ description: 'Data da coleta', example: '2025-11-22' })
+  @IsDate()
+  collectionDate!: Date;
 }

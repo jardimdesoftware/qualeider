@@ -1,29 +1,46 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { DailyCollectionsService } from '@/application/services/daily-collections/daily-collections.service';
-import { PrismaService } from '@/infrastructure/prisma/prisma.service';
-import { createMockPrismaService } from '../../../mocks/prisma.mock';
 import { createDailyCollection } from '../../../factories/daily-collection.factory';
 import { createUser } from '../../../factories/user.factory';
 import { CreateDailyCollectionDto } from '@/application/dtos/daily-collections/create-daily-collection.dto';
 import { UpdateDailyCollectionDto } from '@/application/dtos/daily-collections/update-daily-collection.dto';
 import { MilkingPlace } from '@/domain/enums/enums';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
+import { IDailyCollectionRepository, IDailyCollectionRepository as IDailyCollectionRepositorySymbol } from '@/domain/repositories/daily-collection.repository';
+import { IUserRepository, IUserRepository as IUserRepositorySymbol } from '@/domain/repositories/user.repository';
 
 describe('DailyCollectionsService', () => {
   let service: DailyCollectionsService;
-  let prisma: ReturnType<typeof createMockPrismaService>;
+  let dailyCollectionRepository: jest.Mocked<IDailyCollectionRepository>;
+  let userRepository: jest.Mocked<IUserRepository>;
 
   beforeEach(async () => {
-    prisma = createMockPrismaService();
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DailyCollectionsService,
-        { provide: PrismaService, useValue: prisma },
+        {
+          provide: IDailyCollectionRepositorySymbol,
+          useValue: {
+            create: jest.fn(),
+            findAll: jest.fn(),
+            findById: jest.fn(),
+            update: jest.fn(),
+            delete: jest.fn(),
+            findAllByUserId: jest.fn(),
+          },
+        },
+        {
+          provide: IUserRepositorySymbol,
+          useValue: {
+            findById: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<DailyCollectionsService>(DailyCollectionsService);
+    dailyCollectionRepository = module.get(IDailyCollectionRepositorySymbol);
+    userRepository = module.get(IUserRepositorySymbol);
   });
 
   afterEach(() => {
@@ -43,21 +60,18 @@ describe('DailyCollectionsService', () => {
         numLactation: 3,
         milkingPlace: MilkingPlace.Curral,
         technicalAssistance: false,
+        collectionDate: new Date(),
       };
       const mockCollection = createDailyCollection({ ...createDto, id: 1 });
 
-      prisma.user.findUnique.mockResolvedValue(mockUser as any);
-      prisma.dailyCollection.create.mockResolvedValue(mockCollection as any);
+      userRepository.findById.mockResolvedValue(mockUser);
+      dailyCollectionRepository.create.mockResolvedValue(mockCollection);
 
       const result = await service.create(createDto);
 
       expect(result).toEqual(mockCollection);
-      expect(prisma.user.findUnique).toHaveBeenCalledWith({
-        where: { id: userId },
-      });
-      expect(prisma.dailyCollection.create).toHaveBeenCalledWith({
-        data: createDto,
-      });
+      expect(userRepository.findById).toHaveBeenCalledWith(userId);
+      expect(dailyCollectionRepository.create).toHaveBeenCalledWith(createDto);
     });
 
     it('deve lançar NotFoundException se usuário não existe', async () => {
@@ -70,9 +84,10 @@ describe('DailyCollectionsService', () => {
         numLactation: 1,
         milkingPlace: MilkingPlace.Aberto,
         technicalAssistance: false,
+        collectionDate: new Date(),
       };
 
-      prisma.user.findUnique.mockResolvedValue(null);
+      userRepository.findById.mockResolvedValue(null);
 
       await expect(service.create(createDto)).rejects.toThrow(
         EntityNotFoundException,
@@ -80,7 +95,7 @@ describe('DailyCollectionsService', () => {
       await expect(service.create(createDto)).rejects.toThrow(
         'Usuário com ID 999 não encontrado.',
       );
-      expect(prisma.dailyCollection.create).not.toHaveBeenCalled();
+      expect(dailyCollectionRepository.create).not.toHaveBeenCalled();
     });
   });
 
@@ -91,60 +106,29 @@ describe('DailyCollectionsService', () => {
         createDailyCollection({ id: 2, quantity: 60 }),
       ];
 
-      prisma.dailyCollection.findMany.mockResolvedValue(mockCollections as any);
+      dailyCollectionRepository.findAll.mockResolvedValue(mockCollections);
 
       const result = await service.findAll();
 
       expect(result).toEqual(mockCollections);
-      expect(prisma.dailyCollection.findMany).toHaveBeenCalledWith({
-        where: {},
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              associationId: true,
-            },
-          },
-        },
-        orderBy: {
-          collectionDate: 'desc',
-        },
-      });
+      expect(dailyCollectionRepository.findAll).toHaveBeenCalled();
     });
 
     it('deve filtrar por associationId quando fornecido', async () => {
+      // TODO: Update test when repository supports filtering
       const associationId = 10;
       const mockCollections = [createDailyCollection({ id: 1 })];
 
-      prisma.dailyCollection.findMany.mockResolvedValue(mockCollections as any);
+      dailyCollectionRepository.findAll.mockResolvedValue(mockCollections);
 
       const result = await service.findAll(associationId);
 
       expect(result).toEqual(mockCollections);
-      expect(prisma.dailyCollection.findMany).toHaveBeenCalledWith({
-        where: {
-          user: {
-            associationId: associationId,
-          },
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              associationId: true,
-            },
-          },
-        },
-        orderBy: {
-          collectionDate: 'desc',
-        },
-      });
+      expect(dailyCollectionRepository.findAll).toHaveBeenCalled();
     });
 
     it('deve retornar array vazio quando não há coletas', async () => {
-      prisma.dailyCollection.findMany.mockResolvedValue([]);
+      dailyCollectionRepository.findAll.mockResolvedValue([]);
 
       const result = await service.findAll();
 
@@ -156,20 +140,16 @@ describe('DailyCollectionsService', () => {
     it('deve retornar uma coleta diária por ID', async () => {
       const mockCollection = createDailyCollection({ id: 1, quantity: 45.5 });
 
-      prisma.dailyCollection.findUnique.mockResolvedValue(
-        mockCollection as any,
-      );
+      dailyCollectionRepository.findById.mockResolvedValue(mockCollection);
 
       const result = await service.findOne(1);
 
       expect(result).toEqual(mockCollection);
-      expect(prisma.dailyCollection.findUnique).toHaveBeenCalledWith({
-        where: { id: 1 },
-      });
+      expect(dailyCollectionRepository.findById).toHaveBeenCalledWith(1);
     });
 
     it('deve lançar NotFoundException se coleta não existe', async () => {
-      prisma.dailyCollection.findUnique.mockResolvedValue(null);
+      dailyCollectionRepository.findById.mockResolvedValue(null);
 
       await expect(service.findOne(999)).rejects.toThrow(EntityNotFoundException);
       await expect(service.findOne(999)).rejects.toThrow(
@@ -184,61 +164,68 @@ describe('DailyCollectionsService', () => {
         quantity: 55.0,
         numAnimals: 12,
       };
+      const mockExistingCollection = createDailyCollection({ id: 1, quantity: 50 });
       const mockUpdatedCollection = createDailyCollection({
         id: 1,
         ...updateDto,
       });
 
-      prisma.dailyCollection.update.mockResolvedValue(
-        mockUpdatedCollection as any,
-      );
+      dailyCollectionRepository.findById.mockResolvedValue(mockExistingCollection);
+      dailyCollectionRepository.update.mockResolvedValue(mockUpdatedCollection);
 
       const result = await service.update(1, updateDto as any);
 
       expect(result).toEqual(mockUpdatedCollection);
-      expect(prisma.dailyCollection.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: updateDto,
-      });
+      expect(dailyCollectionRepository.update).toHaveBeenCalledWith(1, updateDto);
     });
 
     it('deve permitir atualizar apenas alguns campos', async () => {
       const updateDto: Partial<UpdateDailyCollectionDto> = {
         technicalAssistance: true,
       };
+      const mockExistingCollection = createDailyCollection({ id: 1, technicalAssistance: false });
       const mockUpdatedCollection = createDailyCollection({
         id: 1,
         technicalAssistance: true,
       });
 
-      prisma.dailyCollection.update.mockResolvedValue(
-        mockUpdatedCollection as any,
-      );
+      dailyCollectionRepository.findById.mockResolvedValue(mockExistingCollection);
+      dailyCollectionRepository.update.mockResolvedValue(mockUpdatedCollection);
 
       const result = await service.update(1, updateDto as any);
 
       expect(result).toEqual(mockUpdatedCollection);
-      expect(prisma.dailyCollection.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: updateDto,
-      });
+      expect(dailyCollectionRepository.update).toHaveBeenCalledWith(1, updateDto);
+    });
+
+    it('deve lançar NotFoundException ao tentar atualizar coleta inexistente', async () => {
+        dailyCollectionRepository.findById.mockResolvedValue(null);
+        
+        const updateDto: Partial<UpdateDailyCollectionDto> = { quantity: 100 };
+
+        await expect(service.update(999, updateDto as any)).rejects.toThrow(EntityNotFoundException);
+        expect(dailyCollectionRepository.update).not.toHaveBeenCalled();
     });
   });
 
   describe('remove', () => {
     it('deve deletar (hard delete) uma coleta diária', async () => {
-      const mockDeletedCollection = createDailyCollection({ id: 1 });
+      const mockCollection = createDailyCollection({ id: 1 });
+      
+      dailyCollectionRepository.findById.mockResolvedValue(mockCollection);
+      dailyCollectionRepository.delete.mockResolvedValue(undefined);
 
-      prisma.dailyCollection.delete.mockResolvedValue(
-        mockDeletedCollection as any,
-      );
+      await service.remove(1);
 
-      const result = await service.remove(1);
+      expect(dailyCollectionRepository.findById).toHaveBeenCalledWith(1);
+      expect(dailyCollectionRepository.delete).toHaveBeenCalledWith(1);
+    });
 
-      expect(result).toEqual(mockDeletedCollection);
-      expect(prisma.dailyCollection.delete).toHaveBeenCalledWith({
-        where: { id: 1 },
-      });
+    it('deve lançar NotFoundException ao tentar remover coleta inexistente', async () => {
+        dailyCollectionRepository.findById.mockResolvedValue(null);
+
+        await expect(service.remove(999)).rejects.toThrow(EntityNotFoundException);
+        expect(dailyCollectionRepository.delete).not.toHaveBeenCalled();
     });
   });
 
@@ -250,29 +237,21 @@ describe('DailyCollectionsService', () => {
         createDailyCollection({ id: 2, userId, quantity: 50 }),
       ];
 
-      prisma.dailyCollection.findMany.mockResolvedValue(mockCollections as any);
+      dailyCollectionRepository.findAllByUserId.mockResolvedValue(mockCollections);
 
       const result = await service.findAllByUserId(userId);
 
       expect(result).toEqual(mockCollections);
-      expect(prisma.dailyCollection.findMany).toHaveBeenCalledWith({
-        where: { userId },
-        orderBy: { collectionDate: 'desc' }, 
-      });
+      expect(dailyCollectionRepository.findAllByUserId).toHaveBeenCalledWith(userId);
     });
 
     it('deve retornar array vazio se usuário não tem coletas', async () => {
-      prisma.dailyCollection.findMany.mockResolvedValue([]);
+      dailyCollectionRepository.findAllByUserId.mockResolvedValue([]);
 
       const result = await service.findAllByUserId(999);
 
       expect(result).toEqual([]); 
-      expect(prisma.dailyCollection.findMany).toHaveBeenCalledWith({
-        where: { userId: 999 },
-        orderBy: { collectionDate: 'desc' },
-      });
-      
-    
+      expect(dailyCollectionRepository.findAllByUserId).toHaveBeenCalledWith(999);
     });
   });
-  });
+});

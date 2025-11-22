@@ -1,8 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from '@/auth/auth.service';
-import { UsersService } from '@/application/services/users/users.service';
 import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from '@/infrastructure/prisma/prisma.service';
+import { IUserRepository as IUserRepositorySymbol, type IUserRepository } from '@/domain/repositories/user.repository';
 import { MailService } from '@/mail/mail.service';
 import {
   UnauthorizedException,
@@ -11,29 +10,21 @@ import {
 } from '@nestjs/common';
 import { IHashService as IHashServiceSymbol, type IHashService } from '@/application/ports/hash.service';
 import { createUser } from '../../../factories';
-import { createMockPrismaService } from '../../../mocks';
+
 import { BCRYPT_ROUNDS_RESET_PASSWORD } from '@/common/constants/security.constants';
 
 describe('AuthService', () => {
   let service: AuthService;
-  let usersService: jest.Mocked<UsersService>;
   let jwtService: jest.Mocked<JwtService>;
-  let prismaService: ReturnType<typeof createMockPrismaService>;
+  let userRepository: IUserRepository;
   let mailService: jest.Mocked<MailService>;
   let hashService: jest.Mocked<IHashService>;
 
   beforeEach(async () => {
-    prismaService = createMockPrismaService();
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
-        {
-          provide: UsersService,
-          useValue: {
-            findByEmail: jest.fn(),
-          },
-        },
+
         {
           provide: JwtService,
           useValue: {
@@ -41,8 +32,12 @@ describe('AuthService', () => {
           },
         },
         {
-          provide: PrismaService,
-          useValue: prismaService,
+          provide: IUserRepositorySymbol,
+          useValue: {
+            findByEmail: jest.fn(),
+            update: jest.fn(),
+            findById: jest.fn(),
+          },
         },
         {
           provide: MailService,
@@ -61,8 +56,8 @@ describe('AuthService', () => {
     }).compile();
 
     service = module.get<AuthService>(AuthService);
-    usersService = module.get(UsersService);
     jwtService = module.get(JwtService);
+    userRepository = module.get<IUserRepository>(IUserRepositorySymbol) as any;
     mailService = module.get(MailService);
     hashService = module.get(IHashServiceSymbol) as any;
   });
@@ -78,7 +73,7 @@ describe('AuthService', () => {
         password: 'hashedPassword',
       });
 
-      usersService.findByEmail.mockResolvedValue(mockUser);
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(mockUser);
       (hashService.compare as jest.Mock).mockResolvedValue(true);
 
       const result = await service.validateUser(
@@ -86,7 +81,7 @@ describe('AuthService', () => {
         'password123',
       );
 
-      expect(usersService.findByEmail).toHaveBeenCalledWith('test@example.com');
+      expect(userRepository.findByEmail).toHaveBeenCalledWith('test@example.com');
       expect(hashService.compare).toHaveBeenCalledWith(
         'password123',
         'hashedPassword',
@@ -96,7 +91,7 @@ describe('AuthService', () => {
     });
 
     it('deve lançar UnauthorizedException quando usuário não for encontrado', async () => {
-      usersService.findByEmail.mockResolvedValue(null);
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(null);
 
       await expect(
         service.validateUser('nonexistent@example.com', 'password123'),
@@ -109,7 +104,7 @@ describe('AuthService', () => {
         password: 'hashedPassword',
       });
 
-      usersService.findByEmail.mockResolvedValue(mockUser);
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(mockUser);
       (hashService.compare as jest.Mock).mockResolvedValue(false);
 
       await expect(
@@ -166,8 +161,8 @@ describe('AuthService', () => {
         name: 'Test User',
       });
 
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
-      prismaService.user.update.mockResolvedValue({
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(mockUser);
+      (userRepository.update as jest.Mock).mockResolvedValue({
         ...mockUser,
         resetToken: '123456',
         resetTokenExpiry: new Date(),
@@ -176,16 +171,14 @@ describe('AuthService', () => {
 
       const result = await service.forgotPassword('test@example.com');
 
-      expect(prismaService.user.findUnique).toHaveBeenCalledWith({
-        where: { email: 'test@example.com' },
-      });
-      expect(prismaService.user.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: {
+      expect(userRepository.findByEmail).toHaveBeenCalledWith('test@example.com');
+      expect(userRepository.update).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({
           resetToken: expect.any(String),
           resetTokenExpiry: expect.any(Date),
-        },
-      });
+        }),
+      );
       expect(mailService.sendResetPasswordEmail).toHaveBeenCalledWith(
         'test@example.com',
         expect.any(String),
@@ -200,19 +193,17 @@ describe('AuthService', () => {
     it('deve normalizar email para lowercase', async () => {
       const mockUser = createUser({ email: 'test@example.com' });
 
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
-      prismaService.user.update.mockResolvedValue(mockUser);
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(mockUser);
+      (userRepository.update as jest.Mock).mockResolvedValue(mockUser);
       mailService.sendResetPasswordEmail.mockResolvedValue(undefined);
 
       await service.forgotPassword('TEST@EXAMPLE.COM');
 
-      expect(prismaService.user.findUnique).toHaveBeenCalledWith({
-        where: { email: 'test@example.com' },
-      });
+      expect(userRepository.findByEmail).toHaveBeenCalledWith('test@example.com');
     });
 
     it('deve lançar NotFoundException quando email não for encontrado', async () => {
-      prismaService.user.findUnique.mockResolvedValue(null);
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(null);
 
       await expect(
         service.forgotPassword('nonexistent@example.com'),
@@ -222,12 +213,12 @@ describe('AuthService', () => {
     it('deve gerar token de 6 dígitos', async () => {
       const mockUser = createUser({ email: 'test@example.com' });
 
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(mockUser);
 
       let capturedToken: string = '';
-      prismaService.user.update.mockImplementation((args: any) => {
-        capturedToken = args.data.resetToken;
-        return Promise.resolve({ ...mockUser, ...args.data });
+      (userRepository.update as jest.Mock).mockImplementation((id, data) => {
+        capturedToken = data.resetToken;
+        return Promise.resolve({ ...mockUser, ...data });
       });
 
       mailService.sendResetPasswordEmail.mockResolvedValue(undefined);
@@ -241,8 +232,8 @@ describe('AuthService', () => {
       const loggerErrorSpy = jest.spyOn(Logger.prototype, 'error');
       const mockUser = createUser({ email: 'test@example.com' });
 
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
-      prismaService.user.update.mockRejectedValue(new Error('DB error'));
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(mockUser);
+      (userRepository.update as jest.Mock).mockRejectedValue(new Error('DB error'));
 
       await expect(service.forgotPassword('test@example.com')).rejects.toThrow(
         'DB error',
@@ -260,12 +251,12 @@ describe('AuthService', () => {
       const mockUser = createUser({ email: 'test@example.com' });
       const now = new Date();
 
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(mockUser);
 
       let capturedExpiry: Date;
-      prismaService.user.update.mockImplementation((args: any) => {
-        capturedExpiry = args.data.resetTokenExpiry;
-        return Promise.resolve({ ...mockUser, ...args.data });
+      (userRepository.update as jest.Mock).mockImplementation((id, data) => {
+        capturedExpiry = data.resetTokenExpiry;
+        return Promise.resolve({ ...mockUser, ...data });
       });
 
       mailService.sendResetPasswordEmail.mockResolvedValue(undefined);
@@ -289,8 +280,8 @@ describe('AuthService', () => {
         resetTokenExpiry: futureDate,
       });
 
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
-      prismaService.user.update.mockResolvedValue(mockUser);
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(mockUser);
+      (userRepository.update as jest.Mock).mockResolvedValue(mockUser);
 
       const result = await service.validateResetToken(
         'test@example.com',
@@ -298,12 +289,12 @@ describe('AuthService', () => {
       );
 
       expect(result).toBe(true);
-      expect(prismaService.user.update).toHaveBeenCalledWith({
-        where: { id: mockUser.id },
-        data: {
+      expect(userRepository.update).toHaveBeenCalledWith(
+        mockUser.id,
+        {
           resetTokenExpiry: expect.any(Date),
         },
-      });
+      );
     });
 
     it('deve estender expiração do token em 15 minutos após validação', async () => {
@@ -316,12 +307,12 @@ describe('AuthService', () => {
         resetTokenExpiry: futureDate,
       });
 
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(mockUser);
 
       let capturedExpiry: Date;
-      prismaService.user.update.mockImplementation((args: any) => {
-        capturedExpiry = args.data.resetTokenExpiry;
-        return Promise.resolve({ ...mockUser, ...args.data });
+      (userRepository.update as jest.Mock).mockImplementation((id, data) => {
+        capturedExpiry = data.resetTokenExpiry;
+        return Promise.resolve({ ...mockUser, ...data });
       });
 
       const now = new Date();
@@ -333,7 +324,7 @@ describe('AuthService', () => {
     });
 
     it('deve lançar NotFoundException quando usuário não for encontrado', async () => {
-      prismaService.user.findUnique.mockResolvedValue(null);
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(null);
 
       await expect(
         service.validateResetToken('nonexistent@example.com', '123456'),
@@ -347,7 +338,7 @@ describe('AuthService', () => {
         resetTokenExpiry: new Date(Date.now() + 15 * 60 * 1000),
       });
 
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(mockUser);
 
       await expect(
         service.validateResetToken('test@example.com', '654321'),
@@ -360,7 +351,7 @@ describe('AuthService', () => {
         resetToken: null,
       });
 
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(mockUser);
 
       await expect(
         service.validateResetToken('test@example.com', '123456'),
@@ -377,7 +368,7 @@ describe('AuthService', () => {
         resetTokenExpiry: pastDate,
       });
 
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(mockUser);
 
       await expect(
         service.validateResetToken('test@example.com', '123456'),
@@ -397,8 +388,8 @@ describe('AuthService', () => {
         resetTokenExpiry: futureDate,
       });
 
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
-      prismaService.user.update.mockResolvedValue(mockUser);
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(mockUser);
+      (userRepository.update as jest.Mock).mockResolvedValue(mockUser);
       (hashService.hash as jest.Mock).mockResolvedValue('newHashedPassword');
 
       const result = await service.resetPassword(
@@ -412,14 +403,12 @@ describe('AuthService', () => {
         'newPassword123',
         BCRYPT_ROUNDS_RESET_PASSWORD,
       );
-      expect(prismaService.user.update).toHaveBeenCalledWith(
+      expect(userRepository.update).toHaveBeenCalledWith(
+        1,
         expect.objectContaining({
-          where: { id: 1 },
-          data: expect.objectContaining({
-            password: 'newHashedPassword',
-            resetToken: null,
-            resetTokenExpiry: null,
-          }),
+          password: 'newHashedPassword',
+          resetToken: null,
+          resetTokenExpiry: null,
         }),
       );
     });
@@ -434,7 +423,7 @@ describe('AuthService', () => {
         resetTokenExpiry: pastDate,
       });
 
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(mockUser);
 
       await expect(
         service.resetPassword('test@example.com', '123456', 'newPassword123'),
@@ -445,7 +434,7 @@ describe('AuthService', () => {
 
     it('deve lançar NotFoundException quando usuário não for encontrado', async () => {
       // First findUnique (in validateResetToken) returns null
-      prismaService.user.findUnique.mockResolvedValueOnce(null);
+      (userRepository.findByEmail as jest.Mock).mockResolvedValueOnce(null);
 
       await expect(
         service.resetPassword(
@@ -466,8 +455,8 @@ describe('AuthService', () => {
         resetTokenExpiry: futureDate,
       });
 
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
-      prismaService.user.update.mockResolvedValue(mockUser);
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(mockUser);
+      (userRepository.update as jest.Mock).mockResolvedValue(mockUser);
       (hashService.hash as jest.Mock).mockResolvedValue('hashedPassword');
 
       await service.resetPassword(
@@ -493,17 +482,17 @@ describe('AuthService', () => {
         resetTokenExpiry: futureDate,
       });
 
-      prismaService.user.findUnique.mockResolvedValue(mockUser);
-      prismaService.user.update.mockResolvedValue(mockUser);
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(mockUser);
+      (userRepository.update as jest.Mock).mockResolvedValue(mockUser);
       (hashService.hash as jest.Mock).mockResolvedValue('hashedPassword');
 
       await service.resetPassword('test@example.com', '123456', 'newPassword');
 
       // Last update call should clear tokens
-      const updateCalls = prismaService.user.update.mock.calls;
-      const lastCall = updateCalls[updateCalls.length - 1][0];
+      const updateCalls = (userRepository.update as jest.Mock).mock.calls;
+      const lastCall = updateCalls[updateCalls.length - 1];
 
-      expect(lastCall.data).toEqual({
+      expect(lastCall[1]).toEqual({
         password: 'hashedPassword',
         resetToken: null,
         resetTokenExpiry: null,
