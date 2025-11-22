@@ -1,9 +1,10 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
-import { IUserRepository } from '@/domain/repositories/user.repository';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { IDailyCollectionRepository } from '@/domain/repositories/daily-collection.repository';
+import { IUserRepository } from '@/domain/repositories/user.repository';
 import { CreateDailyCollectionDto } from '@/application/dtos/daily-collections/create-daily-collection.dto';
 import { UpdateDailyCollectionDto } from '@/application/dtos/daily-collections/update-daily-collection.dto';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
+import { DailyCollectionCriteria } from '@/domain/criteria/daily-collection.criteria';
 
 @Injectable()
 export class DailyCollectionsService {
@@ -27,22 +28,16 @@ export class DailyCollectionsService {
 
     const dailyCollection = await this.dailyCollectionRepository.create(createDailyCollectionDto);
 
-    this.logger.log(
-      `Formulário criado para o usuário ID ${createDailyCollectionDto.userId}`,
-    );
-
+    this.logger.log(`Coleta diária criada (ID: ${dailyCollection.id})`);
     return dailyCollection;
   }
 
-  async findAll(associationId?: number) {
-    // TODO: Repository doesn't support filtering by associationId yet
-    // Need to add findAllByAssociationId() method to IDailyCollectionRepository
-    return this.dailyCollectionRepository.findAll();
+  async findAll(criteria?: DailyCollectionCriteria) {
+    return this.dailyCollectionRepository.findAll(criteria);
   }
 
   async findOne(id: number) {
     const dailyCollection = await this.dailyCollectionRepository.findById(id);
-
     if (!dailyCollection) {
       throw new EntityNotFoundException(`Coleta diária com ID ${id} não encontrada.`);
     }

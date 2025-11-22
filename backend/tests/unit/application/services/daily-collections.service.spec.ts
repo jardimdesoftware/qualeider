@@ -115,16 +115,15 @@ describe('DailyCollectionsService', () => {
     });
 
     it('deve filtrar por associationId quando fornecido', async () => {
-      // TODO: Update test when repository supports filtering
       const associationId = 10;
       const mockCollections = [createDailyCollection({ id: 1 })];
 
       dailyCollectionRepository.findAll.mockResolvedValue(mockCollections);
 
-      const result = await service.findAll(associationId);
+      const result = await service.findAll({ associationId });
 
       expect(result).toEqual(mockCollections);
-      expect(dailyCollectionRepository.findAll).toHaveBeenCalled();
+      expect(dailyCollectionRepository.findAll).toHaveBeenCalledWith({ associationId });
     });
 
     it('deve retornar array vazio quando não há coletas', async () => {

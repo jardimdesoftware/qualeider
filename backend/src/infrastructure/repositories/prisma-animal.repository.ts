@@ -3,6 +3,7 @@ import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { IAnimalRepository } from '@/domain/repositories/animal.repository';
 import { AnimalEntity } from '@/domain/entities/animal.entity';
 import { ID, Status } from '@/domain/enums/enums';
+import { AnimalCriteria } from '@/domain/criteria/animal.criteria';
 
 @Injectable()
 export class PrismaAnimalRepository implements IAnimalRepository {
@@ -26,9 +27,25 @@ export class PrismaAnimalRepository implements IAnimalRepository {
     return created as any;
   }
 
-  async findAllActive(): Promise<AnimalEntity[]> {
+  async findAll(criteria?: AnimalCriteria): Promise<AnimalEntity[]> {
+    const where: any = {};
+
+    if (criteria?.status) {
+      where.status = criteria.status;
+    }
+
+    if (criteria?.userId) {
+      where.userId = criteria.userId;
+    }
+
+    if (criteria?.associationId) {
+      where.user = {
+        associationId: criteria.associationId,
+      };
+    }
+
     const animals = await this.prisma.animal.findMany({
-      where: { status: Status.Active },
+      where,
     });
     return animals as any;
   }

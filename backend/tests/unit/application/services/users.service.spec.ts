@@ -26,7 +26,7 @@ describe('UsersService', () => {
           provide: IUserRepositorySymbol,
           useValue: {
             create: jest.fn(),
-            findAllActive: jest.fn(),
+            findAll: jest.fn(),
             findById: jest.fn(),
             update: jest.fn(),
             partialUpdate: jest.fn(),
@@ -147,28 +147,27 @@ describe('UsersService', () => {
   });
 
   describe('findAll', () => {
-    it('deve retornar todos os usuários ativos', async () => {
+    it('deve retornar todos os usuários', async () => {
       const mockUsers = [
         createUser({ id: 1, status: Status.Active }),
         createUser({ id: 2, status: Status.Active }),
       ];
 
-      (userRepository.findAllActive as jest.Mock).mockResolvedValue(mockUsers);
+      (userRepository.findAll as jest.Mock).mockResolvedValue(mockUsers);
 
       const result = await service.findAll();
 
-      expect(userRepository.findAllActive).toHaveBeenCalled();
+      expect(userRepository.findAll).toHaveBeenCalled();
       expect(result).toHaveLength(2);
     });
 
     it('deve filtrar usuários por associationId quando informado', async () => {
       const mockUsers = [createUser({ id: 1, associationId: 10 })];
-      (userRepository.findAllActive as jest.Mock).mockResolvedValue(mockUsers);
+      (userRepository.findAll as jest.Mock).mockResolvedValue(mockUsers);
 
-      await service.findAll(10);
+      await service.findAll({ associationId: 10 });
 
-      // Note: Repository doesn't support filtering yet, so it calls findAllActive
-      expect(userRepository.findAllActive).toHaveBeenCalled();
+      expect(userRepository.findAll).toHaveBeenCalledWith({ associationId: 10 });
     });
   });
 

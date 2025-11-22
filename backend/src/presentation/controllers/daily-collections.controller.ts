@@ -15,6 +15,7 @@ import {
 import { DailyCollectionsService } from '@/application/services/daily-collections/daily-collections.service';
 import { CreateDailyCollectionDto } from '@/application/dtos/daily-collections/create-daily-collection.dto';
 import { UpdateDailyCollectionDto } from '@/application/dtos/daily-collections/update-daily-collection.dto';
+import { FindDailyCollectionsDto } from '@/application/dtos/daily-collections/find-daily-collections.dto';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -24,6 +25,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { BusinessException } from '@/common/exceptions/business.exception';
+import { DailyCollectionCriteria } from '@/domain/criteria/daily-collection.criteria';
 
 @ApiTags('Daily Collections')
 @Controller('daily-collections')
@@ -56,9 +58,20 @@ export class DailyCollectionsController {
   @ApiOperation({ summary: 'Listar todos os formulários cadastrados' })
   @ApiResponse({ status: 200, description: 'Formulários listados com sucesso' })
   @Get()
-  async findAll(@Query('associationId') associationId?: string) {
-    const assocId = associationId ? Number(associationId) : undefined;
-    return this.dailyCollectionsService.findAll(assocId);
+  async findAll(@Query() query: FindDailyCollectionsDto) {
+    const criteria: DailyCollectionCriteria = {
+      associationId: query.associationId,
+      userId: query.userId,
+    };
+
+    if (query.startDate && query.endDate) {
+      criteria.dateRange = {
+        start: new Date(query.startDate),
+        end: new Date(query.endDate),
+      };
+    }
+
+    return this.dailyCollectionsService.findAll(criteria);
   }
 
   @ApiOperation({ summary: 'Buscar um formulário pelo ID' })

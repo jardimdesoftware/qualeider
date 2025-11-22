@@ -94,19 +94,31 @@ describe('DailyCollectionsController', () => {
       const items = [createDailyCollection({ id: 1 })];
       mockService.findAll.mockResolvedValue(items);
 
-      const result = await controller.findAll();
+      const result = await controller.findAll({});
 
-      expect(service.findAll).toHaveBeenCalledWith(undefined);
+      expect(service.findAll).toHaveBeenCalledWith({});
       expect(result).toEqual(items);
     });
 
-    it('deve converter associationId string para number', async () => {
+    it('deve filtrar por associationId, userId e dateRange', async () => {
       const items = [createDailyCollection({ id: 1 })];
       mockService.findAll.mockResolvedValue(items);
 
-      await controller.findAll('10');
+      await controller.findAll({
+        associationId: 10,
+        userId: 5,
+        startDate: '2025-01-01',
+        endDate: '2025-01-31',
+      });
 
-      expect(service.findAll).toHaveBeenCalledWith(10);
+      expect(service.findAll).toHaveBeenCalledWith({
+        associationId: 10,
+        userId: 5,
+        dateRange: {
+          start: new Date('2025-01-01'),
+          end: new Date('2025-01-31'),
+        },
+      });
     });
   });
 

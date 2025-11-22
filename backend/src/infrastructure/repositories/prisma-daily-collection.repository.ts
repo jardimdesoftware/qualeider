@@ -3,6 +3,7 @@ import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { IDailyCollectionRepository } from '@/domain/repositories/daily-collection.repository';
 import { DailyCollectionEntity } from '@/domain/entities/daily-collection.entity';
 import { ID } from '@/domain/enums/enums';
+import { DailyCollectionCriteria } from '@/domain/criteria/daily-collection.criteria';
 
 @Injectable()
 export class PrismaDailyCollectionRepository
@@ -29,8 +30,27 @@ export class PrismaDailyCollectionRepository
     return created as any;
   }
 
-  async findAll(): Promise<DailyCollectionEntity[]> {
-    const list = await this.prisma.dailyCollection.findMany();
+  async findAll(criteria?: DailyCollectionCriteria): Promise<DailyCollectionEntity[]> {
+    const where: any = {};
+
+    if (criteria?.userId) {
+      where.userId = criteria.userId;
+    }
+
+    if (criteria?.associationId) {
+      where.user = {
+        associationId: criteria.associationId,
+      };
+    }
+
+    if (criteria?.dateRange) {
+      where.collectionDate = {
+        gte: criteria.dateRange.start,
+        lte: criteria.dateRange.end,
+      };
+    }
+
+    const list = await this.prisma.dailyCollection.findMany({ where });
     return list as any;
   }
 

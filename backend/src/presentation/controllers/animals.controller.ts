@@ -15,14 +15,15 @@ import {
 import { AnimalsService } from '@/application/services/animals/animals.service';
 import { CreateAnimalDto } from '@/application/dtos/animals/create-animal.dto';
 import { UpdateAnimalDto } from '@/application/dtos/animals/update-animal.dto';
+import { FindAnimalsDto } from '@/application/dtos/animals/find-animals.dto';
 import {
   ApiBearerAuth,
   ApiOperation,
   ApiParam,
   ApiResponse,
   ApiTags,
-  ApiQuery,
 } from '@nestjs/swagger';
+import { AnimalCriteria } from '@/domain/criteria/animal.criteria';
 
 @ApiTags('Animais')
 @Controller('animals')
@@ -46,13 +47,16 @@ export class AnimalsController {
   }
 
   @ApiOperation({ summary: 'Listar todos os animais' })
-  @ApiQuery({ name: 'associationId', required: false, type: Number })
   @ApiResponse({ status: 200, description: 'Animais listados com sucesso' })
   @Get()
-  async findAll(@Query('associationId') associationId?: string) {
-    const assocId = associationId ? Number(associationId) : undefined;
+  async findAll(@Query() query: FindAnimalsDto) {
+    const criteria: AnimalCriteria = {
+      associationId: query.associationId,
+      userId: query.userId,
+      status: query.status,
+    };
     
-    return this.animalsService.findAll(assocId);
+    return this.animalsService.findAll(criteria);
   }
 
   @ApiOperation({ summary: 'Buscar um animal pelo ID' })

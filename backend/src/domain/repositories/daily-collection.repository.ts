@@ -3,11 +3,13 @@ import { DailyCollectionEntity } from '@/domain/entities/daily-collection.entity
 
 export const IDailyCollectionRepository = Symbol('IDailyCollectionRepository');
 
+import { DailyCollectionCriteria } from '@/domain/criteria/daily-collection.criteria';
+
 export interface IDailyCollectionRepository {
   create(
     data: Omit<DailyCollectionEntity, 'id' | 'createdAt' | 'updatedAt'>,
   ): Promise<DailyCollectionEntity>;
-  findAll(): Promise<DailyCollectionEntity[]>;
+  findAll(criteria?: DailyCollectionCriteria): Promise<DailyCollectionEntity[]>;
   findById(id: ID): Promise<DailyCollectionEntity | null>;
   update(
     id: ID,

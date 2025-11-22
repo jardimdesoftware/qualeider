@@ -22,7 +22,7 @@ describe('AnimalsService', () => {
           provide: IAnimalRepositorySymbol,
           useValue: {
             create: jest.fn(),
-            findAllActive: jest.fn(),
+            findAll: jest.fn(),
             findById: jest.fn(),
             update: jest.fn(),
             softDelete: jest.fn(),
@@ -92,35 +92,34 @@ describe('AnimalsService', () => {
   });
 
   describe('findAll', () => {
-    it('deve retornar todos os animais ativos', async () => {
+    it('deve retornar todos os animais', async () => {
       const mockAnimals = [
         createAnimal({ id: 1, name: 'Animal 1' }),
         createAnimal({ id: 2, name: 'Animal 2' }),
       ];
 
-      animalRepository.findAllActive.mockResolvedValue(mockAnimals);
+      animalRepository.findAll.mockResolvedValue(mockAnimals);
 
       const result = await service.findAll();
 
       expect(result).toEqual(mockAnimals);
-      expect(animalRepository.findAllActive).toHaveBeenCalled();
+      expect(animalRepository.findAll).toHaveBeenCalled();
     });
 
     it('deve filtrar por associationId quando fornecido', async () => {
-      // TODO: Update test when repository supports filtering
       const associationId = 10;
       const mockAnimals = [createAnimal({ id: 1 })];
 
-      animalRepository.findAllActive.mockResolvedValue(mockAnimals);
+      animalRepository.findAll.mockResolvedValue(mockAnimals);
 
-      const result = await service.findAll(associationId);
+      const result = await service.findAll({ associationId });
 
       expect(result).toEqual(mockAnimals);
-      expect(animalRepository.findAllActive).toHaveBeenCalled(); 
+      expect(animalRepository.findAll).toHaveBeenCalledWith({ associationId });
     });
 
     it('deve retornar array vazio quando não há animais', async () => {
-      animalRepository.findAllActive.mockResolvedValue([]);
+      animalRepository.findAll.mockResolvedValue([]);
 
       const result = await service.findAll();
 

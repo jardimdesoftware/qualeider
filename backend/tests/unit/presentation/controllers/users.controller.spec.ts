@@ -97,19 +97,27 @@ describe('UsersController', () => {
       const users = [createUser({ id: 1 })];
       mockUsersService.findAll.mockResolvedValue(users);
 
-      const result = await controller.findAll();
+      const result = await controller.findAll({});
 
-      expect(usersService.findAll).toHaveBeenCalledWith(undefined);
+      expect(usersService.findAll).toHaveBeenCalledWith({});
       expect(result).toEqual(users);
     });
 
-    it('deve filtrar usuários por associationId convertido para number', async () => {
+    it('deve filtrar usuários por associationId, status e emailContains', async () => {
       const users = [createUser({ id: 1, associationId: 5 })];
       mockUsersService.findAll.mockResolvedValue(users);
 
-      await controller.findAll('5');
+      await controller.findAll({
+        associationId: 5,
+        status: 'Active',
+        emailContains: 'test',
+      });
 
-      expect(usersService.findAll).toHaveBeenCalledWith(5);
+      expect(usersService.findAll).toHaveBeenCalledWith({
+        associationId: 5,
+        status: 'Active',
+        emailContains: 'test',
+      });
     });
   });
 

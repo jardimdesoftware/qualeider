@@ -27,7 +27,9 @@ import { UsersService } from '@/application/services/users/users.service';
 import { CreateUserDto } from '@/application/dtos/users/create-user.dto';
 import { UpdateUserDto } from '@/application/dtos/users/update-user.dto';
 import { UpdatePartialUserDto } from '@/application/dtos/users/update-partial-user.dto';
+import { FindUsersDto } from '@/application/dtos/users/find-users.dto';
 import { BusinessException } from '@/common/exceptions/business.exception';
+import { UserCriteria } from '@/domain/criteria/user.criteria';
 
 @ApiTags('Users')
 @Controller('users')
@@ -67,16 +69,19 @@ export class UsersController {
   @ApiOperation({ summary: 'Listar todos os usuários' })
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  @ApiQuery({ name: 'associationId', required: false, type: Number })
   @ApiResponse({
     status: 200,
     description: 'Lista de usuários obtida com sucesso',
   })
   @Get()
-  async findAll(@Query('associationId') associationId?: string) {
-    const assocId = associationId ? Number(associationId) : undefined;
+  async findAll(@Query() query: FindUsersDto) {
+    const criteria: UserCriteria = {
+      associationId: query.associationId,
+      status: query.status,
+      emailContains: query.emailContains,
+    };
     
-    return this.usersService.findAll(assocId);
+    return this.usersService.findAll(criteria);
   }
 
   @ApiOperation({ summary: 'Buscar um usuário pelo ID' })

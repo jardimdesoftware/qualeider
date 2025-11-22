@@ -1,9 +1,10 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
+import { IAnimalRepository } from '@/domain/repositories/animal.repository';
+import { IUserRepository } from '@/domain/repositories/user.repository';
 import { CreateAnimalDto } from '@/application/dtos/animals/create-animal.dto';
 import { UpdateAnimalDto } from '@/application/dtos/animals/update-animal.dto';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
-import { IAnimalRepository } from '@/domain/repositories/animal.repository';
-import { IUserRepository } from '@/domain/repositories/user.repository';
+import { AnimalCriteria } from '@/domain/criteria/animal.criteria';
 
 @Injectable()
 export class AnimalsService {
@@ -26,21 +27,16 @@ export class AnimalsService {
     await this.validateUser(createAnimalDto.userId);
     const animal = await this.animalRepository.create(createAnimalDto);
 
-    this.logger.log(
-      `Animal cadastrado para usuário ID ${createAnimalDto.userId}`,
-    );
-
+    this.logger.log(`Animal criado: ${animal.name} (ID: ${animal.id})`);
     return animal;
   }
 
-  async findAll(associationId?: number) {
-    // TODO: Repository doesn't support filtering by associationId yet
-    return this.animalRepository.findAllActive();
+  async findAll(criteria?: AnimalCriteria) {
+    return this.animalRepository.findAll(criteria);
   }
 
   async findOne(id: number) {
     const animal = await this.animalRepository.findById(id);
-
     if (!animal) {
       throw new EntityNotFoundException(`Animal com ID ${id} não encontrado.`);
     }
