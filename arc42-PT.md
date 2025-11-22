@@ -1321,7 +1321,7 @@ describe('E2E: Animais - Operações CRUD', () => {
 | Cobertura DTOs        | 100%   | 100%   | ✅     |
 | Cobertura Services    | > 90%  | 100%   | ✅     |
 | Cobertura Controllers | > 90%  | 100%   | ✅     |
-| Testes Unitários      | > 300  | 453    | ✅     |
+| Testes Unitários      | > 300  | 457    | ✅     |
 | Testes E2E            | > 80   | 110    | ✅     |
 | Tempo Exec. Unit      | < 60s  | 50s    | ✅     |
 | Tempo Exec. E2E       | < 120s | 90s    | ✅     |
@@ -1381,7 +1381,7 @@ Prevenir que código não testado ou com falhas chegue ao repositório remoto at
 - **Trigger:** Executado antes de enviar commits ao repositório remoto
 - **Comandos:**
   ```bash
-  npm run test:unit      # 472 testes unitários
+  npm run test:unit      # 457 testes unitários
   npm run test:e2e       # 110 testes E2E
   ```
 - **Tempo médio:** 2 minutos (testes completos)
@@ -3208,8 +3208,6 @@ export class PrismaExceptionFilter implements ExceptionFilter {
 
 ### Mensagens de Erro Amigáveis
 
-### Mensagens de Erro Amigáveis
-
 O projeto implementa uma exception customizada chamada `BusinessException` para padronizar erros de regra de negócio, além das exceptions padrão do NestJS (`ConflictException`, `NotFoundException`, `UnauthorizedException`, etc.).
 
 **Implementação real:**
@@ -3367,14 +3365,97 @@ export class EmailListener {
         await this.safeSendEmail(payload, attempt + 1);
       } else {
         this.logger.error(
-          `Falha final ao enviar email para ${payload.to} após ${MAX_RETRIES} tentativas.`
+          `Falha final ao enviar email para ${payload.to} após ${MAX_RETRIES} tentativas. Salvando na DLQ...`
         );
-        // TODO: Implementar DLQ (Dead Letter Queue)
+
+        try {
+          await this.failedEmailRepository.create({
+            payload: {
+              to: payload.to,
+              subject: payload.subject,
+              template: 'notification',
+              context: {
+                userName: payload.userName,
+                subject: payload.subject,
+                message: payload.message,
+                metadata: payload.metadata,
+              },
+            },
+            errorReason: error instanceof Error ? error.message : String(error),
+            retryCount: MAX_RETRIES,
+          });
+          this.logger.log(`Email falho salvo na DLQ com sucesso.`);
+        } catch (dlqError) {
+          this.logger.error(
+            `CRÍTICO: Falha ao salvar email na DLQ!`,
+            dlqError,
+          );
+        }
       }
     }
   }
 }
 ```
+
+---
+
+#### Dead Letter Queue (DLQ) para Emails Falhados
+
+![Dead Letter Queue](images/dead-letter-queue.png)
+
+**Motivação:**
+
+Quando o envio de email falha após todas as tentativas de retry, o sistema precisa preservar essas informações para análise posterior e possível reenvio manual. A DLQ (Dead Letter Queue) armazena emails que falharam definitivamente.
+
+**Modelo de Dados:**
+
+```typescript
+// src/domain/entities/failed-email.entity.ts
+export interface EmailPayload {
+  to: string;
+  subject: string;
+  template: string;
+  context: Record<string, any>;
+}
+
+export class FailedEmail {
+  id: string;
+  payload: EmailPayload;
+  errorReason: string;
+  retryCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+**Schema Prisma:**
+
+```prisma
+model FailedEmail {
+  id          String   @id @default(uuid())
+  payload     Json     
+  errorReason String   
+  retryCount  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("failed_emails")
+}
+```
+
+**Características:**
+
+- **Payload Genérico:** Armazena template e contexto, permitindo reenvio de qualquer tipo de email
+- **Rastreabilidade:** Registra motivo da falha e número de tentativas
+- **Resiliência:** Falha ao salvar na DLQ não quebra o fluxo principal (apenas loga erro crítico)
+- **Testado:** Cobertura de testes unitários valida salvamento correto na DLQ
+
+**Benefícios:**
+
+- Nenhum email perdido, mesmo em falhas críticas de infraestrutura
+- Permite análise de padrões de falha (ex: domínios bloqueados, SMTP offline)
+- Facilita reenvio manual ou automático via job agendado
+- Auditoria completa de falhas de comunicação
 
 ---
 
@@ -3402,10 +3483,6 @@ export class CreateDailyCollectionDto {
 
 async create(dto: CreateDailyCollectionDto) {
   const user = await this.usersService.findOne(dto.userId);
-
-  if (!user.associationId) {
-    throw new BusinessException('Produtor não vinculado');
-  }
 
   if (new Date(dto.date) > new Date()) {
     throw new BusinessException('Data não pode ser futura');
