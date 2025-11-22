@@ -1,14 +1,14 @@
 import {
-  HttpException,
   HttpStatus,
   Injectable,
   NotFoundException,
   UnauthorizedException,
   Logger,
+  Inject,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '@/application/services/users/users.service';
-import * as bcrypt from 'bcryptjs';
+import { IHashService } from '@/application/ports/hash.service';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { MailService } from '@/mail/mail.service';
 import {
@@ -27,12 +27,13 @@ export class AuthService {
     private jwtService: JwtService,
     private prisma: PrismaService,
     private mailService: MailService,
+    @Inject(IHashService) private hashService: IHashService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
     const user = await this.usersService.findByEmail(email);
 
-    if (user && (await bcrypt.compare(password, user.password))) {
+    if (user && (await this.hashService.compare(password, user.password))) {
       const { password, ...result } = user;
       return result;
     }
@@ -147,7 +148,7 @@ export class AuthService {
       where: { email },
     });
 
-    const hashedPassword = await bcrypt.hash(
+    const hashedPassword = await this.hashService.hash(
       newPassword,
       BCRYPT_ROUNDS_RESET_PASSWORD,
     );

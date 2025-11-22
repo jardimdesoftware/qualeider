@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from '@/application/services/users/users.service';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
-import * as bcrypt from 'bcryptjs';
+import { IHashService as IHashServiceSymbol, type IHashService } from '@/application/ports/hash.service';
 import { CreateUserDto } from '@/application/dtos/users/create-user.dto';
 import { UpdateUserDto } from '@/application/dtos/users/update-user.dto';
 import { UpdatePartialUserDto } from '@/application/dtos/users/update-partial-user.dto';
@@ -13,12 +13,12 @@ import { BCRYPT_ROUNDS_USER_CREATION } from '@/common/constants/security.constan
 import { BusinessException } from '@/common/exceptions/business.exception';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 
-// Mock bcrypt
-jest.mock('bcryptjs');
+
 
 describe('UsersService', () => {
   let service: UsersService;
   let prismaService: ReturnType<typeof createMockPrismaService>;
+  let hashService: IHashService;
 
   beforeEach(async () => {
     prismaService = createMockPrismaService();
@@ -30,10 +30,17 @@ describe('UsersService', () => {
           provide: PrismaService,
           useValue: prismaService,
         },
+        {
+          provide: IHashServiceSymbol,
+          useValue: {
+            hash: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<UsersService>(UsersService);
+    hashService = module.get<IHashService>(IHashServiceSymbol) as any;
   });
 
   afterEach(() => {
@@ -51,7 +58,7 @@ describe('UsersService', () => {
         state: 'SP',
       };
       const hashedPassword = 'hashedPassword123';
-      (bcrypt.hash as jest.Mock).mockResolvedValue(hashedPassword);
+      (hashService.hash as jest.Mock).mockResolvedValue(hashedPassword);
       const mockCreatedUser = createUser({
         id: 1,
         ...createDto,
@@ -61,7 +68,7 @@ describe('UsersService', () => {
 
       const result = await service.create(createDto);
 
-      expect(bcrypt.hash).toHaveBeenCalledWith(
+      expect(hashService.hash).toHaveBeenCalledWith(
         'plainPassword123',
         BCRYPT_ROUNDS_USER_CREATION,
       );
@@ -85,7 +92,7 @@ describe('UsersService', () => {
         state: 'RJ',
       };
 
-      (bcrypt.hash as jest.Mock).mockResolvedValue('hashedPassword');
+      (hashService.hash as jest.Mock).mockResolvedValue('hashedPassword');
 
       const prismaError = new Prisma.PrismaClientKnownRequestError(
         'Unique constraint failed',
@@ -110,7 +117,7 @@ describe('UsersService', () => {
         state: 'SP',
       };
 
-      (bcrypt.hash as jest.Mock).mockResolvedValue('hashedPassword');
+      (hashService.hash as jest.Mock).mockResolvedValue('hashedPassword');
 
       const prismaError = new Prisma.PrismaClientKnownRequestError(
         'Unknown database error',
@@ -133,7 +140,7 @@ describe('UsersService', () => {
         state: 'SP',
       };
 
-      (bcrypt.hash as jest.Mock).mockResolvedValue('hashedPassword');
+      (hashService.hash as jest.Mock).mockResolvedValue('hashedPassword');
 
       const genericError = new Error('Network failure');
       prismaService.user.create.mockRejectedValue(genericError);
@@ -232,7 +239,7 @@ describe('UsersService', () => {
       const mockUser = createUser({ id: 1, status: Status.Active });
       const updateDto: UpdateUserDto = { password: 'newPassword123' };
 
-      (bcrypt.hash as jest.Mock).mockResolvedValue('newHashedPassword');
+      (hashService.hash as jest.Mock).mockResolvedValue('newHashedPassword');
       prismaService.user.findUnique.mockResolvedValue(mockUser);
       prismaService.user.update.mockResolvedValue({
         ...mockUser,
@@ -241,7 +248,7 @@ describe('UsersService', () => {
 
       await service.update(1, updateDto);
 
-      expect(bcrypt.hash).toHaveBeenCalledWith(
+      expect(hashService.hash).toHaveBeenCalledWith(
         'newPassword123',
         BCRYPT_ROUNDS_USER_CREATION,
       );
@@ -260,7 +267,7 @@ describe('UsersService', () => {
 
       await service.update(1, updateDto);
 
-      expect(bcrypt.hash).not.toHaveBeenCalled();
+      expect(hashService.hash).not.toHaveBeenCalled();
       // Verify password is removed from update payload
       expect(prismaService.user.update).toHaveBeenCalledWith({
         where: { id: 1 },

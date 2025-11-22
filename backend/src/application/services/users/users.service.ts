@@ -1,9 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { CreateUserDto } from '@/application/dtos/users/create-user.dto';
 import { UpdateUserDto } from '@/application/dtos/users/update-user.dto';
 import { UpdatePartialUserDto } from '@/application/dtos/users/update-partial-user.dto';
-import * as bcrypt from 'bcryptjs';
+import { IHashService } from '@/application/ports/hash.service';
 import { Prisma } from '@prisma/client';
 import { BCRYPT_ROUNDS_USER_CREATION } from '@/common/constants/security.constants';
 import { BusinessException } from '@/common/exceptions/business.exception';
@@ -13,7 +13,7 @@ import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.ex
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, @Inject(IHashService) private hashService: IHashService) {}
 
   private async validateUserExists(id: number) {
     const user = await this.prisma.user.findUnique({
@@ -38,7 +38,7 @@ export class UsersService {
     const { password, ...rest } = createUserDto;
 
     try {
-      const hashedPassword = await bcrypt.hash(
+      const hashedPassword = await this.hashService.hash(
         password,
         BCRYPT_ROUNDS_USER_CREATION,
       );
@@ -132,7 +132,7 @@ export class UsersService {
     }
 
     if (data.password && data.password.trim().length > 0) {
-      data.password = await bcrypt.hash(
+      data.password = await this.hashService.hash(
         data.password,
         BCRYPT_ROUNDS_USER_CREATION,
       );

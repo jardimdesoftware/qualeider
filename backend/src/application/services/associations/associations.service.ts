@@ -1,7 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { CreateAssociationDto } from '@/application/dtos/associations/create-association.dto';
-import * as bcrypt from 'bcryptjs';
+import { IHashService } from '@/application/ports/hash.service';
 import { BCRYPT_ROUNDS_USER_CREATION } from '@/common/constants/security.constants';
 import { BusinessException } from '@/common/exceptions/business.exception';
 
@@ -9,7 +9,10 @@ import { BusinessException } from '@/common/exceptions/business.exception';
 export class AssociationsService {
   private readonly logger = new Logger(AssociationsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(IHashService) private hashService: IHashService,
+  ) {}
 
   async findByEmail(email: string) {
     if (!email) {
@@ -53,7 +56,7 @@ export class AssociationsService {
       throw new BusinessException('CNPJ já cadastrado.');
     }
 
-    const hashedPassword = await bcrypt.hash(
+    const hashedPassword = await this.hashService.hash(
       password,
       BCRYPT_ROUNDS_USER_CREATION,
     );

@@ -9,13 +9,10 @@ import {
   NotFoundException,
   Logger,
 } from '@nestjs/common';
-import * as bcrypt from 'bcryptjs';
+import { IHashService as IHashServiceSymbol, type IHashService } from '@/application/ports/hash.service';
 import { createUser } from '../../../factories';
 import { createMockPrismaService } from '../../../mocks';
 import { BCRYPT_ROUNDS_RESET_PASSWORD } from '@/common/constants/security.constants';
-
-// Mock bcrypt
-jest.mock('bcryptjs');
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -23,6 +20,7 @@ describe('AuthService', () => {
   let jwtService: jest.Mocked<JwtService>;
   let prismaService: ReturnType<typeof createMockPrismaService>;
   let mailService: jest.Mocked<MailService>;
+  let hashService: jest.Mocked<IHashService>;
 
   beforeEach(async () => {
     prismaService = createMockPrismaService();
@@ -52,6 +50,13 @@ describe('AuthService', () => {
             sendResetPasswordEmail: jest.fn(),
           },
         },
+        {
+          provide: IHashServiceSymbol,
+          useValue: {
+            hash: jest.fn(),
+            compare: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -59,6 +64,7 @@ describe('AuthService', () => {
     usersService = module.get(UsersService);
     jwtService = module.get(JwtService);
     mailService = module.get(MailService);
+    hashService = module.get(IHashServiceSymbol) as any;
   });
 
   afterEach(() => {
@@ -73,7 +79,7 @@ describe('AuthService', () => {
       });
 
       usersService.findByEmail.mockResolvedValue(mockUser);
-      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+      (hashService.compare as jest.Mock).mockResolvedValue(true);
 
       const result = await service.validateUser(
         'test@example.com',
@@ -81,7 +87,7 @@ describe('AuthService', () => {
       );
 
       expect(usersService.findByEmail).toHaveBeenCalledWith('test@example.com');
-      expect(bcrypt.compare).toHaveBeenCalledWith(
+      expect(hashService.compare).toHaveBeenCalledWith(
         'password123',
         'hashedPassword',
       );
@@ -104,7 +110,7 @@ describe('AuthService', () => {
       });
 
       usersService.findByEmail.mockResolvedValue(mockUser);
-      (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+      (hashService.compare as jest.Mock).mockResolvedValue(false);
 
       await expect(
         service.validateUser('test@example.com', 'wrongPassword'),
@@ -393,7 +399,7 @@ describe('AuthService', () => {
 
       prismaService.user.findUnique.mockResolvedValue(mockUser);
       prismaService.user.update.mockResolvedValue(mockUser);
-      (bcrypt.hash as jest.Mock).mockResolvedValue('newHashedPassword');
+      (hashService.hash as jest.Mock).mockResolvedValue('newHashedPassword');
 
       const result = await service.resetPassword(
         'test@example.com',
@@ -402,7 +408,7 @@ describe('AuthService', () => {
       );
 
       expect(result).toBe(true);
-      expect(bcrypt.hash).toHaveBeenCalledWith(
+      expect(hashService.hash).toHaveBeenCalledWith(
         'newPassword123',
         BCRYPT_ROUNDS_RESET_PASSWORD,
       );
@@ -434,7 +440,7 @@ describe('AuthService', () => {
         service.resetPassword('test@example.com', '123456', 'newPassword123'),
       ).rejects.toThrow(UnauthorizedException);
 
-      expect(bcrypt.hash).not.toHaveBeenCalled();
+      expect(hashService.hash).not.toHaveBeenCalled();
     });
 
     it('deve lançar NotFoundException quando usuário não for encontrado', async () => {
@@ -462,7 +468,7 @@ describe('AuthService', () => {
 
       prismaService.user.findUnique.mockResolvedValue(mockUser);
       prismaService.user.update.mockResolvedValue(mockUser);
-      (bcrypt.hash as jest.Mock).mockResolvedValue('hashedPassword');
+      (hashService.hash as jest.Mock).mockResolvedValue('hashedPassword');
 
       await service.resetPassword(
         'test@example.com',
@@ -470,7 +476,7 @@ describe('AuthService', () => {
         'myNewPassword',
       );
 
-      expect(bcrypt.hash).toHaveBeenCalledWith(
+      expect(hashService.hash).toHaveBeenCalledWith(
         'myNewPassword',
         BCRYPT_ROUNDS_RESET_PASSWORD,
       );
@@ -489,7 +495,7 @@ describe('AuthService', () => {
 
       prismaService.user.findUnique.mockResolvedValue(mockUser);
       prismaService.user.update.mockResolvedValue(mockUser);
-      (bcrypt.hash as jest.Mock).mockResolvedValue('hashedPassword');
+      (hashService.hash as jest.Mock).mockResolvedValue('hashedPassword');
 
       await service.resetPassword('test@example.com', '123456', 'newPassword');
 

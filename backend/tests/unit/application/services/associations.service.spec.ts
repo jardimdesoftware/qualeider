@@ -3,15 +3,14 @@ import { AssociationsService } from '@/application/services/associations/associa
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { createMockPrismaService } from '../../../mocks/prisma.mock';
 import { createAssociation } from '../../../factories/association.factory';
-import * as bcrypt from 'bcryptjs';
+import { IHashService as IHashServiceSymbol, type IHashService } from '@/application/ports/hash.service';
 import { BCRYPT_ROUNDS_USER_CREATION } from '@/common/constants/security.constants';
 import { BusinessException } from '@/common/exceptions/business.exception';
-
-jest.mock('bcryptjs');
 
 describe('AssociationsService', () => {
   let service: AssociationsService;
   let prisma: ReturnType<typeof createMockPrismaService>;
+  let hashService: jest.Mocked<IHashService>;
 
   beforeEach(async () => {
     prisma = createMockPrismaService();
@@ -23,10 +22,17 @@ describe('AssociationsService', () => {
           provide: PrismaService,
           useValue: prisma,
         },
+        {
+          provide: IHashServiceSymbol,
+          useValue: {
+            hash: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<AssociationsService>(AssociationsService);
+    hashService = module.get<IHashService>(IHashServiceSymbol) as any;
   });
 
   afterEach(() => {
@@ -149,7 +155,7 @@ describe('AssociationsService', () => {
     };
 
     beforeEach(() => {
-      (bcrypt.hash as jest.Mock).mockResolvedValue('$2a$10$hashedPassword');
+      (hashService.hash as jest.Mock).mockResolvedValue('$2a$10$hashedPassword');
     });
 
     it('deve criar associação com sucesso', async () => {
@@ -170,7 +176,7 @@ describe('AssociationsService', () => {
 
       expect(result).toHaveProperty('id', 1);
       expect(result).toHaveProperty('name', createDto.name);
-      expect(bcrypt.hash).toHaveBeenCalledWith(
+      expect(hashService.hash).toHaveBeenCalledWith(
         createDto.password,
         BCRYPT_ROUNDS_USER_CREATION,
       );
@@ -241,7 +247,7 @@ describe('AssociationsService', () => {
 
       await service.create(createDto as any);
 
-      expect(bcrypt.hash).toHaveBeenCalledWith(
+      expect(hashService.hash).toHaveBeenCalledWith(
         createDto.password,
         BCRYPT_ROUNDS_USER_CREATION,
       );
