@@ -9,6 +9,8 @@ import { IUserRepository } from '@/domain/repositories/user.repository';
 import { IAnimalRepository } from '@/domain/repositories/animal.repository';
 import { IDailyCollectionRepository } from '@/domain/repositories/daily-collection.repository';
 import { BcryptHashService } from '@/infrastructure/services/bcrypt-hash.service';
+import { PrismaFailedEmailRepository } from '@/infrastructure/repositories/prisma-failed-email.repository';
+import { IFailedEmailRepository } from '@/domain/repositories/failed-email.repository';
 import { IHashService } from '@/application/ports/hash.service';
 import { ITokenService } from '@/application/ports/token.service';
 import { JwtTokenService } from '@/infrastructure/services/jwt-token.service';
@@ -35,6 +37,7 @@ import { JwtTokenService } from '@/infrastructure/services/jwt-token.service';
     },
     { provide: IHashService, useClass: BcryptHashService },
     { provide: ITokenService, useClass: JwtTokenService },
+    { provide: IFailedEmailRepository, useClass: PrismaFailedEmailRepository },
   ],
   exports: [
     PrismaModule,
@@ -43,6 +46,7 @@ import { JwtTokenService } from '@/infrastructure/services/jwt-token.service';
     IDailyCollectionRepository,
     IHashService,
     ITokenService,
+    IFailedEmailRepository,
   ],
 })
 export class InfrastructureModule {}

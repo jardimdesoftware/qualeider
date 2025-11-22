@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { MailService } from '@/mail/mail.service';
 import { NotificationSendPayload } from '@/events/notification-payload.interface';
+import { IFailedEmailRepository } from '@/domain/repositories/failed-email.repository';
 
 const MAX_RETRIES = 3;
 const DELAY_MS = 2000;
@@ -9,7 +10,10 @@ const DELAY_MS = 2000;
 @Injectable()
 export class EmailListener {
   private readonly logger = new Logger(EmailListener.name);
-  constructor(private readonly mailService: MailService) {}
+  constructor(
+    private readonly mailService: MailService,
+    private readonly failedEmailRepository: IFailedEmailRepository,
+  ) {}
 
   @OnEvent('notification.send')
   async handleNotificationSend(payload: NotificationSendPayload) {
@@ -52,10 +56,31 @@ export class EmailListener {
         await this.safeSendEmail(payload, attempt + 1);
       } else {
         this.logger.error(
-          `Falha final ao enviar email para ${payload.to} após ${MAX_RETRIES} tentativas.`,
+          `Falha final ao enviar email para ${payload.to} após ${MAX_RETRIES} tentativas. Salvando na DLQ...`,
         );
 
-        // TODO: Implementar DLQ (salvar payload no DB ou enviar para uma fila de processamento manual)
+        try {
+          await this.failedEmailRepository.create({
+            payload: {
+              to: payload.to,
+              subject: payload.subject,
+              template: 'notification',
+              context: {
+                userName: payload.userName,
+                message: payload.message,
+                metadata: payload.metadata,
+              },
+            },
+            errorReason: error instanceof Error ? error.message : String(error),
+            retryCount: MAX_RETRIES,
+          });
+          this.logger.log(`Email falho salvo na DLQ com sucesso.`);
+        } catch (dlqError) {
+          this.logger.error(
+            `CRÍTICO: Falha ao salvar email na DLQ!`,
+            dlqError,
+          );
+        }
       }
     }
   }
