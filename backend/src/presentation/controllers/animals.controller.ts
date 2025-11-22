@@ -102,6 +102,6 @@ export class AnimalsController {
   @ApiResponse({ status: 200, description: 'Lista de animais do usuário' })
   @Get('user/:userId')
   async findAllByUserId(@Param('userId', ParseIntPipe) userId: number) {
-    return this.animalsService.findAllByUserId(userId);
+    return this.animalsService.findAll({ userId });
   }
 }

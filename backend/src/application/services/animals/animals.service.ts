@@ -3,8 +3,8 @@ import { IAnimalRepository } from '@/domain/repositories/animal.repository';
 import { IUserRepository } from '@/domain/repositories/user.repository';
 import { CreateAnimalDto } from '@/application/dtos/animals/create-animal.dto';
 import { UpdateAnimalDto } from '@/application/dtos/animals/update-animal.dto';
-import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 import { AnimalCriteria } from '@/domain/criteria/animal.criteria';
+import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 
 @Injectable()
 export class AnimalsService {
@@ -25,6 +25,7 @@ export class AnimalsService {
 
   async create(createAnimalDto: CreateAnimalDto) {
     await this.validateUser(createAnimalDto.userId);
+    
     const animal = await this.animalRepository.create(createAnimalDto);
 
     this.logger.log(`Animal criado: ${animal.name} (ID: ${animal.id})`);
@@ -44,16 +45,12 @@ export class AnimalsService {
   }
 
   async update(id: number, updateAnimalDto: UpdateAnimalDto) {
-    await this.findOne(id);
+    await this.findOne(id); 
     return this.animalRepository.update(id, updateAnimalDto);
   }
 
   async remove(id: number) {
     await this.findOne(id);
     await this.animalRepository.softDelete(id);
-  }
-
-  async findAllByUserId(userId: number) {
-    return this.animalRepository.findAllByUserId(userId);
   }
 }

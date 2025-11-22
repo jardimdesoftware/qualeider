@@ -224,21 +224,22 @@ describe('AnimalsService', () => {
         createAnimal({ id: 2, userId, name: 'Animal 2' }),
       ];
 
-      animalRepository.findAllByUserId.mockResolvedValue(mockAnimals);
+      animalRepository.findAll.mockResolvedValue(mockAnimals);
 
-      const result = await service.findAllByUserId(userId);
+      // The service doesn't have findAllByUserId anymore, so we test findAll with criteria
+      const result = await service.findAll({ userId });
 
       expect(result).toEqual(mockAnimals);
-      expect(animalRepository.findAllByUserId).toHaveBeenCalledWith(userId);
+      expect(animalRepository.findAll).toHaveBeenCalledWith({ userId });
     });
 
     it('deve retonar uma lista vazia se usuário não tem animais', async () => {
-      animalRepository.findAllByUserId.mockResolvedValue([]);
+      animalRepository.findAll.mockResolvedValue([]);
 
-      const result = await service.findAllByUserId(999);
+      const result = await service.findAll({ userId: 999 });
 
       expect(result).toEqual([]);
-      expect(animalRepository.findAllByUserId).toHaveBeenCalledWith(999);
+      expect(animalRepository.findAll).toHaveBeenCalledWith({ userId: 999 });
     });
   });
 });

@@ -1,9 +1,13 @@
 import { ID } from '@/domain/enums/enums';
 import { UserEntity } from '@/domain/entities/user.entity';
+import { UserCriteria } from '@/domain/criteria/user.criteria';
 
 export const IUserRepository = Symbol('IUserRepository');
 
-import { UserCriteria } from '@/domain/criteria/user.criteria';
+export interface UserFindOneOptions {
+  includeAnimals?: boolean;
+  includeAssociation?: boolean;
+}
 
 export interface IUserRepository {
   create(
@@ -12,7 +16,10 @@ export interface IUserRepository {
     },
   ): Promise<UserEntity>;
   findAll(criteria?: UserCriteria): Promise<Array<Omit<UserEntity, 'password'>>>;
-  findById(id: ID): Promise<Omit<UserEntity, 'password'> | null>;
+  findById(
+    id: ID, 
+    options?: UserFindOneOptions
+  ): Promise<Omit<UserEntity, 'password'> | null>;
   update(
     id: ID,
     data: Partial<UserEntity>,

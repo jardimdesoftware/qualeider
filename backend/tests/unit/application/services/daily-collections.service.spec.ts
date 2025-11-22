@@ -27,6 +27,7 @@ describe('DailyCollectionsService', () => {
             update: jest.fn(),
             delete: jest.fn(),
             findAllByUserId: jest.fn(),
+            checkIfUserAlreadySubmitted: jest.fn(),
           },
         },
         {
@@ -228,7 +229,7 @@ describe('DailyCollectionsService', () => {
     });
   });
 
-  describe('findAllByUserId', () => {
+  describe('findAll with criteria to get User by Id', () => {
     it('deve retornar todas as coletas de um usuário', async () => {
       const userId = 1;
       const mockCollections = [
@@ -236,21 +237,21 @@ describe('DailyCollectionsService', () => {
         createDailyCollection({ id: 2, userId, quantity: 50 }),
       ];
 
-      dailyCollectionRepository.findAllByUserId.mockResolvedValue(mockCollections);
+      dailyCollectionRepository.findAll.mockResolvedValue(mockCollections);
 
-      const result = await service.findAllByUserId(userId);
+      const result = await service.findAll({ userId });
 
       expect(result).toEqual(mockCollections);
-      expect(dailyCollectionRepository.findAllByUserId).toHaveBeenCalledWith(userId);
+      expect(dailyCollectionRepository.findAll).toHaveBeenCalledWith({ userId });
     });
 
     it('deve retornar array vazio se usuário não tem coletas', async () => {
-      dailyCollectionRepository.findAllByUserId.mockResolvedValue([]);
+      dailyCollectionRepository.findAll.mockResolvedValue([]);
 
-      const result = await service.findAllByUserId(999);
+      const result = await service.findAll({ userId: 999 });
 
       expect(result).toEqual([]); 
-      expect(dailyCollectionRepository.findAllByUserId).toHaveBeenCalledWith(999);
+      expect(dailyCollectionRepository.findAll).toHaveBeenCalledWith({ userId: 999 });
     });
   });
 });

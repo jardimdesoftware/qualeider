@@ -5,7 +5,6 @@ import { CreateUserDto } from '@/application/dtos/users/create-user.dto';
 import { UpdateUserDto } from '@/application/dtos/users/update-user.dto';
 import { UpdatePartialUserDto } from '@/application/dtos/users/update-partial-user.dto';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
-import { BusinessException } from '@/common/exceptions/business.exception';
 import { BCRYPT_ROUNDS_USER_CREATION } from '@/common/constants/security.constants';
 import { UserCriteria } from '@/domain/criteria/user.criteria';
 
@@ -14,85 +13,23 @@ export class UsersService {
   private readonly logger = new Logger(UsersService.name);
 
   constructor(
-    @Inject(IUserRepository) private userRepository: IUserRepository,
-    @Inject(IHashService) private hashService: IHashService,
+    @Inject(IUserRepository) private readonly userRepository: IUserRepository,
+    @Inject(IHashService) private readonly hashService: IHashService,
   ) {}
-
-  private async validateUserExists(id: number) {
-    const user = await this.userRepository.findById(id);
-    if (!user) {
-      throw new EntityNotFoundException(
-        `Usuário com ID ${id} não encontrado ou está inativo.`,
-      );
-    }
-    return user;
-  }
-
-  private removePassword(entity: any): any {
-    if (entity && typeof entity === 'object' && 'password' in entity) {
-      delete entity.password;
-    }
-    return entity;
-  }
 
   async create(createUserDto: CreateUserDto) {
     const { password, ...rest } = createUserDto;
 
-    try {
-      const hashedPassword = await this.hashService.hash(
-        password,
-        BCRYPT_ROUNDS_USER_CREATION,
-      );
+    const hashedPassword = await this.hashPasswordIfNeeded(password);
 
-      const user = await this.userRepository.create({
-        ...rest,
-        password: hashedPassword,
-      });
+    // Repository lança BusinessException se email duplicar (P2002)
+    const user = await this.userRepository.create({
+      ...rest,
+      password: hashedPassword!,
+    });
 
-      this.logger.log(`Usuário criado: ${user.email} (ID: ${user.id})`);
-      return this.removePassword(user);
-    } catch (error: any) {
-      // TODO: Abstract repository errors
-      if (error.code === 'P2002') {
-        throw new BusinessException('Email já está em uso.');
-      }
-      throw error;
-    }
-  }
-
-  private async performUpdate(
-    id: number,
-    data: UpdateUserDto | UpdatePartialUserDto,
-  ) {
-    await this.validateUserExists(id);
-
-    if (data.email) {
-      const existingUser = await this.userRepository.findByEmail(data.email);
-      if (existingUser && existingUser.id !== id) {
-        throw new BusinessException('Email já cadastrado');
-      }
-    }
-
-    if (data.password && data.password.trim().length > 0) {
-      data.password = await this.hashService.hash(
-        data.password,
-        BCRYPT_ROUNDS_USER_CREATION,
-      );
-    } else {
-      delete data.password;
-    }
-
-    try {
-      // Use partialUpdate for flexibility as data can be UpdateUserDto or UpdatePartialUserDto
-      const updatedUser = await this.userRepository.partialUpdate(id, data);
-      return this.removePassword(updatedUser);
-    } catch (error: any) {
-      // TODO: Abstract repository errors
-      if (error.code === 'P2002') {
-        throw new BusinessException('Email já cadastrado');
-      }
-      throw error;
-    }
+    this.logger.log(`Usuário criado: ${user.email} (ID: ${user.id})`);
+    return this.removePassword(user);
   }
 
   async update(id: number, updateUserDto: UpdateUserDto) {
@@ -105,18 +42,21 @@ export class UsersService {
 
   async remove(id: number) {
     await this.validateUserExists(id);
-
     await this.userRepository.softDelete(id);
     
+    this.logger.log(`Usuário removido (soft delete): ID ${id}`);
+    
     const deactivated = await this.userRepository.findById(id);
-    return deactivated; 
+    return this.removePassword(deactivated);
   }
 
   async findByEmail(email: string) {
+    this.logger.debug(`Buscando usuário por email: ${email}`);
     return this.userRepository.findByEmail(email);
   }
 
   async findAll(criteria?: UserCriteria) {
+    this.logger.debug(`Buscando usuários com critérios`);
     return this.userRepository.findAll(criteria);
   }
 
@@ -127,6 +67,63 @@ export class UsersService {
         `Usuário com ID ${id} não encontrado ou está inativo.`,
       );
     }
-    return user;
+    return this.removePassword(user);
+  }
+
+  async exists(id: number): Promise<boolean> {
+    const user = await this.userRepository.findById(id);
+    return user !== null;
+  }
+
+  private async validateUserExists(id: number): Promise<void> {
+    await this.findOne(id);
+  }
+
+  private async performUpdate(
+    id: number,
+    data: UpdateUserDto | UpdatePartialUserDto,
+  ) {
+    await this.validateUserExists(id);
+
+    const dataToUpdate = await this.prepareUpdateData(data);
+
+    // Repository lança EntityNotFoundException se ID não existir (P2025)
+    // Repository lança BusinessException se email duplicar (P2002)
+    const updatedUser = await this.userRepository.partialUpdate(id, dataToUpdate);
+    
+    this.logger.log(`Usuário atualizado: ID ${id}`);
+    return this.removePassword(updatedUser);
+  }
+
+  private async prepareUpdateData(
+    data: UpdateUserDto | UpdatePartialUserDto
+  ): Promise<UpdateUserDto | UpdatePartialUserDto> {
+    const dataToUpdate = { ...data };
+
+    const hashedPassword = await this.hashPasswordIfNeeded(dataToUpdate.password);
+    
+    if (hashedPassword) {
+      dataToUpdate.password = hashedPassword;
+    } else {
+      delete dataToUpdate.password;
+    }
+
+    return dataToUpdate;
+  }
+
+  private async hashPasswordIfNeeded(password?: string): Promise<string | undefined> {
+    if (!password || password.trim().length === 0) {
+      return undefined;
+    }
+    
+    return this.hashService.hash(password, BCRYPT_ROUNDS_USER_CREATION);
+  }
+
+  private removePassword<T>(entity: T): Omit<T, 'password'> {
+    if (entity && typeof entity === 'object' && 'password' in entity) {
+      const { password, ...rest } = entity as any;
+      return rest;
+    }
+    return entity as Omit<T, 'password'>;
   }
 }

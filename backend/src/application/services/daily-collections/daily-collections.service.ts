@@ -4,6 +4,7 @@ import { IUserRepository } from '@/domain/repositories/user.repository';
 import { CreateDailyCollectionDto } from '@/application/dtos/daily-collections/create-daily-collection.dto';
 import { UpdateDailyCollectionDto } from '@/application/dtos/daily-collections/update-daily-collection.dto';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
+import { BusinessException } from '@/common/exceptions/business.exception';
 import { DailyCollectionCriteria } from '@/domain/criteria/daily-collection.criteria';
 
 @Injectable()
@@ -25,6 +26,10 @@ export class DailyCollectionsService {
 
   async create(createDailyCollectionDto: CreateDailyCollectionDto) {
     await this.validateUser(createDailyCollectionDto.userId);
+    const alreadySubmitted = await this.dailyCollectionRepository.checkIfUserAlreadySubmitted(createDailyCollectionDto.userId);
+    if (alreadySubmitted) {
+      throw new BusinessException('O produtor já enviou uma coleta hoje.');
+    }
 
     const dailyCollection = await this.dailyCollectionRepository.create(createDailyCollectionDto);
 
@@ -45,18 +50,12 @@ export class DailyCollectionsService {
   }
 
   async update(id: number, updateDailyCollectionDto: UpdateDailyCollectionDto) {
-    await this.findOne(id);
+    await this.findOne(id); 
     return this.dailyCollectionRepository.update(id, updateDailyCollectionDto);
   }
 
   async remove(id: number) {
     await this.findOne(id);
     await this.dailyCollectionRepository.delete(id);
-  }
-
-  async findAllByUserId(userId: number) {
-    const dailyCollections = await this.dailyCollectionRepository.findAllByUserId(userId);
-
-    return dailyCollections;
   }
 }

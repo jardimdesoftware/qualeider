@@ -200,11 +200,11 @@ describe('DailyCollectionsController', () => {
   describe('findAllByUserId', () => {
     it('deve retornar formulários do usuário (mesmo vazio)', async () => {
       const items = [];
-      mockService.findAllByUserId.mockResolvedValue(items);
+      mockService.findAll.mockResolvedValue(items);
 
       const result = await controller.findAllByUserId(1);
 
-      expect(service.findAllByUserId).toHaveBeenCalledWith(1);
+      expect(service.findAll).toHaveBeenCalledWith({ userId: 1 });
       expect(result).toEqual([]);
     });
   });

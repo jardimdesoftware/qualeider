@@ -177,11 +177,11 @@ describe('AnimalsController', () => {
   describe('findAllByUserId', () => {
       it('deve retornar lista de animais do usuário', async () => {
           const animals = [createAnimal({ id: 1, userId: 5 })];
-          mockAnimalsService.findAllByUserId.mockResolvedValue(animals);
+          mockAnimalsService.findAll.mockResolvedValue(animals);
 
           const result = await controller.findAllByUserId(5);
 
-          expect(animalsService.findAllByUserId).toHaveBeenCalledWith(5);
+          expect(animalsService.findAll).toHaveBeenCalledWith({ userId: 5 });
           expect(result).toEqual(animals);
       });
   });

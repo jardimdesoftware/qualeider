@@ -20,11 +20,9 @@ import {
   ApiBearerAuth,
   ApiOperation,
   ApiParam,
-  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { BusinessException } from '@/common/exceptions/business.exception';
 import { DailyCollectionCriteria } from '@/domain/criteria/daily-collection.criteria';
 
 @ApiTags('Daily Collections')
@@ -138,6 +136,6 @@ export class DailyCollectionsController {
   })
   @Get('user/:userId')
   async findAllByUserId(@Param('userId', ParseIntPipe) userId: number) {
-    return this.dailyCollectionsService.findAllByUserId(userId);
+    return this.dailyCollectionsService.findAll({ userId });
   }
 }

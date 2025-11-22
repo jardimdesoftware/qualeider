@@ -10,8 +10,7 @@ import { UserCategory, Status } from '@/domain/enums/enums';
 import { BCRYPT_ROUNDS_USER_CREATION } from '@/common/constants/security.constants';
 import { BusinessException } from '@/common/exceptions/business.exception';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
-
-
+import { Prisma } from '@prisma/client';
 
 describe('UsersService', () => {
   let service: UsersService;
@@ -97,7 +96,8 @@ describe('UsersService', () => {
 
       (hashService.hash as jest.Mock).mockResolvedValue('hashedPassword');
 
-      const error = { code: 'P2002' };
+      // Repository agora lança BusinessException diretamente (trata Prisma internamente)
+      const error = new BusinessException('Email já está em uso.');
       (userRepository.create as jest.Mock).mockRejectedValue(error);
 
       await expect(service.create(createDto)).rejects.toThrow(
@@ -107,7 +107,7 @@ describe('UsersService', () => {
         'Email já está em uso.',
       );
     });
-    it('deve relançar erros desconhecidos do Prisma', async () => {
+    it('deve relançar erros não tratados do Repository', async () => {
       const createDto: CreateUserDto = {
         name: 'John Doe',
         email: 'john@example.com',
@@ -119,10 +119,11 @@ describe('UsersService', () => {
 
       (hashService.hash as jest.Mock).mockResolvedValue('hashedPassword');
 
-      const error = { code: 'P2000' };
+      // Repository pode lançar qualquer erro inesperado
+      const error = new Error('Unexpected database error');
       (userRepository.create as jest.Mock).mockRejectedValue(error);
 
-      await expect(service.create(createDto)).rejects.toEqual(error);
+      await expect(service.create(createDto)).rejects.toThrow('Unexpected database error');
     });
 
     it('deve relançar erros genéricos (não-Prisma)', async () => {
@@ -191,7 +192,6 @@ describe('UsersService', () => {
     });
 
     it('deve lançar EntityNotFoundException quando usuário estiver inativo', async () => {
-      // findById should return null for inactive users if implemented correctly in repo
       (userRepository.findById as jest.Mock).mockResolvedValue(null);
 
       await expect(service.findOne(1)).rejects.toThrow(EntityNotFoundException);
@@ -251,7 +251,6 @@ describe('UsersService', () => {
       await service.update(1, updateDto);
 
       expect(hashService.hash).not.toHaveBeenCalled();
-      // Verify password is removed from update payload
       expect(userRepository.partialUpdate).toHaveBeenCalledWith(
         1,
         expect.not.objectContaining({ password: '' }),
@@ -267,19 +266,7 @@ describe('UsersService', () => {
       );
     });
 
-    it('deve lançar BusinessException quando email já existe', async () => {
-      const updateDto: UpdateUserDto = { email: 'taken@test.com' };
-      const mockUser = createUser({ id: 1 });
 
-      (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
-      (userRepository.findByEmail as jest.Mock).mockResolvedValue(
-        createUser({ id: 2, email: 'taken@test.com' }),
-      );
-
-      await expect(service.update(1, updateDto)).rejects.toThrow(
-        BusinessException,
-      );
-    });
 
     it('deve tratar erro P2002 durante atualização e lançar BusinessException', async () => {
       const updateDto: UpdateUserDto = {
@@ -290,7 +277,8 @@ describe('UsersService', () => {
 
       (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
 
-      const error = { code: 'P2002' };
+      // Repository lança BusinessException diretamente
+      const error = new BusinessException('Email já cadastrado');
       (userRepository.partialUpdate as jest.Mock).mockRejectedValue(error);
 
       await expect(service.update(1, updateDto)).rejects.toThrow(
@@ -301,16 +289,17 @@ describe('UsersService', () => {
       );
     });
 
-    it('deve relançar erros Prisma não-P2002 durante atualização', async () => {
+    it('deve relançar erros de foreign key do Repository durante atualização', async () => {
       const updateDto: UpdateUserDto = { name: 'Updated Name' };
       const mockUser = createUser({ id: 1, status: Status.Active });
 
       (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
 
-      const error = { code: 'P2003' };
+      // Repository trata P2003 e lança BusinessException
+      const error = new BusinessException('Referência inválida. Verifique os dados relacionados.');
       (userRepository.partialUpdate as jest.Mock).mockRejectedValue(error);
 
-      await expect(service.update(1, updateDto)).rejects.toEqual(error);
+      await expect(service.update(1, updateDto)).rejects.toThrow(BusinessException);
     });
 
     it('deve relançar erros genéricos durante atualização', async () => {
@@ -343,13 +332,14 @@ describe('UsersService', () => {
       expect(result.city).toBe('New City');
     });
 
-    it('deve tratar erro P2002 durante atualização parcial e lançar BusinessException', async () => {
+    it('deve tratar erro de email duplicado durante atualização parcial e lançar BusinessException', async () => {
       const updateDto = { city: 'New City' } as UpdatePartialUserDto;
       const mockUser = createUser({ id: 1, status: Status.Active });
 
       (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
 
-      const error = { code: 'P2002' };
+      // Repository lança BusinessException diretamente
+      const error = new BusinessException('Email já cadastrado');
       (userRepository.partialUpdate as jest.Mock).mockRejectedValue(error);
 
       await expect(service.partialUpdate(1, updateDto)).rejects.toThrow(
@@ -364,7 +354,6 @@ describe('UsersService', () => {
 
       (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
       (userRepository.softDelete as jest.Mock).mockResolvedValue(undefined);
-      // Mock findById again for the return value check in remove()
       (userRepository.findById as jest.Mock).mockResolvedValueOnce(mockUser).mockResolvedValueOnce({ ...mockUser, status: Status.Inactive });
 
       const result = await service.remove(1);

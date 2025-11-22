@@ -1,34 +1,40 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
-import { IDailyCollectionRepository } from '@/domain/repositories/daily-collection.repository';
+import { IDailyCollectionRepository, DailyCollectionFindOneOptions } from '@/domain/repositories/daily-collection.repository';
 import { ID } from '@/domain/enums/enums';
 import { DailyCollectionEntity } from '@/domain/entities/daily-collection.entity';
 import { DailyCollectionCriteria } from '@/domain/criteria/daily-collection.criteria';
+import { handlePrismaError, PrismaErrorCode } from '@/common/utils/prisma-error-handler';
 
 @Injectable()
 export class PrismaDailyCollectionRepository implements IDailyCollectionRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(data: Omit<DailyCollectionEntity, 'id' | 'createdAt' | 'updatedAt'>): Promise<DailyCollectionEntity> {
-    const created = await this.prisma.dailyCollection.create({
-      data: {
-        userId: data.userId,
-        quantity: data.quantity,
-        collectionDate: data.collectionDate,
-        numAnimals: data.numAnimals,
-        numOrdens: data.numOrdens,
-        rationProvided: data.rationProvided,
-        numLactation: data.numLactation,
-        milkingPlace: data.milkingPlace as any,
-        technicalAssistance: data.technicalAssistance,
-      },
-    });
-    return created as any;
+    try {
+      const created = await this.prisma.dailyCollection.create({
+        data: {
+          userId: data.userId,
+          quantity: data.quantity,
+          collectionDate: data.collectionDate,
+          numAnimals: data.numAnimals,
+          numOrdens: data.numOrdens,
+          rationProvided: data.rationProvided,
+          numLactation: data.numLactation,
+          milkingPlace: data.milkingPlace as any,
+          technicalAssistance: data.technicalAssistance,
+        },
+      });
+      return created as any;
+    } catch (error) {
+      handlePrismaError(error, {
+        [PrismaErrorCode.FOREIGN_KEY_CONSTRAINT_FAILED]: 'Produtor (User) inválido ou não encontrado.',
+      });
+    }
   }
 
   async findAll(criteria: DailyCollectionCriteria = {}): Promise<DailyCollectionEntity[]> {
-    // 1. Definição do WHERE com tipagem correta
     const where: Prisma.DailyCollectionWhereInput = {};
 
     if (criteria.userId) {
@@ -49,7 +55,6 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
     }
 
     const include: Prisma.DailyCollectionInclude = {};
-
     if (criteria.includeUser) {
       include.user = true;
     }
@@ -63,9 +68,16 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
     return list as any;
   }
 
-  async findById(id: ID): Promise<DailyCollectionEntity | null> {
+  async findById(id: ID, options?: DailyCollectionFindOneOptions): Promise<DailyCollectionEntity | null> {
+    const include: Prisma.DailyCollectionInclude = {};
+    
+    if (options?.includeUser) {
+      include.user = true;
+    }
+
     const found = await this.prisma.dailyCollection.findUnique({
       where: { id },
+      include: Object.keys(include).length > 0 ? include : undefined,
     });
     return (found as any) ?? null;
   }
@@ -74,33 +86,38 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
     id: ID,
     data: Partial<DailyCollectionEntity>,
   ): Promise<DailyCollectionEntity> {
-    const updated = await this.prisma.dailyCollection.update({
-      where: { id },
-      data: {
-        quantity: data.quantity ?? undefined,
-        collectionDate: data.collectionDate ?? undefined,
-        numAnimals: data.numAnimals ?? undefined,
-        numOrdens: data.numOrdens ?? undefined,
-        rationProvided: data.rationProvided ?? undefined,
-        numLactation: data.numLactation ?? undefined,
-        milkingPlace: (data.milkingPlace as any) ?? undefined,
-        technicalAssistance: data.technicalAssistance ?? undefined,
-      },
-    });
-    return updated as any;
-  }
-
-  async remove(id: ID): Promise<DailyCollectionEntity> {
-    const deleted = await this.prisma.dailyCollection.delete({
-      where: { id },
-    });
-    return deleted as any;
+    try {
+      const updated = await this.prisma.dailyCollection.update({
+        where: { id },
+        data: {
+          quantity: data.quantity ?? undefined,
+          collectionDate: data.collectionDate ?? undefined,
+          numAnimals: data.numAnimals ?? undefined,
+          numOrdens: data.numOrdens ?? undefined,
+          rationProvided: data.rationProvided ?? undefined,
+          numLactation: data.numLactation ?? undefined,
+          milkingPlace: (data.milkingPlace as any) ?? undefined,
+          technicalAssistance: data.technicalAssistance ?? undefined,
+        },
+      });
+      return updated as any;
+    } catch (error) {
+      handlePrismaError(error, {
+        [PrismaErrorCode.RECORD_NOT_FOUND]: `Coleta diária com ID ${id} não encontrada para atualização.`,
+      });
+    }
   }
 
   async delete(id: ID): Promise<void> {
-    await this.prisma.dailyCollection.delete({
-      where: { id },
-    });
+    try {
+      await this.prisma.dailyCollection.delete({
+        where: { id },
+      });
+    } catch (error) {
+      handlePrismaError(error, {
+        [PrismaErrorCode.RECORD_NOT_FOUND]: `Coleta diária com ID ${id} não encontrada para remoção.`,
+      });
+    }
   }
 
   async checkIfUserAlreadySubmitted(userId: ID): Promise<boolean> {
@@ -122,13 +139,4 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
 
     return !!existing;
   }
-
-  async findAllByUserId(userId: ID): Promise<DailyCollectionEntity[]> {
-    const list = await this.prisma.dailyCollection.findMany({
-      where: { userId },
-      orderBy: { collectionDate: 'desc' },
-    });
-    return list as any;
-  }
 }
-
