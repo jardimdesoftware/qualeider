@@ -51,10 +51,8 @@ export class DailyCollectionFactory {
       milkingPlace: MilkingPlace.Curral,
       technicalAssistance: false,
       ...overrides,
-      // Ensure collectionDate is always present unless explicitly overridden
       collectionDate: overrides.collectionDate || new Date().toISOString().split('T')[0],
     };
-    console.log('[FACTORY] Returning:', JSON.stringify(result, null, 2));
     return result;
   }
 

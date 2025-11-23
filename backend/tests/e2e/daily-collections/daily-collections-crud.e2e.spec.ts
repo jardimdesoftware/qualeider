@@ -43,7 +43,7 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
         technicalAssistance: true,
       });
 
-      console.log('Test data:', JSON.stringify(collectionData, null, 2));
+
 
       const response = await testApp
         .request()
