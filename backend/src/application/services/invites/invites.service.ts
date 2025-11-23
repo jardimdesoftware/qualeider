@@ -1,6 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '@/infrastructure/prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InviteCreatedEvent } from '@/events/invite-created.event';
 import { InviteAcceptedEvent } from '@/events/invite-accepted.event';
@@ -10,12 +8,21 @@ import { BusinessException } from '@/common/exceptions/business.exception';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 import { INVITE_EXPIRATION_DAYS } from '@/common/constants/business-rules.constants';
 import { InviteStatus, InviteAction } from '@/domain/enums/enums';
+import { IInviteRepository } from '@/domain/repositories/invite.repository';
+import { IUserRepository } from '@/domain/repositories/user.repository';
+import { IAssociationRepository } from '@/domain/repositories/association.repository';
+
 @Injectable()
 export class InvitesService {
   private readonly logger = new Logger(InvitesService.name);
 
   constructor(
-    private readonly prisma: PrismaService,
+    @Inject(IInviteRepository)
+    private readonly inviteRepository: IInviteRepository,
+    @Inject(IUserRepository)
+    private readonly userRepository: IUserRepository,
+    @Inject(IAssociationRepository)
+    private readonly associationRepository: IAssociationRepository,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -23,18 +30,13 @@ export class InvitesService {
     associationId: number,
     userId: number,
   ) {
-    const association = await this.prisma.association.findUnique({
-      where: { id: associationId },
-    });
+    const association = await this.associationRepository.findById(associationId);
 
     if (!association) {
       throw new EntityNotFoundException('Associação não encontrada');
     }
 
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, name: true, email: true, associationId: true },
-    });
+    const user = await this.userRepository.findById(userId);
 
     if (!user) {
       throw new EntityNotFoundException('Usuário não encontrado');
@@ -46,15 +48,13 @@ export class InvitesService {
       );
     }
 
-    const existingInvite = await this.prisma.invite.findFirst({
-      where: {
-        associationId,
-        userId,
-        status: InviteStatus.PENDING,
-      },
+    const existingInvites = await this.inviteRepository.findAll({
+      associationId,
+      userId,
+      status: InviteStatus.PENDING,
     });
 
-    if (existingInvite) {
+    if (existingInvites.length > 0) {
       throw new BusinessException(
         'Já existe um convite pendente para este usuário',
       );
@@ -75,18 +75,12 @@ export class InvitesService {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + INVITE_EXPIRATION_DAYS);
 
-    const invite = await this.prisma.invite.create({
-      data: {
-        associationId,
-        userId: dto.userId,
-        message: dto.message,
-        expiresAt,
-        status: InviteStatus.PENDING,
-      },
-      include: {
-        user: true,
-        association: true,
-      },
+    const invite = await this.inviteRepository.create({
+      associationId,
+      userId: dto.userId,
+      message: dto.message,
+      expiresAt,
+      status: InviteStatus.PENDING,
     });
 
     const event = new InviteCreatedEvent(
@@ -115,17 +109,17 @@ export class InvitesService {
    * Usuário aceita ou recusa convite via token
    */
   async respondToInvite(token: string, response: InviteAction) {
-    const invite = await this.prisma.invite.findUnique({
-      where: { token },
-      include: {
-        user: true,
-        association: true,
-      },
+    const invite = await this.inviteRepository.findByToken(token, {
+      includeUser: true,
+      includeAssociation: true,
     });
 
     if (!invite) {
       throw new EntityNotFoundException('Convite não encontrado');
     }
+
+    const user = (invite as any).user;
+    const association = (invite as any).association;
 
     if (invite.status !== InviteStatus.PENDING) {
       throw new BusinessException(
@@ -134,59 +128,49 @@ export class InvitesService {
     }
 
     if (new Date() > invite.expiresAt) {
-      await this.prisma.invite.update({
-        where: { id: invite.id },
-        data: { status: InviteStatus.EXPIRED },
+      await this.inviteRepository.update(invite.id, {
+        status: InviteStatus.EXPIRED,
       });
       throw new BusinessException('Convite expirado');
     }
 
     if (response === InviteAction.ACCEPT) {
-      await this.prisma.$transaction([
-        this.prisma.invite.update({
-          where: { id: invite.id },
-          data: {
-            status: InviteStatus.ACCEPTED,
-            respondedAt: new Date(),
-          },
-        }),
-        this.prisma.user.update({
-          where: { id: invite.userId },
-          data: { associationId: invite.associationId },
-        }),
-      ]);
+      await this.inviteRepository.update(invite.id, {
+        status: InviteStatus.ACCEPTED,
+        respondedAt: new Date(),
+      });
+
+      await this.userRepository.update(invite.userId, {
+        associationId: invite.associationId,
+      });
 
       const event = new InviteAcceptedEvent(
         invite.id,
-        invite.user.id,
-        invite.user.name,
-        invite.association.id,
-        invite.association.name,
+        user.id,
+        user.name,
+        association.id,
+        association.name,
       );
 
       this.eventEmitter.emit('invite.accepted', event);
 
       return {
-        message: `Você agora faz parte da ${invite.association.name}!`,
+        message: `Você agora faz parte da ${association.name}!`,
         associationId: invite.associationId,
-        associationName: invite.association.name,
+        associationName: association.name,
       };
     } else {
-      // Implicitamente é DECLINE, pois o Controller/DTO deve validar o Enum
-      await this.prisma.invite.update({
-        where: { id: invite.id },
-        data: {
-          status: InviteStatus.DECLINED,
-          respondedAt: new Date(),
-        },
+      await this.inviteRepository.update(invite.id, {
+        status: InviteStatus.DECLINED,
+        respondedAt: new Date(),
       });
 
       const event = new InviteDeclinedEvent(
         invite.id,
-        invite.user.id,
-        invite.user.name,
-        invite.association.id,
-        invite.association.name,
+        user.id,
+        user.name,
+        association.id,
+        association.name,
       );
 
       this.eventEmitter.emit('invite.declined', event);
@@ -198,97 +182,51 @@ export class InvitesService {
   }
 
   async getUserPendingInvites(userId: number) {
-    return this.prisma.invite.findMany({
-      where: {
+    return this.inviteRepository.findAll(
+      {
         userId,
         status: InviteStatus.PENDING,
-        expiresAt: { gte: new Date() },
+        expiresAfter: new Date(),
       },
-      include: {
-        association: {
-          select: {
-            id: true,
-            name: true,
-            city: true,
-            state: true,
-            coverageArea: true,
-          },
-        },
-      },
-      orderBy: { sentAt: 'desc' },
-    });
+      { includeAssociation: true },
+    );
   }
 
   async getAssociationInvites(associationId: number, status?: InviteStatus) {
-    const where: Prisma.InviteWhereInput = {
-      associationId,
-      ...(status && { status }),
-    };
-
-    return this.prisma.invite.findMany({
-      where,
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            city: true,
-            state: true,
-          },
-        },
+    return this.inviteRepository.findAll(
+      {
+        associationId,
+        status,
       },
-      orderBy: { sentAt: 'desc' },
-    });
+      { includeUser: true },
+    );
   }
 
   async cancelInvite(associationId: number, inviteId: number) {
-    const invite = await this.prisma.invite.findFirst({
-      where: {
-        id: inviteId,
-        associationId,
-        status: InviteStatus.PENDING,
-      },
-    });
+    const invite = await this.inviteRepository.findById(inviteId);
 
-    if (!invite) {
+    if (
+      !invite ||
+      invite.associationId !== associationId ||
+      invite.status !== InviteStatus.PENDING
+    ) {
       throw new EntityNotFoundException(
         'Convite não encontrado ou já foi respondido',
       );
     }
 
-    await this.prisma.invite.update({
-      where: { id: inviteId },
-      data: {
-        status: InviteStatus.CANCELED,
-        respondedAt: new Date(),
-      },
+    await this.inviteRepository.update(inviteId, {
+      status: InviteStatus.CANCELED,
+      respondedAt: new Date(),
     });
 
     return { message: 'Convite cancelado com sucesso' };
   }
 
   async getInviteByToken(token: string) {
-    const invite = await this.prisma.invite.findUnique({
-      where: { token },
-      include: {
-        association: {
-          select: {
-            id: true,
-            name: true,
-            city: true,
-            state: true,
-            coverageArea: true,
-          },
-        },
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-      },
+    const invite = await this.inviteRepository.findByToken(token, {
+      includeUser: true,
+      includeAssociation: true,
     });
 
     if (!invite) {
@@ -304,8 +242,8 @@ export class InvitesService {
       sentAt: invite.sentAt,
       expiresAt: invite.expiresAt,
       isExpired,
-      association: invite.association,
-      user: invite.user,
+      association: (invite as any).association,
+      user: (invite as any).user,
     };
   }
 }

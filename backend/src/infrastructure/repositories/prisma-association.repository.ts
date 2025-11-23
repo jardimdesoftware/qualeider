@@ -21,7 +21,6 @@ export class PrismaAssociationRepository implements IAssociationRepository {
       });
       return created as unknown as AssociationEntity;
     } catch (error) {
-      // Tratamento específico para saber se foi CNPJ ou Email
       if (isPrismaError(error) && error.code === PrismaErrorCode.UNIQUE_CONSTRAINT_VIOLATION) {
         const target = error.meta?.target as string[];
         
@@ -33,7 +32,6 @@ export class PrismaAssociationRepository implements IAssociationRepository {
         }
       }
       
-      // Fallback genérico
       handlePrismaError(error);
     }
   }
@@ -48,6 +46,13 @@ export class PrismaAssociationRepository implements IAssociationRepository {
   async findByCnpj(cnpj: string): Promise<AssociationEntity | null> {
     const association = await this.prisma.association.findUnique({
       where: { cnpj },
+    });
+    return (association as any) ?? null;
+  }
+
+  async findById(id: number): Promise<AssociationEntity | null> {
+    const association = await this.prisma.association.findUnique({
+      where: { id },
     });
     return (association as any) ?? null;
   }

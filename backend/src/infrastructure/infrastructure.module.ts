@@ -16,6 +16,8 @@ import { ITokenService } from '@/application/ports/token.service';
 import { JwtTokenService } from '@/infrastructure/services/jwt-token.service';
 import { IAssociationRepository } from '@/domain/repositories/association.repository';
 import { PrismaAssociationRepository } from '@/infrastructure/repositories/prisma-association.repository';
+import { IInviteRepository } from '@/domain/repositories/invite.repository';
+import { PrismaInviteRepository } from '@/infrastructure/repositories/prisma-invite.repository';
 
 @Module({
   imports: [
@@ -41,6 +43,7 @@ import { PrismaAssociationRepository } from '@/infrastructure/repositories/prism
     { provide: ITokenService, useClass: JwtTokenService },
     { provide: IFailedEmailRepository, useClass: PrismaFailedEmailRepository },
     { provide: IAssociationRepository, useClass: PrismaAssociationRepository },
+    { provide: IInviteRepository, useClass: PrismaInviteRepository },
   ],
   exports: [
     PrismaModule,
@@ -51,6 +54,7 @@ import { PrismaAssociationRepository } from '@/infrastructure/repositories/prism
     ITokenService,
     IFailedEmailRepository,
     IAssociationRepository,
+    IInviteRepository,
   ],
 })
 export class InfrastructureModule {}

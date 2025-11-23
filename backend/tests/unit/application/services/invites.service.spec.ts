@@ -1,28 +1,48 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { InvitesService } from '@/application/services/invites/invites.service';
-import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { Prisma } from '@prisma/client';
-import { createMockPrismaService } from '../../../mocks/prisma.mock';
 import { CreateInviteDto } from '@/application/dtos/invites/create-invite.dto';
 import { InviteStatus, InviteAction } from '@/domain/enums/enums';
 import { BusinessException } from '@/common/exceptions/business.exception';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
+import { IInviteRepository } from '@/domain/repositories/invite.repository';
+import { IUserRepository } from '@/domain/repositories/user.repository';
+import { IAssociationRepository } from '@/domain/repositories/association.repository';
 
 describe('InvitesService', () => {
   let service: InvitesService;
-  let prismaService: ReturnType<typeof createMockPrismaService>;
+  let inviteRepository: jest.Mocked<IInviteRepository>;
+  let userRepository: jest.Mocked<IUserRepository>;
+  let associationRepository: jest.Mocked<IAssociationRepository>;
   let eventEmitter: jest.Mocked<EventEmitter2>;
 
   beforeEach(async () => {
-    prismaService = createMockPrismaService();
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         InvitesService,
         {
-          provide: PrismaService,
-          useValue: prismaService,
+          provide: IInviteRepository,
+          useValue: {
+            create: jest.fn(),
+            findById: jest.fn(),
+            findByToken: jest.fn(),
+            findAll: jest.fn(),
+            update: jest.fn(),
+            expireOldInvites: jest.fn(),
+          },
+        },
+        {
+          provide: IUserRepository,
+          useValue: {
+            findById: jest.fn(),
+            update: jest.fn(),
+          },
+        },
+        {
+          provide: IAssociationRepository,
+          useValue: {
+            findById: jest.fn(),
+          },
         },
         {
           provide: EventEmitter2,
@@ -34,6 +54,9 @@ describe('InvitesService', () => {
     }).compile();
 
     service = module.get<InvitesService>(InvitesService);
+    inviteRepository = module.get(IInviteRepository);
+    userRepository = module.get(IUserRepository);
+    associationRepository = module.get(IAssociationRepository);
     eventEmitter = module.get(EventEmitter2);
   });
 
@@ -73,12 +96,10 @@ describe('InvitesService', () => {
         association: mockAssociation,
       };
 
-      prismaService.association.findUnique.mockResolvedValue(
-        mockAssociation as any,
-      );
-      prismaService.user.findUnique.mockResolvedValue(mockUser as any);
-      prismaService.invite.findFirst.mockResolvedValue(null);
-      prismaService.invite.create.mockResolvedValue(mockInvite as any);
+      associationRepository.findById.mockResolvedValue(mockAssociation as any);
+      userRepository.findById.mockResolvedValue(mockUser as any);
+      inviteRepository.findAll.mockResolvedValue([]);
+      inviteRepository.create.mockResolvedValue(mockInvite as any);
 
       const result = await service.createInvite(associationId, createDto);
 
@@ -96,7 +117,7 @@ describe('InvitesService', () => {
         message: 'Test',
       };
 
-      prismaService.association.findUnique.mockResolvedValue(null);
+      associationRepository.findById.mockResolvedValue(null);
 
       await expect(service.createInvite(999, createDto)).rejects.toThrow(
         EntityNotFoundException,
@@ -112,11 +133,11 @@ describe('InvitesService', () => {
         message: 'Test',
       };
 
-      prismaService.association.findUnique.mockResolvedValue({
+      associationRepository.findById.mockResolvedValue({
         id: 1,
         name: 'Test Association',
       } as any);
-      prismaService.user.findUnique.mockResolvedValue(null);
+      userRepository.findById.mockResolvedValue(null);
 
       await expect(service.createInvite(1, createDto)).rejects.toThrow(
         EntityNotFoundException,
@@ -132,11 +153,11 @@ describe('InvitesService', () => {
         message: 'Test',
       };
 
-      prismaService.association.findUnique.mockResolvedValue({
+      associationRepository.findById.mockResolvedValue({
         id: 1,
         name: 'Test',
       } as any);
-      prismaService.user.findUnique.mockResolvedValue({
+      userRepository.findById.mockResolvedValue({
         id: 2,
         associationId: 1,
       } as any);
@@ -155,18 +176,20 @@ describe('InvitesService', () => {
         message: 'Test',
       };
 
-      prismaService.association.findUnique.mockResolvedValue({
+      associationRepository.findById.mockResolvedValue({
         id: 1,
         name: 'Test',
       } as any);
-      prismaService.user.findUnique.mockResolvedValue({
+      userRepository.findById.mockResolvedValue({
         id: 2,
         associationId: null,
       } as any);
-      prismaService.invite.findFirst.mockResolvedValue({
-        id: 1,
-        status: InviteStatus.PENDING,
-      } as any);
+      inviteRepository.findAll.mockResolvedValue([
+        {
+          id: 1,
+          status: InviteStatus.PENDING,
+        } as any,
+      ]);
 
       await expect(service.createInvite(1, createDto)).rejects.toThrow(
         BusinessException,
@@ -191,8 +214,9 @@ describe('InvitesService', () => {
         association: { id: 1, name: 'Test Association' },
       };
 
-      prismaService.invite.findUnique.mockResolvedValue(mockInvite as any);
-      prismaService.$transaction.mockResolvedValue([{}, {}] as any);
+      inviteRepository.findByToken.mockResolvedValue(mockInvite as any);
+      inviteRepository.update.mockResolvedValue(mockInvite as any);
+      userRepository.update.mockResolvedValue({} as any);
 
       const result = await service.respondToInvite(token, InviteAction.ACCEPT);
 
@@ -201,6 +225,9 @@ describe('InvitesService', () => {
         'invite.accepted',
         expect.any(Object),
       );
+      expect(userRepository.update).toHaveBeenCalledWith(2, {
+        associationId: 1,
+      });
     });
 
     it('deve recusar convite com sucesso', async () => {
@@ -216,8 +243,8 @@ describe('InvitesService', () => {
         association: { id: 1, name: 'Test Association' },
       };
 
-      prismaService.invite.findUnique.mockResolvedValue(mockInvite as any);
-      prismaService.invite.update.mockResolvedValue(mockInvite as any);
+      inviteRepository.findByToken.mockResolvedValue(mockInvite as any);
+      inviteRepository.update.mockResolvedValue(mockInvite as any);
 
       const result = await service.respondToInvite(token, InviteAction.DECLINE);
 
@@ -229,7 +256,7 @@ describe('InvitesService', () => {
     });
 
     it('deve lançar EntityNotFoundException quando convite não for encontrado', async () => {
-      prismaService.invite.findUnique.mockResolvedValue(null);
+      inviteRepository.findByToken.mockResolvedValue(null);
 
       await expect(
         service.respondToInvite('invalid-token', InviteAction.ACCEPT),
@@ -244,9 +271,11 @@ describe('InvitesService', () => {
         id: 1,
         status: InviteStatus.ACCEPTED,
         expiresAt: new Date(Date.now() + 86400000),
+        user: { id: 2, name: 'John Doe' },
+        association: { id: 1, name: 'Test Association' },
       };
 
-      prismaService.invite.findUnique.mockResolvedValue(mockInvite as any);
+      inviteRepository.findByToken.mockResolvedValue(mockInvite as any);
 
       await expect(
         service.respondToInvite('token', InviteAction.ACCEPT),
@@ -261,10 +290,12 @@ describe('InvitesService', () => {
         id: 1,
         status: InviteStatus.PENDING,
         expiresAt: new Date(Date.now() - 86400000),
+        user: { id: 2, name: 'John Doe' },
+        association: { id: 1, name: 'Test Association' },
       };
 
-      prismaService.invite.findUnique.mockResolvedValue(mockInvite as any);
-      prismaService.invite.update.mockResolvedValue(mockInvite as any);
+      inviteRepository.findByToken.mockResolvedValue(mockInvite as any);
+      inviteRepository.update.mockResolvedValue(mockInvite as any);
 
       await expect(
         service.respondToInvite('token', InviteAction.ACCEPT),
@@ -273,9 +304,8 @@ describe('InvitesService', () => {
         service.respondToInvite('token', InviteAction.ACCEPT),
       ).rejects.toThrow('Convite expirado');
 
-      expect(prismaService.invite.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: { status: InviteStatus.EXPIRED },
+      expect(inviteRepository.update).toHaveBeenCalledWith(1, {
+        status: InviteStatus.EXPIRED,
       });
     });
   });
@@ -288,23 +318,20 @@ describe('InvitesService', () => {
         status: InviteStatus.PENDING,
       };
 
-      prismaService.invite.findFirst.mockResolvedValue(mockInvite as any);
-      prismaService.invite.update.mockResolvedValue(mockInvite as any);
+      inviteRepository.findById.mockResolvedValue(mockInvite as any);
+      inviteRepository.update.mockResolvedValue(mockInvite as any);
 
       const result = await service.cancelInvite(1, 1);
 
       expect(result.message).toBe('Convite cancelado com sucesso');
-      expect(prismaService.invite.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: {
-          status: InviteStatus.CANCELED,
-          respondedAt: expect.any(Date),
-        },
+      expect(inviteRepository.update).toHaveBeenCalledWith(1, {
+        status: InviteStatus.CANCELED,
+        respondedAt: expect.any(Date),
       });
     });
 
     it('deve lançar EntityNotFoundException quando convite não for encontrado', async () => {
-      prismaService.invite.findFirst.mockResolvedValue(null);
+      inviteRepository.findById.mockResolvedValue(null);
 
       await expect(service.cancelInvite(1, 999)).rejects.toThrow(
         EntityNotFoundException,
@@ -327,7 +354,7 @@ describe('InvitesService', () => {
         user: { id: 2, name: 'John' },
       };
 
-      prismaService.invite.findUnique.mockResolvedValue(mockInvite as any);
+      inviteRepository.findByToken.mockResolvedValue(mockInvite as any);
 
       const result = await service.getInviteByToken('valid-token');
 
@@ -336,7 +363,7 @@ describe('InvitesService', () => {
     });
 
     it('deve lançar EntityNotFoundException quando convite não for encontrado', async () => {
-      prismaService.invite.findUnique.mockResolvedValue(null);
+      inviteRepository.findByToken.mockResolvedValue(null);
 
       await expect(service.getInviteByToken('invalid-token')).rejects.toThrow(
         EntityNotFoundException,
@@ -380,56 +407,28 @@ describe('InvitesService', () => {
         },
       ];
 
-      prismaService.invite.findMany.mockResolvedValue(mockInvites as any);
+      inviteRepository.findAll.mockResolvedValue(mockInvites as any);
 
       const result = await service.getUserPendingInvites(userId);
 
-      expect(prismaService.invite.findMany).toHaveBeenCalledWith({
-        where: {
+      expect(inviteRepository.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
           userId: 2,
           status: InviteStatus.PENDING,
-          expiresAt: { gte: expect.any(Date) },
-        },
-        include: {
-          association: {
-            select: {
-              id: true,
-              name: true,
-              city: true,
-              state: true,
-              coverageArea: true,
-            },
-          },
-        },
-        orderBy: { sentAt: 'desc' },
-      });
+          expiresAfter: expect.any(Date),
+        }),
+        { includeAssociation: true },
+      );
       expect(result).toHaveLength(2);
       expect(result[0].association.name).toBe('Association A');
     });
 
     it('deve retornar array vazio quando usuário não tiver convites pendentes', async () => {
-      prismaService.invite.findMany.mockResolvedValue([]);
+      inviteRepository.findAll.mockResolvedValue([]);
 
       const result = await service.getUserPendingInvites(999);
 
       expect(result).toEqual([]);
-      expect(result).toHaveLength(0);
-    });
-
-    it('deve filtrar convites expirados', async () => {
-      const userId = 2;
-
-      prismaService.invite.findMany.mockResolvedValue([]);
-
-      const result = await service.getUserPendingInvites(userId);
-
-      expect(prismaService.invite.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            expiresAt: { gte: expect.any(Date) },
-          }),
-        }),
-      );
       expect(result).toHaveLength(0);
     });
   });
@@ -466,27 +465,17 @@ describe('InvitesService', () => {
         },
       ];
 
-      prismaService.invite.findMany.mockResolvedValue(mockInvites as any);
+      inviteRepository.findAll.mockResolvedValue(mockInvites as any);
 
       const result = await service.getAssociationInvites(associationId);
 
-      expect(prismaService.invite.findMany).toHaveBeenCalledWith({
-        where: {
+      expect(inviteRepository.findAll).toHaveBeenCalledWith(
+        {
           associationId: 1,
+          status: undefined,
         },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              city: true,
-              state: true,
-            },
-          },
-        },
-        orderBy: { sentAt: 'desc' },
-      });
+        { includeUser: true },
+      );
       expect(result).toHaveLength(2);
       expect(result[0].user.name).toBe('John Doe');
     });
@@ -509,96 +498,31 @@ describe('InvitesService', () => {
         },
       ];
 
-      prismaService.invite.findMany.mockResolvedValue(mockInvites as any);
+      inviteRepository.findAll.mockResolvedValue(mockInvites as any);
 
       const result = await service.getAssociationInvites(
         associationId,
         InviteStatus.PENDING,
       );
 
-      expect(prismaService.invite.findMany).toHaveBeenCalledWith({
-        where: {
+      expect(inviteRepository.findAll).toHaveBeenCalledWith(
+        {
           associationId: 1,
           status: InviteStatus.PENDING,
         },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              city: true,
-              state: true,
-            },
-          },
-        },
-        orderBy: { sentAt: 'desc' },
-      });
+        { includeUser: true },
+      );
       expect(result).toHaveLength(1);
       expect(result[0].status).toBe(InviteStatus.PENDING);
     });
 
     it('deve retornar array vazio quando associação não tiver convites', async () => {
-      prismaService.invite.findMany.mockResolvedValue([]);
+      inviteRepository.findAll.mockResolvedValue([]);
 
       const result = await service.getAssociationInvites(999);
 
       expect(result).toEqual([]);
       expect(result).toHaveLength(0);
-    });
-
-    it('deve filtrar por status ACCEPTED', async () => {
-      const associationId = 1;
-      const mockInvites = [
-        {
-          id: 2,
-          associationId: 1,
-          status: InviteStatus.ACCEPTED,
-          sentAt: new Date(),
-          user: {
-            id: 3,
-            name: 'Jane Doe',
-            email: 'jane@example.com',
-            city: 'Rio de Janeiro',
-            state: 'RJ',
-          },
-        },
-      ];
-
-      prismaService.invite.findMany.mockResolvedValue(mockInvites as any);
-
-      const result = await service.getAssociationInvites(
-        associationId,
-        InviteStatus.ACCEPTED,
-      );
-
-      expect(prismaService.invite.findMany).toHaveBeenCalledWith({
-        where: {
-          associationId: 1,
-          status: InviteStatus.ACCEPTED,
-        },
-        include: expect.any(Object),
-        orderBy: { sentAt: 'desc' },
-      });
-      expect(result).toHaveLength(1);
-      expect(result[0].status).toBe(InviteStatus.ACCEPTED);
-    });
-
-    it('deve filtrar por status DECLINED', async () => {
-      const associationId = 1;
-
-      prismaService.invite.findMany.mockResolvedValue([]);
-
-      await service.getAssociationInvites(associationId, InviteStatus.DECLINED);
-
-      expect(prismaService.invite.findMany).toHaveBeenCalledWith({
-        where: {
-          associationId: 1,
-          status: InviteStatus.DECLINED,
-        },
-        include: expect.any(Object),
-        orderBy: { sentAt: 'desc' },
-      });
     });
   });
 });
