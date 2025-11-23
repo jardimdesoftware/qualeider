@@ -8,6 +8,7 @@
  * @property includeAssociation - Se true, traz os dados da associação
  */
 export interface UserCriteria {
+  ids?: number[];
   associationId?: number;
   status?: 'Active' | 'Inactive';
   emailContains?: string;
