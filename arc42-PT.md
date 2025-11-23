@@ -43,17 +43,21 @@ O **QuaLeiDer** é uma plataforma web para gestão de produtores de leite e suas
 
 4. **Sistema de Convites**
 
-   - Associações podem convidar produtores
-   - Convites via email com token único
-   - Aceitação/recusa de convites
-   - Expiração automática (7 dias)
-   - Limpeza automática via CRON job diário
+   - Associações podem convidar produtores para se associarem
+   - Convites enviados via email com token único de segurança
+   - Produtores podem aceitar ou recusar convites
+   - Expiração automática após 7 dias
+   - Limpeza automática de convites expirados via CRON job (diariamente à meia-noite)
+   - Histórico completo de convites (pendentes, aceitos, recusados, expirados)
+   - Validações de negócio: produtor não pode ter múltiplos convites pendentes da mesma associação
 
-5. **Notificações**
+5. **Sistema de Notificações**
 
-   - Sistema de notificações por email
-   - Templates personalizados (Handlebars)
-   - Eventos de convites, reset de senha, etc.
+   - Notificações por email para eventos do sistema
+   - Notificações individuais (para usuários específicos) ou coletivas (para toda a associação)
+   - Templates personalizados com Handlebars para emails
+   - Sistema de eventos assíncrono com retry automático (até 4 tentativas)
+   - Eventos suportados: convites, reset de senha, comunicados gerais
 
 6. **Módulo de Relatórios e Análises**
    - **Dados Agregados para Associações:**
@@ -145,7 +149,7 @@ O **QuaLeiDer** é uma plataforma web para gestão de produtores de leite e suas
 
 - **Cobertura de Testes (Atual: 96.25%):**
 
-  - **Testes Unitários:** 459 testes cobrindo DTOs, Services, Controllers, Entities
+  - **Testes Unitários:** 450 testes cobrindo DTOs, Services, Controllers, Entities
     - DTOs: 100% de cobertura (validação de dados de entrada)
     - Services (Application): 100% de cobertura (lógica de negócio)
     - Controllers (Presentation): 100% de cobertura (endpoints HTTP)
