@@ -150,9 +150,9 @@ O **QuaLeiDer** é uma plataforma web para gestão de produtores de leite e suas
     - Services (Application): 100% de cobertura (lógica de negócio)
     - Controllers (Presentation): 100% de cobertura (endpoints HTTP)
     - Entities (Domain): 100% de cobertura (regras de negócio)
-  - **Testes E2E:** 110 testes integrando backend completo (API + Database)
-    - 7 suítes de testes: Auth (24), Users (18), Animals (16), Daily Collections (14), Invites (17), Associations (21)
-    - Taxa de sucesso: 100% (110/110 testes passando)
+  - **Testes E2E:** 104 testes integrando backend completo (API + Database)
+    - 8 suítes de testes: Auth, Users, Animals, Daily Collections, Invites, Associations, Throttling
+    - Taxa de sucesso: 100% (104/104 testes passando)
 
 - **Ferramentas e Práticas:**
 
