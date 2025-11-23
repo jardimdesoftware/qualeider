@@ -200,7 +200,7 @@ describe('AnimalsService', () => {
       const mockAnimal = createAnimal({ id: 1, status: Status.Active });
       
       animalRepository.findById.mockResolvedValue(mockAnimal);
-      animalRepository.softDelete.mockResolvedValue();
+      animalRepository.softDelete.mockResolvedValue(mockAnimal);
 
       await service.remove(1);
 

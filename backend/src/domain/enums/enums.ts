@@ -48,3 +48,9 @@ export enum NotificationType {
 }
 
 export type ID = number;
+
+export enum CoverageArea {
+  Municipal = 'Municipal',
+  Regional = 'Regional',
+  Estadual = 'Estadual',
+}

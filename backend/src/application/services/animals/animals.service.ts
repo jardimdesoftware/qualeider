@@ -51,6 +51,6 @@ export class AnimalsService {
 
   async remove(id: number) {
     await this.findOne(id);
-    await this.animalRepository.softDelete(id);
+    return this.animalRepository.softDelete(id);
   }
 }

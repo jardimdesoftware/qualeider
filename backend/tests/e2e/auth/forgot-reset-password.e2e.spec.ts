@@ -69,6 +69,16 @@ describe('E2E: Auth - Forgot/Reset Password', () => {
 
   describe('POST /auth/validate-reset-token', () => {
     beforeAll(async () => {
+      // Ensure we have a user for this test block
+      if (!userEmail) {
+        const userData = UserFactory.build({
+          email: 'validate-test@example.com',
+          password: 'Password@123',
+        });
+        await authHelper.createTestUser(userData);
+        userEmail = userData.email!;
+      }
+
       const prisma = testApp.getPrismaService();
       const user = await prisma.user.findUnique({
         where: { email: userEmail },

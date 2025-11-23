@@ -41,12 +41,9 @@ export class UsersService {
   }
 
   async remove(id: number) {
-    await this.validateUserExists(id);
-    await this.userRepository.softDelete(id);
-    
+    await this.validateUserExists(id);    
+    const deactivated = await this.userRepository.softDelete(id);
     this.logger.log(`Usuário removido (soft delete): ID ${id}`);
-    
-    const deactivated = await this.userRepository.findById(id);
     return this.removePassword(deactivated);
   }
 
@@ -56,8 +53,8 @@ export class UsersService {
   }
 
   async findAll(criteria?: UserCriteria) {
-    this.logger.debug(`Buscando usuários com critérios`);
-    return this.userRepository.findAll(criteria);
+    const users = await this.userRepository.findAll(criteria);
+    return users.map((user) => this.removePassword(user));
   }
 
   async findOne(id: number) {

@@ -1,6 +1,7 @@
 import { IsOptional, IsNumber, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { AnimalType } from '@/domain/enums/enums';
 
 export class FindAnimalsDto {
   @ApiPropertyOptional({ description: 'ID da associação para filtro' })
@@ -22,4 +23,12 @@ export class FindAnimalsDto {
   @IsOptional()
   @IsEnum(['Active', 'Inactive'])
   status?: 'Active' | 'Inactive';
+
+  @ApiPropertyOptional({
+    description: 'Tipo de animal',
+    enum: AnimalType,
+  })
+  @IsOptional()
+  @IsEnum(AnimalType)
+  animalType?: AnimalType;
 }

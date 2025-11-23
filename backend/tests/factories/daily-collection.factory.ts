@@ -37,6 +37,50 @@ export class DailyCollectionFactory {
   }
 
   /**
+   * Cria um DTO de coleta (sem id, createdAt, updatedAt) para uso em requisições HTTP
+   * @param overrides - Campos para sobrescrever os valores padrão
+   */
+  static build(overrides: any = {}) {
+    const result = {
+      quantity: 50.5,
+      userId: 1,
+      numAnimals: 10,
+      numOrdens: 2,
+      rationProvided: true,
+      numLactation: 2,
+      milkingPlace: MilkingPlace.Curral,
+      technicalAssistance: false,
+      ...overrides,
+      // Ensure collectionDate is always present unless explicitly overridden
+      collectionDate: overrides.collectionDate || new Date().toISOString().split('T')[0],
+    };
+    console.log('[FACTORY] Returning:', JSON.stringify(result, null, 2));
+    return result;
+  }
+
+  /**
+   * Cria um DTO de coleta com assistência técnica
+   */
+  static buildWithAssistance(overrides: any = {}) {
+    return DailyCollectionFactory.build({
+      technicalAssistance: true,
+      rationProvided: true,
+      ...overrides,
+    });
+  }
+
+  /**
+   * Cria um DTO de coleta sem assistência técnica
+   */
+  static buildWithoutAssistance(overrides: any = {}) {
+    return DailyCollectionFactory.build({
+      technicalAssistance: false,
+      rationProvided: false,
+      ...overrides,
+    });
+  }
+
+  /**
    * Cria uma coleta com associação (não aplicável, mas mantido para compatibilidade)
    */
   static createWithAssociation(

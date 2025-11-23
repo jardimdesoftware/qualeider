@@ -351,10 +351,10 @@ describe('UsersService', () => {
   describe('remove', () => {
     it('deve desativar o usuário (soft delete)', async () => {
       const mockUser = createUser({ id: 1, status: Status.Active });
+      const mockDeactivatedUser = { ...mockUser, status: Status.Inactive };
 
       (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
-      (userRepository.softDelete as jest.Mock).mockResolvedValue(undefined);
-      (userRepository.findById as jest.Mock).mockResolvedValueOnce(mockUser).mockResolvedValueOnce({ ...mockUser, status: Status.Inactive });
+      (userRepository.softDelete as jest.Mock).mockResolvedValue(mockDeactivatedUser);
 
       const result = await service.remove(1);
 

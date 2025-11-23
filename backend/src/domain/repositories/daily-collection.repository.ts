@@ -19,5 +19,4 @@ export interface IDailyCollectionRepository {
     data: Partial<DailyCollectionEntity>,
   ): Promise<DailyCollectionEntity>;
   delete(id: ID): Promise<void>;
-  checkIfUserAlreadySubmitted(userId: ID): Promise<boolean>;
 }

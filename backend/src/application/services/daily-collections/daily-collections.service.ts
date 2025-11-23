@@ -26,11 +26,6 @@ export class DailyCollectionsService {
 
   async create(createDailyCollectionDto: CreateDailyCollectionDto) {
     await this.validateUser(createDailyCollectionDto.userId);
-    const alreadySubmitted = await this.dailyCollectionRepository.checkIfUserAlreadySubmitted(createDailyCollectionDto.userId);
-    if (alreadySubmitted) {
-      throw new BusinessException('O produtor já enviou uma coleta hoje.');
-    }
-
     const dailyCollection = await this.dailyCollectionRepository.create(createDailyCollectionDto);
 
     this.logger.log(`Coleta diária criada (ID: ${dailyCollection.id})`);

@@ -7,6 +7,7 @@ import {
   IsNotEmpty,
   IsNumber,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { MilkingPlace } from '@/domain/enums/enums';
 
 export class CreateDailyCollectionDto {
@@ -50,6 +51,7 @@ export class CreateDailyCollectionDto {
   technicalAssistance!: boolean;
   
   @ApiProperty({ description: 'Data da coleta', example: '2025-11-22' })
+  @Type(() => Date)
   @IsDate()
   collectionDate!: Date;
 }

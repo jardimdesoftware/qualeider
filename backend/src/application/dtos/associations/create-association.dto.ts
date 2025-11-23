@@ -13,12 +13,7 @@ import {
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
-
-enum CoverageArea {
-  Municipal = 'Municipal',
-  Regional = 'Regional',
-  Estadual = 'Estadual',
-}
+import { CoverageArea } from '@/domain/enums/enums';
 
 export class CreateAssociationDto {
   @ApiProperty({

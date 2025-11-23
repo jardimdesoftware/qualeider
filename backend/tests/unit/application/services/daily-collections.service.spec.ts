@@ -27,7 +27,6 @@ describe('DailyCollectionsService', () => {
             update: jest.fn(),
             delete: jest.fn(),
             findAllByUserId: jest.fn(),
-            checkIfUserAlreadySubmitted: jest.fn(),
           },
         },
         {

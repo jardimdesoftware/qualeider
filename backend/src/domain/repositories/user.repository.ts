@@ -28,6 +28,6 @@ export interface IUserRepository {
     id: ID,
     data: Partial<UserEntity>,
   ): Promise<Omit<UserEntity, 'password'>>;
-  softDelete(id: ID): Promise<void>;
+  softDelete(id: ID): Promise<UserEntity>;
   findByEmail(email: string): Promise<UserEntity | null>;
 }

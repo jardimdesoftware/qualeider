@@ -48,6 +48,10 @@ export class PrismaAnimalRepository implements IAnimalRepository {
       };
     }
 
+    if (criteria.animalType) {
+      where.animalType = criteria.animalType as any;
+    }
+
     const include: Prisma.AnimalInclude = {};
     if (criteria.includeUser) {
       include.user = true;
@@ -96,12 +100,13 @@ export class PrismaAnimalRepository implements IAnimalRepository {
     }
   }
 
-  async softDelete(id: ID): Promise<void> {
+  async softDelete(id: ID): Promise<AnimalEntity> {
     try {
-      await this.prisma.animal.update({
+      const deactivated = await this.prisma.animal.update({
         where: { id },
         data: { status: Status.Inactive },
       });
+      return deactivated as any;
     } catch (error) {
       handlePrismaError(error, {
         [PrismaErrorCode.RECORD_NOT_FOUND]: `Animal com ID ${id} não encontrado para remoção.`,

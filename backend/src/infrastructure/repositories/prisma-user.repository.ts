@@ -67,7 +67,6 @@ export class PrismaUserRepository implements IUserRepository {
     return users as unknown as Array<Omit<UserEntity, 'password'>>;
   }
 
-  // Note: Você precisará atualizar a assinatura na Interface IUserRepository também
   async findById(id: ID, options?: { includeAnimals?: boolean; includeAssociation?: boolean }): Promise<Omit<UserEntity, 'password'> | null> {
     
     const include: Prisma.UserInclude = {};
@@ -111,6 +110,8 @@ export class PrismaUserRepository implements IUserRepository {
           state: data.state,
           status: (data.status as any) ?? undefined,
           password: data.password, 
+          resetToken: data.resetToken,
+          resetTokenExpiry: data.resetTokenExpiry,
         },
       });
       return updated as any;
@@ -122,12 +123,13 @@ export class PrismaUserRepository implements IUserRepository {
     }
   }
 
-  async softDelete(id: ID): Promise<void> {
+  async softDelete(id: ID): Promise<UserEntity> {
     try {
-      await this.prisma.user.update({
+      const deleted = await this.prisma.user.update({
         where: { id },
         data: { status: Status.Inactive },
       });
+      return deleted as unknown as UserEntity;
     } catch (error) {
       handlePrismaError(error, {
         [PrismaErrorCode.RECORD_NOT_FOUND]: `Não foi possível remover. Usuário com ID ${id} não encontrado.`,

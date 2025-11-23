@@ -17,5 +17,5 @@ export interface IAnimalRepository {
   findAll(criteria?: AnimalCriteria): Promise<AnimalEntity[]>;
   findById(id: ID, options?: AnimalFindOneOptions): Promise<AnimalEntity | null>;
   update(id: ID, data: Partial<AnimalEntity>): Promise<AnimalEntity>;
-  softDelete(id: ID): Promise<void>;
+  softDelete(id: ID): Promise<AnimalEntity>;
 }

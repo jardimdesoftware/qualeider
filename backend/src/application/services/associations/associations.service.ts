@@ -1,5 +1,5 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
-import { PrismaService } from '@/infrastructure/prisma/prisma.service';
+import { IAssociationRepository } from '@/domain/repositories/association.repository';
 import { CreateAssociationDto } from '@/application/dtos/associations/create-association.dto';
 import { IHashService } from '@/application/ports/hash.service';
 import { BCRYPT_ROUNDS_USER_CREATION } from '@/common/constants/security.constants';
@@ -10,81 +10,59 @@ export class AssociationsService {
   private readonly logger = new Logger(AssociationsService.name);
 
   constructor(
-    private readonly prisma: PrismaService,
-    @Inject(IHashService) private hashService: IHashService,
+    @Inject(IAssociationRepository)
+    private readonly associationRepository: IAssociationRepository,
+    @Inject(IHashService) private readonly hashService: IHashService,
   ) {}
 
-  async findByEmail(email: string) {
-    if (!email) {
-      return null;
+  private removePassword<T>(entity: T): Omit<T, 'password'> {
+    if (entity && typeof entity === 'object' && 'password' in entity) {
+      const { password, ...rest } = entity as any;
+      return rest;
     }
-    return await this.prisma.association.findUnique({
-      where: { email: email.toLowerCase() },
-    });
+    return entity as Omit<T, 'password'>;
+  }
+
+  async findByEmail(email: string) {
+    if (!email) return null;
+    return this.associationRepository.findByEmail(email.toLowerCase());
   }
 
   async findByCnpj(cnpj: string) {
-    if (!cnpj) {
-      return null;
-    }
-    return await this.prisma.association.findUnique({
-      where: { cnpj },
-    });
-  }
-
-  private async checkEmailExists(email: string): Promise<boolean> {
-    const association = await this.findByEmail(email);
-    return !!association;
-  }
-
-  private async checkCnpjExists(cnpj: string): Promise<boolean> {
-    const association = await this.findByCnpj(cnpj);
-    return !!association;
+    if (!cnpj) return null;
+    return this.associationRepository.findByCnpj(cnpj);
   }
 
   async create(createAssociationDto: CreateAssociationDto) {
-    const { email, cnpj, password, foundationDate, ...rest } =
-      createAssociationDto;
-
-    const emailExists = await this.checkEmailExists(email);
-    if (emailExists) {
+    // Validate email uniqueness
+    const existingEmail = await this.findByEmail(createAssociationDto.email);
+    if (existingEmail) {
       throw new BusinessException('Email já cadastrado.');
     }
 
-    const cnpjExists = await this.checkCnpjExists(cnpj);
-    if (cnpjExists) {
+    // Validate CNPJ uniqueness
+    const existingCnpj = await this.findByCnpj(createAssociationDto.cnpj);
+    if (existingCnpj) {
       throw new BusinessException('CNPJ já cadastrado.');
     }
+
+    const { password, ...rest } = createAssociationDto;
 
     const hashedPassword = await this.hashService.hash(
       password,
       BCRYPT_ROUNDS_USER_CREATION,
     );
 
-    const association = await this.prisma.association.create({
-      data: {
-        email,
-        cnpj,
-        password: hashedPassword,
-        foundationDate: foundationDate ? new Date(foundationDate) : null,
-        ...rest,
-      },
-      select: {
-        id: true,
-        name: true,
-        tradeName: true,
-        cnpj: true,
-        email: true,
-        city: true,
-        state: true,
-        createdAt: true,
-      },
-    });
+    const association = await this.associationRepository.create({
+      ...rest,
+      password: hashedPassword,
+      foundationDate: rest.foundationDate ? new Date(rest.foundationDate) : null,
+    } as any);
 
     this.logger.log(
       `Associação criada: ${association.name} (ID: ${association.id})`,
     );
 
-    return association;
+    return this.removePassword(association);
   }
 }
