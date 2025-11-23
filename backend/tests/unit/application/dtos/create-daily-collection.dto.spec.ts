@@ -48,6 +48,7 @@ describe('CreateDailyCollectionDto', () => {
         numLactation: 2,
         milkingPlace: MilkingPlace.Curral,
         technicalAssistance: false,
+        collectionDate: new Date(),
       });
 
       const errors = await validate(dto);
@@ -100,6 +101,7 @@ describe('CreateDailyCollectionDto', () => {
         numLactation: 2,
         milkingPlace: MilkingPlace.Curral,
         technicalAssistance: false,
+        collectionDate: new Date(),
       });
 
       const errors = await validate(dto);
@@ -152,6 +154,7 @@ describe('CreateDailyCollectionDto', () => {
         numLactation: 2,
         milkingPlace: MilkingPlace.Curral,
         technicalAssistance: false,
+        collectionDate: new Date(),
       });
 
       const errors = await validate(dto);
@@ -188,6 +191,7 @@ describe('CreateDailyCollectionDto', () => {
         numLactation: 2,
         milkingPlace: MilkingPlace.Curral,
         technicalAssistance: false,
+        collectionDate: new Date(),
       });
 
       const errors = await validate(dto);
@@ -240,6 +244,7 @@ describe('CreateDailyCollectionDto', () => {
         numLactation: 2,
         milkingPlace: MilkingPlace.Curral,
         technicalAssistance: false,
+        collectionDate: new Date(),
       });
 
       const errors = await validate(dto);
@@ -259,6 +264,7 @@ describe('CreateDailyCollectionDto', () => {
         numLactation: 2,
         milkingPlace: MilkingPlace.Curral,
         technicalAssistance: false,
+        collectionDate: new Date(),
       });
 
       const errors = await validate(dto);
@@ -295,6 +301,7 @@ describe('CreateDailyCollectionDto', () => {
         numLactation: 3,
         milkingPlace: MilkingPlace.Curral,
         technicalAssistance: false,
+        collectionDate: new Date(),
       });
 
       const errors = await validate(dto);
@@ -349,6 +356,7 @@ describe('CreateDailyCollectionDto', () => {
         numLactation: 2,
         milkingPlace: MilkingPlace.Curral,
         technicalAssistance: false,
+        collectionDate: new Date(),
       });
 
       const errors = await validate(dto);
@@ -366,6 +374,7 @@ describe('CreateDailyCollectionDto', () => {
         numLactation: 2,
         milkingPlace: MilkingPlace.Aberto,
         technicalAssistance: false,
+        collectionDate: new Date(),
       });
 
       const errors = await validate(dto);
@@ -422,6 +431,7 @@ describe('CreateDailyCollectionDto', () => {
         numLactation: 2,
         milkingPlace: MilkingPlace.Curral,
         technicalAssistance: true,
+        collectionDate: new Date(),
       });
 
       const errors = await validate(dto);
@@ -443,6 +453,7 @@ describe('CreateDailyCollectionDto', () => {
         numLactation: 2,
         milkingPlace: MilkingPlace.Ambos,
         technicalAssistance: true,
+        collectionDate: new Date(),
       });
 
       const errors = await validate(dto);

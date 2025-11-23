@@ -1,11 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsBoolean,
+  IsDate,
   IsEnum,
   IsInt,
   IsNotEmpty,
   IsNumber,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { MilkingPlace } from '@/domain/enums/enums';
 
 export class CreateDailyCollectionDto {
@@ -47,4 +49,9 @@ export class CreateDailyCollectionDto {
   @ApiProperty({ description: 'Utilizou assistência técnica', example: true })
   @IsBoolean()
   technicalAssistance!: boolean;
+  
+  @ApiProperty({ description: 'Data da coleta', example: '2025-11-22' })
+  @Type(() => Date)
+  @IsDate()
+  collectionDate!: Date;
 }

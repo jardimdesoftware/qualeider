@@ -14,6 +14,8 @@ import { IFailedEmailRepository } from '@/domain/repositories/failed-email.repos
 import { IHashService } from '@/application/ports/hash.service';
 import { ITokenService } from '@/application/ports/token.service';
 import { JwtTokenService } from '@/infrastructure/services/jwt-token.service';
+import { IAssociationRepository } from '@/domain/repositories/association.repository';
+import { PrismaAssociationRepository } from '@/infrastructure/repositories/prisma-association.repository';
 
 @Module({
   imports: [
@@ -38,6 +40,7 @@ import { JwtTokenService } from '@/infrastructure/services/jwt-token.service';
     { provide: IHashService, useClass: BcryptHashService },
     { provide: ITokenService, useClass: JwtTokenService },
     { provide: IFailedEmailRepository, useClass: PrismaFailedEmailRepository },
+    { provide: IAssociationRepository, useClass: PrismaAssociationRepository },
   ],
   exports: [
     PrismaModule,
@@ -47,6 +50,7 @@ import { JwtTokenService } from '@/infrastructure/services/jwt-token.service';
     IHashService,
     ITokenService,
     IFailedEmailRepository,
+    IAssociationRepository,
   ],
 })
 export class InfrastructureModule {}

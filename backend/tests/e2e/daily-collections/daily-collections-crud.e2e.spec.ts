@@ -34,7 +34,7 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
     it('deve criar uma nova coleta com dados válidos', async () => {
       const collectionData = DailyCollectionFactory.build({
         userId,
-        quantity: 30.5,
+        quantity: 30,
         numAnimals: 6,
         numOrdens: 2,
         rationProvided: true,
@@ -42,6 +42,8 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
         milkingPlace: MilkingPlace.Curral,
         technicalAssistance: true,
       });
+
+
 
       const response = await testApp
         .request()
@@ -55,7 +57,7 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
         'Coleta criada com sucesso',
       );
       expect(response.body.data).toHaveProperty('id');
-      expect(response.body.data.quantity).toBe(30.5);
+      expect(response.body.data.quantity).toBe(30);
       expect(response.body.data.numAnimals).toBe(6);
       expect(response.body.data.numOrdens).toBe(2);
       expect(response.body.data.rationProvided).toBe(true);

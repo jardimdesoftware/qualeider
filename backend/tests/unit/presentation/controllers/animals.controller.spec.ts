@@ -85,24 +85,27 @@ describe('AnimalsController', () => {
       const animals = [createAnimal({ id: 1 }), createAnimal({ id: 2 })];
       mockAnimalsService.findAll.mockResolvedValue(animals);
 
-      const result = await controller.findAll();
+      const result = await controller.findAll({});
 
-      expect(animalsService.findAll).toHaveBeenCalledWith(undefined);
+      expect(animalsService.findAll).toHaveBeenCalledWith({});
       expect(result).toEqual(animals);
     });
 
-    it('deve repassar o associationId convertido para number', async () => {
+    it('deve filtrar por associationId, userId e status', async () => {
       const animals = [createAnimal({ id: 1 })];
       mockAnimalsService.findAll.mockResolvedValue(animals);
 
-      await controller.findAll('10');
+      await controller.findAll({
+        associationId: 10,
+        userId: 5,
+        status: 'Active',
+      });
 
-      expect(animalsService.findAll).toHaveBeenCalledWith(10);
-    });
-
-    it('deve repassar NaN se associationId for inválido (o service/banco lida com isso)', async () => {
-        await controller.findAll('invalid');
-        expect(animalsService.findAll).toHaveBeenCalledWith(NaN);
+      expect(animalsService.findAll).toHaveBeenCalledWith({
+        associationId: 10,
+        userId: 5,
+        status: 'Active',
+      });
     });
   });
 
@@ -174,11 +177,11 @@ describe('AnimalsController', () => {
   describe('findAllByUserId', () => {
       it('deve retornar lista de animais do usuário', async () => {
           const animals = [createAnimal({ id: 1, userId: 5 })];
-          mockAnimalsService.findAllByUserId.mockResolvedValue(animals);
+          mockAnimalsService.findAll.mockResolvedValue(animals);
 
           const result = await controller.findAllByUserId(5);
 
-          expect(animalsService.findAllByUserId).toHaveBeenCalledWith(5);
+          expect(animalsService.findAll).toHaveBeenCalledWith({ userId: 5 });
           expect(result).toEqual(animals);
       });
   });

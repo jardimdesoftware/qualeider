@@ -1,157 +1,35 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '@/infrastructure/prisma/prisma.service';
+import { Injectable, Logger, Inject } from '@nestjs/common';
+import { IUserRepository } from '@/domain/repositories/user.repository';
+import { IHashService } from '@/application/ports/hash.service';
 import { CreateUserDto } from '@/application/dtos/users/create-user.dto';
 import { UpdateUserDto } from '@/application/dtos/users/update-user.dto';
 import { UpdatePartialUserDto } from '@/application/dtos/users/update-partial-user.dto';
-import * as bcrypt from 'bcryptjs';
-import { Prisma } from '@prisma/client';
-import { BCRYPT_ROUNDS_USER_CREATION } from '@/common/constants/security.constants';
-import { BusinessException } from '@/common/exceptions/business.exception';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
+import { BCRYPT_ROUNDS_USER_CREATION } from '@/common/constants/security.constants';
+import { UserCriteria } from '@/domain/criteria/user.criteria';
 
 @Injectable()
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
 
-  constructor(private prisma: PrismaService) {}
-
-  private async validateUserExists(id: number) {
-    const user = await this.prisma.user.findUnique({
-      where: { id, status: 'Active' },
-    });
-    if (!user) {
-      throw new EntityNotFoundException(
-        `Usuário com ID ${id} não encontrado ou está inativo.`,
-      );
-    }
-    return user;
-  }
-
-  private removePassword<T extends Record<string, unknown>>(entity: T): T {
-    if (entity && 'password' in entity) {
-      delete (entity as { password?: string }).password;
-    }
-    return entity;
-  }
+  constructor(
+    @Inject(IUserRepository) private readonly userRepository: IUserRepository,
+    @Inject(IHashService) private readonly hashService: IHashService,
+  ) {}
 
   async create(createUserDto: CreateUserDto) {
     const { password, ...rest } = createUserDto;
 
-    try {
-      const hashedPassword = await bcrypt.hash(
-        password,
-        BCRYPT_ROUNDS_USER_CREATION,
-      );
+    const hashedPassword = await this.hashPasswordIfNeeded(password);
 
-      const user = await this.prisma.user.create({
-        data: {
-          ...rest,
-          password: hashedPassword,
-        },
-      });
-
-      this.logger.log(`Usuário criado: ${user.email} (ID: ${user.id})`);
-      return this.removePassword(user);
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2002') {
-          throw new BusinessException('Email já está em uso.');
-        }
-      }
-      throw error;  
-    }
-  }
-
-  async findAll(associationId?: number) {
-    const where: Prisma.UserWhereInput = { status: 'Active' };
-    if (associationId !== undefined) {
-      where.associationId = associationId;
-    }
-
-    return this.prisma.user.findMany({
-      where,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        userType: true,
-        userCategory: true,
-        city: true,
-        state: true,
-        status: true,
-        associationId: true,
-        association: {
-          select: { id: true, name: true, city: true },
-        },
-        createdAt: true,
-      },
-    });
-  }
-
-  async findOne(id: number) {
-    const user = await this.prisma.user.findUnique({
-      where: { id, status: 'Active' },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        userType: true,
-        userCategory: true,
-        city: true,
-        state: true,
-        status: true,
-        createdAt: true,
-        animals: {
-          orderBy: { id: 'desc' },
-          select: { id: true, name: true, breed: true, age: true, createdAt: true },
-        },
-      },
+    // Repository lança BusinessException se email duplicar (P2002)
+    const user = await this.userRepository.create({
+      ...rest,
+      password: hashedPassword!,
     });
 
-    if (!user) {
-      throw new EntityNotFoundException(
-        `Usuário com ID ${id} não encontrado ou está inativo.`,
-      );
-    }
-    return user;
-  }
-
-  private async performUpdate(
-    id: number,
-    data: UpdateUserDto | UpdatePartialUserDto,
-  ) {
-    await this.validateUserExists(id);
-
-    if (data.email) {
-      const existingUser = await this.prisma.user.findUnique({
-        where: { email: data.email },
-      });
-      if (existingUser && existingUser.id !== id) {
-        throw new BusinessException('Email já cadastrado');
-      }
-    }
-
-    if (data.password && data.password.trim().length > 0) {
-      data.password = await bcrypt.hash(
-        data.password,
-        BCRYPT_ROUNDS_USER_CREATION,
-      );
-    } else {
-      delete data.password;
-    }
-
-    try {
-      const updatedUser = await this.prisma.user.update({
-        where: { id },
-        data: data as Prisma.UserUpdateInput,
-      });
-      return this.removePassword(updatedUser);
-    } catch (error) {
-      if (error.code === 'P2002') {
-        throw new BusinessException('Email já cadastrado');
-      }
-      throw error;
-    }
+    this.logger.log(`Usuário criado: ${user.email} (ID: ${user.id})`);
+    return this.removePassword(user);
   }
 
   async update(id: number, updateUserDto: UpdateUserDto) {
@@ -163,16 +41,86 @@ export class UsersService {
   }
 
   async remove(id: number) {
-    await this.validateUserExists(id);
-
-    const deactivated = await this.prisma.user.update({
-      where: { id },
-      data: { status: 'Inactive' },
-    });
+    await this.validateUserExists(id);    
+    const deactivated = await this.userRepository.softDelete(id);
+    this.logger.log(`Usuário removido (soft delete): ID ${id}`);
     return this.removePassword(deactivated);
   }
 
   async findByEmail(email: string) {
-    return this.prisma.user.findUnique({ where: { email } });
+    this.logger.debug(`Buscando usuário por email: ${email}`);
+    return this.userRepository.findByEmail(email);
+  }
+
+  async findAll(criteria?: UserCriteria) {
+    const users = await this.userRepository.findAll(criteria);
+    return users.map((user) => this.removePassword(user));
+  }
+
+  async findOne(id: number) {
+    const user = await this.userRepository.findById(id);
+    if (!user) {
+      throw new EntityNotFoundException(
+        `Usuário com ID ${id} não encontrado ou está inativo.`,
+      );
+    }
+    return this.removePassword(user);
+  }
+
+  async exists(id: number): Promise<boolean> {
+    const user = await this.userRepository.findById(id);
+    return user !== null;
+  }
+
+  private async validateUserExists(id: number): Promise<void> {
+    await this.findOne(id);
+  }
+
+  private async performUpdate(
+    id: number,
+    data: UpdateUserDto | UpdatePartialUserDto,
+  ) {
+    await this.validateUserExists(id);
+
+    const dataToUpdate = await this.prepareUpdateData(data);
+
+    // Repository lança EntityNotFoundException se ID não existir (P2025)
+    // Repository lança BusinessException se email duplicar (P2002)
+    const updatedUser = await this.userRepository.partialUpdate(id, dataToUpdate);
+    
+    this.logger.log(`Usuário atualizado: ID ${id}`);
+    return this.removePassword(updatedUser);
+  }
+
+  private async prepareUpdateData(
+    data: UpdateUserDto | UpdatePartialUserDto
+  ): Promise<UpdateUserDto | UpdatePartialUserDto> {
+    const dataToUpdate = { ...data };
+
+    const hashedPassword = await this.hashPasswordIfNeeded(dataToUpdate.password);
+    
+    if (hashedPassword) {
+      dataToUpdate.password = hashedPassword;
+    } else {
+      delete dataToUpdate.password;
+    }
+
+    return dataToUpdate;
+  }
+
+  private async hashPasswordIfNeeded(password?: string): Promise<string | undefined> {
+    if (!password || password.trim().length === 0) {
+      return undefined;
+    }
+    
+    return this.hashService.hash(password, BCRYPT_ROUNDS_USER_CREATION);
+  }
+
+  private removePassword<T>(entity: T): Omit<T, 'password'> {
+    if (entity && typeof entity === 'object' && 'password' in entity) {
+      const { password, ...rest } = entity as any;
+      return rest;
+    }
+    return entity as Omit<T, 'password'>;
   }
 }

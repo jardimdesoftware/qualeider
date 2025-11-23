@@ -1,26 +1,46 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 import { AnimalsService } from '@/application/services/animals/animals.service';
-import { PrismaService } from '@/infrastructure/prisma/prisma.service';
-import { createMockPrismaService } from '../../../mocks/prisma.mock';
 import { createAnimal } from '../../../factories/animal.factory';
 import { createUser } from '../../../factories/user.factory';
 import { CreateAnimalDto } from '@/application/dtos/animals/create-animal.dto';
 import { UpdateAnimalDto } from '@/application/dtos/animals/update-animal.dto';
 import { AnimalType, Status } from '@/domain/enums/enums';
+import { IAnimalRepository, IAnimalRepository as IAnimalRepositorySymbol } from '@/domain/repositories/animal.repository';
+import { IUserRepository, IUserRepository as IUserRepositorySymbol } from '@/domain/repositories/user.repository';
 
 describe('AnimalsService', () => {
   let service: AnimalsService;
-  let prisma: ReturnType<typeof createMockPrismaService>;
+  let animalRepository: jest.Mocked<IAnimalRepository>;
+  let userRepository: jest.Mocked<IUserRepository>;
 
   beforeEach(async () => {
-    prisma = createMockPrismaService();
-
     const module: TestingModule = await Test.createTestingModule({
-      providers: [AnimalsService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        AnimalsService,
+        {
+          provide: IAnimalRepositorySymbol,
+          useValue: {
+            create: jest.fn(),
+            findAll: jest.fn(),
+            findById: jest.fn(),
+            update: jest.fn(),
+            softDelete: jest.fn(),
+            findAllByUserId: jest.fn(),
+          },
+        },
+        {
+          provide: IUserRepositorySymbol,
+          useValue: {
+            findById: jest.fn(),
+          },
+        },
+      ],
     }).compile();
 
     service = module.get<AnimalsService>(AnimalsService);
+    animalRepository = module.get(IAnimalRepositorySymbol);
+    userRepository = module.get(IUserRepositorySymbol);
   });
 
   afterEach(() => {
@@ -40,18 +60,14 @@ describe('AnimalsService', () => {
       };
       const mockAnimal = createAnimal({ ...createDto, id: 1 });
 
-      prisma.user.findUnique.mockResolvedValue(mockUser as any);
-      prisma.animal.create.mockResolvedValue(mockAnimal as any);
+      userRepository.findById.mockResolvedValue(mockUser);
+      animalRepository.create.mockResolvedValue(mockAnimal);
 
       const result = await service.create(createDto);
 
       expect(result).toEqual(mockAnimal);
-      expect(prisma.user.findUnique).toHaveBeenCalledWith({
-        where: { id: userId },
-      });
-      expect(prisma.animal.create).toHaveBeenCalledWith({
-        data: createDto,
-      });
+      expect(userRepository.findById).toHaveBeenCalledWith(userId);
+      expect(animalRepository.create).toHaveBeenCalledWith(createDto);
     });
 
     it('deve lançar NotFoundException se usuário não existe', async () => {
@@ -63,7 +79,7 @@ describe('AnimalsService', () => {
         userId: 999,
       };
 
-      prisma.user.findUnique.mockResolvedValue(null);
+      userRepository.findById.mockResolvedValue(null);
 
       await expect(service.create(createDto)).rejects.toThrow(
         EntityNotFoundException,
@@ -71,66 +87,39 @@ describe('AnimalsService', () => {
       await expect(service.create(createDto)).rejects.toThrow(
         'Usuário com ID 999 não encontrado.',
       );
-      expect(prisma.animal.create).not.toHaveBeenCalled();
+      expect(animalRepository.create).not.toHaveBeenCalled();
     });
   });
 
   describe('findAll', () => {
-    it('deve retornar todos os animais ativos', async () => {
+    it('deve retornar todos os animais', async () => {
       const mockAnimals = [
         createAnimal({ id: 1, name: 'Animal 1' }),
         createAnimal({ id: 2, name: 'Animal 2' }),
       ];
 
-      prisma.animal.findMany.mockResolvedValue(mockAnimals as any);
+      animalRepository.findAll.mockResolvedValue(mockAnimals);
 
       const result = await service.findAll();
 
       expect(result).toEqual(mockAnimals);
-      expect(prisma.animal.findMany).toHaveBeenCalledWith({
-        where: { status: 'Active' },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              associationId: true,
-            },
-          },
-        },
-      });
+      expect(animalRepository.findAll).toHaveBeenCalled();
     });
 
     it('deve filtrar por associationId quando fornecido', async () => {
       const associationId = 10;
       const mockAnimals = [createAnimal({ id: 1 })];
 
-      prisma.animal.findMany.mockResolvedValue(mockAnimals as any);
+      animalRepository.findAll.mockResolvedValue(mockAnimals);
 
-      const result = await service.findAll(associationId);
+      const result = await service.findAll({ associationId });
 
       expect(result).toEqual(mockAnimals);
-      expect(prisma.animal.findMany).toHaveBeenCalledWith({
-        where: {
-          status: 'Active',
-          user: {
-            associationId: associationId,
-          },
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              associationId: true,
-            },
-          },
-        },
-      });
+      expect(animalRepository.findAll).toHaveBeenCalledWith({ associationId });
     });
 
     it('deve retornar array vazio quando não há animais', async () => {
-      prisma.animal.findMany.mockResolvedValue([]);
+      animalRepository.findAll.mockResolvedValue([]);
 
       const result = await service.findAll();
 
@@ -142,18 +131,16 @@ describe('AnimalsService', () => {
     it('deve retornar um animal por ID', async () => {
       const mockAnimal = createAnimal({ id: 1, name: 'Mimosa' });
 
-      prisma.animal.findUnique.mockResolvedValue(mockAnimal as any);
+      animalRepository.findById.mockResolvedValue(mockAnimal);
 
       const result = await service.findOne(1);
 
       expect(result).toEqual(mockAnimal);
-      expect(prisma.animal.findUnique).toHaveBeenCalledWith({
-        where: { id: 1 },
-      });
+      expect(animalRepository.findById).toHaveBeenCalledWith(1);
     });
 
     it('deve lançar NotFoundException se animal não existe', async () => {
-      prisma.animal.findUnique.mockResolvedValue(null);
+      animalRepository.findById.mockResolvedValue(null);
 
       await expect(service.findOne(999)).rejects.toThrow(
         EntityNotFoundException,
@@ -170,53 +157,62 @@ describe('AnimalsService', () => {
         name: 'Mimosa Atualizada',
         age: 6,
       };
+      const mockExistingAnimal = createAnimal({ id: 1, name: 'Mimosa', age: 5 });
       const mockUpdatedAnimal = createAnimal({ id: 1, ...updateDto });
 
-      prisma.animal.update.mockResolvedValue(mockUpdatedAnimal as any);
+      animalRepository.findById.mockResolvedValue(mockExistingAnimal);
+      animalRepository.update.mockResolvedValue(mockUpdatedAnimal);
 
       const result = await service.update(1, updateDto as any);
 
       expect(result).toEqual(mockUpdatedAnimal);
-      expect(prisma.animal.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: updateDto,
-      });
+      expect(animalRepository.update).toHaveBeenCalledWith(1, updateDto);
     });
 
     it('deve permitir atualizar apenas alguns campos', async () => {
       const updateDto: Partial<UpdateAnimalDto> = {
         breed: 'Gir',
       };
+      const mockExistingAnimal = createAnimal({ id: 1, breed: 'Holandesa' });
       const mockUpdatedAnimal = createAnimal({ id: 1, breed: 'Gir' });
 
-      prisma.animal.update.mockResolvedValue(mockUpdatedAnimal as any);
+      animalRepository.findById.mockResolvedValue(mockExistingAnimal);
+      animalRepository.update.mockResolvedValue(mockUpdatedAnimal);
 
       const result = await service.update(1, updateDto as any);
 
       expect(result).toEqual(mockUpdatedAnimal);
-      expect(prisma.animal.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: updateDto,
-      });
+      expect(animalRepository.update).toHaveBeenCalledWith(1, updateDto);
+    });
+
+    it('deve lançar NotFoundException ao tentar atualizar animal inexistente', async () => {
+        animalRepository.findById.mockResolvedValue(null);
+        
+        const updateDto: Partial<UpdateAnimalDto> = { name: 'Novo Nome' };
+
+        await expect(service.update(999, updateDto as any)).rejects.toThrow(EntityNotFoundException);
+        expect(animalRepository.update).not.toHaveBeenCalled();
     });
   });
 
   describe('remove', () => {
     it('deve desativar (soft delete) um animal', async () => {
-      const mockDeactivatedAnimal = createAnimal({
-        id: 1,
-        status: Status.Inactive,
-      });
+      const mockAnimal = createAnimal({ id: 1, status: Status.Active });
+      
+      animalRepository.findById.mockResolvedValue(mockAnimal);
+      animalRepository.softDelete.mockResolvedValue(mockAnimal);
 
-      prisma.animal.update.mockResolvedValue(mockDeactivatedAnimal as any);
+      await service.remove(1);
 
-      const result = await service.remove(1);
+      expect(animalRepository.findById).toHaveBeenCalledWith(1);
+      expect(animalRepository.softDelete).toHaveBeenCalledWith(1);
+    });
 
-      expect(result).toEqual(mockDeactivatedAnimal);
-      expect(prisma.animal.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: { status: 'Inactive' },
-      });
+    it('deve lançar NotFoundException ao tentar remover animal inexistente', async () => {
+        animalRepository.findById.mockResolvedValue(null);
+
+        await expect(service.remove(999)).rejects.toThrow(EntityNotFoundException);
+        expect(animalRepository.softDelete).not.toHaveBeenCalled();
     });
   });
 
@@ -228,25 +224,22 @@ describe('AnimalsService', () => {
         createAnimal({ id: 2, userId, name: 'Animal 2' }),
       ];
 
-      prisma.animal.findMany.mockResolvedValue(mockAnimals as any);
+      animalRepository.findAll.mockResolvedValue(mockAnimals);
 
-      const result = await service.findAllByUserId(userId);
+      // The service doesn't have findAllByUserId anymore, so we test findAll with criteria
+      const result = await service.findAll({ userId });
 
       expect(result).toEqual(mockAnimals);
-      expect(prisma.animal.findMany).toHaveBeenCalledWith({
-        where: { userId, status: 'Active' },
-      });
+      expect(animalRepository.findAll).toHaveBeenCalledWith({ userId });
     });
 
     it('deve retonar uma lista vazia se usuário não tem animais', async () => {
-      prisma.animal.findMany.mockResolvedValue([]);
+      animalRepository.findAll.mockResolvedValue([]);
 
-      const result = await service.findAllByUserId(999);
+      const result = await service.findAll({ userId: 999 });
 
       expect(result).toEqual([]);
-      expect(prisma.animal.findMany).toHaveBeenCalledWith({
-        where: { userId: 999, status: 'Active' },
-      });
+      expect(animalRepository.findAll).toHaveBeenCalledWith({ userId: 999 });
     });
   });
 });

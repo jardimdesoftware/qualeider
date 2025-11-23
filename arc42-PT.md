@@ -145,14 +145,14 @@ O **QuaLeiDer** é uma plataforma web para gestão de produtores de leite e suas
 
 - **Cobertura de Testes (Atual: 96.25%):**
 
-  - **Testes Unitários:** 450 testes cobrindo DTOs, Services, Controllers, Entities
+  - **Testes Unitários:** 459 testes cobrindo DTOs, Services, Controllers, Entities
     - DTOs: 100% de cobertura (validação de dados de entrada)
     - Services (Application): 100% de cobertura (lógica de negócio)
     - Controllers (Presentation): 100% de cobertura (endpoints HTTP)
     - Entities (Domain): 100% de cobertura (regras de negócio)
-  - **Testes E2E:** 110 testes integrando backend completo (API + Database)
-    - 7 suítes de testes: Auth (24), Users (18), Animals (16), Daily Collections (14), Invites (17), Associations (21)
-    - Taxa de sucesso: 100% (110/110 testes passando)
+  - **Testes E2E:** 104 testes integrando backend completo (API + Database)
+    - 8 suítes de testes: Auth, Users, Animals, Daily Collections, Invites, Associations, Throttling
+    - Taxa de sucesso: 100% (104/104 testes passando)
 
 - **Ferramentas e Práticas:**
 
@@ -1215,7 +1215,7 @@ O princípio de Separation of Concerns divide responsabilidades em camadas disti
 
 ```
 tests/
-├── unit/                          # Testes unitários (450 testes)
+├── unit/                          # Testes unitários (459 testes)
 │   ├── application/
 │   │   ├── dtos/                 # Validação de DTOs (100% cobertura)
 │   │   └── services/             # Lógica de negócio (100%+ cobertura)
@@ -1371,7 +1371,7 @@ Prevenir que código não testado ou com falhas chegue ao repositório remoto at
 
 - **Trigger:** Executado antes de finalizar cada commit
 - **Comando:** `npm run test:unit -- --bail --passWithNoTests`
-- **Validação:** Testes unitários (472 testes)
+- **Validação:** Testes unitários (459 testes)
 - **Tempo médio:** 45 segundos
 - **Comportamento:** Bloqueia commit se algum teste falhar
 - **Objetivo:** Feedback imediato sobre falhas antes de salvar alterações
@@ -1381,7 +1381,7 @@ Prevenir que código não testado ou com falhas chegue ao repositório remoto at
 - **Trigger:** Executado antes de enviar commits ao repositório remoto
 - **Comandos:**
   ```bash
-  npm run test:unit      # 457 testes unitários
+  npm run test:unit      # 459 testes unitários
   npm run test:e2e       # 110 testes E2E
   ```
 - **Tempo médio:** 2 minutos (testes completos)
@@ -2014,43 +2014,43 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
 **Exemplo de Código Real (Hashing - UsersService):**
 
+> **Nota:** Service usa Repository (não acessa Prisma diretamente)
+
 ```typescript
 // src/application/services/users/users.service.ts
-import * as bcrypt from "bcryptjs";
+import { IHashService } from '@/application/ports/hash.service';
+import { IUserRepository } from '@/domain/repositories/user.repository';
+import { BCRYPT_ROUNDS_USER_CREATION } from '@/common/constants/security.constants';
 
 @Injectable()
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
 
+  constructor(
+    @Inject(IUserRepository) private readonly userRepository: IUserRepository,
+    @Inject(IHashService) private readonly hashService: IHashService,
+  ) {}
+
   async create(createUserDto: CreateUserDto) {
     const { password, ...rest } = createUserDto;
 
-    try {
-      // 10 rounds = 2^10 = 1.024 iterações
-      const hashedPassword = await bcrypt.hash(
-        password,
-        BCRYPT_ROUNDS_USER_CREATION
-      );
+    // 10 rounds = 2^10 = 1.024 iterações
+    const hashedPassword = await this.hashService.hash(
+      password,
+      BCRYPT_ROUNDS_USER_CREATION
+    );
 
-      const user = await this.prisma.user.create({
-        data: {
-          ...rest,
-          password: hashedPassword, // Armazena hash, nunca plaintext
-        },
-      });
+    // Repository lança BusinessException se email duplicar (P2002)
+    // Service não trata erro Prisma, apenas delega ao Repository
+    const user = await this.userRepository.create({
+      ...rest,
+      password: hashedPassword, // Armazena hash, nunca plaintext
+    });
 
-      this.logger.log(`Usuário criado: ${user.email} (ID: ${user.id})`);
+    this.logger.log(`Usuário criado: ${user.email} (ID: ${user.id})`);
 
-      // Remove senha do retorno por segurança
-      return this.removePassword(user);
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === "P2002") {
-          throw new ConflictException("Email já está em uso.");
-        }
-      }
-      throw error;
-    }
+    // Remove senha do retorno por segurança
+    return this.removePassword(user);
   }
 
   /**
@@ -2716,40 +2716,43 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
 **Exemplo de Código Real (Hashing - UsersService):**
 
+> **Nota:** Service usa Repository (não acessa Prisma diretamente)
+
 ```typescript
 // src/application/services/users/users.service.ts
-import * as bcrypt from "bcryptjs";
+import { IHashService } from '@/application/ports/hash.service';
+import { IUserRepository } from '@/domain/repositories/user.repository';
+import { BCRYPT_ROUNDS_USER_CREATION } from '@/common/constants/security.constants';
 
 @Injectable()
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
 
+  constructor(
+    @Inject(IUserRepository) private readonly userRepository: IUserRepository,
+    @Inject(IHashService) private readonly hashService: IHashService,
+  ) {}
+
   async create(createUserDto: CreateUserDto) {
     const { password, ...rest } = createUserDto;
 
-    try {
-      // 10 rounds = 2^10 = 1.024 iterações
-      const hashedPassword = await bcrypt.hash(password, 10);
+    // 10 rounds = 2^10 = 1.024 iterações
+    const hashedPassword = await this.hashService.hash(
+      password,
+      BCRYPT_ROUNDS_USER_CREATION
+    );
 
-      const user = await this.prisma.user.create({
-        data: {
-          ...rest,
-          password: hashedPassword, // Armazena hash, nunca plaintext
-        },
-      });
+    // Repository lança BusinessException se email duplicar (P2002)
+    // Service não trata erro Prisma, apenas delega ao Repository
+    const user = await this.userRepository.create({
+      ...rest,
+      password: hashedPassword, // Armazena hash, nunca plaintext
+    });
 
-      this.logger.log(`Usuário criado: ${user.email} (ID: ${user.id})`);
+    this.logger.log(`Usuário criado: ${user.email} (ID: ${user.id})`);
 
-      // Remove senha do retorno por segurança
-      return this.removePassword(user);
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === "P2002") {
-          throw new ConflictException("Email já está em uso.");
-        }
-      }
-      throw error;
-    }
+    // Remove senha do retorno por segurança
+    return this.removePassword(user);
   }
 
   /**
@@ -3206,9 +3209,345 @@ export class PrismaExceptionFilter implements ExceptionFilter {
 
 ---
 
+### Utilitário de Tratamento de Erros Prisma
+
+Para evitar duplicação de código no tratamento de erros do Prisma, o projeto implementa o utilitário `handlePrismaError` que centraliza a tradução de códigos de erro Prisma para exceções de negócio apropriadas.
+
+**Localização:** `src/common/utils/prisma-error-handler.ts`
+
+**Implementação completa:**
+
+```typescript
+// src/common/utils/prisma-error-handler.ts
+import { BusinessException } from '@/common/exceptions/business.exception';
+import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
+
+/**
+ * Códigos de erro do Prisma
+ * @see https://www.prisma.io/docs/orm/reference/error-reference
+ */
+export enum PrismaErrorCode {
+  UNIQUE_CONSTRAINT_VIOLATION = 'P2002',
+  RECORD_NOT_FOUND = 'P2025',
+  FOREIGN_KEY_CONSTRAINT_FAILED = 'P2003',
+  CONSTRAINT_FAILED = 'P2004',
+}
+
+/**
+ * Tipo de erro do Prisma
+ */
+interface PrismaError extends Error {
+  code?: string;
+  meta?: {
+    target?: string[];
+    modelName?: string;
+  };
+}
+
+/**
+ * Verifica se o erro é um erro do Prisma
+ */
+export function isPrismaError(error: unknown): error is PrismaError {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    typeof (error as PrismaError).code === 'string'
+  );
+}
+
+/**
+ * Trata erros do Prisma e os converte em exceções de negócio apropriadas
+ * 
+ * @param error Erro capturado
+ * @param customMessages Mensagens customizadas por código de erro
+ * @throws BusinessException ou EntityNotFoundException
+ */
+export function handlePrismaError(
+  error: unknown,
+  customMessages?: Partial<Record<PrismaErrorCode, string>>,
+): never {
+  if (!isPrismaError(error)) {
+    throw error;
+  }
+
+  const { code, meta } = error;
+
+  switch (code) {
+    case PrismaErrorCode.UNIQUE_CONSTRAINT_VIOLATION: {
+      const field = meta?.target?.[0] || 'campo';
+      const message =
+        customMessages?.[PrismaErrorCode.UNIQUE_CONSTRAINT_VIOLATION] ||
+        `${field} já está em uso.`;
+      throw new BusinessException(message);
+    }
+
+    case PrismaErrorCode.RECORD_NOT_FOUND: {
+      const modelName = meta?.modelName || 'Registro';
+      const message =
+        customMessages?.[PrismaErrorCode.RECORD_NOT_FOUND] ||
+        `${modelName} não encontrado.`;
+      throw new EntityNotFoundException(message);
+    }
+
+    case PrismaErrorCode.FOREIGN_KEY_CONSTRAINT_FAILED: {
+      const message =
+        customMessages?.[PrismaErrorCode.FOREIGN_KEY_CONSTRAINT_FAILED] ||
+        'Referência inválida. Verifique os dados relacionados.';
+      throw new BusinessException(message);
+    }
+
+    case PrismaErrorCode.CONSTRAINT_FAILED: {
+      const message =
+        customMessages?.[PrismaErrorCode.CONSTRAINT_FAILED] ||
+        'Operação violou uma restrição do banco de dados.';
+      throw new BusinessException(message);
+    }
+
+    default:
+      throw error;
+  }
+}
+
+/**
+ * Helper específico para erros de constraint unique em email
+ */
+export function handleEmailUniqueError(error: unknown): never {
+  handlePrismaError(error, {
+    [PrismaErrorCode.UNIQUE_CONSTRAINT_VIOLATION]: 'Email já está em uso.',
+  });
+}
+```
+
+**Exemplo de uso em Services (Application Layer):**
+
+> **IMPORTANTE:** Services **NÃO devem** usar `handlePrismaError` ou qualquer outro ORM que seja responsável por tratar erros de banco de dados. Essa responsabilidade pertence aos Repositories (Infrastructure Layer).
+
+```typescript
+// src/application/services/users/users.service.ts
+// ✅ CORRETO: Service NÃO conhece Prisma
+
+import { Injectable, Logger, Inject } from '@nestjs/common';
+import { IUserRepository } from '@/domain/repositories/user.repository';
+import { IHashService } from '@/application/ports/hash.service';
+import { BCRYPT_ROUNDS_USER_CREATION } from '@/common/constants/security.constants';
+
+@Injectable()
+export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
+  constructor(
+    @Inject(IUserRepository) private readonly userRepository: IUserRepository,
+    @Inject(IHashService) private readonly hashService: IHashService,
+  ) {}
+
+  async create(createUserDto: CreateUserDto) {
+    const { password, ...rest } = createUserDto;
+    
+    const hashedPassword = await this.hashService.hash(
+      password,
+      BCRYPT_ROUNDS_USER_CREATION,
+    );
+
+    // SEM try-catch: Repository lança BusinessException se email duplicar
+    // Repository já tratou erro Prisma P2002 e converteu para BusinessException
+    const user = await this.userRepository.create({
+      ...rest,
+      password: hashedPassword,
+    });
+
+    this.logger.log(`Usuário criado: ${user.email} (ID: ${user.id})`);
+    return this.removePassword(user);
+  }
+
+  async update(id: number, updateDto: UpdateUserDto) {
+    await this.findOne(id); // Valida existência
+    
+    const dataToUpdate = await this.prepareUpdateData(updateDto);
+    
+    // SEM try-catch: Repository lança EntityNotFoundException (P2025) ou BusinessException (P2002)
+    const updatedUser = await this.userRepository.partialUpdate(id, dataToUpdate);
+    
+    this.logger.log(`Usuário atualizado: ID ${id}`);
+    return this.removePassword(updatedUser);
+  }
+
+  private async prepareUpdateData(data: UpdateUserDto) {
+    const dataToUpdate = { ...data };
+    if (dataToUpdate.password) {
+      dataToUpdate.password = await this.hashService.hash(
+        dataToUpdate.password,
+        BCRYPT_ROUNDS_USER_CREATION,
+      );
+    }
+    return dataToUpdate;
+  }
+
+  private removePassword<T>(entity: T): Omit<T, 'password'> {
+    if (entity && typeof entity === 'object' && 'password' in entity) {
+      const { password, ...rest } = entity as any;
+      return rest;
+    }
+    return entity as Omit<T, 'password'>;
+  }
+}
+```
+
+**Exemplo de uso em Repositories (Infrastructure Layer):**
+
+```typescript
+// src/infrastructure/repositories/prisma-user.repository.ts
+// ✅ CORRETO: Repository USA handlePrismaError
+
+import { handlePrismaError, PrismaErrorCode } from '@/common/utils/prisma-error-handler';
+
+@Injectable()
+export class PrismaUserRepository implements IUserRepository {
+  async create(data: Omit<UserEntity, 'id' | 'createdAt' | 'updatedAt'>) {
+    try {
+      return await this.prisma.user.create({ data });
+    } catch (error) {
+      // Repository trata erros Prisma e lança exceções de negócio
+      handlePrismaError(error, {
+        [PrismaErrorCode.UNIQUE_CONSTRAINT_VIOLATION]: 'Email já está em uso.',
+      });
+    }
+  }
+
+  async partialUpdate(id: number, data: Partial<UserEntity>) {
+    try {
+      return await this.prisma.user.update({
+        where: { id },
+        data,
+      });
+    } catch (error) {
+      handlePrismaError(error, {
+        [PrismaErrorCode.UNIQUE_CONSTRAINT_VIOLATION]: 'Email já cadastrado',
+        [PrismaErrorCode.RECORD_NOT_FOUND]: `Usuário com ID ${id} não encontrado.`,
+      });
+    }
+  }
+}
+```
+
+**Benefícios:**
+
+- ✅ **DRY (Don't Repeat Yourself):** Elimina duplicação de código de tratamento de erros
+- ✅ **Consistência:** Garante mensagens de erro padronizadas em todo o sistema
+- ✅ **Customização:** Permite mensagens específicas por contexto (create vs update)
+- ✅ **Extensibilidade:** Fácil adicionar tratamento para novos códigos Prisma
+- ✅ **Type-Safety:** Enum `PrismaErrorCode` previne erros de digitação
+
+**Mapeamento de Erros do Prisma:**
+
+| Código Prisma | HTTP Status | Exception Lançada | Mensagem Padrão | Exemplo de Uso |
+| ------------- | ----------- | ----------------- | --------------- | -------------- |
+| P2002 | 409 | `BusinessException` | "{campo} já está em uso." | UsersService.create() com email duplicado |
+| P2025 | 404 | `EntityNotFoundException` | "{modelo} não encontrado." | findUniqueOrThrow em registro inexistente |
+| P2003 | 400 | `BusinessException` | "Referência inválida..." | DailyCollection com userId inválido |
+| P2004 | 400 | `BusinessException` | "Operação violou restrição..." | Constraint check failure |
+| Outros | - | Re-lançado | - | Erro original preservado |
+
+---
+
+### Exception Customizada: EntityNotFoundException
+
+Para complementar o `BusinessException`, o projeto implementa `EntityNotFoundException` para casos específicos onde uma entidade não é encontrada no banco de dados.
+
+**Localização:** `src/common/exceptions/entity-not-found.exception.ts`
+
+**Implementação:**
+
+```typescript
+// src/common/exceptions/entity-not-found.exception.ts
+import { HttpException, HttpStatus } from '@nestjs/common';
+
+export class EntityNotFoundException extends HttpException {
+  constructor(message: string) {
+    super(message, HttpStatus.NOT_FOUND);
+  }
+}
+```
+
+**Quando usar:**
+
+- ✅ Quando uma entidade específica não é encontrada por ID
+- ✅ Em métodos `findOne`, `update`, `remove` de Services
+- ✅ Para fornecer mensagens descritivas com o ID não encontrado
+
+**Exemplos de uso em Services:**
+
+```typescript
+// AnimalsService
+async findOne(id: number) {
+  const animal = await this.animalRepository.findById(id);
+  if (!animal) {
+    throw new EntityNotFoundException(`Animal com ID ${id} não encontrado.`);
+  }
+  return animal;
+}
+
+// DailyCollectionsService
+async findOne(id: number) {
+  const collection = await this.dailyCollectionRepository.findById(id);
+  if (!collection) {
+    throw new EntityNotFoundException(`Coleta diária com ID ${id} não encontrada.`);
+  }
+  return collection;
+}
+
+// UsersService
+private async validateUser(userId: number) {
+  const user = await this.userRepository.findById(userId);
+  if (!user) {
+    throw new EntityNotFoundException(`Usuário com ID ${userId} não encontrado.`);
+  }
+  return user;
+}
+```
+
+**Resposta HTTP:**
+
+```json
+{
+  "statusCode": 404,
+  "message": "Animal com ID 999 não encontrado.",
+  "timestamp": "2025-11-22T20:15:30.123Z",
+  "path": "/animals/999"
+}
+```
+
+**Diferença vs NotFoundException do NestJS:**
+
+| Aspecto | EntityNotFoundException | NotFoundException (NestJS) |
+| --- | --- | --- |
+| **Semântica** | Específica para entidades de domínio | Genérica para qualquer recurso não encontrado |
+| **Mensagem** | Customizada com ID e tipo de entidade | Genérica |
+| **Testabilidade** | Fácil identificar em testes | Menos específica |
+| **Rastreabilidade** | Clara no contexto de domínio | Pode ser ambígua |
+
+**Hierarquia de Exceções:**
+
+```
+HttpException (NestJS)
+├── BusinessException (regras de negócio - 400)
+├── EntityNotFoundException (entidade não encontrada - 404)
+└── [Exceções padrão do NestJS]
+    ├── NotFoundException
+    ├── UnauthorizedException
+    ├── ConflictException
+    └── ...
+```
+
+---
+
 ### Mensagens de Erro Amigáveis
 
-O projeto implementa uma exception customizada chamada `BusinessException` para padronizar erros de regra de negócio, além das exceptions padrão do NestJS (`ConflictException`, `NotFoundException`, `UnauthorizedException`, etc.).
+O projeto implementa as seguintes exceções customizadas para padronizar erros:
+
+#### 1. BusinessException
+
+Para erros de regra de negócio e validações.
 
 **Implementação real:**
 
@@ -3498,6 +3837,71 @@ async create(dto: CreateDailyCollectionDto) {
 
 ---
 
+## 8.6 Estratégia de Consultas (Specification Pattern Simplificado) {#estrategia_consultas}
+
+Para manter a flexibilidade e o desacoplamento, adotamos o padrão de objetos de critério (Specification Pattern simplificado).
+
+![Diagrama do Fluxo Criteria](images/criteria-object.png)
+
+**Descrição do Processo:**
+
+1.  **Construção:** O Service monta um objeto `Criteria` contendo apenas os dados necessários para o filtro (ex: ID da associação, intervalo de datas).
+2.  **Contrato:** Este objeto não possui dependência de bibliotecas de banco de dados (Prisma/TypeORM), mantendo a camada de domínio limpa.
+3.  **Tradução:** O Repositório concreto lê as propriedades do `Criteria` e as converte dinamicamente para o formato `Prisma.WhereInput`, aplicando as cláusulas necessárias antes de consultar o banco.
+
+**Exemplo de Contrato (Domain):**
+
+```typescript
+// src/domain/criteria/daily-collection.criteria.ts
+export interface DailyCollectionCriteria {
+  associationId?: number;
+  userId?: number;
+  dateRange?: {
+    start: Date;
+    end: Date;
+  };
+  includeUser?: boolean;
+}
+```
+
+**Exemplo de Tradução (Infrastructure):**
+
+```typescript
+// src/infrastructure/repositories/prisma-animal.repository.ts
+async findAll(criteria: AnimalCriteria = {}): Promise<AnimalEntity[]> {
+  const where: Prisma.AnimalWhereInput = {};
+
+  // Tradução de filtros de domínio para Prisma WhereInput
+  where.status = criteria.status !== undefined ? criteria.status : Status.Active;
+
+  if (criteria.userId) {
+    where.userId = criteria.userId;
+  }
+
+  if (criteria.associationId) {
+    where.user = {
+      associationId: criteria.associationId,
+    };
+  }
+
+  // Execução da query
+  const animals = await this.prisma.animal.findMany({
+    where,
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return animals as any;
+}
+```
+
+**Benefícios:**
+
+- **Desacoplamento:** A camada de aplicação não conhece a estrutura do banco ou o ORM.
+- **Flexibilidade:** É fácil adicionar novos filtros sem alterar a assinatura dos métodos do repositório.
+- **Testabilidade:** Facilita a criação de mocks para os repositórios, pois os critérios são objetos simples.
+
+---
+
 # Decisões Arquiteturais
 
 ## DA-001: Adoção de Jest como Framework de Testes Único
@@ -3522,6 +3926,114 @@ Adotar Jest como framework único para testes unitários e E2E, com Supertest pa
 - ⚠️ **Negativas:**
   - Performance inferior ao Vitest
   - Configuração de path aliases pode ser complexa para bibliotecas sem @types (Padrão que já foi adotado antes)
+
+---
+
+## DA-004: Centralização de Tratamento de Erros Prisma
+
+**Contexto:**
+
+- Múltiplos services precisavam tratar erros do Prisma, especialmente P2002 (unique constraint violation)
+- Código duplicado em `UsersService`, `AnimalsService`, `AssociationsService` para tratar o mesmo erro
+- Cada service implementava tratamento de erro de forma ligeiramente diferente
+- Mensagens de erro inconsistentes entre services
+- Necessidade de adicionar tratamento para novos códigos de erro (P2003, P2025, P2004)
+
+**Decisão:**
+Criar utilitário centralizado `handlePrismaError` em `src/common/utils/prisma-error-handler.ts` para traduzir códigos de erro do Prisma em exceções de negócio apropriadas (`BusinessException`, `EntityNotFoundException`).
+
+**Implementação:**
+
+```typescript
+// src/common/utils/prisma-error-handler.ts
+export enum PrismaErrorCode {
+  UNIQUE_CONSTRAINT_VIOLATION = 'P2002',
+  RECORD_NOT_FOUND = 'P2025',
+  FOREIGN_KEY_CONSTRAINT_FAILED = 'P2003',
+  CONSTRAINT_FAILED = 'P2004',
+}
+
+export function handlePrismaError(
+  error: unknown,
+  customMessages?: Partial<Record<PrismaErrorCode, string>>,
+): never {
+  // Traduz códigos Prisma para exceções de negócio
+}
+```
+
+
+**Uso nos Repositories (Infrastructure):**
+
+```typescript
+// PrismaUserRepository - ✅ CORRETO
+@Injectable()
+export class PrismaUserRepository implements IUserRepository {
+  async create(data) {
+    try {
+      return await this.prisma.user.create({ data });
+    } catch (error) {
+      // Repository trata Prisma e lança BusinessException
+      handlePrismaError(error, {
+        [PrismaErrorCode.UNIQUE_CONSTRAINT_VIOLATION]: 'Email já está em uso.',
+      });
+    }
+  }
+}
+```
+
+**Uso nos Services (Application):**
+
+```typescript
+// UsersService - ✅ CORRETO: SEM handlePrismaError
+@Injectable()
+export class UsersService {
+  async create(createUserDto: CreateUserDto) {
+    const user = await this.userRepository.create(createUserDto);
+    // Repository lança BusinessException se erro Prisma ocorrer
+    // Service não precisa tratar, apenas propagar
+    return user;
+  }
+}
+```
+
+**Consequências:**
+
+✅ **Positivas:**
+  - **DRY (Don't Repeat Yourself):** Elimina ~80 linhas de código duplicado em 6 services
+  - **Consistência:** Mensagens de erro padronizadas em todo o sistema
+  - **Customização:** Permite mensagens específicas por contexto (ex: "Email já está em uso" vs "Email já cadastrado")
+  - **Extensibilidade:** Adicionar novo código Prisma requer mudança em 1 único arquivo
+  - **Type-Safety:** Enum `PrismaErrorCode` previne erros de digitação
+  - **Testabilidade:** Facilita testes unitários pois comportamento é centralizado
+  - **Manutenibilidade:** Mudanças no mapeamento de erros afetam todo o sistema uniformemente
+
+⚠️ **Negativas:**
+  - **Curva de Aprendizado:** Desenvolvedores precisam conhecer o utilitário 
+  - **Indireção:** Rastreio de stack traces ligeiramente mais complexo
+  - **Overhead Mínimo:** Type guard `isPrismaError` adiciona verificação extra
+
+**Alternativas Descartadas:**
+
+1. **Interceptor Global:**
+   - ❌ Muito genérico, dificulta customização por contexto
+   - ❌ Não permite mensagens específicas (ex: "Email já está em uso" vs "Email já cadastrado")
+   
+2. **Decorator Customizado:**
+   - ❌ Complexidade desnecessária
+   - ❌ Dificulta teste unitário (decorators não são facilmente mockáveis)
+   
+3. **Deixar como está (duplicado):**
+   - ❌ Viola princípio DRY
+   - ❌ Alto risco de inconsistências
+   - ❌ Dificulta manutenção
+
+**Métricas de Sucesso:**
+
+- ✅ Zero duplicação de tratamento de erro Prisma
+- ✅ Mensagens de erro consistentes em toda API
+- ✅ Facilidade para adicionar suporte a novos códigos Prisma (1 linha de código)
+
+---
 
 ## DA-002: Testes E2E com Database Real
 
@@ -3714,6 +4226,30 @@ Implementar Git Hooks via Husky v9.1.7 com duas camadas de validação:
 - ✅ Redução de pushes falhando no CI: > 90%
 - ✅ Taxa de adoção: 100% da equipe
 
+## DA-007: Specification Pattern para Consultas
+
+**Status:** Aceito
+**Data:** 2025-11-22
+**Decisores:** Equipe de desenvolvimento
+
+**Contexto:**
+- Necessidade de filtros complexos e dinâmicos (por associação, data, usuário, etc.).
+- Evitar poluição da camada de aplicação com detalhes de implementação do banco (Prisma).
+- Necessidade de reutilização de critérios de busca.
+
+**Decisão:**
+Adotar uma versão simplificada do **Specification Pattern** (Objetos de Critério).
+- **Domain:** Define interfaces de critérios (`DailyCollectionCriteria`).
+- **Infrastructure:** Repositórios traduzem critérios para `Prisma.WhereInput`.
+
+**Consequências:**
+- ✅ **Positivas:**
+  - Desacoplamento total entre Application e ORM.
+  - Facilidade de teste (mocks simples).
+  - Flexibilidade para adicionar novos filtros.
+- ⚠️ **Negativas:**
+  - Curva de aprendizado inicial para novos desenvolvedores.
+
 # Requisitos de qualidade
 
 ## Árvore de qualidade
@@ -3728,7 +4264,7 @@ QuaLeiDer - Qualidade
 │   ├── Modularidade
 │   ├── Testabilidade
 │   │   ├── Cobertura de Código (96.25%)
-│   │   ├── Testes Unitários (472 testes)
+│   │   ├── Testes Unitários (459 testes)
 │   │   ├── Testes E2E (110 testes)
 │   │   └── Test Factories
 │   └── Documentação
@@ -3914,7 +4450,7 @@ Testes E2E podem falhar intermitentemente devido a dependências de tempo, conco
 
 **Métricas Atuais:**
 
-- Testes Unitários: 50s (472 testes)
+- Testes Unitários: 50s (459 testes)
 - Testes E2E: 90s (110 testes)
 - Total: 140s
 
@@ -4074,6 +4610,10 @@ Não há testes automatizados específicos para validar vulnerabilidades de segu
 | **Sanitização de Logs**         | Processo de ofuscar dados sensíveis (senhas, tokens, CPF) nos logs para conformidade com LGPD e segurança                                      |
 | **Helmet**                      | Middleware para configurar headers de segurança HTTP, protege contra vulnerabilidades comuns                                                   |
 | **PrismaExceptionFilter**       | Filtro global que traduz erros do Prisma ORM em respostas HTTP padronizadas, facilitando tratamento de erros de banco de dados                 |
+| **handlePrismaError**           | Utilitário centralizado para tratamento de erros do Prisma, converte códigos de erro em BusinessException ou EntityNotFoundException          |
+| **isPrismaError**               | Type guard que verifica se um erro é do tipo PrismaError, usado em conjunto com handlePrismaError                                              |
+| **PrismaErrorCode**             | Enum com códigos de erro conhecidos do Prisma (P2002, P2025, P2003, P2004), facilita referência type-safe aos códigos                          |
+| **EntityNotFoundException**     | Exception customizada para entidades de domínio não encontradas, retorna HTTP 404 com mensagem descritiva incluindo ID                         |
 | **Circuit Breaker**             | Padrão que previne cascata de falhas ao desligar temporariamente comunicação com serviço instável                                              |
 | **Saga Pattern**                | Padrão para transações distribuídas em microserviços, coordenando operações via eventos ou orquestração                                        |
 | **2PC**                         | Two-Phase Commit: protocolo de transação distribuída que garante atomicidade em múltiplos bancos de dados                                      |

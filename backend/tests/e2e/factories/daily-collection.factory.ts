@@ -9,6 +9,7 @@ export interface DailyCollectionFactoryData {
   numLactation?: number;
   milkingPlace?: MilkingPlace;
   technicalAssistance?: boolean;
+  collectionDate?: string | Date;
 }
 
 /**
@@ -34,6 +35,7 @@ export class DailyCollectionFactory {
       milkingPlace: MilkingPlace.Curral,
       technicalAssistance: true,
       ...overrides,
+      collectionDate: (overrides as any).collectionDate || new Date().toISOString().split('T')[0],
     };
   }
 

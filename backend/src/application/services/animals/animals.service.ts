@@ -1,20 +1,22 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '@/infrastructure/prisma/prisma.service';
+import { Injectable, Inject, Logger } from '@nestjs/common';
+import { IAnimalRepository } from '@/domain/repositories/animal.repository';
+import { IUserRepository } from '@/domain/repositories/user.repository';
 import { CreateAnimalDto } from '@/application/dtos/animals/create-animal.dto';
 import { UpdateAnimalDto } from '@/application/dtos/animals/update-animal.dto';
-import { Prisma } from '@prisma/client';
+import { AnimalCriteria } from '@/domain/criteria/animal.criteria';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 
 @Injectable()
 export class AnimalsService {
   private readonly logger = new Logger(AnimalsService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    @Inject(IAnimalRepository) private animalRepository: IAnimalRepository,
+    @Inject(IUserRepository) private userRepository: IUserRepository,
+  ) {}
 
   private async validateUser(userId: number) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-    });
+    const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new EntityNotFoundException(`Usuário com ID ${userId} não encontrado.`);
     }
@@ -23,43 +25,19 @@ export class AnimalsService {
 
   async create(createAnimalDto: CreateAnimalDto) {
     await this.validateUser(createAnimalDto.userId);
-    const animal = await this.prisma.animal.create({
-      data: createAnimalDto,
-    });
+    
+    const animal = await this.animalRepository.create(createAnimalDto);
 
-    this.logger.log(
-      `Animal cadastrado para usuário ID ${createAnimalDto.userId}`,
-    );
-
+    this.logger.log(`Animal criado: ${animal.name} (ID: ${animal.id})`);
     return animal;
   }
 
-  async findAll(associationId?: number) {
-    const where: Prisma.AnimalWhereInput = { status: 'Active' };
-
-    if (associationId !== undefined) {
-      where.user = {
-        associationId: associationId,
-      };
-    }
-
-    return this.prisma.animal.findMany({
-      where,
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            associationId: true,
-          },
-        },
-      },
-    });
+  async findAll(criteria?: AnimalCriteria) {
+    return this.animalRepository.findAll(criteria);
   }
 
   async findOne(id: number) {
-    const animal = await this.prisma.animal.findUnique({ where: { id } });
-
+    const animal = await this.animalRepository.findById(id);
     if (!animal) {
       throw new EntityNotFoundException(`Animal com ID ${id} não encontrado.`);
     }
@@ -67,23 +45,12 @@ export class AnimalsService {
   }
 
   async update(id: number, updateAnimalDto: UpdateAnimalDto) {
-    return this.prisma.animal.update({
-      where: { id },
-      data: updateAnimalDto,
-    });
+    await this.findOne(id); 
+    return this.animalRepository.update(id, updateAnimalDto);
   }
 
   async remove(id: number) {
-    return this.prisma.animal.update({
-      where: { id },
-      data: { status: 'Inactive' },
-    });
-  }
-
-  async findAllByUserId(userId: number) {
-    const animals = await this.prisma.animal.findMany({
-      where: { userId, status: 'Active' },
-    });
-    return animals;
+    await this.findOne(id);
+    return this.animalRepository.softDelete(id);
   }
 }

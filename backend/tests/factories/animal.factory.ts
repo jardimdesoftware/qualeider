@@ -34,6 +34,24 @@ export class AnimalFactory {
   }
 
   /**
+   * Cria um DTO de animal (sem id, createdAt, updatedAt, status) para uso em requisições HTTP
+   * @param overrides - Campos para sobrescrever valores padrão
+   */
+  static build(overrides: any = {}) {
+    const baseData = {
+      name: `Animal Test`,
+      animalType: AnimalType.Vaca,
+      breed: 'Holandesa',
+      age: 3,
+      userId: 1,
+      ...overrides,
+    };
+
+    const { id, createdAt, updatedAt, status, ...dto } = baseData as any;
+    return dto;
+  }
+
+  /**
    * Cria um Animal com associação
    */
   static createWithAssociation(

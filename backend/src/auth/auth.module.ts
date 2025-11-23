@@ -7,6 +7,7 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
 import { MailModule } from '@/mail/mail.module';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
+import { InfrastructureModule } from '@/infrastructure/infrastructure.module';
 
 @Module({
   imports: [
@@ -21,8 +22,9 @@ import { PrismaService } from '@/infrastructure/prisma/prisma.service';
       inject: [ConfigService],
     }),
     MailModule,
+    InfrastructureModule,
   ],
-  providers: [AuthService, JwtStrategy, PrismaService],
+  providers: [AuthService, JwtStrategy, PrismaService, ConfigService],
   exports: [AuthService],
 })
 export class AuthModule {}

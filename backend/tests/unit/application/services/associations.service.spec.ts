@@ -1,32 +1,42 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AssociationsService } from '@/application/services/associations/associations.service';
-import { PrismaService } from '@/infrastructure/prisma/prisma.service';
-import { createMockPrismaService } from '../../../mocks/prisma.mock';
+import { IAssociationRepository } from '@/domain/repositories/association.repository';
 import { createAssociation } from '../../../factories/association.factory';
-import * as bcrypt from 'bcryptjs';
+import { IHashService as IHashServiceSymbol, type IHashService } from '@/application/ports/hash.service';
 import { BCRYPT_ROUNDS_USER_CREATION } from '@/common/constants/security.constants';
 import { BusinessException } from '@/common/exceptions/business.exception';
 
-jest.mock('bcryptjs');
-
 describe('AssociationsService', () => {
   let service: AssociationsService;
-  let prisma: ReturnType<typeof createMockPrismaService>;
+  let associationRepository: jest.Mocked<IAssociationRepository>;
+  let hashService: jest.Mocked<IHashService>;
 
   beforeEach(async () => {
-    prisma = createMockPrismaService();
+    const mockRepository = {
+      findByEmail: jest.fn(),
+      findByCnpj: jest.fn(),
+      create: jest.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AssociationsService,
         {
-          provide: PrismaService,
-          useValue: prisma,
+          provide: IAssociationRepository,
+          useValue: mockRepository,
+        },
+        {
+          provide: IHashServiceSymbol,
+          useValue: {
+            hash: jest.fn(),
+          },
         },
       ],
     }).compile();
 
     service = module.get<AssociationsService>(AssociationsService);
+    associationRepository = module.get<IAssociationRepository>(IAssociationRepository) as any;
+    hashService = module.get<IHashService>(IHashServiceSymbol) as any;
   });
 
   afterEach(() => {
@@ -39,29 +49,25 @@ describe('AssociationsService', () => {
         id: 1,
         email: 'test@example.com',
       });
-      prisma.association.findUnique.mockResolvedValue(mockAssociation as any);
+      associationRepository.findByEmail.mockResolvedValue(mockAssociation as any);
 
       const result = await service.findByEmail('test@example.com');
 
       expect(result).toEqual(mockAssociation);
-      expect(prisma.association.findUnique).toHaveBeenCalledWith({
-        where: { email: 'test@example.com' },
-      });
+      expect(associationRepository.findByEmail).toHaveBeenCalledWith('test@example.com');
     });
 
     it('deve converter email para lowercase na busca', async () => {
       const mockAssociation = createAssociation({ email: 'test@example.com' });
-      prisma.association.findUnique.mockResolvedValue(mockAssociation as any);
+      associationRepository.findByEmail.mockResolvedValue(mockAssociation as any);
 
       await service.findByEmail('TEST@EXAMPLE.COM');
 
-      expect(prisma.association.findUnique).toHaveBeenCalledWith({
-        where: { email: 'test@example.com' },
-      });
+      expect(associationRepository.findByEmail).toHaveBeenCalledWith('test@example.com');
     });
 
     it('deve retornar null se não encontrar', async () => {
-      prisma.association.findUnique.mockResolvedValue(null);
+      associationRepository.findByEmail.mockResolvedValue(null);
 
       const result = await service.findByEmail('notfound@example.com');
 
@@ -72,21 +78,21 @@ describe('AssociationsService', () => {
       const result = await service.findByEmail(undefined as any);
 
       expect(result).toBeNull();
-      expect(prisma.association.findUnique).not.toHaveBeenCalled();
+      expect(associationRepository.findByEmail).not.toHaveBeenCalled();
     });
 
     it('deve retornar null se email for null', async () => {
       const result = await service.findByEmail(null as any);
 
       expect(result).toBeNull();
-      expect(prisma.association.findUnique).not.toHaveBeenCalled();
+      expect(associationRepository.findByEmail).not.toHaveBeenCalled();
     });
 
     it('deve retornar null se email for string vazia', async () => {
       const result = await service.findByEmail('');
 
       expect(result).toBeNull();
-      expect(prisma.association.findUnique).not.toHaveBeenCalled();
+      expect(associationRepository.findByEmail).not.toHaveBeenCalled();
     });
   });
 
@@ -96,18 +102,16 @@ describe('AssociationsService', () => {
         id: 1,
         cnpj: '12345678000190',
       });
-      prisma.association.findUnique.mockResolvedValue(mockAssociation as any);
+      associationRepository.findByCnpj.mockResolvedValue(mockAssociation as any);
 
       const result = await service.findByCnpj('12345678000190');
 
       expect(result).toEqual(mockAssociation);
-      expect(prisma.association.findUnique).toHaveBeenCalledWith({
-        where: { cnpj: '12345678000190' },
-      });
+      expect(associationRepository.findByCnpj).toHaveBeenCalledWith('12345678000190');
     });
 
     it('deve retornar null se não encontrar', async () => {
-      prisma.association.findUnique.mockResolvedValue(null);
+      associationRepository.findByCnpj.mockResolvedValue(null);
 
       const result = await service.findByCnpj('00000000000000');
 
@@ -118,21 +122,21 @@ describe('AssociationsService', () => {
       const result = await service.findByCnpj(undefined as any);
 
       expect(result).toBeNull();
-      expect(prisma.association.findUnique).not.toHaveBeenCalled();
+      expect(associationRepository.findByCnpj).not.toHaveBeenCalled();
     });
 
     it('deve retornar null se CNPJ for null', async () => {
       const result = await service.findByCnpj(null as any);
 
       expect(result).toBeNull();
-      expect(prisma.association.findUnique).not.toHaveBeenCalled();
+      expect(associationRepository.findByCnpj).not.toHaveBeenCalled();
     });
 
     it('deve retornar null se CNPJ for string vazia', async () => {
       const result = await service.findByCnpj('');
 
       expect(result).toBeNull();
-      expect(prisma.association.findUnique).not.toHaveBeenCalled();
+      expect(associationRepository.findByCnpj).not.toHaveBeenCalled();
     });
   });
 
@@ -149,12 +153,12 @@ describe('AssociationsService', () => {
     };
 
     beforeEach(() => {
-      (bcrypt.hash as jest.Mock).mockResolvedValue('$2a$10$hashedPassword');
+      (hashService.hash as jest.Mock).mockResolvedValue('$2a$10$hashedPassword');
     });
 
     it('deve criar associação com sucesso', async () => {
-      prisma.association.findUnique.mockResolvedValue(null); // email não existe
-      prisma.association.findUnique.mockResolvedValueOnce(null); // cnpj não existe
+      associationRepository.findByEmail.mockResolvedValue(null); // email não existe
+      associationRepository.findByCnpj.mockResolvedValue(null); // cnpj não existe
 
       const mockCreatedAssociation = createAssociation({
         id: 1,
@@ -162,7 +166,7 @@ describe('AssociationsService', () => {
         email: createDto.email,
         cnpj: createDto.cnpj,
       });
-      prisma.association.create.mockResolvedValue(
+      associationRepository.create.mockResolvedValue(
         mockCreatedAssociation as any,
       );
 
@@ -170,24 +174,23 @@ describe('AssociationsService', () => {
 
       expect(result).toHaveProperty('id', 1);
       expect(result).toHaveProperty('name', createDto.name);
-      expect(bcrypt.hash).toHaveBeenCalledWith(
+      expect(hashService.hash).toHaveBeenCalledWith(
         createDto.password,
         BCRYPT_ROUNDS_USER_CREATION,
       );
-      expect(prisma.association.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
+      expect(associationRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
           email: createDto.email,
           cnpj: createDto.cnpj,
           password: '$2a$10$hashedPassword',
           foundationDate: expect.any(Date),
         }),
-        select: expect.any(Object),
-      });
+      );
     });
 
     it('deve lançar ConflictException se email já existe', async () => {
       const existingAssociation = createAssociation({ email: createDto.email });
-      prisma.association.findUnique.mockResolvedValueOnce(
+      associationRepository.findByEmail.mockResolvedValue(
         existingAssociation as any,
       );
 
@@ -195,13 +198,13 @@ describe('AssociationsService', () => {
         new BusinessException('Email já cadastrado.'),
       );
 
-      expect(prisma.association.create).not.toHaveBeenCalled();
+      expect(associationRepository.create).not.toHaveBeenCalled();
     });
 
     it('deve lançar ConflictException se CNPJ já existe', async () => {
-      prisma.association.findUnique.mockResolvedValueOnce(null); // email não existe
+      associationRepository.findByEmail.mockResolvedValue(null); // email não existe
       const existingAssociation = createAssociation({ cnpj: createDto.cnpj });
-      prisma.association.findUnique.mockResolvedValueOnce(
+      associationRepository.findByCnpj.mockResolvedValue(
         existingAssociation as any,
       ); // cnpj existe
 
@@ -209,11 +212,12 @@ describe('AssociationsService', () => {
         new BusinessException('CNPJ já cadastrado.'),
       );
 
-      expect(prisma.association.create).not.toHaveBeenCalled();
+      expect(associationRepository.create).not.toHaveBeenCalled();
     });
 
     it('deve criar associação com foundationDate null se não fornecido', async () => {
-      prisma.association.findUnique.mockResolvedValue(null);
+      associationRepository.findByEmail.mockResolvedValue(null);
+      associationRepository.findByCnpj.mockResolvedValue(null);
 
       const dtoWithoutDate = { ...createDto };
       delete (dtoWithoutDate as any).foundationDate;
@@ -221,45 +225,44 @@ describe('AssociationsService', () => {
       const mockCreatedAssociation = createAssociation({
         foundationDate: null,
       });
-      prisma.association.create.mockResolvedValue(
+      associationRepository.create.mockResolvedValue(
         mockCreatedAssociation as any,
       );
 
       await service.create(dtoWithoutDate as any);
 
-      expect(prisma.association.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
+      expect(associationRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
           foundationDate: null,
         }),
-        select: expect.any(Object),
-      });
+      );
     });
 
     it('deve hashear a senha antes de salvar', async () => {
-      prisma.association.findUnique.mockResolvedValue(null);
-      prisma.association.create.mockResolvedValue(createAssociation() as any);
+      associationRepository.findByEmail.mockResolvedValue(null);
+      associationRepository.findByCnpj.mockResolvedValue(null);
+      associationRepository.create.mockResolvedValue(createAssociation() as any);
 
       await service.create(createDto as any);
 
-      expect(bcrypt.hash).toHaveBeenCalledWith(
+      expect(hashService.hash).toHaveBeenCalledWith(
         createDto.password,
         BCRYPT_ROUNDS_USER_CREATION,
       );
-      expect(prisma.association.create).toHaveBeenCalledWith(
+      expect(associationRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({
-            password: '$2a$10$hashedPassword',
-          }),
+          password: '$2a$10$hashedPassword',
         }),
       );
     });
 
     it('não deve retornar a senha no resultado', async () => {
-      prisma.association.findUnique.mockResolvedValue(null);
+      associationRepository.findByEmail.mockResolvedValue(null);
+      associationRepository.findByCnpj.mockResolvedValue(null);
 
       const mockCreatedAssociation = createAssociation();
       delete (mockCreatedAssociation as any).password;
-      prisma.association.create.mockResolvedValue(
+      associationRepository.create.mockResolvedValue(
         mockCreatedAssociation as any,
       );
 

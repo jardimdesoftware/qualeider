@@ -1,20 +1,23 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '@/infrastructure/prisma/prisma.service';
+import { Injectable, Inject, Logger } from '@nestjs/common';
+import { IDailyCollectionRepository } from '@/domain/repositories/daily-collection.repository';
+import { IUserRepository } from '@/domain/repositories/user.repository';
 import { CreateDailyCollectionDto } from '@/application/dtos/daily-collections/create-daily-collection.dto';
 import { UpdateDailyCollectionDto } from '@/application/dtos/daily-collections/update-daily-collection.dto';
-import { Prisma } from '@prisma/client';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
+import { BusinessException } from '@/common/exceptions/business.exception';
+import { DailyCollectionCriteria } from '@/domain/criteria/daily-collection.criteria';
 
 @Injectable()
 export class DailyCollectionsService {
   private readonly logger = new Logger(DailyCollectionsService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    @Inject(IUserRepository) private userRepository: IUserRepository,
+    @Inject(IDailyCollectionRepository) private dailyCollectionRepository: IDailyCollectionRepository,
+  ) {}
 
   private async validateUser(userId: number) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-    });
+    const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new EntityNotFoundException(`Usuário com ID ${userId} não encontrado.`);
     }
@@ -23,49 +26,18 @@ export class DailyCollectionsService {
 
   async create(createDailyCollectionDto: CreateDailyCollectionDto) {
     await this.validateUser(createDailyCollectionDto.userId);
+    const dailyCollection = await this.dailyCollectionRepository.create(createDailyCollectionDto);
 
-    const dailyCollection = await this.prisma.dailyCollection.create({
-      data: createDailyCollectionDto,
-    });
-
-    this.logger.log(
-      `Formulário criado para o usuário ID ${createDailyCollectionDto.userId}`,
-    );
-
+    this.logger.log(`Coleta diária criada (ID: ${dailyCollection.id})`);
     return dailyCollection;
   }
 
-  async findAll(associationId?: number) {
-    const where: Prisma.DailyCollectionWhereInput = {};
-
-    if (associationId !== undefined) {
-      where.user = {
-        associationId: associationId,
-      };
-    }
-
-    return this.prisma.dailyCollection.findMany({
-      where,
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            associationId: true,
-          },
-        },
-      },
-      orderBy: {
-        collectionDate: 'desc',
-      },
-    });
+  async findAll(criteria?: DailyCollectionCriteria) {
+    return this.dailyCollectionRepository.findAll(criteria);
   }
 
   async findOne(id: number) {
-    const dailyCollection = await this.prisma.dailyCollection.findUnique({
-      where: { id },
-    });
-
+    const dailyCollection = await this.dailyCollectionRepository.findById(id);
     if (!dailyCollection) {
       throw new EntityNotFoundException(`Coleta diária com ID ${id} não encontrada.`);
     }
@@ -73,24 +45,12 @@ export class DailyCollectionsService {
   }
 
   async update(id: number, updateDailyCollectionDto: UpdateDailyCollectionDto) {
-    return this.prisma.dailyCollection.update({
-      where: { id },
-      data: updateDailyCollectionDto,
-    });
+    await this.findOne(id); 
+    return this.dailyCollectionRepository.update(id, updateDailyCollectionDto);
   }
 
   async remove(id: number) {
-    return this.prisma.dailyCollection.delete({
-      where: { id },
-    });
-  }
-
-  async findAllByUserId(userId: number) {
-    const dailyCollections = await this.prisma.dailyCollection.findMany({
-      where: { userId },
-      orderBy: { collectionDate: 'desc' },
-    });
-
-    return dailyCollections;
+    await this.findOne(id);
+    await this.dailyCollectionRepository.delete(id);
   }
 }

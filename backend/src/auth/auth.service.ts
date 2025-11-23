@@ -1,15 +1,14 @@
 import {
-  HttpException,
   HttpStatus,
   Injectable,
   NotFoundException,
   UnauthorizedException,
   Logger,
+  Inject,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { UsersService } from '@/application/services/users/users.service';
-import * as bcrypt from 'bcryptjs';
-import { PrismaService } from '@/infrastructure/prisma/prisma.service';
+import { IHashService } from '@/application/ports/hash.service';
+import { IUserRepository } from '@/domain/repositories/user.repository';
 import { MailService } from '@/mail/mail.service';
 import {
   BCRYPT_ROUNDS_RESET_PASSWORD,
@@ -23,16 +22,16 @@ export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
-    private usersService: UsersService,
+    @Inject(IUserRepository) private userRepository: IUserRepository,
     private jwtService: JwtService,
-    private prisma: PrismaService,
     private mailService: MailService,
+    @Inject(IHashService) private hashService: IHashService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
-    const user = await this.usersService.findByEmail(email);
+    const user = await this.userRepository.findByEmail(email);
 
-    if (user && (await bcrypt.compare(password, user.password))) {
+    if (user && (await this.hashService.compare(password, user.password))) {
       const { password, ...result } = user;
       return result;
     }
@@ -57,9 +56,7 @@ export class AuthService {
   async forgotPassword(email: string, request?: any) {
     const normalizedEmail = email.toLowerCase();
 
-    const user = await this.prisma.user.findUnique({
-      where: { email: normalizedEmail },
-    });
+    const user = await this.userRepository.findByEmail(normalizedEmail);
 
     if (!user) {
       throw new NotFoundException('E-mail não encontrado no sistema.');
@@ -75,12 +72,9 @@ export class AuthService {
         resetTokenExpiry.getMinutes() + RESET_TOKEN_EXPIRY_MINUTES,
       );
 
-      await this.prisma.user.update({
-        where: { id: user.id },
-        data: {
-          resetToken,
-          resetTokenExpiry,
-        },
+      await this.userRepository.update(user.id, {
+        resetToken,
+        resetTokenExpiry,
       });
 
       await this.mailService.sendResetPasswordEmail(
@@ -103,9 +97,7 @@ export class AuthService {
   }
 
   async validateResetToken(email: string, token: string): Promise<boolean> {
-    const user = await this.prisma.user.findUnique({
-      where: { email },
-    });
+    const user = await this.userRepository.findByEmail(email);
 
     if (!user) {
       throw new NotFoundException('Usuário não encontrado.');
@@ -124,11 +116,8 @@ export class AuthService {
     const newExpiry = new Date();
     newExpiry.setMinutes(newExpiry.getMinutes() + RESET_TOKEN_EXPIRY_MINUTES);
 
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        resetTokenExpiry: newExpiry,
-      },
+    await this.userRepository.update(user.id, {
+      resetTokenExpiry: newExpiry,
     });
 
     this.logger.log(`Token validado para ${email}, validade estendida`);
@@ -143,21 +132,16 @@ export class AuthService {
   ): Promise<boolean> {
     await this.validateResetToken(email, token);
 
-    const user = await this.prisma.user.findUnique({
-      where: { email },
-    });
+    const user = await this.userRepository.findByEmail(email);
 
-    const hashedPassword = await bcrypt.hash(
+    const hashedPassword = await this.hashService.hash(
       newPassword,
       BCRYPT_ROUNDS_RESET_PASSWORD,
     );
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        password: hashedPassword,
-        resetToken: null,
-        resetTokenExpiry: null,
-      },
+    await this.userRepository.update(user.id, {
+      password: hashedPassword,
+      resetToken: null,
+      resetTokenExpiry: null,
     });
 
     this.logger.log(`Senha redefinida para ${email}`);

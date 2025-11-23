@@ -1,7 +1,13 @@
 import { ID } from '@/domain/enums/enums';
 import { UserEntity } from '@/domain/entities/user.entity';
+import { UserCriteria } from '@/domain/criteria/user.criteria';
 
 export const IUserRepository = Symbol('IUserRepository');
+
+export interface UserFindOneOptions {
+  includeAnimals?: boolean;
+  includeAssociation?: boolean;
+}
 
 export interface IUserRepository {
   create(
@@ -9,8 +15,11 @@ export interface IUserRepository {
       status?: string;
     },
   ): Promise<UserEntity>;
-  findAllActive(): Promise<Array<Omit<UserEntity, 'password'>>>;
-  findById(id: ID): Promise<Omit<UserEntity, 'password'> | null>;
+  findAll(criteria?: UserCriteria): Promise<Array<Omit<UserEntity, 'password'>>>;
+  findById(
+    id: ID, 
+    options?: UserFindOneOptions
+  ): Promise<Omit<UserEntity, 'password'> | null>;
   update(
     id: ID,
     data: Partial<UserEntity>,
@@ -19,6 +28,6 @@ export interface IUserRepository {
     id: ID,
     data: Partial<UserEntity>,
   ): Promise<Omit<UserEntity, 'password'>>;
-  softDelete(id: ID): Promise<void>;
+  softDelete(id: ID): Promise<UserEntity>;
   findByEmail(email: string): Promise<UserEntity | null>;
 }

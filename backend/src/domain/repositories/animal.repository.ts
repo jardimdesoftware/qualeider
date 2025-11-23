@@ -1,7 +1,12 @@
 import { ID } from '@/domain/enums/enums';
 import { AnimalEntity } from '@/domain/entities/animal.entity';
+import { AnimalCriteria } from '@/domain/criteria/animal.criteria';
 
 export const IAnimalRepository = Symbol('IAnimalRepository');
+
+export interface AnimalFindOneOptions {
+  includeUser?: boolean;
+}
 
 export interface IAnimalRepository {
   create(
@@ -9,9 +14,8 @@ export interface IAnimalRepository {
       status?: string;
     },
   ): Promise<AnimalEntity>;
-  findAllActive(): Promise<AnimalEntity[]>;
-  findById(id: ID): Promise<AnimalEntity | null>;
+  findAll(criteria?: AnimalCriteria): Promise<AnimalEntity[]>;
+  findById(id: ID, options?: AnimalFindOneOptions): Promise<AnimalEntity | null>;
   update(id: ID, data: Partial<AnimalEntity>): Promise<AnimalEntity>;
-  softDelete(id: ID): Promise<void>;
-  findAllByUserId(userId: ID): Promise<AnimalEntity[]>;
+  softDelete(id: ID): Promise<AnimalEntity>;
 }
