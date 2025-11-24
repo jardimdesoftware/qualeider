@@ -6,6 +6,8 @@ import { ID, Status } from '@/domain/enums/enums';
 import { AnimalEntity } from '@/domain/entities/animal.entity';
 import { AnimalCriteria } from '@/domain/criteria/animal.criteria';
 import { handlePrismaError, PrismaErrorCode } from '@/common/utils/prisma-error-handler';
+import { AnimalMapper } from '@/infrastructure/mappers/animal.mapper';
+import { Status as PrismaStatus } from '@prisma/client';
 
 @Injectable()
 export class PrismaAnimalRepository implements IAnimalRepository {
@@ -22,10 +24,10 @@ export class PrismaAnimalRepository implements IAnimalRepository {
           breed: data.breed,
           age: data.age,
           userId: data.userId,
-          status: Status.Active,
+          status: PrismaStatus.Active,
         },
       });
-      return created as any;
+      return AnimalMapper.toDomain(created);
     } catch (error) {
       handlePrismaError(error, {
         [PrismaErrorCode.FOREIGN_KEY_CONSTRAINT_FAILED]: 'Produtor (User) não encontrado.',
@@ -36,7 +38,7 @@ export class PrismaAnimalRepository implements IAnimalRepository {
   async findAll(criteria: AnimalCriteria = {}): Promise<AnimalEntity[]> {
     const where: Prisma.AnimalWhereInput = {};
 
-    where.status = criteria.status !== undefined ? criteria.status : Status.Active;
+    where.status = criteria.status !== undefined ? (criteria.status as PrismaStatus) : PrismaStatus.Active;
 
     if (criteria.userId) {
       where.userId = criteria.userId;
@@ -63,7 +65,7 @@ export class PrismaAnimalRepository implements IAnimalRepository {
       orderBy: { createdAt: 'desc' },
     });
 
-    return animals as any;
+    return animals.map(AnimalMapper.toDomain);
   }
 
   async findById(id: ID, options?: AnimalFindOneOptions): Promise<AnimalEntity | null> {
@@ -77,7 +79,8 @@ export class PrismaAnimalRepository implements IAnimalRepository {
       where: { id },
       include: Object.keys(include).length > 0 ? include : undefined,
     });
-    return (animal as any) ?? null;
+    
+    return animal ? AnimalMapper.toDomain(animal) : null;
   }
 
   async update(id: ID, data: Partial<AnimalEntity>): Promise<AnimalEntity> {
@@ -89,10 +92,10 @@ export class PrismaAnimalRepository implements IAnimalRepository {
           animalType: (data.animalType as any) ?? undefined,
           breed: data.breed ?? undefined,
           age: data.age ?? undefined,
-          status: (data.status as any) ?? undefined,
+          status: (data.status as unknown as PrismaStatus) ?? undefined,
         },
       });
-      return updated as any;
+      return AnimalMapper.toDomain(updated);
     } catch (error) {
       handlePrismaError(error, {
         [PrismaErrorCode.RECORD_NOT_FOUND]: `Animal com ID ${id} não encontrado.`,
@@ -104,9 +107,9 @@ export class PrismaAnimalRepository implements IAnimalRepository {
     try {
       const deactivated = await this.prisma.animal.update({
         where: { id },
-        data: { status: Status.Inactive },
+        data: { status: PrismaStatus.Inactive },
       });
-      return deactivated as any;
+      return AnimalMapper.toDomain(deactivated);
     } catch (error) {
       handlePrismaError(error, {
         [PrismaErrorCode.RECORD_NOT_FOUND]: `Animal com ID ${id} não encontrado para remoção.`,
