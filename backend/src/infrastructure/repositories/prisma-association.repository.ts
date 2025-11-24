@@ -4,22 +4,25 @@ import { IAssociationRepository } from '@/domain/repositories/association.reposi
 import { AssociationEntity } from '@/domain/entities/association.entity';
 import { handlePrismaError, isPrismaError, PrismaErrorCode } from '@/common/utils/prisma-error-handler';
 import { BusinessException } from '@/common/exceptions/business.exception';
+import { AssociationMapper } from '@/infrastructure/mappers/association.mapper';
+import { Status as PrismaStatus } from '@prisma/client';
 
 @Injectable()
 export class PrismaAssociationRepository implements IAssociationRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(
-    data: Omit<AssociationEntity, 'id' | 'createdAt' | 'updatedAt'>,
+    data: Omit<AssociationEntity, 'id' | 'createdAt' | 'updatedAt' | 'status'>,
   ): Promise<AssociationEntity> {
     try {
       const created = await this.prisma.association.create({
         data: {
           ...data,
-          foundationDate: data.foundationDate ? new Date(data.foundationDate) : null, 
+          foundationDate: data.foundationDate ? new Date(data.foundationDate) : null,
+          status: PrismaStatus.Active, 
         },
       });
-      return created as unknown as AssociationEntity;
+      return AssociationMapper.toDomain(created);
     } catch (error) {
       if (isPrismaError(error) && error.code === PrismaErrorCode.UNIQUE_CONSTRAINT_VIOLATION) {
         const target = error.meta?.target as string[];
@@ -40,20 +43,23 @@ export class PrismaAssociationRepository implements IAssociationRepository {
     const association = await this.prisma.association.findUnique({
       where: { email },
     });
-    return (association as any) ?? null;
+    if (!association) return null;
+    return AssociationMapper.toDomain(association);
   }
 
   async findByCnpj(cnpj: string): Promise<AssociationEntity | null> {
     const association = await this.prisma.association.findUnique({
       where: { cnpj },
     });
-    return (association as any) ?? null;
+    if (!association) return null;
+    return AssociationMapper.toDomain(association);
   }
 
   async findById(id: number): Promise<AssociationEntity | null> {
     const association = await this.prisma.association.findUnique({
       where: { id },
     });
-    return (association as any) ?? null;
+    if (!association) return null;
+    return AssociationMapper.toDomain(association);
   }
 }

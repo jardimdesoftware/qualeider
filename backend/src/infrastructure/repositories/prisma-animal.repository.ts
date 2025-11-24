@@ -75,12 +75,14 @@ export class PrismaAnimalRepository implements IAnimalRepository {
       include.user = true;
     }
 
-    const animal = await this.prisma.animal.findUnique({
+    const rawAnimal = await this.prisma.animal.findUnique({
       where: { id },
       include: Object.keys(include).length > 0 ? include : undefined,
     });
     
-    return animal ? AnimalMapper.toDomain(animal) : null;
+    if (!rawAnimal) return null;
+
+    return AnimalMapper.toDomain(rawAnimal);
   }
 
   async update(id: ID, data: Partial<AnimalEntity>): Promise<AnimalEntity> {
