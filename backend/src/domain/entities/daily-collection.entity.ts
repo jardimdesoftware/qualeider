@@ -1,6 +1,9 @@
 import { ID, MilkingPlace } from '@/domain/enums/enums';
 
 export class DailyCollectionEntity {
+  constructor(props?: Partial<DailyCollectionEntity>) {
+    if (props) Object.assign(this, props);
+  }
   id!: ID;
   quantity!: number;
   collectionDate!: Date;

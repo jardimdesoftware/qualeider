@@ -6,6 +6,7 @@ import { ID } from '@/domain/enums/enums';
 import { DailyCollectionEntity } from '@/domain/entities/daily-collection.entity';
 import { DailyCollectionCriteria } from '@/domain/criteria/daily-collection.criteria';
 import { handlePrismaError, PrismaErrorCode } from '@/common/utils/prisma-error-handler';
+import { DailyCollectionMapper } from '@/infrastructure/mappers/daily-collection.mapper';
 
 @Injectable()
 export class PrismaDailyCollectionRepository implements IDailyCollectionRepository {
@@ -26,7 +27,7 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
           technicalAssistance: data.technicalAssistance,
         },
       });
-      return created as any;
+      return DailyCollectionMapper.toDomain(created);
     } catch (error) {
       handlePrismaError(error, {
         [PrismaErrorCode.FOREIGN_KEY_CONSTRAINT_FAILED]: 'Produtor (User) inválido ou não encontrado.',
@@ -65,7 +66,7 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
       orderBy: { collectionDate: 'desc' },
     });
 
-    return list as any;
+    return list.map(DailyCollectionMapper.toDomain);
   }
 
   async findById(id: ID, options?: DailyCollectionFindOneOptions): Promise<DailyCollectionEntity | null> {
@@ -75,11 +76,14 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
       include.user = true;
     }
 
-    const found = await this.prisma.dailyCollection.findUnique({
+    const rawDailyCollection = await this.prisma.dailyCollection.findUnique({
       where: { id },
       include: Object.keys(include).length > 0 ? include : undefined,
     });
-    return (found as any) ?? null;
+    
+    if (!rawDailyCollection) return null;
+
+    return DailyCollectionMapper.toDomain(rawDailyCollection);
   }
 
   async update(
@@ -100,7 +104,7 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
           technicalAssistance: data.technicalAssistance ?? undefined,
         },
       });
-      return updated as any;
+      return DailyCollectionMapper.toDomain(updated);
     } catch (error) {
       handlePrismaError(error, {
         [PrismaErrorCode.RECORD_NOT_FOUND]: `Coleta diária com ID ${id} não encontrada para atualização.`,

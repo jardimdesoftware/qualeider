@@ -9,6 +9,7 @@ import { InviteEntity } from '@/domain/entities/invite.entity';
 import { InviteStatus } from '@/domain/enums/enums';
 import { handlePrismaError, PrismaErrorCode } from '@/common/utils/prisma-error-handler';
 import { Prisma } from '@prisma/client';
+import { InviteMapper } from '@/infrastructure/mappers/invite.mapper';
 
 @Injectable()
 export class PrismaInviteRepository implements IInviteRepository {
@@ -29,7 +30,7 @@ export class PrismaInviteRepository implements IInviteRepository {
           association: true,
         },
       });
-      return invite as unknown as InviteEntity;
+      return InviteMapper.toDomain(invite);
     } catch (error) {
       handlePrismaError(error, {
         [PrismaErrorCode.UNIQUE_CONSTRAINT_VIOLATION]: 'Este usuário já possui um convite pendente ou ativo.',
@@ -62,7 +63,7 @@ export class PrismaInviteRepository implements IInviteRepository {
       orderBy: { sentAt: 'desc' },
     });
 
-    return invites as unknown as InviteEntity[];
+    return invites.map(InviteMapper.toDomain);
   }
 
   async findById(
@@ -73,12 +74,14 @@ export class PrismaInviteRepository implements IInviteRepository {
     if (options?.includeUser) include.user = true;
     if (options?.includeAssociation) include.association = true;
 
-    const invite = await this.prisma.invite.findUnique({
+    const rawInvite = await this.prisma.invite.findUnique({
       where: { id },
       include: Object.keys(include).length > 0 ? include : undefined,
     });
 
-    return (invite as any) ?? null;
+    if (!rawInvite) return null;
+
+    return InviteMapper.toDomain(rawInvite);
   }
 
   async findByToken(
@@ -89,12 +92,14 @@ export class PrismaInviteRepository implements IInviteRepository {
     if (options?.includeUser) include.user = true;
     if (options?.includeAssociation) include.association = true;
 
-    const invite = await this.prisma.invite.findUnique({
+    const rawInvite = await this.prisma.invite.findUnique({
       where: { token },
       include: Object.keys(include).length > 0 ? include : undefined,
     });
 
-    return (invite as any) ?? null;
+    if (!rawInvite) return null;
+
+    return InviteMapper.toDomain(rawInvite);
   }
 
   async update(id: number, data: any): Promise<InviteEntity> {
@@ -110,7 +115,7 @@ export class PrismaInviteRepository implements IInviteRepository {
           association: true,
         },
       });
-      return updated as unknown as InviteEntity;
+      return InviteMapper.toDomain(updated);
     } catch (error) {
       handlePrismaError(error, {
         [PrismaErrorCode.RECORD_NOT_FOUND]: `Convite com ID ${id} não encontrado.`,

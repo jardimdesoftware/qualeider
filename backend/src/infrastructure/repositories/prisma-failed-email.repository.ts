@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { IFailedEmailRepository } from '@/domain/repositories/failed-email.repository';
 import { FailedEmail, EmailPayload } from '@/domain/entities/failed-email.entity';
+import { FailedEmailMapper } from '@/infrastructure/mappers/failed-email.mapper';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class PrismaFailedEmailRepository implements IFailedEmailRepository {
@@ -14,18 +16,11 @@ export class PrismaFailedEmailRepository implements IFailedEmailRepository {
   }): Promise<FailedEmail> {
     const created = await this.prisma.failedEmail.create({
       data: {
-        payload: data.payload as any,
+        payload: data.payload as unknown as Prisma.JsonValue,
         errorReason: data.errorReason,
         retryCount: data.retryCount,
       },
     });
-    return new FailedEmail(
-      created.id,
-      created.payload as unknown as EmailPayload,
-      created.errorReason,
-      created.retryCount,
-      created.createdAt,
-      created.updatedAt,
-    );
+    return FailedEmailMapper.toDomain(created);
   }
 }

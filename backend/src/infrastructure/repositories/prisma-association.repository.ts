@@ -40,26 +40,26 @@ export class PrismaAssociationRepository implements IAssociationRepository {
   }
 
   async findByEmail(email: string): Promise<AssociationEntity | null> {
-    const association = await this.prisma.association.findUnique({
+    const rawAssociation = await this.prisma.association.findUnique({
       where: { email },
     });
-    if (!association) return null;
-    return AssociationMapper.toDomain(association);
+    if (!rawAssociation) return null;
+    return AssociationMapper.toDomain(rawAssociation);
   }
 
   async findByCnpj(cnpj: string): Promise<AssociationEntity | null> {
-    const association = await this.prisma.association.findUnique({
+    const rawAssociation = await this.prisma.association.findUnique({
       where: { cnpj },
     });
-    if (!association) return null;
-    return AssociationMapper.toDomain(association);
+    if (!rawAssociation) return null;
+    return AssociationMapper.toDomain(rawAssociation);
   }
 
   async findById(id: number): Promise<AssociationEntity | null> {
-    const association = await this.prisma.association.findUnique({
+    const rawAssociation = await this.prisma.association.findUnique({
       where: { id },
     });
-    if (!association) return null;
-    return AssociationMapper.toDomain(association);
+    if (!rawAssociation) return null;
+    return AssociationMapper.toDomain(rawAssociation);
   }
 }

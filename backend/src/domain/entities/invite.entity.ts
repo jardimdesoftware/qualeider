@@ -6,6 +6,7 @@ export class InviteEntity {
   id: number;
   token: string;
   message: string;
+  customMessage?: string;
   status: InviteStatus;
   sentAt: Date;
   expiresAt: Date;
@@ -14,6 +15,8 @@ export class InviteEntity {
   associationId: number;
   user?: UserEntity;
   association?: AssociationEntity;
+  createdAt: Date;
+  updatedAt: Date;
 
   constructor(partial: Partial<InviteEntity>) {
     Object.assign(this, partial);
