@@ -49,6 +49,10 @@ export class PrismaUserRepository implements IUserRepository {
       where.associationId = criteria.associationId;
     }
 
+    if (criteria.ids && criteria.ids.length > 0) {
+      where.id = { in: criteria.ids };
+    }
+
     if (criteria.emailContains) {
       where.email = { contains: criteria.emailContains }; 
     }

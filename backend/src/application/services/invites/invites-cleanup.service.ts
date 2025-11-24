@@ -1,13 +1,15 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { PrismaService } from '@/infrastructure/prisma/prisma.service';
-import { InviteStatus } from '@/domain/enums/enums';
+import { IInviteRepository } from '@/domain/repositories/invite.repository';
 
 @Injectable()
 export class InvitesCleanupService {
   private readonly logger = new Logger(InvitesCleanupService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(IInviteRepository)
+    private readonly inviteRepository: IInviteRepository,
+  ) {}
 
   /**
    * Roda todos os dias à meia-noite
@@ -17,25 +19,15 @@ export class InvitesCleanupService {
   async expireOldInvites() {
     this.logger.log('Iniciando verificação de convites expirados...');
 
-    const result = await this.prisma.invite.updateMany({
-      where: {
-        status: InviteStatus.PENDING,
-        expiresAt: {
-          lt: new Date(),
-        },
-      },
-      data: {
-        status: InviteStatus.EXPIRED,
-      },
-    });
+    const expiredCount = await this.inviteRepository.expireOldInvites();
 
     this.logger.log(
-      `✅ ${result.count} convite(s) marcado(s) como expirado(s)`,
+      `${expiredCount} convite(s) marcado(s) como expirado(s)`,
     );
 
     return {
       success: true,
-      expiredCount: result.count,
+      expiredCount,
       timestamp: new Date(),
     };
   }
@@ -45,3 +37,4 @@ export class InvitesCleanupService {
     return this.expireOldInvites();
   }
 }
+

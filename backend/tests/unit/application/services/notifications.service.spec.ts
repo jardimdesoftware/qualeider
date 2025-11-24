@@ -1,28 +1,34 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotificationsService } from '@/application/services/notifications/notifications.service';
-import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { createMockPrismaService } from '../../../mocks/prisma.mock';
 import { createMockEventEmitter } from '../../../mocks/event-emitter.mock';
 import { createUser } from '../../../factories/user.factory';
 import { NotificationEvent } from '@/events/notification.events';
 import { NotificationType } from '@/domain/enums/enums';
+import { IUserRepository } from '@/domain/repositories/user.repository';
 
 describe('NotificationsService', () => {
   let service: NotificationsService;
-  let prisma: ReturnType<typeof createMockPrismaService>;
+  let userRepository: jest.Mocked<IUserRepository>;
   let eventEmitter: ReturnType<typeof createMockEventEmitter>;
 
   beforeEach(async () => {
-    prisma = createMockPrismaService();
     eventEmitter = createMockEventEmitter();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         NotificationsService,
         {
-          provide: PrismaService,
-          useValue: prisma,
+          provide: IUserRepository,
+          useValue: {
+            findAll: jest.fn(),
+            create: jest.fn(),
+            findById: jest.fn(),
+            findByEmail: jest.fn(),
+            update: jest.fn(),
+            partialUpdate: jest.fn(),
+            softDelete: jest.fn(),
+          },
         },
         {
           provide: EventEmitter2,
@@ -32,6 +38,7 @@ describe('NotificationsService', () => {
     }).compile();
 
     service = module.get<NotificationsService>(NotificationsService);
+    userRepository = module.get(IUserRepository);
   });
 
   afterEach(() => {
@@ -59,15 +66,13 @@ describe('NotificationsService', () => {
         message: 'Você recebeu um novo convite',
       };
 
-      prisma.user.findMany.mockResolvedValue([user1, user2] as any);
+      userRepository.findAll.mockResolvedValue([user1, user2]);
 
       await service.notifyProducers(event);
 
-      expect(prisma.user.findMany).toHaveBeenCalledWith({
-        where: {
-          id: { in: [1, 2] },
-          associationId: 1,
-        },
+      expect(userRepository.findAll).toHaveBeenCalledWith({
+        ids: [1, 2],
+        associationId: 1,
       });
 
       expect(eventEmitter.emit).toHaveBeenCalledTimes(2);
@@ -112,12 +117,12 @@ describe('NotificationsService', () => {
         message: 'Reunião amanhã às 10h',
       };
 
-      prisma.user.findMany.mockResolvedValue([user1, user2, user3] as any);
+      userRepository.findAll.mockResolvedValue([user1, user2, user3]);
 
       await service.notifyProducers(event);
 
-      expect(prisma.user.findMany).toHaveBeenCalledWith({
-        where: { associationId: 5 },
+      expect(userRepository.findAll).toHaveBeenCalledWith({
+        associationId: 5,
       });
 
       expect(eventEmitter.emit).toHaveBeenCalledTimes(3);
@@ -132,7 +137,7 @@ describe('NotificationsService', () => {
         message: 'Teste',
       };
 
-      prisma.user.findMany.mockResolvedValue([]);
+      userRepository.findAll.mockResolvedValue([]);
 
       await service.notifyProducers(event);
 
@@ -148,15 +153,13 @@ describe('NotificationsService', () => {
         message: 'Mensagem de teste',
       };
 
-      prisma.user.findMany.mockResolvedValue([]);
+      userRepository.findAll.mockResolvedValue([]);
 
       await service.notifyProducers(event);
 
-      expect(prisma.user.findMany).toHaveBeenCalledWith({
-        where: {
-          id: { in: [1, 2, 3] },
-          associationId: 3,
-        },
+      expect(userRepository.findAll).toHaveBeenCalledWith({
+        ids: [1, 2, 3],
+        associationId: 3,
       });
     });
 
@@ -175,7 +178,7 @@ describe('NotificationsService', () => {
         message: 'Conteúdo da notificação',
       };
 
-      prisma.user.findMany.mockResolvedValue([user] as any);
+      userRepository.findAll.mockResolvedValue([user]);
 
       await service.notifyProducers(event);
 

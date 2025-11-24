@@ -1,13 +1,14 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '@/infrastructure/prisma/prisma.service';
+import { Injectable, Inject } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { NotificationEvent } from '@/events/notification.events';
 import { NotificationSendPayload } from '@/events/notification-payload.interface';
+import { IUserRepository } from '@/domain/repositories/user.repository';
 
 @Injectable()
 export class NotificationsService {
   constructor(
-    private readonly prisma: PrismaService,
+    @Inject(IUserRepository)
+    private readonly userRepository: IUserRepository,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -28,15 +29,13 @@ export class NotificationsService {
 
   private async getTargetUsers(event: NotificationEvent) {
     if (event.type === 'Individual') {
-      return this.prisma.user.findMany({
-        where: {
-          id: { in: event.userIds },
-          associationId: event.associationId,
-        },
+      return this.userRepository.findAll({
+        ids: event.userIds,
+        associationId: event.associationId,
       });
     } else {
-      return this.prisma.user.findMany({
-        where: { associationId: event.associationId },
+      return this.userRepository.findAll({
+        associationId: event.associationId,
       });
     }
   }
