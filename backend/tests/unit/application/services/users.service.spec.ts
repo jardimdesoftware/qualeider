@@ -10,7 +10,6 @@ import { UserCategory, Status } from '@/domain/enums/enums';
 import { BCRYPT_ROUNDS_USER_CREATION } from '@/common/constants/security.constants';
 import { BusinessException } from '@/common/exceptions/business.exception';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
-import { Prisma } from '@prisma/client';
 
 describe('UsersService', () => {
   let service: UsersService;

@@ -1,6 +1,10 @@
 import { ID, UserCategory, UserType, Status } from '@/domain/enums/enums';
 
 export class UserEntity {
+  constructor(props?: Partial<UserEntity>) {
+    if (props) Object.assign(this, props);
+  }
+
   id!: ID;
   associationId?: number | null;
   name!: string;
