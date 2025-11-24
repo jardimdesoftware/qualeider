@@ -1,6 +1,10 @@
-import { CoverageArea } from '@/domain/enums/enums';
+import { CoverageArea, Status } from '@/domain/enums/enums';
 
 export class AssociationEntity {
+  constructor(props?: Partial<AssociationEntity>) {
+    if (props) Object.assign(this, props);
+  }
+
   id: number;
   name: string;
   tradeName?: string | null;
@@ -25,6 +29,7 @@ export class AssociationEntity {
   presidentCpf: string;
   presidentEmail: string;
   presidentPhone: string;
+  status: Status;
   createdAt: Date;
   updatedAt: Date;
 }

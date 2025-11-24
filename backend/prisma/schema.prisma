@@ -40,6 +40,11 @@ enum CoverageArea {
   Estadual
 }
 
+enum Status {
+  Active
+  Inactive
+}
+
 model Association {
   id                    Int              @id @default(autoincrement())
   name                  String           
@@ -65,7 +70,7 @@ model Association {
   presidentCpf          String           
   presidentEmail        String           
   presidentPhone        String           
-  status                String           @default("Active")
+  status                Status           @default(Active)
   users                 User[]           
   invites               Invite[]
   createdAt             DateTime         @default(now())
@@ -87,7 +92,7 @@ model User {
   document              String?          @unique // CPF ou CNPJ
   city                  String           
   state                 String 
-  status                String           @default("Active")
+  status                Status           @default(Active)
   resetToken            String?  
   resetTokenExpiry      DateTime?
   createdAt             DateTime         @default(now())
@@ -104,7 +109,7 @@ model Animal {
   breed                 String
   age                   Int
   userId                Int
-  status                String           @default("Active")
+  status                Status           @default(Active)
   user                  User             @relation(fields: [userId], references: [id])
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
