@@ -1004,7 +1004,55 @@ export class InviteEmailListener {
 
 ---
 
-## 6.2. Fluxo de Autenticação (Login) {#fluxo_autenticacao_login}
+# 5. Visão de Blocos de Construção
+
+A visão de blocos de construção mostra a decomposição estática do sistema em blocos de construção (módulos, componentes, subsistemas) e seus relacionamentos.
+
+## 5.1 Nível 1: Visão Geral (Whitebox do Sistema QuaLeiDer)
+
+No nível mais alto, o QuaLeiDer é um **Monólito Modular** construído sobre o framework NestJS. O sistema é composto por um único processo de servidor (`AppModule`) que orquestra diversos módulos de funcionalidade e infraestrutura.
+
+## 5.2 Nível 2: Decomposição em Módulos
+
+O sistema divide-se em **Módulos de Domínio (Features)** e **Módulos de Infraestrutura (Shared)**. O diagrama abaixo ilustra as dependências lógicas entre os principais módulos do sistema.
+
+![Decomposição em Módulos](images/module-decomposition.png)
+
+### Descrição dos Blocos de Construção
+
+A tabela abaixo descreve as responsabilidades de cada módulo principal identificado na arquitetura.
+
+| Bloco de Construção | Responsabilidade Principal | Colaboradores / Dependências |
+| :--- | :--- | :--- |
+| **Auth Module** | Gerencia a autenticação e emissão de tokens. Implementa estratégias Passport (JWT, Local) e Guards globais. | Depende de `UsersModule` para validar credenciais e `JwtService` para assinar tokens. |
+| **Users Module** | Gerencia o ciclo de vida dos usuários (Produtores e Associações), perfis e dados cadastrais básicos. | Utiliza `PrismaModule` para persistência e `HashService` para segurança de senhas. |
+| **DailyCollections Module** | **(Core Domain)** Gerencia o registro de coletas de leite, contendo as regras de negócio mais críticas sobre produção e validação de dados técnicos. | Depende de `UsersModule` (proprietário) e `AnimalsModule` (origem do leite). |
+| **Animals Module** | Gerencia o rebanho dos produtores, rastreando características individuais (raça, idade, tipo) e status. | Vinculado fortemente ao `UsersModule`. |
+| **Invites Module** | Gerencia o fluxo de crescimento viral da plataforma (Associações convidando Produtores). Controla tokens, expiração e envio de emails. | Usa `MailModule` para comunicação e `EventEmitter` para processamento assíncrono. |
+| **Associations Module** | Gerencia dados corporativos das associações e visualização agregada de seus membros. | Relaciona-se com `UsersModule` (membros) e `InvitesModule` (origem dos convites). |
+| **Infrastructure Module** | Fornece implementações concretas para as interfaces de porta (Ports) da camada de aplicação. Inclui Repositórios, HashService, etc. | Isola dependências externas como bibliotecas de criptografia. |
+| **Prisma Module** | Encapsula o `PrismaClient`, gerenciando a conexão com o PostgreSQL e tratamento de erros de banco de dados. | Usado por todos os Repositórios. |
+| **Mail Module** | Abstração sobre o `Nodemailer`. Responsável pela renderização de templates Handlebars e transporte SMTP. | Injetado principalmente em Listeners de eventos. |
+
+## 5.3 Estrutura Interna dos Módulos (Nível 3)
+
+Cada módulo de funcionalidade (ex: `UsersModule`) segue ESTRITAMENTE a **Clean Architecture**, organizando seus componentes internos para separar responsabilidades.
+
+**Exemplo: Anatomia do `UsersModule`**
+
+| Componente Interno | Camada (Clean Arch) | Descrição |
+| :--- | :--- | :--- |
+| `UsersController` | **Presentation** | Recebe HTTP, valida DTOs (`CreateUserDto`) e chama o Service. |
+| `UsersService` | **Application** | Orquestra a lógica de negócio. Não conhece HTTP nem SQL. Executa regras como "Remover senha do retorno". |
+| `UserEntity` | **Domain** | Define a estrutura pura do dado e regras invariantes do domínio. |
+| `IUserRepository` | **Domain (Port)** | Interface que define o contrato de persistência. |
+| `PrismaUserRepository`| **Infrastructure (Adapter)** | Implementação que usa o `PrismaService` para traduzir chamadas de domínio em queries de banco. |
+
+---
+
+# 6. Visão de Tempo de Execução
+
+## 6.1. Fluxo de Autenticação (Login) {#fluxo_autenticacao_login}
 
 ### Diagrama de Sequência
 
@@ -1128,7 +1176,7 @@ O token é validado automaticamente pelo `JwtAuthGuard` em endpoints protegidos 
 
 ---
 
-## 6.3. Fluxo de Registro de Coleta Diária {#fluxo_registro_coleta}
+## 6.2. Fluxo de Registro de Coleta Diária {#fluxo_registro_coleta}
 
 ### Diagrama de Sequência
 
