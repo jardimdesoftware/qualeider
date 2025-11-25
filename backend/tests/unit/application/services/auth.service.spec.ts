@@ -5,9 +5,9 @@ import { IUserRepository as IUserRepositorySymbol, type IUserRepository } from '
 import { MailService } from '@/mail/mail.service';
 import {
   UnauthorizedException,
-  NotFoundException,
   Logger,
 } from '@nestjs/common';
+import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 import { IHashService as IHashServiceSymbol, type IHashService } from '@/application/ports/hash.service';
 import { createUser } from '../../../factories';
 
@@ -237,7 +237,7 @@ describe('AuthService', () => {
 
       await expect(
         service.forgotPassword('nonexistent@example.com'),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(EntityNotFoundException);
     });
 
     it('deve gerar token de 6 dígitos', async () => {
@@ -358,7 +358,7 @@ describe('AuthService', () => {
 
       await expect(
         service.validateResetToken('nonexistent@example.com', '123456'),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(EntityNotFoundException);
     });
 
     it('deve lançar UnauthorizedException quando token não coincidir', async () => {
@@ -472,7 +472,7 @@ describe('AuthService', () => {
           '123456',
           'newPassword123',
         ),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(EntityNotFoundException);
     });
 
     it('deve hashear a senha com 12 salt rounds do bcrypt', async () => {
