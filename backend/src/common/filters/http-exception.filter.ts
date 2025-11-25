@@ -17,33 +17,56 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
-    const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+    const status = this.getStatus(exception);
+    const exceptionResponse = this.getExceptionResponse(exception);
+    const message = this.getMessage(exceptionResponse);
 
-    const exceptionResponse =
-      exception instanceof HttpException
-        ? exception.getResponse()
-        : { message: 'Internal server error' };
-
-    const message =
-      typeof exceptionResponse === 'object' && 'message' in exceptionResponse
-        ? (exceptionResponse as any).message
-        : exceptionResponse;
-
-    if (status >= 500) {
-      this.logger.error(`[${status}] ${message}`, (exception as Error).stack);
-    } else {
-      this.logger.warn(`[${status}] ${message}`);
-    }
+    this.logException(status, message, exception);
 
     response.status(status).json({
       statusCode: status,
       message: Array.isArray(message) ? message : [message],
-      error: exception instanceof HttpException ? exception.name : 'InternalServerError',
+      error: this.getErrorName(exception),
       timestamp: new Date().toISOString(),
       path: request.url,
     });
+  }
+
+  private getStatus(exception: unknown): number {
+    return exception instanceof HttpException
+      ? exception.getStatus()
+      : HttpStatus.INTERNAL_SERVER_ERROR;
+  }
+
+  private getExceptionResponse(exception: unknown): string | object {
+    return exception instanceof HttpException
+      ? exception.getResponse()
+      : { message: 'Internal server error' };
+  }
+
+  private getMessage(exceptionResponse: string | object): string | string[] {
+    if (typeof exceptionResponse === 'object' && 'message' in exceptionResponse) {
+      return (exceptionResponse as any).message;
+    }
+    return exceptionResponse as string;
+  }
+
+  private getErrorName(exception: unknown): string {
+    return exception instanceof HttpException
+      ? exception.name
+      : 'InternalServerError';
+  }
+
+  private logException(
+    status: number,
+    message: string | string[] | object,
+    exception: unknown,
+  ) {
+    const logMessage = `[${status}] ${JSON.stringify(message)}`;
+    if (status >= 500) {
+      this.logger.error(logMessage, (exception as Error).stack);
+    } else {
+      this.logger.warn(logMessage);
+    }
   }
 }

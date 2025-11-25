@@ -173,6 +173,7 @@ O **QuaLeiDer** é uma plataforma web para gestão de produtores de leite e suas
   - **Testes E2E:** Validam fluxos completos (HTTP → Controller → Service → Database)
   - **Testes de Integração:** Validam interação entre camadas (Service + Repository)
   - **Testes de Contrato:** Garantem que DTOs mantêm compatibilidade com contratos de API
+  - **Testes Arquiteturais:** Garantem consistência entre enums do Prisma e do Domínio
 
 - **Métricas de Qualidade:**
   - Meta: > 80% de cobertura em camadas críticas (Application, Domain)
@@ -204,7 +205,7 @@ Estas são as limitações impostas pela escolha de tecnologias, frameworks, pla
 | **Banco de Dados: PostgreSQL 14+**     | SGBD relacional obrigatório                               | Exigência do IFPE para garantir integridade referencial e ACID compliance em dados de produção | Exclui NoSQL; limita escalabilidade horizontal; exige modelagem relacional rigorosa                                                                                                                             |
 | **ORM: Prisma 6.x**                    | Abstração obrigatória para acesso a dados                 | Prisma oferece type-safety, migrations automáticas e prevenção de SQL injection                | Queries complexas podem exigir SQL raw; schema declarativo pode limitar otimizações específicas de PostgreSQL                                                                                                   |
 | **Autenticação: JWT (Stateless)**      | Tokens JWT assinados com HS256                            | Arquitetura stateless mandatória para permitir escalabilidade horizontal futura                | Não permite revogação instantânea de tokens; sessões server-side não são opção; tamanho de token aumenta payload HTTP                                                                                           |
-| **Hash de Senhas: bcrypt (12 rounds)** | Algoritmo de hashing com custo computacional configurável | Padrão da indústria para proteção contra rainbow tables e brute-force                          | Tempo de resposta de login aumenta (200ms); não permite argon2 (mais seguro mas menos maduro)                                                                                                                   |
+| **Hash de Senhas: bcrypt (12 ou 10 rounds)** | Algoritmo de hashing com custo computacional configurável | Padrão da indústria para proteção contra rainbow tables e brute-force                          | Tempo de resposta de login aumenta (200ms); não permite argon2 (mais seguro mas menos maduro)                                                                                                                   |
 | **Docker para Desenvolvimento**        | Containers para PostgreSQL e backend em ambiente local    | Facilita configuração de ambiente e garante paridade dev/prod                                  | Exige Docker Desktop instalado; overhead de recursos (RAM, CPU) em máquinas limitadas                                                                                                                           |
 | **TypeScript >= 5.1.x**                | Superset de JavaScript com tipagem estática               | Type-safety obrigatório para reduzir bugs em tempo de compilação                               | Tempo de build aumenta; configuração de tipos pode ser complexa para bibliotecas sem @types                                                                                                                     |
 | **REST API (Padrão HTTP)**             | Protocolo de comunicação entre frontend e backend         | Simplicidade, cacheable, stateless, amplo suporte em bibliotecas                               | Não permite GraphQL (flexibilidade de queries); overfetching/underfetching podem ocorrer                                                                                                                        |
@@ -438,24 +439,36 @@ Content-Type: application/json
 
 ```typescript
 // TypeScript (Prisma Client)
-const collection = await prisma.dailyCollection.create({
-  data: {
-    userId: 1,
-    quantity: 45.5,
-    animals: {
-      connect: [{ id: 1 }, { id: 2 }],
-    },
-  },
-  include: { animals: true },
-});
+
+  async create(data: Omit<DailyCollectionEntity, 'id' | 'createdAt' | 'updatedAt'>): Promise<DailyCollectionEntity> {
+    try {
+      const created = await this.prisma.dailyCollection.create({
+        data: {
+          userId: data.userId,
+          quantity: data.quantity,
+          collectionDate: data.collectionDate,
+          numAnimals: data.numAnimals,
+          numOrdens: data.numOrdens,
+          rationProvided: data.rationProvided,
+          numLactation: data.numLactation,
+          milkingPlace: data.milkingPlace as unknown as MilkingPlace,
+          technicalAssistance: data.technicalAssistance,
+        },
+      });
+      return DailyCollectionMapper.toDomain(created);
+    } catch (error) {
+      handlePrismaError(error, {
+        [PrismaErrorCode.FOREIGN_KEY_CONSTRAINT_FAILED]: 'Produtor (User) inválido ou não encontrado.',
+      });
+    }
+  }
 ```
 
 **SQL Gerado (PostgreSQL):**
 
 ```sql
 BEGIN;
-INSERT INTO "DailyCollection" ("userId", "quantity", ...) VALUES (1, 45.5, ...);
-INSERT INTO "_AnimalToDailyCollection" ("A", "B") VALUES (1, 42), (2, 42);
+INSERT INTO "DailyCollection" ("userId", "quantity", ...) VALUES (data.userId, data.quantity, ...);
 COMMIT;
 ```
 
@@ -526,18 +539,6 @@ Content-Type: text/html; charset=UTF-8
 
 ---
 
-### Dependências Externas e Suas Responsabilidades
-
-| Sistema Externo    | Responsabilidade do QuaLeiDer                                              | Responsabilidade do Sistema Externo                                   | Contingência em Caso de Falha                                                                                                                                                                                                                                                                                                                                        |
-| ------------------ | -------------------------------------------------------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **PostgreSQL**     | - Definir schema via Prisma<br>- Executar migrations<br>- Otimizar queries | - Garantir ACID compliance<br>- Persistir dados<br>- Executar backups | Sistema fica inoperante (crítico)<br>Erro 500 retornado ao cliente                                                                                                                                                                                                                                                                                                   |
-| **SMTP Server**    | - Renderizar templates HTML<br>- Enviar emails via Nodemailer              | - Entregar emails<br>- Garantir SPF/DKIM<br>- Evitar spam             | Envio é **assíncrono via EventEmitter** (não bloqueia requisição HTTP)<br>Retry automático: 4 tentativas (0min, 5min, 15min, 30min)<br>Falha definitiva é logada com **TODO** para processamento manual<br>**Limitação atual:** Retry é em memória (perde-se ao reiniciar servidor)<br>**TODO:** Implementar fila persistente (Redis + BullMQ) para garantir entrega |
-| **GitHub Actions** | - Manter testes atualizados<br>- Configurar workflow YAML                  | - Executar CI/CD pipeline<br>- Notificar status de build              | Deploy manual via Docker<br>Desenvolvedores notificados por email                                                                                                                                                                                                                                                                                                    |
-
----
-
-### Variáveis de Ambiente (Configuração Externa)
-
 O sistema depende de **variáveis de ambiente** para configurar interfaces externas:
 
 ```bash
@@ -597,12 +598,23 @@ A arquitetura do QuaLeiDer foi projetada para balancear **simplicidade** (time p
 
 ```typescript
 // src/presentation/app.module.ts - Todos os módulos em um só monólito
+
 @Module({
   imports: [
-    WinstonModule.forRoot(winstonConfig),          // Logger estruturado
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: [
+        path.resolve(process.cwd(), '.env'),
+        path.resolve(
+          process.cwd(),
+          `.env.${process.env.NODE_ENV || 'development'}`,
+        ),
+      ],
+    }),
+    WinstonModule.forRoot(winstonConfig),
+    ThrottlerModule.forRoot(throttlerConfig),
     EventEmitterModule.forRoot(),
-    ScheduleModule.forRoot(),                      // CRON jobs
+    ScheduleModule.forRoot(),
     PrismaModule,
     InfrastructureModule,
     UsersPresentationModule,
@@ -611,8 +623,15 @@ A arquitetura do QuaLeiDer foi projetada para balancear **simplicidade** (time p
     AuthPresentationModule,
     AssociationsPresentationModule,
     InvitesPresentationModule,
-    NotificationsPresentationModule,               // Módulo de notificações
+    NotificationsPresentationModule,
     MailModule,
+  ],
+  controllers: [],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: AppThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}
@@ -649,6 +668,7 @@ src/
 **Regra de Dependência:**
 
 ![Regra de Dependência - Clean Architecture](images/dependency-rule.png)
+- Setas indicam dependência de código-fonte (imports), não fluxo de execução
 
 **Princípios:**
 
@@ -656,7 +676,6 @@ src/
 - **Application** depende apenas de Domain (usa entidades e interfaces)
 - **Presentation** depende de Application (chama Services)
 - **Infrastructure** implementa interfaces definidas em Domain/Application (Inversão de Dependência - DIP)
-- Setas indicam dependência de código-fonte (imports), não fluxo de execução
 
 **Benefício Concreto:** 96.25% de cobertura de testes (582 testes) graças à separação de camadas.
 
@@ -680,13 +699,14 @@ src/
 
 ```typescript
 // src/auth/auth.module.ts
-JwtModule.register({
-  secret: process.env.JWT_SECRET, // 256-bit random key
-  signOptions: {
-    expiresIn: '24h',              // Tokens expiram diariamente
-    algorithm: 'HS256',            // HMAC-SHA256 (simétrico)
-  },
-}),
+JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET'),
+        signOptions: { expiresIn: '1h' },
+      }),
+      inject: [ConfigService],
+    }),
 ```
 
 **Trade-off Aceito:**
@@ -724,20 +744,32 @@ JwtModule.register({
 **Exemplo de Type-Safety:**
 
 ```typescript
-// TypeScript infere o tipo automaticamente
-const user = await prisma.user.findUnique({
-  where: { email: "produtor@example.com" },
-  include: { animals: true }, // Tipo: User & { animals: Animal[] }
-});
+// Exemplo real de implementação no repositório
+async findByEmail(email: string) {
+  const user = await this.prisma.user.findUnique({
+    where: { email },
+    select: { 
+      id: true, 
+      name: true, 
+      role: true 
+    } 
+  });
+  
+  // O TypeScript sabe que 'user' tem apenas id, name e role
+  return user; 
+}
 
-// ❌ Erro de compilação se tentar acessar campo inexistente
+// Erro de compilação se tentar acessar campo inexistente
 console.log(user.nonExistentField); // TypeScript Error!
 ```
 
 **Trade-off Aceito:**
 
-- ❌ Queries N+1 podem ocorrer (requer `include` explícito)
-- ✅ Mitigação: `prisma.$queryRaw` para otimizações críticas
+- Queries N+1 podem ocorrer (requer `include` explícito)
+
+**Mitigação:**
+
+- Usar `prisma.$queryRaw` para otimizações críticas
 
 ---
 
@@ -859,22 +891,37 @@ CMD ["node", "dist/main.js"]
 **Exemplo de DTO:**
 
 ```typescript
-// src/users/dto/create-user.dto.ts
+// src/application/dtos/users/create-user.dto.ts
 export class CreateUserDto {
-  @IsEmail({}, { message: "Email inválido" })
-  @IsNotEmpty({ message: "Email é obrigatório" })
-  email: string;
+  @ApiProperty({ description: 'Nome do usuário', example: 'Silva Santos' })
+  @IsNotEmpty({ message: 'O nome não pode ser vazio.' })
+  @IsString({ message: 'O nome deve ser uma string.' })
+  @Length(3, 255, { message: 'O nome deve ter entre 3 e 255 caracteres.' })
+  name!: string;
 
-  @MinLength(8, { message: "Senha deve ter no mínimo 8 caracteres" })
-  @Matches(/^(?=.*[A-Z])(?=.*\d)/, {
-    message: "Senha deve conter letra maiúscula e número",
+  @ApiProperty({
+    description: 'Email do usuário',
+    example: 'silva.santos@example.com',
   })
-  password: string;
+  @IsNotEmpty({ message: 'O email não pode ser vazio.' })
+  @IsEmail({}, { message: 'O email fornecido não é válido.' })
+  @Transform(({ value }) => value?.toLowerCase().trim())
+  email!: string;
 
-  @IsOptional()
-  @IsNumber()
-  associationId?: number;
-}
+  @ApiProperty({ description: 'Senha do usuário', example: 'Leite@123' })
+  @IsNotEmpty({ message: 'A senha não pode ser vazia.' })
+  @IsString()
+  @MinLength(8, { message: 'A senha deve ter no mínimo 8 caracteres.' })
+  // [BR-003] Validação de Senha
+  @Matches(
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/,
+    {
+      message:
+        'A senha deve conter pelo menos uma letra maiúscula, uma minúscula, um número e um caractere especial (@$!%*?&).',
+    },
+  )
+  password!: string;
+
 ```
 
 **Configuração nos Controllers:**
@@ -889,30 +936,48 @@ this.eventEmitter.emit('invite.created', {
 });
 
 // InviteEmailListener (Subscriber) - escuta automaticamente
-@OnEvent('invite.created')
-async handleInviteCreated(event: InviteCreatedEvent) {
-  const retryDelays = [5 * 60 * 1000, 15 * 60 * 1000, 30 * 60 * 1000]; // 5min, 15min, 30min
 
-  for (let attempt = 0; attempt < retryDelays.length + 1; attempt++) {
+export class InviteEmailListener {
+  private readonly logger = new Logger(InviteEmailListener.name);
+  constructor(
+    private readonly mailService: MailService,
+    @Inject(IAssociationRepository)
+    private readonly associationRepository: IAssociationRepository,
+  ) {}
+
+  /**
+   * Quando convite é criado, envia email para o usuário convidado
+   */
+  @OnEvent('invite.created')
+  async handleInviteCreated(event: InviteCreatedEvent) {
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const acceptUrl = `${frontendUrl}/invites/${event.token}?action=accept`;
+    const declineUrl = `${frontendUrl}/invites/${event.token}?action=decline`;
+
     try {
-      await this.mailService.sendInviteEmail(event);
-      this.logger.log(`Email de convite enviado com sucesso (tentativa ${attempt + 1})`);
-      return; // Sucesso - sai do loop
+      this.logger.log(`Enviando email de convite para ${event.userEmail}...`);
+
+      await this.mailService.sendInviteEmail(
+        event.userEmail,
+        event.userName,
+        event.associationName,
+        event.message,
+        acceptUrl,
+        declineUrl,
+        event.expiresAt,
+      );
+
+      this.logger.log(
+        `Email de convite enviado com sucesso para ${event.userEmail}`,
+      );
     } catch (error) {
-      const isLastAttempt = attempt === retryDelays.length;
-
-      if (isLastAttempt) {
-        this.logger.error(`Falha definitiva no envio de email após ${attempt + 1} tentativas`, error);
-        // TODO: Persistir em fila de falhas para processamento manual
-        throw error;
-      }
-
-      const delay = retryDelays[attempt];
-      this.logger.warn(`Tentativa ${attempt + 1} falhou. Reagendando em ${delay / 60000}min...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
+      this.logger.error(
+        `Erro ao enviar email de convite para ${event.userEmail}:`,
+        error,
+      );
     }
   }
-}
+
 ```
 
 **Nota:** O projeto usa `ValidationPipe` em nível de controller com `transform: true` para converter tipos automaticamente.
@@ -978,21 +1043,16 @@ Este diagrama ilustra o processo completo de autenticação JWT, desde a valida�
 
 ```typescript
 // AuthService.validateUser()
-const user = await this.usersService.findByEmail(email);
+async validateUser(email: string, password: string): Promise<any> {
+    const user = await this.userRepository.findByEmail(email);
 
-if (!user) {
-  throw new UnauthorizedException("Credenciais inválidas.");
-}
+    if (user && (await this.hashService.compare(password, user.password))) {
+      const { password, ...result } = user;
+      return result;
+    }
 
-const isPasswordValid = await bcrypt.compare(password, user.password);
-
-if (!isPasswordValid) {
-  throw new UnauthorizedException("Credenciais inválidas.");
-}
-
-// Remove senha antes de retornar
-const { password, ...result } = user;
-return result;
+    throw new UnauthorizedException('Credenciais inválidas.');
+  }
 ```
 
 **Payload do JWT:**
@@ -1026,7 +1086,7 @@ return {
 
 ```
 POST /auth/login {email: "wrong@example.com", password: "123"}
-→ UsersService.findByEmail() retorna null
+→ UserRepository.findByEmail() retorna null
 → throw UnauthorizedException("Credenciais inválidas.")
 → Response: 401 Unauthorized
 ```
@@ -1035,13 +1095,13 @@ POST /auth/login {email: "wrong@example.com", password: "123"}
 
 ```
 POST /auth/login {email: "user@example.com", password: "WrongPass"}
-→ UsersService.findByEmail() retorna user
-→ bcrypt.compare() retorna false
+→ UserRepository.findByEmail() retorna user
+→ HashService.compare() retorna false
 → throw UnauthorizedException("Credenciais inválidas.")
 → Response: 401 Unauthorized
 ```
 
-**Importante:** Por questões de segurança, ambos os erros retornam a mesma mensagem genérica "Credenciais inválidas" para não revelar se o email existe no sistema.
+**Note:** Por questões de segurança, ambos os erros retornam a mesma mensagem genérica "Credenciais inválidas" para não revelar se o email existe no sistema.
 
 ### Características de Qualidade
 
@@ -1090,7 +1150,7 @@ Este documento descreve o processo técnico de registro de uma coleta diária de
 
 1. **Requisição HTTP**: Produtor envia `POST /daily-collections` com dados da coleta
 2. **Validações de Pré-requisitos**:
-   - ✓ **Produtor existe e está ativo**
+   - **Produtor existe e está ativo**
 3. **Persistência**: 2 operações SQL executadas em transação:
    - `INSERT INTO "DailyCollection"` (coleta principal)
 4. **Resposta HTTP**: Retorna `201 Created` com dados da coleta
@@ -1120,37 +1180,64 @@ Este documento descreve o processo técnico de registro de uma coleta diária de
 
 # Visão de Implantação {#section-deployment-view}
 
-## Nível de Infraestrutura 1 {#\_n_vel_de_infraestrutura_1}
+## 7.1 Nível de Infraestrutura 1 (Visão Geral)
 
-**_\<Diagrama de Visão Geral>_**
+A infraestrutura do QuaLeiDer foi projetada seguindo o princípio de **containerização**, garantindo paridade entre os ambientes de desenvolvimento e produção.
 
-Motivação
+**Diagrama de Visão Geral**
 
-: _\<explicação em forma de texto>_
+![Visão de implantação](images/deployment-view.png)
 
-Características de Qualidade e/ou Desempenho
+**Motivação**
 
-: _\<explicação em forma de texto>_
+A escolha por uma arquitetura baseada em containers (Docker) visa:
+1.  **Portabilidade:** O sistema pode ser movido entre diferentes provedores de nuvem com mínimo esforço.
+2.  **Reprodutibilidade:** O ambiente de produção é virtualmente idêntico ao local, reduzindo bugs do tipo "funciona na minha máquina".
 
-Mapeamento de Blocos de Construção para Infraestrutura
+**Características de Qualidade e Desempenho**
 
-: _\<descrição do mapeamento>_
+*   **Disponibilidade:** O banco de dados utiliza volumes persistentes para garantir durabilidade dos dados. O container da aplicação é configurado para reinício automático em caso de falhas (`restart: always`).
+*   **Segurança:** O banco de dados reside em uma rede privada interna, não acessível diretamente pela internet pública. A comunicação externa é criptografada via HTTPS.
+*   **Escalabilidade:** A arquitetura stateless da aplicação permite escalar horizontalmente adicionando mais réplicas do container backend.
 
-## Nível de Infraestrutura 2 {#\_n_vel_de_infraestrutura_2}
+**Mapeamento de Blocos de Construção**
 
-### _\<Elemento de Infraestrutura 1>_ {#\_\_emphasis_elemento_de_infraestrutura_1_emphasis}
+| Elemento de Software | Elemento de Infraestrutura | Configuração |
+| :--- | :--- | :--- |
+| **Backend (NestJS)** | Container Docker (Node.js 18-alpine) | 512MB RAM, 1 vCPU |
+| **Banco de Dados** | Container/Serviço PostgreSQL 14 | Volume persistente SSD |
+| **Frontend** | Dispositivo do Usuário (Browser/App) | Acesso via HTTPS |
 
-_\<diagrama + explicação>_
+## 7.2 Nível de Infraestrutura 2 (Detalhes dos Ambientes)
 
-### _\<Elemento de Infraestrutura 2>_ {#\_\_emphasis_elemento_de_infraestrutura_2_emphasis}
+### Requisitos de Infraestrutura para Produção
 
-_\<diagrama + explicação>_
+Embora o provedor específico de nuvem ainda não tenha sido definido, os requisitos de infraestrutura para o ambiente de produção são claros e agnósticos a provedor:
 
-...
+**Requisitos Mínimos:**
 
-### _\<Elemento de Infraestrutura n>_ {#\_\_emphasis_elemento_de_infraestrutura_n_emphasis}
+*   **Runtime:** Container Docker compatível com Node.js 18+ (Alpine Linux).
+*   **Banco de Dados:** PostgreSQL 14+ gerenciado (ou em container com volume persistente).
+*   **Recursos de Computação:** Mínimo de 1 vCPU e 512MB RAM para a API.
+*   **Segurança de Rede:**
+    *   Banco de dados em rede privada (VPC), sem acesso público direto.
+    *   API exposta apenas via HTTPS (Porta 443) através de Load Balancer ou Proxy Reverso.
+*   **Variáveis de Ambiente:** Mecanismo seguro para injeção de secrets (`JWT_SECRET`, credenciais de banco e email).
 
-_\<diagrama + explicação>_
+### Ambiente de Desenvolvimento (Local)
+
+O ambiente local utiliza **Docker Compose** para orquestrar as dependências, permitindo que novos desenvolvedores iniciem o projeto com um único comando.
+
+**Diagrama de Implantação - Local**
+
+![Desenvolvimento local](images/local-development-view.png)
+
+**Detalhes da Configuração:**
+
+*   **Orquestração:** Arquivo `docker-compose.yml` na raiz do projeto.
+*   **Banco de Dados:** Imagem oficial `postgres:14-alpine`.
+    *   Dados persistidos em volume local (`./.docker/postgres-data`).
+*   **Hot Reload:** O código fonte é montado como volume no container da API, permitindo atualização em tempo real sem rebuild.
 
 # Conceitos Transversais
 
@@ -1327,6 +1414,7 @@ describe('E2E: Animais - Operações CRUD', () => {
 | Cobertura Controllers | > 90%  | 100%   | ✅     |
 | Testes Unitários      | > 300  | 457    | ✅     |
 | Testes E2E            | > 80   | 110    | ✅     |
+| Testes Arquiteturais  | 100%   | 100%   | ✅     |
 | Tempo Exec. Unit      | < 60s  | 50s    | ✅     |
 | Tempo Exec. E2E       | < 120s | 90s    | ✅     |
 | Taxa de Sucesso       | 100%   | 100%   | ✅     |
@@ -1449,19 +1537,6 @@ Como o projeto possui estrutura monorepo (`qualeider/` contém `backend/` e `fro
 5. **Produtividade:** Evita ciclos de "commit → push → CI falha → fix → repeat"
 
 #### Limitações Conhecidas
-
-1. **Bypass possível:** Desenvolvedores podem usar `--no-verify` (mitigado por GitHub Actions)
-2. **Tempo de commit aumentado:** 45s adicional por commit (aceitável para qualidade)
-3. **Requer database local:** Testes E2E precisam de PostgreSQL rodando (Docker Compose)
-4. **Não valida todos os cenários:** GitHub Actions ainda é necessário para validação completa
-
-## _\<Conceito 2>_ {#\_\_emphasis_conceito_2_emphasis}
-
-_\<explicação>_
-
----
-
-## 8.2 Modelo de Domínio {#modelo_dominio}
 
 O modelo de domínio do QuaLeiDer representa as **entidades principais** do sistema e seus **relacionamentos**, refletindo as regras de negócio da gestão de produtores de leite.
 
@@ -1848,6 +1923,24 @@ model Notification {
 
 ---
 
+### Regras de Negócio
+
+Esta seção centraliza as regras de negócio do sistema para facilitar a rastreabilidade entre requisitos, implementação e testes.
+
+| ID | Regra | Descrição Técnica | Local de Implementação |
+| :--- | :--- | :--- | :--- |
+| **BR-001** | **Unicidade de Email** | O sistema não pode ter dois usuários (Produtor ou Associação) com mesmo email. | `PrismaExceptionFilter` (Erro P2002) |
+| **BR-002** | **Expiração de Convite** | Convites vencem em 7 dias corridos. O job de limpeza roda diariamente às 02:00 AM. | `InvitesCleanupService` |
+| **BR-003** | **Validação de Senha** | Mínimo 8 caracteres, 1 maiúscula, 1 número, 1 caractere especial. | `CreateUserDto` (Regex) |
+| **BR-004** | **Rate Limiting Login** | Máximo de 3 tentativas falhas por minuto por IP para prevenir brute-force. | `AuthController` (@Throttle) |
+| **BR-005** | **Rate Limiting Geral** | Endpoints protegidos têm limite de 100 requisições por minuto por IP. | `ThrottlerModule` (Global) |
+| **BR-006** | **Associação Opcional** | Produtores podem ou não estar vinculados a uma associação. Campo `associationId` é nullable. | `User` (Prisma Schema) |
+| **BR-007** | **Sanitização de Logs** | Dados sensíveis (senha, tokens, CPF) devem ser removidos/ofuscados dos logs para conformidade LGPD. | `logger.config.ts` |
+| **BR-008** | **Alerta de Medicação Repetida** | Sistema deve alertar quando mesmo tipo de medicação é aplicado 3x em 30 dias (funcionalidade futura). | Módulo de Análise (Planejado) |
+| **BR-009** | **Quantidade Positiva de Leite** | Registro de coleta diária deve ter quantidade > 0 litros. | `DailyCollection` (Validação DTO) |
+
+---
+
 ### Regras de Negócio Compartilhadas
 
 #### **1. Ciclo de Vida do Convite**
@@ -1952,20 +2045,15 @@ HMACSHA256(
 // src/auth/auth.service.ts
 @Injectable()
 export class AuthService {
-  async login(email: string, password: string) {
-    const user = await this.validateUser(email, password);
-
+  async login(user: any) {
     const payload = {
-      sub: user.id,
       email: user.email,
+      sub: user.id,
       associationId: user.associationId,
     };
 
     return {
-      access_token: this.jwtService.sign(payload, {
-        expiresIn: "24h",
-        algorithm: "HS256",
-      }),
+      access_token: this.jwtService.sign(payload),
     };
   }
 }
@@ -1980,7 +2068,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private configService: ConfigService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      ignoreExpiration: false; // Rejeita tokens expirados
+      ignoreExpiration: false,
       secretOrKey: configService.get("JWT_SECRET"),
     });
   }
@@ -2035,36 +2123,30 @@ export class UsersService {
     @Inject(IHashService) private readonly hashService: IHashService,
   ) {}
 
+  
   async create(createUserDto: CreateUserDto) {
     const { password, ...rest } = createUserDto;
 
-    // 10 rounds = 2^10 = 1.024 iterações
-    const hashedPassword = await this.hashService.hash(
-      password,
-      BCRYPT_ROUNDS_USER_CREATION
-    );
+    const hashedPassword = await this.hashPasswordIfNeeded(password);
 
-    // Repository lança BusinessException se email duplicar (P2002)
-    // Service não trata erro Prisma, apenas delega ao Repository
     const user = await this.userRepository.create({
       ...rest,
-      password: hashedPassword, // Armazena hash, nunca plaintext
+      password: hashedPassword!,
     });
 
     this.logger.log(`Usuário criado: ${user.email} (ID: ${user.id})`);
-
-    // Remove senha do retorno por segurança
     return this.removePassword(user);
   }
 
   /**
    * Remove o campo password do objeto retornado (se existir), para evitar vazamento.
    */
-  private removePassword<T extends Record<string, unknown>>(entity: T): T {
-    if (entity && "password" in entity) {
-      delete (entity as { password?: string }).password;
+ private removePassword<T>(entity: T): Omit<T, 'password'> {
+    if (entity && typeof entity === 'object' && 'password' in entity) {
+      const { password, ...rest } = entity as any;
+      return rest;
     }
-    return entity;
+    return entity as Omit<T, 'password'>;
   }
 }
 ```
@@ -2079,16 +2161,22 @@ import * as bcrypt from "bcryptjs";
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
-  async validateUser(email: string, password: string): Promise<any> {
-    const user = await this.usersService.findByEmail(email);
+  constructor(
+    @Inject(IUserRepository) private userRepository: IUserRepository,
+    private jwtService: JwtService,
+    private mailService: MailService,
+    @Inject(IHashService) private hashService: IHashService,
+  ) {}
 
-    // Comparação em tempo constante (previne timing attacks)
-    if (user && (await bcrypt.compare(password, user.password))) {
-      const { password, ...result } = user; // Remove senha do retorno
+  async validateUser(email: string, password: string): Promise<any> {
+    const user = await this.userRepository.findByEmail(email);
+
+    if (user && (await this.hashService.compare(password, user.password))) {
+      const { password, ...result } = user;
       return result;
     }
 
-    throw new UnauthorizedException("Credenciais inválidas.");
+    throw new UnauthorizedException('Credenciais inválidas.');
   }
 
   async login(user: any) {
@@ -2097,8 +2185,6 @@ export class AuthService {
       sub: user.id,
       associationId: user.associationId,
     };
-
-    this.logger.log(`Usuário autenticado: ${user.email}`);
 
     return {
       access_token: this.jwtService.sign(payload),
@@ -2112,36 +2198,28 @@ export class AuthService {
 ```typescript
 // src/auth/auth.service.ts
 async resetPassword(
-  email: string,
-  token: string,
-  newPassword: string,
-): Promise<boolean> {
-  await this.validateResetToken(email, token);
+    email: string,
+    token: string,
+    newPassword: string,
+  ): Promise<boolean> {
+    await this.validateResetToken(email, token);
 
-  const user = await this.prisma.user.findUnique({
-    where: { email },
-  });
+    const user = await this.userRepository.findByEmail(email);
 
-  if (!user) {
-    throw new NotFoundException('Usuário não encontrado.');
-  }
-
-  // 12 rounds para reset de senha (mais seguro)
-  const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_ROUNDS_RESET_PASSWORD);
-
-  await this.prisma.user.update({
-    where: { id: user.id },
-    data: {
+    const hashedPassword = await this.hashService.hash(
+      newPassword,
+      BCRYPT_ROUNDS_RESET_PASSWORD,
+    );
+    await this.userRepository.update(user.id, {
       password: hashedPassword,
-      resetToken: null,           // Invalida token após uso
+      resetToken: null,
       resetTokenExpiry: null,
-    },
-  });
+    });
 
-  this.logger.log(`Senha redefinida para ${email}`);
+    this.logger.log(`Senha redefinida para ${email}`);
 
-  return true;
-}
+    return true;
+  }
 ```
 
 **Diferença entre 10 e 12 rounds:**
@@ -2161,7 +2239,7 @@ async resetPassword(
 **Características de Segurança:**
 
 - ✅ **Salt único:** Cada senha tem salt diferente (gerado automaticamente)
-- ✅ **Tempo constante:** `bcrypt.compare()` não vaza informações via timing
+- ✅ **Tempo constante:** `hashService.compare()` não vaza informações via timing
 - ✅ **Custo adaptativo:** Pode aumentar rounds no futuro sem quebrar hashes antigos
 - ✅ **Resistente a GPU:** bcrypt usa muita memória (dificulta ataques com GPU)
 
@@ -2214,111 +2292,36 @@ Todas as entradas HTTP são validadas na **borda do sistema** (Controllers) via 
 
 ```typescript
 // backend/src/application/dtos/users/create-user.dto.ts
-import {
-  IsEmail,
-  IsEnum,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  MinLength,
-  Length,
-  Matches,
-} from "class-validator";
-import { Transform } from "class-transformer";
-import { UserCategory, UserType } from "@/domain/enums/enums";
-import { ApiProperty } from "@nestjs/swagger";
-
 export class CreateUserDto {
-  @ApiProperty({ description: "Nome do usuário", example: "Silva Santos" })
-  @IsNotEmpty({ message: "O nome não pode ser vazio." })
-  @IsString({ message: "O nome deve ser uma string." })
-  @Length(3, 255, { message: "O nome deve ter entre 3 e 255 caracteres." })
+  @ApiProperty({ description: 'Nome do usuário', example: 'Silva Santos' })
+  @IsNotEmpty({ message: 'O nome não pode ser vazio.' })
+  @IsString({ message: 'O nome deve ser uma string.' })
+  @Length(3, 255, { message: 'O nome deve ter entre 3 e 255 caracteres.' })
   name!: string;
 
   @ApiProperty({
-    description: "Email do usuário",
-    example: "silva.santos@example.com",
+    description: 'Email do usuário',
+    example: 'silva.santos@example.com',
   })
-  @IsNotEmpty({ message: "O email não pode ser vazio." })
-  @IsEmail({}, { message: "O email fornecido não é válido." })
+  @IsNotEmpty({ message: 'O email não pode ser vazio.' })
+  @IsEmail({}, { message: 'O email fornecido não é válido.' })
   @Transform(({ value }) => value?.toLowerCase().trim())
   email!: string;
 
-  @ApiProperty({ description: "Senha do usuário", example: "Leite@123" })
-  @IsNotEmpty({ message: "A senha não pode ser vazia." })
+  @ApiProperty({ description: 'Senha do usuário', example: 'Leite@123' })
+  @IsNotEmpty({ message: 'A senha não pode ser vazia.' })
   @IsString()
-  @MinLength(8, { message: "A senha deve ter no mínimo 8 caracteres." })
-  // Força a senha a ter: 1 letra minúscula, 1 maiúscula, 1 número e 1 caractere especial
+  @MinLength(8, { message: 'A senha deve ter no mínimo 8 caracteres.' })
+  // [BR-003] Validação de Senha
   @Matches(
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/,
     {
       message:
-        "A senha deve conter pelo menos uma letra maiúscula, uma minúscula, um número e um caractere especial (@$!%*?&).",
-    }
+        'A senha deve conter pelo menos uma letra maiúscula, uma minúscula, um número e um caractere especial (@$!%*?&).',
+    },
   )
   password!: string;
 
-  @ApiProperty({
-    description: "Tipo de usuário",
-    enum: UserType,
-    example: UserType.Pecuarista,
-    required: false,
-  })
-  @IsOptional()
-  @IsEnum(UserType, {
-    message: "O tipo de usuário (userType) fornecido não é válido.",
-  })
-  userType?: UserType;
-
-  @ApiProperty({
-    description: "Pessoa física ou jurídica",
-    enum: UserCategory,
-    example: UserCategory.Fisica,
-  })
-  @IsNotEmpty({ message: "A categoria do usuário é obrigatória." })
-  @IsEnum(UserCategory, {
-    message: "A categoria de usuário fornecida não é válida.",
-  })
-  userCategory!: UserCategory;
-
-  @ApiProperty({
-    description: "CPF ou CNPJ do usuário",
-    example: "12345678000190",
-    required: false,
-  })
-  @IsOptional()
-  @IsString({ message: "O documento deve ser uma string." })
-  document?: string;
-
-  @ApiProperty({ description: "Estado do usuário (UF)", example: "PE" })
-  @IsNotEmpty({ message: "O estado não pode ser vazio." })
-  @Length(2, 2, {
-    message: "O estado deve ser uma sigla de 2 caracteres (UF).",
-  })
-  @Transform(({ value }) => value?.toUpperCase().trim())
-  state!: string;
-
-  @ApiProperty({ description: "Cidade do usuário", example: "Belo Jardim" })
-  @IsNotEmpty({ message: "A cidade não pode ser vazia." })
-  @IsString()
-  city!: string;
-}
-```
-
-**Configuração nos Controllers:**
-
-```typescript
-// backend/src/presentation/controllers/animals.controller.ts
-import { ValidationPipe } from "@nestjs/common";
-
-@Controller("animals")
-export class AnimalsController {
-  @Post()
-  @UsePipes(new ValidationPipe({ transform: true }))
-  async create(@Body() createAnimalDto: CreateAnimalDto) {
-    return this.animalsService.create(createAnimalDto);
-  }
-}
 ```
 
 **Nota:** O projeto usa `ValidationPipe` em nível de controller com `transform: true` para converter tipos automaticamente.
@@ -2357,10 +2360,8 @@ export class AnimalsController {
 const email = req.body.email; // "admin@example.com' OR '1'='1"
 const query = `SELECT * FROM users WHERE email = '${email}'`; // SQL Injection!
 
-// SEGURO (Prisma com parameterização automática)
-const user = await prisma.user.findUnique({
-  where: { email: dto.email }, // Prisma escapa automaticamente
-});
+// SEGURO (IUserRepository com parameterização automática)
+const user = await this.userRepository.findByEmail(dto.email);
 
 // SQL gerado:
 // SELECT * FROM "User" WHERE "email" = $1
@@ -2654,20 +2655,17 @@ HMACSHA256(
 // src/auth/auth.service.ts
 @Injectable()
 export class AuthService {
-  async login(email: string, password: string) {
-    const user = await this.validateUser(email, password);
-
+ async login(user: any) {
     const payload = {
-      sub: user.id,
       email: user.email,
+      sub: user.id,
       associationId: user.associationId,
     };
 
+    this.logger.log(`Usuário autenticado: ${user.email}`);
+
     return {
-      access_token: this.jwtService.sign(payload, {
-        expiresIn: "24h",
-        algorithm: "HS256",
-      }),
+      access_token: this.jwtService.sign(payload),
     };
   }
 }
@@ -2683,7 +2681,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false; // Rejeita tokens expirados
-      secretOrKey: configService.get("JWT_SECRET"),
+       secretOrKey: configService.get("JWT_SECRET"),
     });
   }
 
@@ -2720,7 +2718,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
 **Exemplo de Código Real (Hashing - UsersService):**
 
-> **Nota:** Service usa Repository (não acessa Prisma diretamente)
+> **Nota:** Service usa Repository
 
 ```typescript
 // src/application/services/users/users.service.ts
@@ -2740,34 +2738,16 @@ export class UsersService {
   async create(createUserDto: CreateUserDto) {
     const { password, ...rest } = createUserDto;
 
-    // 10 rounds = 2^10 = 1.024 iterações
-    const hashedPassword = await this.hashService.hash(
-      password,
-      BCRYPT_ROUNDS_USER_CREATION
-    );
+    const hashedPassword = await this.hashPasswordIfNeeded(password);
 
     // Repository lança BusinessException se email duplicar (P2002)
-    // Service não trata erro Prisma, apenas delega ao Repository
     const user = await this.userRepository.create({
       ...rest,
-      password: hashedPassword, // Armazena hash, nunca plaintext
+      password: hashedPassword!,
     });
-
+    
     this.logger.log(`Usuário criado: ${user.email} (ID: ${user.id})`);
-
-    // Remove senha do retorno por segurança
     return this.removePassword(user);
-  }
-
-  /**
-   * Remove o campo password do objeto retornado (se existir), para evitar vazamento.
-   */
-  private removePassword<T extends Record<string, unknown>>(entity: T): T {
-    if (entity && "password" in entity) {
-      delete (entity as { password?: string }).password;
-    }
-    return entity;
-  }
 }
 ```
 
@@ -2775,22 +2755,36 @@ export class UsersService {
 
 ```typescript
 // src/auth/auth.service.ts
-import * as bcrypt from "bcryptjs";
-
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
-  async validateUser(email: string, password: string): Promise<any> {
-    const user = await this.usersService.findByEmail(email);
+  constructor(
+    @Inject(IUserRepository) private userRepository: IUserRepository,
+    private jwtService: JwtService,
+    private mailService: MailService,
+    @Inject(IHashService) private hashService: IHashService,
+  ) {}
 
-    // Comparação em tempo constante (previne timing attacks)
-    if (user && (await bcrypt.compare(password, user.password))) {
-      const { password, ...result } = user; // Remove senha do retorno
+  async validateUser(email: string, password: string): Promise<any> {
+    const user = await this.userRepository.findByEmail(email);
+
+    if (user && (await this.hashService.compare(password, user.password))) {
+      const { password, ...result } = user;
       return result;
     }
 
-    throw new UnauthorizedException("Credenciais inválidas.");
+    throw new UnauthorizedException('Credenciais inválidas.');
+  }
+
+  async executeLogin(loginDto: { email: string; password: string }) {
+    const user = await this.validateUser(loginDto.email, loginDto.password);
+
+    if (!user) {
+      throw new UnauthorizedException('Credenciais inválidas.');
+    }
+
+    return this.login(user);
   }
 
   async login(user: any) {
@@ -2806,7 +2800,6 @@ export class AuthService {
       access_token: this.jwtService.sign(payload),
     };
   }
-}
 ```
 
 **Exemplo de Código Real (Reset de Senha - 12 rounds):**
@@ -2814,36 +2807,28 @@ export class AuthService {
 ```typescript
 // src/auth/auth.service.ts
 async resetPassword(
-  email: string,
-  token: string,
-  newPassword: string,
-): Promise<boolean> {
-  await this.validateResetToken(email, token);
+    email: string,
+    token: string,
+    newPassword: string,
+  ): Promise<boolean> {
+    await this.validateResetToken(email, token);
 
-  const user = await this.prisma.user.findUnique({
-    where: { email },
-  });
+    const user = await this.userRepository.findByEmail(email);
 
-  if (!user) {
-    throw new NotFoundException('Usuário não encontrado.');
-  }
-
-  // 12 rounds para reset de senha (mais seguro)
-  const hashedPassword = await bcrypt.hash(newPassword, 12);
-
-  await this.prisma.user.update({
-    where: { id: user.id },
-    data: {
+    const hashedPassword = await this.hashService.hash(
+      newPassword,
+      BCRYPT_ROUNDS_RESET_PASSWORD,
+    );
+    await this.userRepository.update(user.id, {
       password: hashedPassword,
-      resetToken: null,           // Invalida token após uso
+      resetToken: null,
       resetTokenExpiry: null,
-    },
-  });
+    });
 
-  this.logger.log(`Senha redefinida para ${email}`);
+    this.logger.log(`Senha redefinida para ${email}`);
 
-  return true;
-}
+    return true;
+  }
 ```
 
 **Diferença entre 10 e 12 rounds:**
@@ -2863,9 +2848,9 @@ async resetPassword(
 **Características de Segurança:**
 
 - ✅ **Salt único:** Cada senha tem salt diferente (gerado automaticamente)
-- ✅ **Tempo constante:** `bcrypt.compare()` não vaza informações via timing
+- ✅ **Tempo constante:** `HashService.compare()` não vaza informações via timing
 - ✅ **Custo adaptativo:** Pode aumentar rounds no futuro sem quebrar hashes antigos
-- ✅ **Resistente a GPU:** bcrypt usa muita memória (dificulta ataques com GPU)
+- ✅ **Resistente a GPU:** HashService usa muita memória (dificulta ataques com GPU)
 
 ---
 
@@ -2910,7 +2895,7 @@ export const RESET_TOKEN_EXPIRY_MINUTES = 15;
 
 ## 8.4 Logging e Monitoramento {#logging_monitoramento}
 
-O sistema utiliza uma estratégia de Logging Estruturado baseada na biblioteca winston, integrada nativamente ao Logger do NestJS. Isso garante que todos os logs do sistema (incluindo erros não tratados e queries do Prisma) sigam um padrão uniforme, facilitando a ingestão por ferramentas de observabilidade(Quando escolher qual vou usar citar aqui TODO).
+O sistema utiliza uma estratégia de Logging Estruturado baseada na biblioteca winston, integrada nativamente ao Logger do NestJS. Isso garante que todos os logs do sistema (incluindo erros não tratados e queries do Prisma) sigam um padrão uniforme, facilitando a ingestão por ferramentas de observabilidade.
 
 ### Níveis de Log
 
@@ -2982,49 +2967,40 @@ this.logger.log({
 #### **1. CRON Job de Limpeza de Convites**
 
 ```typescript
-// backend/src/application/services/invites/invites-cleanup.service.ts
-import { Injectable, Logger } from "@nestjs/common";
-import { Cron, CronExpression } from "@nestjs/schedule";
-import { PrismaService } from "@/infrastructure/prisma/prisma.service";
-import { InviteStatus } from "@/application/enums/invite-status.enum";
+import { Injectable, Logger, Inject } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { IInviteRepository } from '@/domain/repositories/invite.repository';
 
 @Injectable()
 export class InvitesCleanupService {
   private readonly logger = new Logger(InvitesCleanupService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(IInviteRepository)
+    private readonly inviteRepository: IInviteRepository,
+  ) {}
 
   /**
    * Roda todos os dias à meia-noite
    * Marca convites pendentes expirados como EXPIRED
    */
+  // [BR-002] Expiração de Convite: Job roda diariamente às 02:00 AM
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async expireOldInvites() {
-    this.logger.log("Iniciando verificação de convites expirados...");
+    this.logger.log('Iniciando verificação de convites expirados...');
 
-    const result = await this.prisma.invite.updateMany({
-      where: {
-        status: InviteStatus.PENDING,
-        expiresAt: {
-          lt: new Date(),
-        },
-      },
-      data: {
-        status: InviteStatus.EXPIRED,
-      },
-    });
+    const expiredCount = await this.inviteRepository.expireOldInvites();
 
     this.logger.log(
-      `✅ ${result.count} convite(s) marcado(s) como expirado(s)`
+      `${expiredCount} convite(s) marcado(s) como expirado(s)`,
     );
 
     return {
       success: true,
-      expiredCount: result.count,
+      expiredCount,
       timestamp: new Date(),
     };
   }
-}
 ```
 
 #### **2. Retry de Emails**
@@ -3033,7 +3009,7 @@ Ver implementação real na seção **Tratamento de Erros Assíncronos** (EmailL
 
 ---
 
-### TODO: Observabilidade com Prometheus + Grafana
+### Observabilidade (Roadmap)
 
 **Roadmap v1.1 (3 meses):**
 
@@ -3329,7 +3305,6 @@ export function handleEmailUniqueError(error: unknown): never {
 
 ```typescript
 // src/application/services/users/users.service.ts
-// ✅ CORRETO: Service NÃO conhece Prisma
 
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { IUserRepository } from '@/domain/repositories/user.repository';
@@ -3401,7 +3376,6 @@ export class UsersService {
 
 ```typescript
 // src/infrastructure/repositories/prisma-user.repository.ts
-// ✅ CORRETO: Repository USA handlePrismaError
 
 import { handlePrismaError, PrismaErrorCode } from '@/common/utils/prisma-error-handler';
 
@@ -3570,9 +3544,6 @@ export class BusinessException extends HttpException {
 
 ```typescript
 // Uso em regras de negócio
-if (!user.associationId) {
-  throw new BusinessException("Produtor não vinculado");
-}
 
 if (new Date(dto.date) > new Date()) {
   throw new BusinessException("Data não pode ser futura");
@@ -3603,26 +3574,21 @@ if (new Date(dto.date) > new Date()) {
 
 ```typescript
 // backend/src/listener/invite-email.listener.ts
-import { Injectable, Logger } from "@nestjs/common";
-import { OnEvent } from "@nestjs/event-emitter";
-import { MailService } from "@/mail/mail.service";
-import { InviteCreatedEvent } from "@/events/invite-created.event";
-
 @Injectable()
 export class InviteEmailListener {
   private readonly logger = new Logger(InviteEmailListener.name);
-
   constructor(
     private readonly mailService: MailService,
-    private readonly prisma: PrismaService
+    @Inject(IAssociationRepository)
+    private readonly associationRepository: IAssociationRepository,
   ) {}
 
   /**
    * Quando convite é criado, envia email para o usuário convidado
    */
-  @OnEvent("invite.created")
+  @OnEvent('invite.created')
   async handleInviteCreated(event: InviteCreatedEvent) {
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     const acceptUrl = `${frontendUrl}/invites/${event.token}?action=accept`;
     const declineUrl = `${frontendUrl}/invites/${event.token}?action=decline`;
 
@@ -3636,49 +3602,45 @@ export class InviteEmailListener {
         event.message,
         acceptUrl,
         declineUrl,
-        event.expiresAt
+        event.expiresAt,
       );
 
       this.logger.log(
-        `Email de convite enviado com sucesso para ${event.userEmail}`
+        `Email de convite enviado com sucesso para ${event.userEmail}`,
       );
     } catch (error) {
       this.logger.error(
-        `❌ Erro ao enviar email de convite para ${event.userEmail}:`,
-        error
+        `Erro ao enviar email de convite para ${event.userEmail}:`,
+        error,
       );
-      // NÃO propaga erro (falha no email não deve quebrar criação de convite)
     }
   }
-}
 ```
 
 **Código Real (EmailListener com retry):**
 
 ```typescript
 // backend/src/listener/email.listener.ts
-import { Injectable, Logger } from "@nestjs/common";
-import { OnEvent } from "@nestjs/event-emitter";
-
-const MAX_RETRIES = 3;
-const DELAY_MS = 2000;
-
 @Injectable()
 export class EmailListener {
   private readonly logger = new Logger(EmailListener.name);
+  constructor(
+    private readonly mailService: MailService,
+    private readonly failedEmailRepository: IFailedEmailRepository,
+  ) {}
 
-  @OnEvent("notification.send")
+  @OnEvent('notification.send')
   async handleNotificationSend(payload: NotificationSendPayload) {
     await this.safeSendEmail(payload, 1);
   }
 
   private async safeSendEmail(
     payload: NotificationSendPayload,
-    attempt: number
+    attempt: number,
   ) {
     try {
       this.logger.log(
-        `Tentativa ${attempt} de enviar email para ${payload.to}...`
+        `Tentativa ${attempt} de enviar email para ${payload.to}...`,
       );
 
       await this.mailService.sendNotificationEmail(
@@ -3686,29 +3648,29 @@ export class EmailListener {
         payload.subject,
         payload.message,
         payload.userName,
-        payload.metadata
+        payload.metadata,
       );
 
       this.logger.log(
-        `Email enviado com sucesso para ${payload.to} na tentativa ${attempt}.`
+        `Email enviado com sucesso para ${payload.to} na tentativa ${attempt}.`,
       );
     } catch (error) {
       this.logger.error(
         `Erro na Tentativa ${attempt} para ${payload.to}:`,
-        error
+        error,
       );
 
       if (attempt < MAX_RETRIES) {
         const delayTime = DELAY_MS * attempt; // 2s, 4s, 6s
         this.logger.log(
-          `Aguardando ${delayTime}ms antes da próxima tentativa...`
+          `Aguardando ${delayTime}ms antes da próxima tentativa...`,
         );
         await new Promise((resolve) => setTimeout(resolve, delayTime));
 
         await this.safeSendEmail(payload, attempt + 1);
       } else {
         this.logger.error(
-          `Falha final ao enviar email para ${payload.to} após ${MAX_RETRIES} tentativas. Salvando na DLQ...`
+          `Falha final ao enviar email para ${payload.to} após ${MAX_RETRIES} tentativas. Salvando na DLQ...`,
         );
 
         try {
@@ -3836,7 +3798,7 @@ async create(dto: CreateDailyCollectionDto) {
 
 // Camada 3: Database (constraints)
 // @@unique([userId, date]) no schema Prisma
-// Prisma lança P2002 se tentar criar 2 coletas no mesmo dia
+
 ```
 
 ---
@@ -3873,29 +3835,37 @@ export interface DailyCollectionCriteria {
 ```typescript
 // src/infrastructure/repositories/prisma-animal.repository.ts
 async findAll(criteria: AnimalCriteria = {}): Promise<AnimalEntity[]> {
-  const where: Prisma.AnimalWhereInput = {};
+    const where: Prisma.AnimalWhereInput = {};
 
-  // Tradução de filtros de domínio para Prisma WhereInput
-  where.status = criteria.status !== undefined ? criteria.status : Status.Active;
+    where.status = criteria.status !== undefined ? (criteria.status as PrismaStatus) : PrismaStatus.Active;
 
-  if (criteria.userId) {
-    where.userId = criteria.userId;
+    if (criteria.userId) {
+      where.userId = criteria.userId;
+    }
+
+    if (criteria.associationId) {
+      where.user = {
+        associationId: criteria.associationId,
+      };
+    }
+
+    if (criteria.animalType) {
+      where.animalType = criteria.animalType as any;
+    }
+
+    const include: Prisma.AnimalInclude = {};
+    if (criteria.includeUser) {
+      include.user = true;
+    }
+
+    const animals = await this.prisma.animal.findMany({
+      where,
+      include: Object.keys(include).length > 0 ? include : undefined,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return animals.map(AnimalMapper.toDomain);
   }
-
-  if (criteria.associationId) {
-    where.user = {
-      associationId: criteria.associationId,
-    };
-  }
-
-  // Execução da query
-  const animals = await this.prisma.animal.findMany({
-    where,
-    orderBy: { createdAt: 'desc' },
-  });
-
-  return animals as any;
-}
 ```
 
 **Benefícios:**
@@ -3965,11 +3935,17 @@ export function handlePrismaError(
 }
 ```
 
+**Benefícios:**
+
+- **Consistência:** Todos os serviços usam a mesma lógica de tratamento de erros
+- **Flexibilidade:** Pode-se personalizar mensagens de erro para cada caso
+- **Centralização:** Redução de código duplicado
+- **Manutenção:** Facilita a atualização de tratamentos de erros em um único lugar
 
 **Uso nos Repositories (Infrastructure):**
 
 ```typescript
-// PrismaUserRepository - ✅ CORRETO
+// PrismaUserRepository 
 @Injectable()
 export class PrismaUserRepository implements IUserRepository {
   async create(data) {
@@ -3988,7 +3964,7 @@ export class PrismaUserRepository implements IUserRepository {
 **Uso nos Services (Application):**
 
 ```typescript
-// UsersService - ✅ CORRETO: SEM handlePrismaError
+// UsersService - 
 @Injectable()
 export class UsersService {
   async create(createUserDto: CreateUserDto) {
@@ -4270,7 +4246,8 @@ QuaLeiDer - Qualidade
 │   │   ├── Cobertura de Código (96.25%)
 │   │   ├── Testes Unitários (459 testes)
 │   │   ├── Testes E2E (110 testes)
-│   │   └── Test Factories
+│   │   ├── Test Factories
+│   │   └── Testes Arquiteturais
 │   └── Documentação
 ├── Escalabilidade (P3)
 │   ├── Capacidade

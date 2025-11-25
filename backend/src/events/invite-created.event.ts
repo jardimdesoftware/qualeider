@@ -3,32 +3,17 @@
  * Usado para acionar envio de email e notificações in-app
  */
 export class InviteCreatedEvent {
-  constructor(
-    /** ID do convite criado */
-    public readonly inviteId: number,
+  public readonly inviteId: number;
+  public readonly userId: number;
+  public readonly userName: string;
+  public readonly userEmail: string;
+  public readonly associationId: number;
+  public readonly associationName: string;
+  public readonly message: string | null;
+  public readonly token: string;
+  public readonly expiresAt: Date;
 
-    /** ID do usuário convidado */
-    public readonly userId: number,
-
-    /** Nome do usuário convidado */
-    public readonly userName: string,
-
-    /** Email do usuário convidado */
-    public readonly userEmail: string,
-
-    /** ID da associação que enviou o convite */
-    public readonly associationId: number,
-
-    /** Nome da associação */
-    public readonly associationName: string,
-
-    /** Mensagem personalizada (pode ser null) */
-    public readonly message: string | null,
-
-    /** Token único para aceitar/recusar via link */
-    public readonly token: string,
-
-    /** Data de expiração do convite */
-    public readonly expiresAt: Date,
-  ) {}
+  constructor(props: Partial<InviteCreatedEvent>) {
+    Object.assign(this, props);
+  }
 }

@@ -15,6 +15,7 @@ export class InvitesCleanupService {
    * Roda todos os dias à meia-noite
    * Marca convites pendentes expirados como EXPIRED
    */
+  // [BR-002] Expiração de Convite: Job roda diariamente às 02:00 AM
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async expireOldInvites() {
     this.logger.log('Iniciando verificação de convites expirados...');
@@ -37,4 +38,3 @@ export class InvitesCleanupService {
     return this.expireOldInvites();
   }
 }
-

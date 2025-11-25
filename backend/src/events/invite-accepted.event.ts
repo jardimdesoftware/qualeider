@@ -3,20 +3,13 @@
  * Usado para notificar a associação e criar logs
  */
 export class InviteAcceptedEvent {
-  constructor(
-    /** ID do convite aceito */
-    public readonly inviteId: number,
+  public readonly inviteId: number;
+  public readonly userId: number;
+  public readonly userName: string;
+  public readonly associationId: number;
+  public readonly associationName: string;
 
-    /** ID do usuário que aceitou */
-    public readonly userId: number,
-
-    /** Nome do usuário */
-    public readonly userName: string,
-
-    /** ID da associação */
-    public readonly associationId: number,
-
-    /** Nome da associação */
-    public readonly associationName: string,
-  ) {}
+  constructor(props: Partial<InviteAcceptedEvent>) {
+    Object.assign(this, props);
+  }
 }

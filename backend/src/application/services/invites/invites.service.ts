@@ -83,17 +83,17 @@ export class InvitesService {
       status: InviteStatus.PENDING,
     });
 
-    const event = new InviteCreatedEvent(
-      invite.id,
-      user.id,
-      user.name,
-      user.email,
-      association.id,
-      association.name,
-      invite.message,
-      invite.token,
-      invite.expiresAt,
-    );
+    const event = new InviteCreatedEvent({
+      inviteId: invite.id,
+      userId: user.id,
+      userName: user.name,
+      userEmail: user.email,
+      associationId: association.id,
+      associationName: association.name,
+      message: invite.message,
+      token: invite.token,
+      expiresAt: invite.expiresAt,
+    });
 
     this.eventEmitter.emit('invite.created', event);
 
@@ -144,13 +144,13 @@ export class InvitesService {
         associationId: invite.associationId,
       });
 
-      const event = new InviteAcceptedEvent(
-        invite.id,
-        user.id,
-        user.name,
-        association.id,
-        association.name,
-      );
+      const event = new InviteAcceptedEvent({
+        inviteId: invite.id,
+        userId: user.id,
+        userName: user.name,
+        associationId: association.id,
+        associationName: association.name,
+      });
 
       this.eventEmitter.emit('invite.accepted', event);
 
@@ -165,13 +165,13 @@ export class InvitesService {
         respondedAt: new Date(),
       });
 
-      const event = new InviteDeclinedEvent(
-        invite.id,
-        user.id,
-        user.name,
-        association.id,
-        association.name,
-      );
+      const event = new InviteDeclinedEvent({
+        inviteId: invite.id,
+        userId: user.id,
+        userName: user.name,
+        associationId: association.id,
+        associationName: association.name,
+      });
 
       this.eventEmitter.emit('invite.declined', event);
 

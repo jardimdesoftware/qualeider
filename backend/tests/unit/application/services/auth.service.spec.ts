@@ -113,6 +113,36 @@ describe('AuthService', () => {
     });
   });
 
+  describe('executeLogin', () => {
+    it('deve realizar login com sucesso quando credenciais são válidas', async () => {
+      const loginDto = { email: 'test@example.com', password: 'password123' };
+      const mockUser = { id: 1, email: 'test@example.com' };
+      const mockToken = { access_token: 'jwt-token' };
+
+      jest.spyOn(service, 'validateUser').mockResolvedValue(mockUser);
+      jest.spyOn(service, 'login').mockResolvedValue(mockToken);
+
+      const result = await service.executeLogin(loginDto);
+
+      expect(service.validateUser).toHaveBeenCalledWith(
+        loginDto.email,
+        loginDto.password,
+      );
+      expect(service.login).toHaveBeenCalledWith(mockUser);
+      expect(result).toEqual(mockToken);
+    });
+
+    it('deve lançar UnauthorizedException quando validação falha', async () => {
+      const loginDto = { email: 'test@example.com', password: 'wrong' };
+
+      jest.spyOn(service, 'validateUser').mockResolvedValue(null);
+
+      await expect(service.executeLogin(loginDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+  });
+
   describe('login', () => {
     it('deve retornar token de acesso com payload correto', async () => {
       const mockUser = {

@@ -17,41 +17,9 @@ export class PrismaExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest();
 
-    let status = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message = 'Erro interno de banco de dados';
+    const { status, message } = this.getErrorDetails(exception);
 
-    switch (exception.code) {
-      case 'P2002':
-        status = HttpStatus.CONFLICT;
-        message = this.handleUniqueConstraintViolation(exception);
-        break;
-
-      case 'P2025':
-        status = HttpStatus.NOT_FOUND;
-        message = 'Registro não encontrado';
-        break;
-
-      case 'P2003':
-        status = HttpStatus.BAD_REQUEST;
-        message = 'Violação de chave estrangeira';
-        break;
-
-      case 'P2014':
-        status = HttpStatus.BAD_REQUEST;
-        message = 'A operação viola uma relação necessária';
-        break;
-
-      default:
-        this.logger.error(
-          `[Prisma Error ${exception.code}] ${exception.message}`,
-          exception.stack,
-        );
-        break;
-    }
-
-    this.logger.warn(
-      `Prisma Error [${exception.code}] on ${request.method} ${request.url}: ${message}`,
-    );
+    this.logException(exception, status, message, request);
 
     response.status(status).json({
       statusCode: status,
@@ -60,6 +28,40 @@ export class PrismaExceptionFilter implements ExceptionFilter {
       timestamp: new Date().toISOString(),
       path: request.url,
     });
+  }
+
+  private getErrorDetails(exception: PrismaClientKnownRequestError): {
+    status: number;
+    message: string;
+  } {
+    switch (exception.code) {
+      case 'P2002':
+        return {
+          status: HttpStatus.CONFLICT,
+          // [BR-001] Unicidade de Email
+          message: this.handleUniqueConstraintViolation(exception),
+        };
+      case 'P2025':
+        return {
+          status: HttpStatus.NOT_FOUND,
+          message: 'Registro não encontrado',
+        };
+      case 'P2003':
+        return {
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Violação de chave estrangeira',
+        };
+      case 'P2014':
+        return {
+          status: HttpStatus.BAD_REQUEST,
+          message: 'A operação viola uma relação necessária',
+        };
+      default:
+        return {
+          status: HttpStatus.INTERNAL_SERVER_ERROR,
+          message: 'Erro interno de banco de dados',
+        };
+    }
   }
 
   private handleUniqueConstraintViolation(
@@ -71,15 +73,27 @@ export class PrismaExceptionFilter implements ExceptionFilter {
   }
 
   private getErrorName(status: number): string {
-    switch (status) {
-      case HttpStatus.NOT_FOUND:
-        return 'Not Found';
-      case HttpStatus.CONFLICT:
-        return 'Conflict';
-      case HttpStatus.BAD_REQUEST:
-        return 'Bad Request';
-      default:
-        return 'Internal Server Error';
+    const errorNames = {
+      [HttpStatus.NOT_FOUND]: 'Not Found',
+      [HttpStatus.CONFLICT]: 'Conflict',
+      [HttpStatus.BAD_REQUEST]: 'Bad Request',
+      [HttpStatus.INTERNAL_SERVER_ERROR]: 'Internal Server Error',
+    };
+    return errorNames[status] || 'Internal Server Error';
+  }
+
+  private logException(
+    exception: PrismaClientKnownRequestError,
+    status: number,
+    message: string,
+    request: any,
+  ) {
+    const logMessage = `Prisma Error [${exception.code}] on ${request.method} ${request.url}: ${message}`;
+
+    if (status >= 500) {
+      this.logger.error(logMessage, exception.stack);
+    } else {
+      this.logger.warn(logMessage);
     }
   }
 }

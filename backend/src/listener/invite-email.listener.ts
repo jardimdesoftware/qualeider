@@ -1,17 +1,18 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { MailService } from '@/mail/mail.service';
-import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { InviteCreatedEvent } from '@/events/invite-created.event';
 import { InviteAcceptedEvent } from '@/events/invite-accepted.event';
 import { InviteDeclinedEvent } from '@/events/invite-declined.event';
+import { IAssociationRepository } from '@/domain/repositories/association.repository';
 
 @Injectable()
 export class InviteEmailListener {
   private readonly logger = new Logger(InviteEmailListener.name);
   constructor(
     private readonly mailService: MailService,
-    private readonly prisma: PrismaService,
+    @Inject(IAssociationRepository)
+    private readonly associationRepository: IAssociationRepository,
   ) {}
 
   /**
@@ -41,7 +42,7 @@ export class InviteEmailListener {
       );
     } catch (error) {
       this.logger.error(
-        `❌ Erro ao enviar email de convite para ${event.userEmail}:`,
+        `Erro ao enviar email de convite para ${event.userEmail}:`,
         error,
       );
     }
@@ -53,15 +54,14 @@ export class InviteEmailListener {
   @OnEvent('invite.accepted')
   async handleInviteAccepted(event: InviteAcceptedEvent) {
     this.logger.log(
-      `✅ Convite #${event.inviteId} aceito: ${event.userName} agora faz parte da ${event.associationName}`,
+      `Convite #${event.inviteId} aceito: ${event.userName} agora faz parte da ${event.associationName}`,
     );
 
     try {
       // Buscar email da associação
-      const association = await this.prisma.association.findUnique({
-        where: { id: event.associationId },
-        select: { email: true, name: true },
-      });
+      const association = await this.associationRepository.findById(
+        event.associationId,
+      );
 
       if (association) {
         this.logger.log(
@@ -80,7 +80,7 @@ export class InviteEmailListener {
         );
       }
     } catch (error) {
-      this.logger.error('❌ Erro ao notificar associação sobre aceite:', error);
+      this.logger.error('Erro ao notificar associação sobre aceite:', error);
     }
   }
 
@@ -94,10 +94,9 @@ export class InviteEmailListener {
     );
 
     try {
-      const association = await this.prisma.association.findUnique({
-        where: { id: event.associationId },
-        select: { email: true, name: true },
-      });
+      const association = await this.associationRepository.findById(
+        event.associationId,
+      );
 
       if (association) {
         this.logger.log(

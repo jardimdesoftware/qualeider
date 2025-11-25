@@ -1,7 +1,6 @@
 import {
   HttpStatus,
   Injectable,
-  NotFoundException,
   UnauthorizedException,
   Logger,
   Inject,
@@ -10,6 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import { IHashService } from '@/application/ports/hash.service';
 import { IUserRepository } from '@/domain/repositories/user.repository';
 import { MailService } from '@/mail/mail.service';
+import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 import {
   BCRYPT_ROUNDS_RESET_PASSWORD,
   RESET_TOKEN_MIN_VALUE,
@@ -39,6 +39,16 @@ export class AuthService {
     throw new UnauthorizedException('Credenciais inválidas.');
   }
 
+  async executeLogin(loginDto: { email: string; password: string }) {
+    const user = await this.validateUser(loginDto.email, loginDto.password);
+
+    if (!user) {
+      throw new UnauthorizedException('Credenciais inválidas.');
+    }
+
+    return this.login(user);
+  }
+
   async login(user: any) {
     const payload = {
       email: user.email,
@@ -59,7 +69,7 @@ export class AuthService {
     const user = await this.userRepository.findByEmail(normalizedEmail);
 
     if (!user) {
-      throw new NotFoundException('E-mail não encontrado no sistema.');
+      throw new EntityNotFoundException('E-mail não encontrado no sistema.');
     }
 
     try {
@@ -100,7 +110,7 @@ export class AuthService {
     const user = await this.userRepository.findByEmail(email);
 
     if (!user) {
-      throw new NotFoundException('Usuário não encontrado.');
+      throw new EntityNotFoundException('Usuário não encontrado.');
     }
 
     if (!user.resetToken || user.resetToken !== token) {
@@ -110,7 +120,7 @@ export class AuthService {
     if (user.resetTokenExpiry && user.resetTokenExpiry < new Date()) {
       throw new UnauthorizedException(
         'Token expirado. Solicite um novo código.',
-      );
+      );  
     }
 
     const newExpiry = new Date();

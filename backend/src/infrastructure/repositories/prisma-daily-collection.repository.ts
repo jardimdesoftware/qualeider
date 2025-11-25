@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { MilkingPlace, Prisma } from '@prisma/client';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { IDailyCollectionRepository, DailyCollectionFindOneOptions } from '@/domain/repositories/daily-collection.repository';
 import { ID } from '@/domain/enums/enums';
@@ -23,7 +23,7 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
           numOrdens: data.numOrdens,
           rationProvided: data.rationProvided,
           numLactation: data.numLactation,
-          milkingPlace: data.milkingPlace as any,
+          milkingPlace: data.milkingPlace as unknown as MilkingPlace,
           technicalAssistance: data.technicalAssistance,
         },
       });

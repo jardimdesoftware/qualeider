@@ -32,7 +32,7 @@ export class CreateUserDto {
   @IsNotEmpty({ message: 'A senha não pode ser vazia.' })
   @IsString()
   @MinLength(8, { message: 'A senha deve ter no mínimo 8 caracteres.' })
-  // Força a senha a ter no mínimo: 1 letra minúscula, 1 maiúscula, 1 número e 1 caractere especial
+  // [BR-003] Validação de Senha
   @Matches(
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/,
     {

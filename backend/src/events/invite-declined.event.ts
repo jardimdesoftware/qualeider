@@ -3,20 +3,13 @@
  * Usado para notificar a associação e criar logs
  */
 export class InviteDeclinedEvent {
-  constructor(
-    /** ID do convite recusado */
-    public readonly inviteId: number,
+  public readonly inviteId: number;
+  public readonly userId: number;
+  public readonly userName: string;
+  public readonly associationId: number;
+  public readonly associationName: string;
 
-    /** ID do usuário que recusou */
-    public readonly userId: number,
-
-    /** Nome do usuário */
-    public readonly userName: string,
-
-    /** ID da associação */
-    public readonly associationId: number,
-
-    /** Nome da associação */
-    public readonly associationName: string,
-  ) {}
+  constructor(props: Partial<InviteDeclinedEvent>) {
+    Object.assign(this, props);
+  }
 }

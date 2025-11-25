@@ -2,7 +2,6 @@ import {
   Controller,
   Post,
   Body,
-  UnauthorizedException,
   HttpCode,
   Req,
   HttpStatus,
@@ -22,6 +21,7 @@ import { Request } from 'express';
 export class AuthController {
   constructor(private authService: AuthService) {}
 
+  // [BR-004] Rate Limiting Login
   @Throttle({ default: { limit: 3, ttl: THROTTLE_TTL.SHORT } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
@@ -32,16 +32,7 @@ export class AuthController {
   })
   @ApiResponse({ status: 401, description: 'Credenciais inválidas.' })
   async login(@Body() loginDto: LoginDto) {
-    const user = await this.authService.validateUser(
-      loginDto.email,
-      loginDto.password,
-    );
-
-    if (!user) {
-      throw new UnauthorizedException('Credenciais inválidas.');
-    }
-
-    const result = await this.authService.login(user);
+    const result = await this.authService.executeLogin(loginDto);
 
     return {
       statusCode: HttpStatus.OK,

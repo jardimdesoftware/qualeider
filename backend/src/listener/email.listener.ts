@@ -3,9 +3,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { MailService } from '@/mail/mail.service';
 import { NotificationSendPayload } from '@/events/notification-payload.interface';
 import { IFailedEmailRepository } from '@/domain/repositories/failed-email.repository';
-
-const MAX_RETRIES = 3;
-const DELAY_MS = 2000;
+import { MAX_RETRIES, DELAY_MS } from '@/common/constants/email.constants';
 
 @Injectable()
 export class EmailListener {

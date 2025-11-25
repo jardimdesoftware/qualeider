@@ -17,6 +17,7 @@ describe('AuthController', () => {
   const mockAuthService = {
     validateUser: jest.fn(),
     login: jest.fn(),
+    executeLogin: jest.fn(),
     forgotPassword: jest.fn(),
     validateResetToken: jest.fn(),
     resetPassword: jest.fn(),
@@ -49,16 +50,11 @@ describe('AuthController', () => {
       const user = createUser({ email: loginDto.email });
       const loginResponse = { access_token: 'jwt-token', user };
 
-      mockAuthService.validateUser.mockResolvedValue(user);
-      mockAuthService.login.mockResolvedValue(loginResponse);
+      mockAuthService.executeLogin.mockResolvedValue(loginResponse);
 
       const result = await controller.login(loginDto);
 
-      expect(authService.validateUser).toHaveBeenCalledWith(
-        loginDto.email,
-        loginDto.password,
-      );
-      expect(authService.login).toHaveBeenCalledWith(user);
+      expect(authService.executeLogin).toHaveBeenCalledWith(loginDto);
       
       expect(result).toEqual({
         statusCode: HttpStatus.OK,
@@ -73,7 +69,9 @@ describe('AuthController', () => {
         password: 'WrongPassword',
       };
 
-      mockAuthService.validateUser.mockResolvedValue(null);
+      mockAuthService.executeLogin.mockRejectedValue(
+        new UnauthorizedException('Credenciais inválidas.'),
+      );
 
       await expect(controller.login(loginDto)).rejects.toThrow(
         UnauthorizedException,
@@ -81,8 +79,6 @@ describe('AuthController', () => {
       await expect(controller.login(loginDto)).rejects.toThrow(
         'Credenciais inválidas.',
       );
-
-      expect(authService.login).not.toHaveBeenCalled();
     });
   });
 
