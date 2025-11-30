@@ -6,11 +6,12 @@ import { InviteDeclinedEvent } from '@/events/invite-declined.event';
 import { CreateInviteDto } from '@/application/dtos/invites/create-invite.dto';
 import { BusinessException } from '@/common/exceptions/business.exception';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
-import { INVITE_EXPIRATION_DAYS } from '@/common/constants/business-rules.constants';
 import { InviteStatus, InviteAction } from '@/domain/enums/enums';
 import { IInviteRepository } from '@/domain/repositories/invite.repository';
 import { IUserRepository } from '@/domain/repositories/user.repository';
 import { IAssociationRepository } from '@/domain/repositories/association.repository';
+
+import { InviteDomainService } from '@/domain/services/invite.domain-service';
 
 @Injectable()
 export class InvitesService {
@@ -23,6 +24,7 @@ export class InvitesService {
     private readonly userRepository: IUserRepository,
     @Inject(IAssociationRepository)
     private readonly associationRepository: IAssociationRepository,
+    private readonly inviteDomainService: InviteDomainService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -72,8 +74,7 @@ export class InvitesService {
       dto.userId,
     );
 
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + INVITE_EXPIRATION_DAYS);
+    const expiresAt = this.inviteDomainService.calculateExpirationDate();
 
     const invite = await this.inviteRepository.create({
       associationId,
@@ -118,26 +119,19 @@ export class InvitesService {
       throw new EntityNotFoundException('Convite não encontrado');
     }
 
-    const user = (invite as any).user;
-    const association = (invite as any).association;
+    const user = invite.user;
+    const association = invite.association;
 
-    if (invite.status !== InviteStatus.PENDING) {
-      throw new BusinessException(
-        `Convite já foi ${invite.status.toLowerCase()}`,
-      );
-    }
-
-    if (new Date() > invite.expiresAt) {
-      await this.inviteRepository.update(invite.id, {
-        status: InviteStatus.EXPIRED,
-      });
-      throw new BusinessException('Convite expirado');
+    if (!user || !association) {
+        throw new EntityNotFoundException('Dados do convite incompletos');
     }
 
     if (response === InviteAction.ACCEPT) {
+      this.inviteDomainService.accept(invite);
+
       await this.inviteRepository.update(invite.id, {
-        status: InviteStatus.ACCEPTED,
-        respondedAt: new Date(),
+        status: invite.status,
+        respondedAt: invite.respondedAt,
       });
 
       await this.userRepository.update(invite.userId, {
@@ -160,9 +154,11 @@ export class InvitesService {
         associationName: association.name,
       };
     } else {
+      this.inviteDomainService.decline(invite);
+
       await this.inviteRepository.update(invite.id, {
-        status: InviteStatus.DECLINED,
-        respondedAt: new Date(),
+        status: invite.status,
+        respondedAt: invite.respondedAt,
       });
 
       const event = new InviteDeclinedEvent({
@@ -205,19 +201,15 @@ export class InvitesService {
   async cancelInvite(associationId: number, inviteId: number) {
     const invite = await this.inviteRepository.findById(inviteId);
 
-    if (
-      !invite ||
-      invite.associationId !== associationId ||
-      invite.status !== InviteStatus.PENDING
-    ) {
-      throw new EntityNotFoundException(
-        'Convite não encontrado ou já foi respondido',
-      );
+    if (!invite || invite.associationId !== associationId) {
+      throw new EntityNotFoundException('Convite não encontrado');
     }
 
+    this.inviteDomainService.cancel(invite);
+
     await this.inviteRepository.update(inviteId, {
-      status: InviteStatus.CANCELED,
-      respondedAt: new Date(),
+      status: invite.status,
+      respondedAt: invite.respondedAt,
     });
 
     return { message: 'Convite cancelado com sucesso' };
@@ -233,7 +225,7 @@ export class InvitesService {
       throw new EntityNotFoundException('Convite não encontrado');
     }
 
-    const isExpired = new Date() > invite.expiresAt;
+    const isExpired = this.inviteDomainService.isExpired(invite);
 
     return {
       id: invite.id,
@@ -242,8 +234,8 @@ export class InvitesService {
       sentAt: invite.sentAt,
       expiresAt: invite.expiresAt,
       isExpired,
-      association: (invite as any).association,
-      user: (invite as any).user,
+      association: invite.association,
+      user: invite.user,
     };
   }
 }

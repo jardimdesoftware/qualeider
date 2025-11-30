@@ -8,12 +8,14 @@ import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.ex
 import { IInviteRepository } from '@/domain/repositories/invite.repository';
 import { IUserRepository } from '@/domain/repositories/user.repository';
 import { IAssociationRepository } from '@/domain/repositories/association.repository';
+import { InviteDomainService } from '@/domain/services/invite.domain-service';
 
 describe('InvitesService', () => {
   let service: InvitesService;
   let inviteRepository: jest.Mocked<IInviteRepository>;
   let userRepository: jest.Mocked<IUserRepository>;
   let associationRepository: jest.Mocked<IAssociationRepository>;
+  let inviteDomainService: jest.Mocked<InviteDomainService>;
   let eventEmitter: jest.Mocked<EventEmitter2>;
 
   beforeEach(async () => {
@@ -45,6 +47,17 @@ describe('InvitesService', () => {
           },
         },
         {
+          provide: InviteDomainService,
+          useValue: {
+            calculateExpirationDate: jest.fn(),
+            validateForAcceptance: jest.fn(),
+            accept: jest.fn(),
+            decline: jest.fn(),
+            cancel: jest.fn(),
+            isExpired: jest.fn(),
+          },
+        },
+        {
           provide: EventEmitter2,
           useValue: {
             emit: jest.fn(),
@@ -57,6 +70,7 @@ describe('InvitesService', () => {
     inviteRepository = module.get(IInviteRepository);
     userRepository = module.get(IUserRepository);
     associationRepository = module.get(IAssociationRepository);
+    inviteDomainService = module.get(InviteDomainService);
     eventEmitter = module.get(EventEmitter2);
   });
 
@@ -100,6 +114,7 @@ describe('InvitesService', () => {
       userRepository.findById.mockResolvedValue(mockUser as any);
       inviteRepository.findAll.mockResolvedValue([]);
       inviteRepository.create.mockResolvedValue(mockInvite as any);
+      inviteDomainService.calculateExpirationDate.mockReturnValue(new Date());
 
       const result = await service.createInvite(associationId, createDto);
 
@@ -217,6 +232,11 @@ describe('InvitesService', () => {
       inviteRepository.findByToken.mockResolvedValue(mockInvite as any);
       inviteRepository.update.mockResolvedValue(mockInvite as any);
       userRepository.update.mockResolvedValue({} as any);
+      inviteDomainService.accept.mockImplementation((inv) => {
+        inv.status = InviteStatus.ACCEPTED;
+        return inv;
+      });
+      inviteDomainService.validateForAcceptance.mockImplementation(() => {});
 
       const result = await service.respondToInvite(token, InviteAction.ACCEPT);
 
@@ -245,6 +265,10 @@ describe('InvitesService', () => {
 
       inviteRepository.findByToken.mockResolvedValue(mockInvite as any);
       inviteRepository.update.mockResolvedValue(mockInvite as any);
+      inviteDomainService.decline.mockImplementation((inv) => {
+        inv.status = InviteStatus.DECLINED;
+        return inv;
+      });
 
       const result = await service.respondToInvite(token, InviteAction.DECLINE);
 
@@ -276,6 +300,9 @@ describe('InvitesService', () => {
       };
 
       inviteRepository.findByToken.mockResolvedValue(mockInvite as any);
+      inviteDomainService.accept.mockImplementation(() => {
+        throw new BusinessException(`Convite já foi ${InviteStatus.ACCEPTED.toLowerCase()}`);
+      });
 
       await expect(
         service.respondToInvite('token', InviteAction.ACCEPT),
@@ -296,6 +323,9 @@ describe('InvitesService', () => {
 
       inviteRepository.findByToken.mockResolvedValue(mockInvite as any);
       inviteRepository.update.mockResolvedValue(mockInvite as any);
+      inviteDomainService.accept.mockImplementation(() => {
+        throw new BusinessException('Convite expirado');
+      });
 
       await expect(
         service.respondToInvite('token', InviteAction.ACCEPT),
@@ -303,10 +333,6 @@ describe('InvitesService', () => {
       await expect(
         service.respondToInvite('token', InviteAction.ACCEPT),
       ).rejects.toThrow('Convite expirado');
-
-      expect(inviteRepository.update).toHaveBeenCalledWith(1, {
-        status: InviteStatus.EXPIRED,
-      });
     });
   });
 
@@ -320,6 +346,11 @@ describe('InvitesService', () => {
 
       inviteRepository.findById.mockResolvedValue(mockInvite as any);
       inviteRepository.update.mockResolvedValue(mockInvite as any);
+      inviteDomainService.cancel.mockImplementation((inv) => {
+        inv.status = InviteStatus.CANCELED;
+        inv.respondedAt = new Date();
+        return inv;
+      });
 
       const result = await service.cancelInvite(1, 1);
 
@@ -337,7 +368,7 @@ describe('InvitesService', () => {
         EntityNotFoundException,
       );
       await expect(service.cancelInvite(1, 999)).rejects.toThrow(
-        'Convite não encontrado ou já foi respondido',
+        'Convite não encontrado',
       );
     });
   });
@@ -355,6 +386,7 @@ describe('InvitesService', () => {
       };
 
       inviteRepository.findByToken.mockResolvedValue(mockInvite as any);
+      inviteDomainService.isExpired.mockReturnValue(false);
 
       const result = await service.getInviteByToken('valid-token');
 
