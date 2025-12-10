@@ -27,7 +27,7 @@
       "@/mail/*": ["src/mail/*"],
       "@/events/*": ["src/events/*"],
       "@/listener/*": ["src/listener/*"],
-      "@/guards/*": ["src/guards/*"],
+      "@/guards/*": ["src/guards/*"]
     }
   },
   "exclude": [

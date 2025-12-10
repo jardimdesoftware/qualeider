@@ -11,7 +11,7 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/presentation/main.js",
+    "start:prod": "node dist/src/presentation/main.js",
     "lint": "eslint \"{src,apps,libs,tests}/**/*.ts\" --fix",
     "test": "jest --config jest.config.ts",
     "test:watch": "jest --watch --config jest.config.ts",
@@ -26,7 +26,8 @@
     "test:all": "npm run test:unit && npm run test:e2e",
     "test:all:cov": "npm run test:unit:cov && npm run test:e2e:cov",
     "test:ci": "npm run test:all -- --coverage --ci",
-    "prepare": "cd .. && husky backend/.husky"
+    "prepare": "cd .. && husky backend/.husky",
+    "seed": "echo 'No seed script found, skipping...'"
   },
   "dependencies": {
     "@nestjs-modules/mailer": "^2.0.2",
