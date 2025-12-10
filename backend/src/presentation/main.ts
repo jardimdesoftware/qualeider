@@ -123,7 +123,7 @@ async function bootstrap() {
 
   // 4. Iniciar o servidor
   const port = getAppPort(configService);
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
 
   // 5. Logar o status da aplicação
   await logAppStatus(app, port, corsOptions);
