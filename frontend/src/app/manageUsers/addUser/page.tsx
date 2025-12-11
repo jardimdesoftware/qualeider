@@ -11,12 +11,12 @@ import DashboardLoading from "@/components/dashboard/DashboardLoading";
 
 export default function AddUser() {
   const router = useRouter();
-  const [userRole, setUserRole] = useState<"Admin" | "Common">("Common");
+  // const [userRole, setUserRole] = useState<"Admin" | "Common">("Common"); // role removed
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
-    role: "Common",
+    // role: "Common",
     userType: "",
     userCategory: "",
     state: "",
@@ -92,7 +92,7 @@ export default function AddUser() {
       name: "",
       email: "",
       password: "",
-      role: "Common",
+      // role: "Common",
       userType: "",
       userCategory: "",
       state: "",
@@ -113,8 +113,8 @@ export default function AddUser() {
       newErrors.userCategory = "Categoria é obrigatória";
     if (!formData.state) newErrors.state = "Estado é obrigatório";
     if (!formData.city) newErrors.city = "Cidade é obrigatória";
-    if (userRole === "Common" && !formData.userType)
-      newErrors.userType = "Tipo de usuário é obrigatório para Common";
+    if (!formData.userType)
+      newErrors.userType = "Tipo de usuário é obrigatório";
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -123,7 +123,7 @@ export default function AddUser() {
 
     const userData = {
       ...formData,
-      role: userRole,
+      // role: userRole,
     };
 
     try {
@@ -170,21 +170,6 @@ export default function AddUser() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Nivel de Acesso <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={userRole}
-                onChange={(e) =>
-                  setUserRole(e.target.value as "Admin" | "Common")
-                }
-                className="w-full p-2 border border-gray-300 rounded-lg"
-              >
-                <option value="Admin">Admin</option>
-                <option value="Common">Usuário Comum</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
                 Pessoa <span className="text-red-500">*</span>
               </label>
               <select
@@ -204,31 +189,29 @@ export default function AddUser() {
             </div>
           </div>
 
-          {/* Campo específico para Common */}
-          {userRole === "Common" && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Categoria <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={formData.userType}
-                onChange={(e) =>
-                  setFormData({ ...formData, userType: e.target.value })
-                }
-                className="w-full p-2 border border-gray-300 rounded-lg"
-              >
-                <option value="">Selecione uma categoria</option>
-                {USER_CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat === "Associacao" ? "Associação" : cat}
-                  </option>
-                ))}
-              </select>
-              {errors.userType && (
-                <p className="text-red-500 text-sm">{errors.userType}</p>
-              )}
-            </div>
-          )}
+          {/* Campo de Categoria */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Categoria <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={formData.userType}
+              onChange={(e) =>
+                setFormData({ ...formData, userType: e.target.value })
+              }
+              className="w-full p-2 border border-gray-300 rounded-lg"
+            >
+              <option value="">Selecione uma categoria</option>
+              {USER_CATEGORIES.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat === "Associacao" ? "Associação" : cat}
+                </option>
+              ))}
+            </select>
+            {errors.userType && (
+              <p className="text-red-500 text-sm">{errors.userType}</p>
+            )}
+          </div>
 
           {/* Nome, Email e Senha */}
           <div>

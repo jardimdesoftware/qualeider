@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import Button from "@/components/global/button";
 import Wave from "@/components/global/waveFooter";
 import { Eye, EyeOff } from "lucide-react";
-import { apiBase } from "@/services/baseApi";
+import { UserService } from "@/services/user.service";
+import { UserType, UserCategory } from "@/interfaces/user";
 import { useLocationData, useIsMobile } from "@/hooks";
 import {
   validateCPF,
@@ -93,8 +94,8 @@ export default function CreateProducer() {
     }
 
     const cleanDoc = cleanDocument(document);
-    const isCNPJ = formData.userType === "Juridica";
-    const isCPF = formData.userType === "Fisica";
+    const isCNPJ = formData.userType === UserCategory.Juridica;
+    const isCPF = formData.userType === UserCategory.Fisica;
 
     if (isCNPJ) {
       if (cleanDoc.length !== 14) {
@@ -119,12 +120,12 @@ export default function CreateProducer() {
   };
 
   const handleDocumentChange = (value: string) => {
-    const isCNPJ = formData.userType === "Juridica";
+    const isCNPJ = formData.userType === UserCategory.Juridica;
     let formattedValue = value;
 
     if (isCNPJ) {
       formattedValue = formatCNPJ(value);
-    } else if (formData.userType === "Fisica") {
+    } else if (formData.userType === UserCategory.Fisica) {
       formattedValue = formatCPF(value);
     }
 
@@ -212,24 +213,17 @@ export default function CreateProducer() {
       name: formData.name,
       email: formData.email,
       password: formData.password,
-      role: "Common",
-      userType: "Pecuarista",
-      userCategory: formData.userType,
+      userType: UserType.Pecuarista,
+      userCategory: formData.userType as UserCategory,
       document: cleanDocument(formData.document),
       state: formData.state,
       city: formData.city,
+      associationId: undefined, // Explicitly undefined as this is independent producer creation
     };
 
     try {
-      const response = await apiBase.post("/users", userData, {
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (response.status === 201) {
-        setShowSuccessPopup(true);
-      } else {
-        setShowErrorPopup(true);
-      }
+      await UserService.create(userData);
+      setShowSuccessPopup(true);
     } catch {
       setShowErrorPopup(true);
     } finally {
@@ -350,8 +344,8 @@ export default function CreateProducer() {
                 required
               >
                 <option value="">Selecione</option>
-                <option value="Fisica">Física</option>
-                <option value="Juridica">Jurídica</option>
+                <option value={UserCategory.Fisica}>Física</option>
+                <option value={UserCategory.Juridica}>Jurídica</option>
               </select>
               {errors.userType && (
                 <p className="text-red-500 text-sm mt-1">{errors.userType}</p>
@@ -360,9 +354,9 @@ export default function CreateProducer() {
 
             <div>
               <label className="text-gray-700 font-medium">
-                {formData.userType === "Juridica"
+                {formData.userType === UserCategory.Juridica
                   ? "CNPJ"
-                  : formData.userType === "Fisica"
+                  : formData.userType === UserCategory.Fisica
                   ? "CPF"
                   : "CPF/CNPJ"}
               </label>
@@ -371,9 +365,9 @@ export default function CreateProducer() {
                 value={formData.document}
                 onChange={(e) => handleDocumentChange(e.target.value)}
                 placeholder={
-                  formData.userType === "Juridica"
+                  formData.userType === UserCategory.Juridica
                     ? "00.000.000/0000-00"
-                    : formData.userType === "Fisica"
+                    : formData.userType === UserCategory.Fisica
                     ? "000.000.000-00"
                     : ""
                 }

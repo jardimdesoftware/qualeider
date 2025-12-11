@@ -80,16 +80,26 @@ export default function Login() {
         password,
       });
 
-      const { access_token } = response.data;
+      const { data } = response.data;
+      const { access_token } = data;
+
+      if (!access_token) {
+        throw new Error("Token de acesso inválido ou ausente.");
+      }
 
       localStorage.setItem("authToken", access_token);
 
-      const tokenPayload = JSON.parse(atob(access_token.split(".")[1]));
-      const userRole = tokenPayload.role;
+      const tokenParts = access_token.split(".");
+      if (tokenParts.length < 2) {
+        throw new Error("Formato de token inválido.");
+      }
 
-      if (userRole === "Admin") {
+      const tokenPayload = JSON.parse(atob(tokenParts[1]));
+      const userType = tokenPayload.userType;
+
+      if (userType === "association") {
         window.location.href = "/dashboardAdmin";
-      } else if (userRole === "Common") {
+      } else if (userType === "user") {
         window.location.href = "/dashboardCommon";
       } else {
         throw new Error("Tipo de usuário desconhecido");

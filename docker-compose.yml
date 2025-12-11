@@ -28,6 +28,8 @@ services:
       DATABASE_URL: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-qualeider}?schema=public"
       JWT_SECRET: ${JWT_SECRET:-secret}
       PORT: 3000
+    ports:
+      - "3002:3000"
     volumes:
       - ./backend:/usr/appBackend
       - /usr/appBackend/dist
@@ -39,8 +41,12 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: /api
     container_name: qualeider-frontend
     restart: on-failure
+    ports:
+      - "3001:3000"
     environment:
       NEXT_PUBLIC_API_URL: /api 
     networks:

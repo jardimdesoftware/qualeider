@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Sidebar from "@/components/sidebar";
 import { apiBase } from "@/services/baseApi";
 import { Estado, Cidade } from "@/interfaces/location";
-import { User } from "@/interfaces/user";
+import { User, UserType } from "@/interfaces/user";
 import { USER_CATEGORIES, sortByNamePtBr } from "@/constants/user-options";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 
@@ -14,11 +14,10 @@ function EditUserContent() {
   const searchParams = useSearchParams();
   const userId = searchParams.get("id"); // Obtém o ID do usuário da URL
 
-  const [userRole, setUserRole] = useState<"Admin" | "Common">("Common");
+  // const [userRole, setUserRole] = useState<"Admin" | "Common">("Common"); // Removed unused state
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    role: "Common",
     userType: "",
     userCategory: "",
     state: "",
@@ -108,13 +107,13 @@ function EditUserContent() {
         setFormData({
           name: user.name,
           email: user.email,
-          role: user.role,
+          // role removed
           userType: user.userType || "",
           userCategory: user.userCategory,
           state: user.state,
           city: user.city,
         });
-        setUserRole(user.role);
+        // setUserRole("Common"); // Removed unused setter call
       } catch (err) {
         console.error("Erro ao buscar usuário:", err);
         setModalMessage("Erro ao carregar dados do usuário.");
@@ -135,8 +134,8 @@ function EditUserContent() {
       newErrors.userCategory = "Categoria é obrigatória";
     if (!formData.state) newErrors.state = "Estado é obrigatório";
     if (!formData.city) newErrors.city = "Cidade é obrigatória";
-    if (userRole === "Common" && !formData.userType)
-      newErrors.userType = "Tipo de usuário é obrigatório para Common";
+    if (!formData.userType)
+      newErrors.userType = "Tipo de usuário é obrigatório";
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -146,8 +145,8 @@ function EditUserContent() {
     // Preparar dados para enviar à API
     const userData = {
       ...formData,
-      role: userRole,
-      userType: userRole === "Admin" ? null : formData.userType,
+      // role removed
+      userType: formData.userType as UserType, // Ensure it is typed correctly if using Interface imports
     };
 
     try {
@@ -196,21 +195,6 @@ function EditUserContent() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Nivel de Acesso <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={userRole}
-                onChange={(e) =>
-                  setUserRole(e.target.value as "Admin" | "Common")
-                }
-                className="w-full p-2 border border-gray-300 rounded-lg"
-              >
-                <option value="Admin">Admin</option>
-                <option value="Common">Usuário Comum</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
                 Pessoa <span className="text-red-500">*</span>
               </label>
               <select
@@ -230,31 +214,29 @@ function EditUserContent() {
             </div>
           </div>
 
-          {/* Campo específico para Common */}
-          {userRole === "Common" && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Categoria <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={formData.userType}
-                onChange={(e) =>
-                  setFormData({ ...formData, userType: e.target.value })
-                }
-                className="w-full p-2 border border-gray-300 rounded-lg"
-              >
-                <option value="">Selecione uma categoria</option>
-                {USER_CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat === "Associacao" ? "Associação" : cat}
-                  </option>
-                ))}
-              </select>
-              {errors.userType && (
-                <p className="text-red-500 text-sm">{errors.userType}</p>
-              )}
-            </div>
-          )}
+          {/* Campo de Categoria */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Categoria <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={formData.userType}
+              onChange={(e) =>
+                setFormData({ ...formData, userType: e.target.value })
+              }
+              className="w-full p-2 border border-gray-300 rounded-lg"
+            >
+              <option value="">Selecione uma categoria</option>
+              {USER_CATEGORIES.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat === "Associacao" ? "Associação" : cat}
+                </option>
+              ))}
+            </select>
+            {errors.userType && (
+              <p className="text-red-500 text-sm">{errors.userType}</p>
+            )}
+          </div>
 
           {/* Nome, Email e Senha */}
           <div>

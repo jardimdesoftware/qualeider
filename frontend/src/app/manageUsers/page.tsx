@@ -221,13 +221,13 @@ export default function ManageUsers() {
                           {user.email}
                         </span>
                         <span className="text-sm text-gray-600 md:hidden">
-                          {user.userType || "Admin"}
+                          {user.userType || "-"}
                         </span>
                       </div>
                     </td>
                     <td className="p-3 hidden md:table-cell">{user.email}</td>
                     <td className="p-3 hidden md:table-cell">
-                      {user.userType || "Admin"}
+                      {user.userType || "-"}
                     </td>
                     <td className="p-3">
                       <button
@@ -257,10 +257,11 @@ export default function ManageUsers() {
                     <tr className="border-b border-gray-200 bg-gray-50">
                       <td colSpan={4} className="p-3">
                         <div className="grid grid-cols-2 gap-4">
-                          <div>
+                          {/* Role removed */}
+                          {/* <div>
                             <span className="font-semibold">Acesso:</span>{" "}
-                            {user.role}
-                          </div>
+                             user.role
+                          </div> */}
                           <div>
                             <span className="font-semibold">Pessoa:</span>{" "}
                             {user.userCategory}

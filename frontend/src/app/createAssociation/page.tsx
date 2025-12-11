@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import Wave from "@/components/global/waveFooter";
 import Button from "@/components/global/button";
-import { apiBase } from "@/services/baseApi";
+import { AssociationService } from "@/services/association.service";
+import { CoverageArea, Status } from "@/interfaces/association";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useLocationData } from "@/hooks/useLocationData";
 import {
@@ -252,20 +253,16 @@ export default function CreateAssociation() {
       // Verifica email e CNPJ duplicados
       try {
         const [emailResp, cnpjResp] = await Promise.all([
-          apiBase.get<{ exists: boolean }>("/associations/check-email", {
-            params: { email: formData.email },
-          }),
-          apiBase.get<{ exists: boolean }>("/associations/check-cnpj", {
-            params: { cnpj: cleanDocument(formData.cnpj) },
-          }),
+          AssociationService.checkEmail(formData.email),
+          AssociationService.checkCnpj(cleanDocument(formData.cnpj)),
         ]);
 
-        if (emailResp.data.exists) {
+        if (emailResp.exists) {
           setErrors((prev) => ({ ...prev, email: "Email já cadastrado" }));
           return;
         }
 
-        if (cnpjResp.data.exists) {
+        if (cnpjResp.exists) {
           setErrors((prev) => ({ ...prev, cnpj: "CNPJ já cadastrado" }));
           return;
         }
@@ -357,24 +354,17 @@ export default function CreateAssociation() {
       numberOfMembers: formData.numberOfMembers
         ? parseInt(formData.numberOfMembers)
         : undefined,
-      coverageArea: formData.coverageArea,
+      coverageArea: formData.coverageArea as CoverageArea,
       presidentName: formData.presidentName,
       presidentCpf: cleanDocument(formData.presidentCpf),
       presidentEmail: formData.presidentEmail,
       presidentPhone: formData.presidentPhone.replace(/\D/g, ""),
+      status: Status.Active,
     };
 
     try {
-      const response = await apiBase.post("/associations", associationData, {
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (response.status === 201) {
-        setShowSuccessPopup(true);
-      } else {
-        setErrorMessage("Erro ao criar associação. Tente novamente.");
-        setShowErrorPopup(true);
-      }
+      await AssociationService.create(associationData);
+      setShowSuccessPopup(true);
     } catch (error: unknown) {
       if (error && typeof error === "object" && "response" in error) {
         const err = error as { response?: { data?: { message?: string } } };
@@ -944,9 +934,9 @@ export default function CreateAssociation() {
                   required
                 >
                   <option value="">Selecione a área de atuação</option>
-                  <option value="Municipal">Municipal</option>
-                  <option value="Regional">Regional</option>
-                  <option value="Estadual">Estadual</option>
+                  <option value={CoverageArea.Municipal}>Municipal</option>
+                  <option value={CoverageArea.Regional}>Regional</option>
+                  <option value={CoverageArea.Estadual}>Estadual</option>
                 </select>
                 {errors.coverageArea && (
                   <p className="text-red-500 text-xs mt-1">

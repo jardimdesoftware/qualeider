@@ -122,7 +122,6 @@ export default function DashboardAdmin() {
 
   // Dados para o gráfico de pizza (distribuição de tipos de usuários)
   const userTypeDistribution = users
-    .filter((user) => user.role === "Common")
     .reduce((acc, user) => {
       acc[user.userType || "Outro"] = (acc[user.userType || "Outro"] || 0) + 1;
       return acc;

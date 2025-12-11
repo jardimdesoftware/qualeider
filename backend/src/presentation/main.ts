@@ -118,7 +118,10 @@ async function bootstrap() {
   app.useGlobalFilters(new PrismaExceptionFilter());
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  // 3. Configurar Swagger
+  // 3. Configurar prefixo global
+  app.setGlobalPrefix('api');
+
+  // 4. Configurar Swagger
   setupSwagger(app);
 
   // 4. Iniciar o servidor

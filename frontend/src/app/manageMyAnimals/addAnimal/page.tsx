@@ -5,14 +5,14 @@ import { useRouter } from "next/navigation";
 import Sidebar from "@/components/sidebar";
 import { apiBase } from "@/services/baseApi";
 import { BREED_OPTIONS } from "@/constants/animal-breeds";
-import { CreateAnimal } from "@/interfaces/animal";
+import { CreateAnimalDto, AnimalType } from "@/interfaces/animal";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 
 export default function AddAnimal() {
   const router = useRouter();
-  const [formData, setFormData] = useState<CreateAnimal>({
+  const [formData, setFormData] = useState<CreateAnimalDto>({
     name: "",
-    animalType: "",
+    animalType: AnimalType.Vaca,
     breed: "",
     age: 1,
     userId: 0,
@@ -129,18 +129,18 @@ export default function AddAnimal() {
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  animalType: e.target.value,
+                  animalType: e.target.value as AnimalType,
                   breed: "",
                 })
               }
               className="w-full p-2 border border-gray-300 rounded-lg"
             >
               <option value="">Selecione um tipo</option>
-              <option value="Vaca">Vaca</option>
-              <option value="Cabra">Cabra</option>
-              <option value="Ovelha">Ovelha</option>
-              <option value="Bufala">Bufala</option>
-              <option value="Outro">Outro</option>
+              <option value={AnimalType.Vaca}>Vaca</option>
+              <option value={AnimalType.Cabra}>Cabra</option>
+              <option value={AnimalType.Ovelha}>Ovelha</option>
+              <option value={AnimalType.Bufala}>Bufala</option>
+              <option value={AnimalType.Outro}>Outro</option>
             </select>
             {errors.animalType && (
               <p className="text-red-500 text-sm">{errors.animalType}</p>
@@ -163,7 +163,7 @@ export default function AddAnimal() {
               <option value="">Selecione uma raça</option>
               {formData.animalType &&
                 BREED_OPTIONS[
-                  formData.animalType as keyof typeof BREED_OPTIONS
+                  formData.animalType as unknown as keyof typeof BREED_OPTIONS
                 ].map((breed) => (
                   <option key={breed} value={breed}>
                     {breed}

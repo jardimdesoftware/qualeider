@@ -86,7 +86,7 @@ export default function ManageAnimals() {
 
   const filteredAnimals = animals.filter(
     (animal) =>
-      animal.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (animal.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       animal.animalType.toLowerCase().includes(searchTerm.toLowerCase()) ||
       animal.breed.toLowerCase().includes(searchTerm.toLowerCase())
   );
