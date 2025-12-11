@@ -1,48 +1,37 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
-import Button from "@/components/global/button";
-import Wave from "@/components/global/waveFooter";
-import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
+import {
+  BrandHeader,
+  ContentCard,
+  InputField,
+  Button,
+  ErrorModal,
+} from "@/components/ui";
+import { PageFooter } from "@/components/layout";
 import { apiBase } from "@/services/baseApi";
-import axios from "axios";
 
 export default function ResetPassword() {
-  const [isMobile, setIsMobile] = useState(false);
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [token, setToken] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState(1); // 1: validar token, 2: criar nova senha
-  const [attempts, setAttempts] = useState(0); // Contador de tentativas
-  const maxAttempts = 3; // Máximo de tentativas permitidas
+  const [step, setStep] = useState(1);
+  const [attempts, setAttempts] = useState(0);
+  const maxAttempts = 3;
 
   const [tokenError, setTokenError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
 
-  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
-  const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-
-  const router = useRouter();
-
-  useEffect(() => {
-    const checkScreenSize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    checkScreenSize();
-    window.addEventListener("resize", checkScreenSize);
-
-    return () => window.removeEventListener("resize", checkScreenSize);
-  }, []);
 
   useEffect(() => {
     const storedEmail = localStorage.getItem("resetEmail");
@@ -54,9 +43,7 @@ export default function ResetPassword() {
     }
   }, [router]);
 
-  // Função para validar token no backend
   const handleValidateToken = async () => {
-    // Validação inline para evitar problema com estado assíncrono
     if (!token) {
       setTokenError("Código é obrigatório");
       return;
@@ -71,98 +58,92 @@ export default function ResetPassword() {
       setErrorMessage(
         "Você excedeu o número máximo de tentativas. Solicite um novo código."
       );
-      setShowErrorPopup(true);
+      setShowErrorModal(true);
       return;
     }
 
     setLoading(true);
-    setTokenError(""); // Limpa erros anteriores
+    setTokenError("");
 
     try {
-      console.log("Validando token:", { email, token }); // Log para debug
-
       const response = await apiBase.post("/auth/validate-reset-token", {
         email,
         token,
       });
 
-      console.log("Resposta da validação:", response); // Log para debug
-
-      // Aceita tanto 200 (OK) quanto 201 (Created)
       if (response.status === 200 || response.status === 201) {
-        setAttempts(0); // Reseta tentativas em caso de sucesso
-        setStep(2); // Avança para o próximo passo
-        console.log("Token validado com sucesso! Avançando para step 2"); // Log para debug
+        setAttempts(0);
+        setStep(2);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro ao validar token:", err);
 
       const newAttempts = attempts + 1;
       setAttempts(newAttempts);
 
-      if (axios.isAxiosError(err) && err.response) {
+      if (err.response) {
         if (err.response.status === 401) {
           if (newAttempts >= maxAttempts) {
             setErrorMessage(
               `Código inválido ou expirado. Você excedeu o número máximo de tentativas (${maxAttempts}). Solicite um novo código.`
             );
-            setShowErrorPopup(true);
+            setShowErrorModal(true);
           } else {
             setTokenError(
               `Código inválido ou expirado. Tentativa ${newAttempts} de ${maxAttempts}.`
             );
-            setToken(""); // Limpa o campo para permitir nova tentativa
+            setToken("");
           }
         } else if (err.response.status === 404) {
           setErrorMessage("Usuário não encontrado.");
-          setShowErrorPopup(true);
+          setShowErrorModal(true);
         } else {
           setErrorMessage(
             err.response.data.message || "Erro ao validar código."
           );
-          setShowErrorPopup(true);
+          setShowErrorModal(true);
         }
       } else {
         setErrorMessage("Erro ao conectar com o servidor.");
-        setShowErrorPopup(true);
+        setShowErrorModal(true);
       }
     } finally {
       setLoading(false);
     }
   };
 
-  // Função para validar a nova senha
   const validatePassword = (password: string) => {
     if (!password) {
       setPasswordError("Senha é obrigatória");
+      return false;
     } else if (password.length < 6) {
       setPasswordError("A senha deve ter no mínimo 6 caracteres");
+      return false;
     } else {
       setPasswordError("");
+      return true;
     }
   };
 
-  // Função para validar a confirmação de senha
   const validateConfirmPassword = (confirmPassword: string) => {
     if (!confirmPassword) {
       setConfirmPasswordError("Confirmação de senha é obrigatória");
+      return false;
     } else if (confirmPassword !== password) {
       setConfirmPasswordError("As senhas não coincidem");
+      return false;
     } else {
       setConfirmPasswordError("");
+      return true;
     }
   };
 
   const handleSubmit = async () => {
-    validatePassword(password);
-    validateConfirmPassword(confirmPassword);
+    const isPasswordValid = validatePassword(password);
+    const isConfirmPasswordValid = validateConfirmPassword(confirmPassword);
 
-    if (passwordError || confirmPasswordError) {
+    if (!isPasswordValid || !isConfirmPasswordValid) {
       return;
-    }
-
-    if (loading) {
-      return; // Evita chamadas duplicadas
     }
 
     setLoading(true);
@@ -174,18 +155,17 @@ export default function ResetPassword() {
         newPassword: password,
       });
 
-      // Aceita tanto 200 (OK) quanto 201 (Created)
       if (response.status === 200 || response.status === 201) {
-        setShowSuccessPopup(true);
+        setShowSuccessModal(true);
         localStorage.removeItem("resetEmail");
         setTimeout(() => {
           router.push("/login");
         }, 2000);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro ao redefinir senha:", err);
 
-      if (axios.isAxiosError(err) && err.response) {
+      if (err.response) {
         if (err.response.status === 401) {
           setErrorMessage("Código inválido ou expirado.");
         } else {
@@ -197,237 +177,143 @@ export default function ResetPassword() {
         setErrorMessage("Erro ao conectar com o servidor.");
       }
 
-      setShowErrorPopup(true);
+      setShowErrorModal(true);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main
-      className={`flex justify-center items-center min-h-screen p-8 ${
-        isMobile ? "bg-green-background" : ""
-      }`}
-    >
-      {/* Popup de Sucesso */}
-      {showSuccessPopup && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg text-center">
-            <h2 className="text-xl font-bold text-green-600 mb-4">
-              Senha Redefinida!
-            </h2>
-            <p className="text-gray-700 mb-4">
-              Sua senha foi redefinida com sucesso. Redirecionando para o
-              login...
-            </p>
-          </div>
-        </div>
-      )}
+    <main className="flex justify-center items-center min-h-screen bg-gray-100 p-4">
+      <ErrorModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        title="Sucesso!"
+        message="Sua senha foi redefinida com sucesso. Redirecionando para o login..."
+      />
 
-      {/* Popup de Erro */}
-      {showErrorPopup && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg text-center">
-            <h2 className="text-xl font-bold text-red-600 mb-4">
-              Erro ao Redefinir Senha
-            </h2>
-            <p className="text-gray-700 mb-4">{errorMessage}</p>
-            <button
-              onClick={() => {
-                setShowErrorPopup(false);
-                router.push("/forgotPassword");
-              }}
-              className="bg-green-800 text-white px-4 py-2 rounded-lg hover:bg-green-900"
-            >
-              Solicitar Novo Token
-            </button>
-          </div>
-        </div>
-      )}
+      <ErrorModal
+        isOpen={showErrorModal}
+        onClose={() => {
+          setShowErrorModal(false);
+          router.push("/forgotPassword");
+        }}
+        message={errorMessage}
+      />
 
-      <div className="w-full max-w-4xl bg-white shadow-lg rounded-lg overflow-hidden flex flex-col md:flex-row">
-        {/* Seção Esquerda - Redefinição de Senha */}
-        <div className="w-full md:w-1/2 p-8 flex flex-col justify-center">
-          <Link href="/login" className="flex items-center text-gray-700 mb-4">
-            <ArrowLeft size={20} />
-            <span className="ml-2 font-semibold">Voltar</span>
+      <ContentCard className="max-w-md">
+        <BrandHeader
+          title="QualeiDer"
+          subtitle="Controle de sua produção leiteira"
+        />
+
+        <div className="p-8 pb-6">
+          <Link
+            href="/login"
+            className="inline-flex items-center text-brand-primary hover:text-brand-primary-hover font-semibold text-sm mb-6 transition-colors"
+          >
+            <ArrowLeft size={18} className="mr-1" />
+            Voltar
           </Link>
-          {isMobile && (
-            <div className="flex flex-col items-center mb-4">
-              <Image
-                src="/logo_qualeider.svg"
-                alt="Logo do sistema"
-                className="w-20 h-20"
-                width={80}
-                height={80}
-              />
-            </div>
-          )}
-          <h1 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-            Redefinir Senha
-          </h1>
 
-          {/* Etapa 1: Validar Código */}
+          <h2 className="text-brand-primary text-2xl font-bold text-center mb-6">
+            Redefinir Senha
+          </h2>
+
           {step === 1 && (
             <>
-              <p className="text-center text-gray-700 mb-4">
-                Por favor, insira o código de 6 dígitos que você recebeu por
-                e-mail.
+              <p className="text-center text-gray-600 mb-4 text-sm">
+                Insira o código de 6 dígitos enviado por e-mail
               </p>
-              <div>
-                <label className="text-gray-700 font-medium">
-                  Código de Verificação (6 dígitos)
-                </label>
-                <input
-                  type="text"
-                  value={token}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, ""); // Apenas números
-                    setToken(value);
-                    if (tokenError) setTokenError(""); // Limpa erro ao digitar
-                  }}
-                  maxLength={6}
-                  placeholder="000000"
-                  className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 text-center text-2xl tracking-widest"
-                  required
-                />
-                {tokenError && (
-                  <p className="text-red-500 text-sm mt-1">{tokenError}</p>
-                )}
-                {attempts > 0 && attempts < maxAttempts && !tokenError && (
-                  <p className="text-amber-600 text-sm mt-1">
-                    Tentativas restantes: {maxAttempts - attempts}
-                  </p>
-                )}
-              </div>
-              <Button
-                text={loading ? "Validando..." : "VALIDAR CÓDIGO"}
-                onClick={handleValidateToken}
-                bgColor="bg-green-800"
-                textColor="text-white"
-                hoverColor="hover:bg-green-900"
-                className="w-full mt-6"
-                disabled={
-                  loading || token.length !== 6 || attempts >= maxAttempts
-                }
+
+              <InputField
+                label="Código de Verificação (6 dígitos)"
+                type="text"
+                value={token}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, "");
+                  setToken(value);
+                  if (tokenError) setTokenError("");
+                }}
+                maxLength={6}
+                placeholder="000000"
+                error={tokenError}
+                disabled={loading}
+                className="text-center text-2xl tracking-widest"
               />
+
+              {attempts > 0 && attempts < maxAttempts && !tokenError && (
+                <p className="text-amber-600 text-xs mt-2 text-center">
+                  Tentativas restantes: {maxAttempts - attempts}
+                </p>
+              )}
+
+              <Button
+                variant="primary"
+                fullWidth
+                onClick={handleValidateToken}
+                loading={loading}
+                disabled={token.length !== 6 || attempts >= maxAttempts}
+                className="mt-6"
+              >
+                VALIDAR CÓDIGO
+              </Button>
             </>
           )}
 
-          {/* Etapa 2: Redefinir Senha */}
           {step === 2 && (
             <>
-              <p className="text-center text-gray-700 mb-4">
-                Código validado! Agora defina sua nova senha.
+              <p className="text-center text-gray-600 mb-6 text-sm">
+                Código validado! Defina sua nova senha
               </p>
-              <div className="mt-4 relative">
-                <label className="text-gray-700 font-medium">Nova Senha</label>
-                <input
-                  type={showPassword ? "text" : "password"}
+
+              <div className="space-y-4">
+                <InputField
+                  label="Nova Senha"
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value);
-                    validatePassword(e.target.value);
+                    if (passwordError) validatePassword(e.target.value);
                   }}
-                  className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                  required
+                  onBlur={(e) => validatePassword(e.target.value)}
+                  error={passwordError}
+                  showPasswordToggle
+                  disabled={loading}
+                  placeholder="••••••••"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-9 text-gray-500 hover:text-gray-700"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-                {passwordError && (
-                  <p className="text-red-500 text-sm mt-1">{passwordError}</p>
-                )}
-              </div>
-              <div className="mt-4 relative">
-                <label className="text-gray-700 font-medium">
-                  Repita a Nova Senha
-                </label>
-                <input
-                  type={showConfirmPassword ? "text" : "password"}
+
+                <InputField
+                  label="Confirmar Nova Senha"
                   value={confirmPassword}
                   onChange={(e) => {
                     setConfirmPassword(e.target.value);
-                    validateConfirmPassword(e.target.value);
+                    if (confirmPasswordError)
+                      validateConfirmPassword(e.target.value);
                   }}
-                  className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                  required
+                  onBlur={(e) => validateConfirmPassword(e.target.value)}
+                  error={confirmPasswordError}
+                  showPasswordToggle
+                  disabled={loading}
+                  placeholder="••••••••"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-9 text-gray-500 hover:text-gray-700"
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff size={18} />
-                  ) : (
-                    <Eye size={18} />
-                  )}
-                </button>
-                {confirmPasswordError && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {confirmPasswordError}
-                  </p>
-                )}
               </div>
+
               <Button
-                text={loading ? "Aguarde..." : "REDEFINIR SENHA"}
+                variant="primary"
+                fullWidth
                 onClick={handleSubmit}
-                bgColor="bg-green-800"
-                textColor="text-white"
-                hoverColor="hover:bg-green-900"
-                className="w-full mt-4"
-                disabled={
-                  loading ||
-                  !!tokenError ||
-                  !!passwordError ||
-                  !!confirmPasswordError
-                }
-              />
+                loading={loading}
+                disabled={!!passwordError || !!confirmPasswordError}
+                className="mt-6"
+              >
+                REDEFINIR SENHA
+              </Button>
             </>
           )}
         </div>
-        {/* Seção Direita - Informações */}
-        <div className="hidden md:flex w-full md:w-1/2 bg-green-background p-20 flex-col justify-between items-center relative">
-          <div className="text-center">
-            <h1 className="text-2xl text-white mb-4">
-              Bem-vindo ao <span className="font-bold">QualeiDer!</span>
-            </h1>
-            <div className="text-white space-y-2 text-sm">
-              <p>
-                Redefina sua senha! Por favor, insira o token que você recebeu
-                por e-mail e crie uma nova senha:
-              </p>
-              <ol className="list-decimal list-inside text-left">
-                <li>Token: Insira o código enviado para o seu e-mail.</li>
-                <li>Nova Senha: Crie uma senha segura.</li>
-                <li>
-                  Confirme a Nova Senha: Digite a senha novamente para
-                  confirmar.
-                </li>
-              </ol>
-              <p>
-                Clique em <strong>&ldquo;Redefinir Senha&rdquo;</strong> para
-                concluir o processo.
-              </p>
-            </div>
-          </div>
-          <div className="absolute bottom-4 right-4">
-            <Image
-              src="/logo_qualeider.svg"
-              alt="Logo do sistema"
-              className="w-20 h-20"
-              width={80}
-              height={80}
-            />
-          </div>
-        </div>
-      </div>
-      <Wave />
+
+        <PageFooter />
+      </ContentCard>
     </main>
   );
 }

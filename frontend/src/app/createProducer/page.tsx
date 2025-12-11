@@ -1,13 +1,21 @@
 ﻿"use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import Button from "@/components/global/button";
-import Wave from "@/components/global/waveFooter";
-import { Eye, EyeOff } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import {
+  BrandHeader,
+  ContentCard,
+  InputField,
+  SelectField,
+  Button,
+  ErrorModal,
+} from "@/components/ui";
+import { PageFooter } from "@/components/layout";
 import { UserService } from "@/services/user.service";
 import { UserType, UserCategory } from "@/interfaces/user";
-import { useLocationData, useIsMobile } from "@/hooks";
+import { useLocationData } from "@/hooks";
 import {
   validateCPF,
   validateCNPJ,
@@ -19,9 +27,6 @@ import {
   isValidPassword,
   passwordsMatch,
 } from "@/utils";
-import InfoSidebar from "@/components/global/InfoSidebar";
-import { producerSidebarData } from "@/constants/sidebarData";
-import Footer from "@/components/global/Footer";
 
 export default function CreateProducer() {
   const router = useRouter();
@@ -35,177 +40,142 @@ export default function CreateProducer() {
     password: "",
     confirmPassword: "",
   });
+
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
-  const [showErrorPopup, setShowErrorPopup] = useState(false);
-  const [showWave, setShowWave] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollPosition = window.scrollY;
-      const maxScroll =
-        document.documentElement.scrollHeight - window.innerHeight;
-      const scrollThreshold = 0.8;
-      setShowWave(scrollPosition > maxScroll * scrollThreshold);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const isMobile = useIsMobile();
   const { estados, cidades } = useLocationData(formData.state);
 
-  const validateName = (name: string) => {
-    if (!isNotEmpty(name)) {
-      setErrors((prev) => ({ ...prev, name: "Nome é obrigatório" }));
-    } else {
+  const validate = {
+    name: (value: string) => {
+      if (!isNotEmpty(value)) {
+        setErrors((prev) => ({ ...prev, name: "Nome é obrigatório" }));
+        return false;
+      }
       setErrors((prev) => ({ ...prev, name: "" }));
-    }
-  };
+      return true;
+    },
 
-  const validateEmail = (email: string) => {
-    if (!isNotEmpty(email)) {
-      setErrors((prev) => ({ ...prev, email: "Email é obrigatório" }));
-    } else if (!isValidEmail(email)) {
-      setErrors((prev) => ({ ...prev, email: "Email inválido" }));
-    } else {
+    email: (value: string) => {
+      if (!isNotEmpty(value)) {
+        setErrors((prev) => ({ ...prev, email: "Email é obrigatório" }));
+        return false;
+      } else if (!isValidEmail(value)) {
+        setErrors((prev) => ({ ...prev, email: "Email inválido" }));
+        return false;
+      }
       setErrors((prev) => ({ ...prev, email: "" }));
-    }
-  };
+      return true;
+    },
 
-  const validateUserType = (userType: string) => {
-    if (!userType) {
-      setErrors((prev) => ({
-        ...prev,
-        userType: "Tipo de pessoa é obrigatório",
-      }));
-    } else {
-      setErrors((prev) => ({ ...prev, userType: "" }));
-    }
-  };
-
-  const validateDocument = (document: string) => {
-    if (!isNotEmpty(document)) {
-      setErrors((prev) => ({ ...prev, document: "CPF/CNPJ é obrigatório" }));
-      return;
-    }
-
-    const cleanDoc = cleanDocument(document);
-    const isCNPJ = formData.userType === UserCategory.Juridica;
-    const isCPF = formData.userType === UserCategory.Fisica;
-
-    if (isCNPJ) {
-      if (cleanDoc.length !== 14) {
+    userType: (value: string) => {
+      if (!value) {
         setErrors((prev) => ({
           ...prev,
-          document: "CNPJ deve ter 14 dígitos",
+          userType: "Tipo de pessoa é obrigatório",
         }));
-      } else if (!validateCNPJ(document)) {
-        setErrors((prev) => ({ ...prev, document: "CNPJ inválido" }));
-      } else {
-        setErrors((prev) => ({ ...prev, document: "" }));
+        return false;
       }
-    } else if (isCPF) {
-      if (cleanDoc.length !== 11) {
-        setErrors((prev) => ({ ...prev, document: "CPF deve ter 11 dígitos" }));
-      } else if (!validateCPF(document)) {
-        setErrors((prev) => ({ ...prev, document: "CPF inválido" }));
-      } else {
-        setErrors((prev) => ({ ...prev, document: "" }));
+      setErrors((prev) => ({ ...prev, userType: "" }));
+      return true;
+    },
+
+    document: (value: string) => {
+      if (!isNotEmpty(value)) {
+        setErrors((prev) => ({
+          ...prev,
+          document: "CPF/CNPJ é obrigatório",
+        }));
+        return false;
       }
-    }
+
+      const cleanDoc = cleanDocument(value);
+      const isCNPJ = formData.userType === UserCategory.Juridica;
+
+      if (isCNPJ) {
+        if (cleanDoc.length !== 14) {
+          setErrors((prev) => ({
+            ...prev,
+            document: "CNPJ deve ter 14 dígitos",
+          }));
+          return false;
+        } else if (!validateCNPJ(value)) {
+          setErrors((prev) => ({ ...prev, document: "CNPJ inválido" }));
+          return false;
+        }
+      } else {
+        if (cleanDoc.length !== 11) {
+          setErrors((prev) => ({
+            ...prev,
+            document: "CPF deve ter 11 dígitos",
+          }));
+          return false;
+        } else if (!validateCPF(value)) {
+          setErrors((prev) => ({ ...prev, document: "CPF inválido" }));
+          return false;
+        }
+      }
+
+      setErrors((prev) => ({ ...prev, document: "" }));
+      return true;
+    },
+
+    password: (value: string) => {
+      if (!isNotEmpty(value)) {
+        setErrors((prev) => ({ ...prev, password: "Senha é obrigatória" }));
+        return false;
+      } else if (!isValidPassword(value, 6)) {
+        setErrors((prev) => ({
+          ...prev,
+          password: "Senha deve ter pelo menos 6 caracteres",
+        }));
+        return false;
+      }
+      setErrors((prev) => ({ ...prev, password: "" }));
+      return true;
+    },
+
+    confirmPassword: (value: string) => {
+      if (!isNotEmpty(value)) {
+        setErrors((prev) => ({
+          ...prev,
+          confirmPassword: "Confirme a senha",
+        }));
+        return false;
+      } else if (!passwordsMatch(formData.password, value)) {
+        setErrors((prev) => ({
+          ...prev,
+          confirmPassword: "As senhas não coincidem",
+        }));
+        return false;
+      }
+      setErrors((prev) => ({ ...prev, confirmPassword: "" }));
+      return true;
+    },
   };
 
   const handleDocumentChange = (value: string) => {
     const isCNPJ = formData.userType === UserCategory.Juridica;
-    let formattedValue = value;
-
-    if (isCNPJ) {
-      formattedValue = formatCNPJ(value);
-    } else if (formData.userType === UserCategory.Fisica) {
-      formattedValue = formatCPF(value);
-    }
-
-    setFormData({ ...formData, document: formattedValue });
-    validateDocument(formattedValue);
-  };
-
-  const validateState = (state: string) => {
-    if (!state) {
-      setErrors((prev) => ({ ...prev, state: "Estado é obrigatório" }));
-    } else {
-      setErrors((prev) => ({ ...prev, state: "" }));
-    }
-  };
-
-  const validateCity = (city: string) => {
-    if (!city) {
-      setErrors((prev) => ({ ...prev, city: "Cidade é obrigatória" }));
-    } else {
-      setErrors((prev) => ({ ...prev, city: "" }));
-    }
-  };
-
-  const validatePassword = (password: string) => {
-    if (!isNotEmpty(password)) {
-      setErrors((prev) => ({ ...prev, password: "Senha é obrigatória" }));
-    } else if (!isValidPassword(password, 6)) {
-      setErrors((prev) => ({
-        ...prev,
-        password: "Senha deve ter pelo menos 6 caracteres",
-      }));
-    } else {
-      setErrors((prev) => ({ ...prev, password: "" }));
-    }
-  };
-
-  const validateConfirmPassword = (confirmPassword: string) => {
-    if (!isNotEmpty(confirmPassword)) {
-      setErrors((prev) => ({ ...prev, confirmPassword: "Confirme a senha" }));
-    } else if (!passwordsMatch(formData.password, confirmPassword)) {
-      setErrors((prev) => ({
-        ...prev,
-        confirmPassword: "As senhas não coincidem",
-      }));
-    } else {
-      setErrors((prev) => ({ ...prev, confirmPassword: "" }));
-    }
+    const formatted = isCNPJ ? formatCNPJ(value) : formatCPF(value);
+    setFormData({ ...formData, document: formatted });
+    if (errors.document) validate.document(formatted);
   };
 
   const handleSubmit = async () => {
-    validateName(formData.name);
-    validateEmail(formData.email);
-    validateUserType(formData.userType);
-    validateDocument(formData.document);
-    validateState(formData.state);
-    validateCity(formData.city);
-    validatePassword(formData.password);
-    validateConfirmPassword(formData.confirmPassword);
+    const isValid =
+      validate.name(formData.name) &&
+      validate.email(formData.email) &&
+      validate.userType(formData.userType) &&
+      validate.document(formData.document) &&
+      formData.state &&
+      formData.city &&
+      validate.password(formData.password) &&
+      validate.confirmPassword(formData.confirmPassword);
 
-    const hasErrors =
-      !formData.name ||
-      !formData.email ||
-      !formData.userType ||
-      !formData.document ||
-      !formData.state ||
-      !formData.city ||
-      !formData.password ||
-      !formData.confirmPassword ||
-      errors.name ||
-      errors.email ||
-      errors.userType ||
-      errors.document ||
-      errors.state ||
-      errors.city ||
-      errors.password ||
-      errors.confirmPassword;
-
-    if (hasErrors) {
-      return;
-    }
+    if (!isValid) return;
 
     setLoading(true);
 
@@ -218,306 +188,207 @@ export default function CreateProducer() {
       document: cleanDocument(formData.document),
       state: formData.state,
       city: formData.city,
-      associationId: undefined, // Explicitly undefined as this is independent producer creation
+      associationId: undefined,
     };
 
     try {
       await UserService.create(userData);
-      setShowSuccessPopup(true);
-    } catch {
-      setShowErrorPopup(true);
+      setShowSuccessModal(true);
+      setTimeout(() => {
+        router.push("/login");
+      }, 2000);
+    } catch (err: any) {
+      setErrorMessage(
+        err.response?.data?.message ||
+          "Erro ao criar conta. Tente novamente."
+      );
+      setShowErrorModal(true);
     } finally {
       setLoading(false);
     }
   };
 
-  const closePopup = () => {
-    if (showSuccessPopup) {
-      setShowSuccessPopup(false);
-      router.push("/login");
-    } else if (showErrorPopup) {
-      setShowErrorPopup(false);
-    }
-  };
-
   return (
-    <main
-      className={`flex justify-center items-center min-h-screen p-8 ${
-        isMobile ? "bg-green-background" : ""
-      }`}
-    >
-      {showSuccessPopup && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg text-center z-50">
-            <h2 className="text-xl font-bold text-green-600 mb-4">
-              Cadastro Realizado!
-            </h2>
-            <p className="text-gray-700 mb-4">
-              Sua conta foi criada com sucesso. Redirecionando para o login...
-            </p>
-            <button
-              onClick={closePopup}
-              className="bg-green-800 text-white px-4 py-2 rounded-lg hover:bg-green-900"
-            >
-              OK
-            </button>
-          </div>
-        </div>
-      )}
+    <main className="flex justify-center items-center min-h-screen bg-gray-100 p-4">
+      <ErrorModal
+        isOpen={showSuccessModal}
+        onClose={() => {}}
+        title="Sucesso!"
+        message="Conta criada com sucesso! Redirecionando para o login..."
+      />
 
-      {showErrorPopup && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg text-center z-50">
-            <h2 className="text-xl font-bold text-red-600 mb-4">
-              Erro ao Cadastrar
-            </h2>
-            <p className="text-gray-700 mb-4">
-              Ocorreu um erro ao tentar criar sua conta. Tente novamente mais
-              tarde.
-            </p>
-            <button
-              onClick={closePopup}
-              className="bg-green-800 text-white px-4 py-2 rounded-lg hover:bg-green-900"
-            >
-              OK
-            </button>
-          </div>
-        </div>
-      )}
+      <ErrorModal
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        message={errorMessage}
+      />
 
-      <div className="w-full max-w-4xl bg-white shadow-lg rounded-lg overflow-hidden flex flex-col md:flex-row">
-        <div className="w-full md:w-1/2 p-8 flex flex-col justify-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+      <ContentCard className="max-w-2xl">
+        <BrandHeader
+          title="QualeiDer"
+          subtitle="Controle de sua produção leiteira"
+        />
+
+        <div className="p-8 pb-6">
+          <Link
+            href="/createAccount"
+            className="inline-flex items-center text-brand-primary hover:text-brand-primary-hover font-semibold text-sm mb-6 transition-colors"
+          >
+            <ArrowLeft size={18} className="mr-1" />
+            Voltar
+          </Link>
+
+          <h2 className="text-brand-primary text-2xl font-bold text-center mb-6">
             Cadastro de Produtor
-          </h1>
+          </h2>
 
-          <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
-            <div>
-              <label className="text-gray-700 font-medium">Seu nome</label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => {
-                  setFormData({ ...formData, name: e.target.value });
-                  validateName(e.target.value);
-                }}
-                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                required
-              />
-              {errors.name && (
-                <p className="text-red-500 text-sm mt-1">{errors.name}</p>
-              )}
-            </div>
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+            <InputField
+              label="Nome Completo"
+              type="text"
+              value={formData.name}
+              onChange={(e) => {
+                setFormData({ ...formData, name: e.target.value });
+                if (errors.name) validate.name(e.target.value);
+              }}
+              onBlur={(e) => validate.name(e.target.value)}
+              error={errors.name}
+              placeholder="João Silva"
+              disabled={loading}
+            />
 
-            <div>
-              <label className="text-gray-700 font-medium">Email</label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => {
-                  setFormData({ ...formData, email: e.target.value });
-                  validateEmail(e.target.value);
-                }}
-                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                required
-              />
-              {errors.email && (
-                <p className="text-red-500 text-sm mt-1">{errors.email}</p>
-              )}
-            </div>
+            <InputField
+              label="E-mail"
+              type="email"
+              value={formData.email}
+              onChange={(e) => {
+                setFormData({ ...formData, email: e.target.value });
+                if (errors.email) validate.email(e.target.value);
+              }}
+              onBlur={(e) => validate.email(e.target.value)}
+              error={errors.email}
+              placeholder="seu@email.com"
+              disabled={loading}
+            />
 
-            <div>
-              <label className="text-gray-700 font-medium">
-                Tipo de Pessoa
-              </label>
-              <select
-                value={formData.userType}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    userType: e.target.value,
-                    document: "",
-                  });
-                  validateUserType(e.target.value);
-                }}
-                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                required
-              >
-                <option value="">Selecione</option>
-                <option value={UserCategory.Fisica}>Física</option>
-                <option value={UserCategory.Juridica}>Jurídica</option>
-              </select>
-              {errors.userType && (
-                <p className="text-red-500 text-sm mt-1">{errors.userType}</p>
-              )}
-            </div>
+            <SelectField
+              label="Tipo de Pessoa"
+              value={formData.userType}
+              onChange={(e) => {
+                setFormData({
+                  ...formData,
+                  userType: e.target.value,
+                  document: "",
+                });
+                validate.userType(e.target.value);
+              }}
+              error={errors.userType}
+              options={[
+                { value: UserCategory.Fisica, label: "Física" },
+                { value: UserCategory.Juridica, label: "Jurídica" },
+              ]}
+              placeholder="Selecione"
+              disabled={loading}
+            />
 
-            <div>
-              <label className="text-gray-700 font-medium">
-                {formData.userType === UserCategory.Juridica
-                  ? "CNPJ"
-                  : formData.userType === UserCategory.Fisica
-                  ? "CPF"
-                  : "CPF/CNPJ"}
-              </label>
-              <input
+            {formData.userType && (
+              <InputField
+                label={
+                  formData.userType === UserCategory.Juridica ? "CNPJ" : "CPF"
+                }
                 type="text"
                 value={formData.document}
                 onChange={(e) => handleDocumentChange(e.target.value)}
+                onBlur={(e) => validate.document(e.target.value)}
+                error={errors.document}
                 placeholder={
                   formData.userType === UserCategory.Juridica
                     ? "00.000.000/0000-00"
-                    : formData.userType === UserCategory.Fisica
-                    ? "000.000.000-00"
-                    : ""
+                    : "000.000.000-00"
                 }
-                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                required
+                disabled={loading}
               />
-              {errors.document && (
-                <p className="text-red-500 text-sm mt-1">{errors.document}</p>
-              )}
-            </div>
+            )}
 
-            <div>
-              <label className="text-gray-700 font-medium">Estado</label>
-              <select
-                value={formData.state}
-                onChange={(e) => {
-                  setFormData({ ...formData, state: e.target.value, city: "" });
-                  validateState(e.target.value);
-                }}
-                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                required
-              >
-                <option value="">Selecione</option>
-                {estados.map((estado) => (
-                  <option key={estado.sigla} value={estado.sigla}>
-                    {estado.nome}
-                  </option>
-                ))}
-              </select>
-              {errors.state && (
-                <p className="text-red-500 text-sm mt-1">{errors.state}</p>
-              )}
-            </div>
+            <SelectField
+              label="Estado"
+              value={formData.state}
+              onChange={(e) => {
+                setFormData({ ...formData, state: e.target.value, city: "" });
+              }}
+              options={estados.map((e) => ({ value: e.sigla, label: e.nome }))}
+              placeholder="Selecione o estado"
+              disabled={loading}
+            />
 
-            <div>
-              <label className="text-gray-700 font-medium">Cidade</label>
-              <select
-                value={formData.city}
-                onChange={(e) => {
-                  setFormData({ ...formData, city: e.target.value });
-                  validateCity(e.target.value);
-                }}
-                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                required
-                disabled={!formData.state}
-              >
-                <option value="">Selecione</option>
-                {cidades.map((cidade) => (
-                  <option key={cidade.nome} value={cidade.nome}>
-                    {cidade.nome}
-                  </option>
-                ))}
-              </select>
-              {errors.city && (
-                <p className="text-red-500 text-sm mt-1">{errors.city}</p>
-              )}
-            </div>
+            <SelectField
+              label="Cidade"
+              value={formData.city}
+              onChange={(e) => {
+                setFormData({ ...formData, city: e.target.value });
+              }}
+              options={cidades.map((c) => ({
+                value: c.nome,
+                label: c.nome,
+              }))}
+              placeholder="Selecione a cidade"
+              disabled={loading || !formData.state}
+            />
 
-            <div className="relative">
-              <label className="text-gray-700 font-medium">Senha</label>
-              <input
-                type={showPassword ? "text" : "password"}
-                value={formData.password}
-                onChange={(e) => {
-                  setFormData({ ...formData, password: e.target.value });
-                  validatePassword(e.target.value);
-                }}
-                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 pr-10"
-                required
-              />
-              <button
-                type="button"
-                className="absolute right-3 top-9 text-gray-500 hover:text-gray-700"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-              {errors.password && (
-                <p className="text-red-500 text-sm mt-1">{errors.password}</p>
-              )}
-            </div>
+            <InputField
+              label="Senha"
+              value={formData.password}
+              onChange={(e) => {
+                setFormData({ ...formData, password: e.target.value });
+                if (errors.password) validate.password(e.target.value);
+              }}
+              onBlur={(e) => validate.password(e.target.value)}
+              error={errors.password}
+              placeholder="••••••••"
+              showPasswordToggle
+              disabled={loading}
+            />
 
-            <div className="relative">
-              <label className="text-gray-700 font-medium">
-                Confirmar Senha
-              </label>
-              <input
-                type={showConfirmPassword ? "text" : "password"}
-                value={formData.confirmPassword}
-                onChange={(e) => {
-                  setFormData({ ...formData, confirmPassword: e.target.value });
-                  validateConfirmPassword(e.target.value);
-                }}
-                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 pr-10"
-                required
-              />
-              <button
-                type="button"
-                className="absolute right-3 top-9 text-gray-500 hover:text-gray-700"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              >
-                {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-              {errors.confirmPassword && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.confirmPassword}
-                </p>
-              )}
-            </div>
-
-            <Button
-              text={loading ? "Cadastrando..." : "CADASTRAR"}
-              onClick={handleSubmit}
-              bgColor="bg-green-800"
-              textColor="text-white"
-              hoverColor="hover:bg-green-900"
-              className="w-full mt-4"
+            <InputField
+              label="Confirmar Senha"
+              value={formData.confirmPassword}
+              onChange={(e) => {
+                setFormData({ ...formData, confirmPassword: e.target.value });
+                if (errors.confirmPassword)
+                  validate.confirmPassword(e.target.value);
+              }}
+              onBlur={(e) => validate.confirmPassword(e.target.value)}
+              error={errors.confirmPassword}
+              placeholder="••••••••"
+              showPasswordToggle
               disabled={loading}
             />
           </div>
 
-          <p className="text-center text-gray-700 mt-6 text-sm">
+          <Button
+            variant="primary"
+            fullWidth
+            onClick={handleSubmit}
+            loading={loading}
+            disabled={Object.values(errors).some((e) => e !== "")}
+            className="mt-6"
+          >
+            CADASTRAR
+          </Button>
+
+          <p className="text-center text-gray-600 text-sm mt-6">
             Já possui uma conta?{" "}
-            <a
+            <Link
               href="/login"
-              className="text-green-700 font-semibold hover:underline"
+              className="text-brand-primary hover:text-brand-primary-hover font-semibold transition-colors"
             >
               Faça login
-            </a>
+            </Link>
           </p>
-
-          <Footer className="mt-6" />
         </div>
 
-        {!isMobile && (
-          <InfoSidebar
-            title={producerSidebarData.title}
-            subtitle={producerSidebarData.subtitle}
-            items={producerSidebarData.items}
-          />
-        )}
-      </div>
-      {/* Wave - Aparece apenas ao scroll */}
-      <div
-        className={`fixed bottom-0 left-0 right-0 z-50 transition-all duration-300 ${
-          showWave ? "translate-y-0" : "translate-y-full"
-        }`}
-      >
-        <Wave />
-      </div>
+        <PageFooter />
+      </ContentCard>
     </main>
   );
 }

@@ -1,74 +1,61 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Image from "next/image";
-import Button from "@/components/global/button";
-import Wave from "@/components/global/waveFooter";
-import { Eye, EyeOff } from "lucide-react";
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  BrandHeader,
+  ContentCard,
+  InputField,
+  Button,
+  Divider,
+  ErrorModal,
+} from "@/components/ui";
+import { PageFooter } from "@/components/layout";
 import { apiBase } from "@/services/baseApi";
-import InfoSidebar from "@/components/global/InfoSidebar";
-import { loginSidebarData } from "@/constants/sidebarData";
-import Footer from "@/components/global/Footer";
 
 export default function Login() {
-  const [isMobile, setIsMobile] = useState(false);
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
-  const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [showWave, setShowWave] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollPosition = window.scrollY;
-      const maxScroll =
-        document.documentElement.scrollHeight - window.innerHeight;
-      const scrollThreshold = 0.8;
-      setShowWave(scrollPosition > maxScroll * scrollThreshold);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  useEffect(() => {
-    const checkScreenSize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkScreenSize();
-    window.addEventListener("resize", checkScreenSize);
-    return () => window.removeEventListener("resize", checkScreenSize);
-  }, []);
 
   const validateEmail = (email: string) => {
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email) {
       setEmailError("Email é obrigatório");
+      return false;
     } else if (!regex.test(email)) {
       setEmailError("Email inválido");
+      return false;
     } else {
       setEmailError("");
+      return true;
     }
   };
 
   const validatePassword = (password: string) => {
     if (!password) {
       setPasswordError("Senha é obrigatória");
+      return false;
     } else if (password.length < 6) {
       setPasswordError("Senha deve ter pelo menos 6 caracteres");
+      return false;
     } else {
       setPasswordError("");
+      return true;
     }
   };
 
   const handleLogin = async () => {
-    validateEmail(email);
-    validatePassword(password);
+    const isEmailValid = validateEmail(email);
+    const isPasswordValid = validatePassword(password);
 
-    if (emailError || passwordError) {
+    if (!isEmailValid || !isPasswordValid) {
       return;
     }
 
@@ -97,170 +84,110 @@ export default function Login() {
       const userType = tokenPayload.userType;
 
       if (userType === "association") {
-        window.location.href = "/dashboardAdmin";
+        router.push("/dashboardAdmin");
       } else if (userType === "user") {
-        window.location.href = "/dashboardCommon";
+        router.push("/dashboardCommon");
       } else {
         throw new Error("Tipo de usuário desconhecido");
       }
-
-      console.log("Token recebido:", access_token);
     } catch (err) {
       console.error("Erro ao fazer login:", err);
       setErrorMessage("Erro ao fazer login. Verifique suas credenciais.");
-      setShowErrorPopup(true);
+      setShowErrorModal(true);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleLogin();
+    }
+  };
+
   return (
-    <main
-      className={`flex justify-center items-center min-h-screen p-8 ${
-        isMobile ? "bg-green-background" : ""
-      }`}
-    >
-      {/* Popout de Erro */}
-      {showErrorPopup && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg text-center">
-            <h2 className="text-xl font-bold text-red-600 mb-4">Erro</h2>
-            <p className="text-gray-700 mb-4">{errorMessage}</p>
-            <button
-              onClick={() => setShowErrorPopup(false)}
-              className="bg-green-800 text-white px-4 py-2 rounded-lg hover:bg-green-900"
-            >
-              Fechar
-            </button>
-          </div>
-        </div>
-      )}
+    <main className="flex justify-center items-center min-h-screen bg-gray-100 p-4">
+      <ErrorModal
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        message={errorMessage}
+      />
 
-      {/* Container Central */}
-      <div className="w-full max-w-4xl bg-white shadow-lg rounded-lg overflow-hidden flex flex-col md:flex-row">
-        {/* Seção Esquerda - Login */}
-        <div className="w-full md:w-1/2 p-8 flex flex-col justify-center">
-          {/* Exibe a logo e o nome QuaLeiDer apenas no mobile */}
-          {isMobile && (
-            <div className="flex flex-col items-center mb-4">
-              <h1 className="text-2xl font-bold text-gray-900 mt-2">
-                QuaLeiDer
-              </h1>
-              <Image
-                src="/logo_qualeider.svg"
-                alt="Logo do sistema"
-                className="w-20 h-20"
-                width={80}
-                height={80}
-              />
-            </div>
-          )}
+      <ContentCard className="max-w-md">
+        <BrandHeader title="QualeiDer" subtitle="Controle de sua produção leiteira" />
 
-          {/* Título */}
-          <h1 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-            Login
-          </h1>
+        <div className="p-8 pb-6">
+          <h2 className="text-brand-primary text-2xl font-bold text-center mb-6">
+            Entrar
+          </h2>
 
-          {/* Campos de entrada */}
           <div className="space-y-4">
-            <div>
-              <label className="text-gray-700 font-medium">E-mail</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  validateEmail(e.target.value);
-                }}
-                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                required
-              />
-              {emailError && (
-                <p className="text-red-500 text-sm mt-1">{emailError}</p>
-              )}
-            </div>
-            <div className="relative">
-              <label className="text-gray-700 font-medium">Senha</label>
-              <input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  validatePassword(e.target.value);
-                }}
-                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 pr-10"
-                required
-              />
-              <button
-                type="button"
-                className="absolute right-3 top-1/2 text-gray-500 hover:text-gray-700"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-              {passwordError && (
-                <p className="text-red-500 text-sm mt-1">{passwordError}</p>
-              )}
-            </div>
+            <InputField
+              label="E-mail"
+              type="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (emailError) validateEmail(e.target.value);
+              }}
+              onBlur={(e) => validateEmail(e.target.value)}
+              onKeyPress={handleKeyPress}
+              error={emailError}
+              placeholder="seu@email.com"
+              disabled={loading}
+            />
+
+            <InputField
+              label="Senha"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (passwordError) validatePassword(e.target.value);
+              }}
+              onBlur={(e) => validatePassword(e.target.value)}
+              onKeyPress={handleKeyPress}
+              error={passwordError}
+              placeholder="••••••••"
+              showPasswordToggle
+              disabled={loading}
+            />
           </div>
 
-          {/* Esqueci minha senha */}
-          <a
-            href="/forgotPassword"
-            className="text-green-700 font-semibold text-sm mt-2 inline-block"
-          >
-            Esqueci minha senha
-          </a>
-
-          {/* Botão "ENTRAR" */}
-          <Button
-            text={loading ? "Entrando..." : "ENTRAR"}
-            onClick={handleLogin}
-            bgColor="bg-green-800"
-            textColor="text-white"
-            hoverColor="hover:bg-green-900"
-            className="w-full mt-4"
-            disabled={loading || !!emailError || !!passwordError}
-          />
-
-          {/* Link de registro */}
-          <p className="text-center text-gray-700 mt-4 text-sm">
-            Não tem uma conta?{" "}
-            <a href="/createAccount" className="text-green-700 font-semibold">
-              Criar Conta
-            </a>
-          </p>
-
-          <p className="text-center text-gray-700 mt-2 text-sm opacity-0">
-            É uma associação?{" "}
-            <a
-              href="/createAssociation"
-              className="text-green-700 font-semibold"
+          <div className="mt-3 text-right">
+            <Link
+              href="/forgotPassword"
+              className="text-brand-primary hover:text-brand-primary-hover font-semibold text-sm transition-colors"
             >
-              Cadastre sua Associação
-            </a>
-          </p>
+              Esqueci minha senha
+            </Link>
+          </div>
 
-          <Footer className="mt-6" />
+          <Button
+            variant="primary"
+            fullWidth
+            onClick={handleLogin}
+            loading={loading}
+            disabled={!!emailError || !!passwordError}
+            className="mt-6"
+          >
+            ENTRAR
+          </Button>
+
+          <Divider text="OU" />
+
+          <p className="text-center text-gray-600 text-sm">
+            Não tem uma conta?{" "}
+            <Link
+              href="/createAccount"
+              className="text-brand-primary hover:text-brand-primary-hover font-semibold transition-colors"
+            >
+              Criar Conta
+            </Link>
+          </p>
         </div>
 
-        {/* Seção Direita - Informações */}
-        {!isMobile && (
-          <InfoSidebar
-            title={loginSidebarData.title}
-            subtitle={loginSidebarData.subtitle}
-            items={loginSidebarData.items}
-          />
-        )}
-      </div>
-      {/* Wave - Aparece apenas ao scroll */}
-      <div
-        className={`fixed bottom-0 left-0 right-0 z-50 transition-all duration-300 ${
-          showWave ? "translate-y-0" : "translate-y-full"
-        }`}
-      >
-        <Wave />
-      </div>
+        <PageFooter />
+      </ContentCard>
     </main>
   );
 }
