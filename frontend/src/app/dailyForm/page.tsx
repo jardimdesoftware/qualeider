@@ -1,29 +1,29 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Sidebar } from "@/components/layout";
-import { apiBase } from "@/services/baseApi";
-import {
-  InputField,
-  SelectField,
-  Button,
-  ErrorModal,
-} from "@/components/ui";
 import { Calendar } from "lucide-react";
-import { MilkingPlace } from "@/interfaces/daily-collection";
+import { Sidebar } from "@/components/layout";
+import { InputField, SelectField, Button, ErrorModal } from "@/components/ui";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
+import { MilkingPlace } from "@/interfaces/daily-collection";
 import { dailyCollectionSchema, DailyCollectionData } from "@/schemas/collection";
+import { useAuthGuard } from "@/hooks/useAuthGuard";
+import { collectionService } from "@/services/collectionService";
+import { getLocalDate, formatDateLongBR } from "@/utils/date";
 
 export default function DailyForm() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
+
+  const { userId, isLoading } = useAuthGuard("user");
+
   const [showModal, setShowModal] = useState(false);
-  const [modalMessage, setModalMessage] = useState("");
-  const [modalType, setModalType] = useState<"success" | "error">("success");
-  const [userId, setUserId] = useState<number>(0);
+  const [modalState, setModalState] = useState({
+    type: "success" as "success" | "error",
+    message: "",
+  });
 
   const {
     register,
@@ -40,79 +40,41 @@ export default function DailyForm() {
       numLactation: 0,
       milkingPlace: MilkingPlace.Aberto,
       technicalAssistance: false,
-      collectionDate: new Date().toISOString().split("T")[0],
+      collectionDate: getLocalDate(), 
     },
   });
 
-  useEffect(() => {
-    const token = localStorage.getItem("authToken");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      if (payload.userType !== "user") {
-        router.push("/");
-      } else {
-        const uid =
-          typeof payload.sub === "string"
-            ? parseInt(payload.sub, 10)
-            : payload.sub;
-        setUserId(uid);
-        setLoading(false);
-      }
-    } catch (err) {
-      console.error("Erro ao decodificar o token:", err);
-      router.push("/login");
-    }
-  }, [router]);
-
   const onSubmit = async (data: DailyCollectionData) => {
-    try {
-      const token = localStorage.getItem("authToken");
-      const response = await apiBase.post(
-        "/daily-collections",
-        { ...data, userId },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+    if (!userId) return;
 
-      if (response.status === 201) {
-        setModalType("success");
-        setModalMessage("Formulário enviado com sucesso!");
-        setShowModal(true);
-      } else {
-        setModalType("error");
-        setModalMessage("Erro ao enviar formulário");
-        setShowModal(true);
-      }
+    try {
+      await collectionService.create(data, userId);
+
+      setModalState({
+        type: "success",
+        message: "Formulário enviado com sucesso!",
+      });
+      setShowModal(true);
     } catch (err) {
-      console.error("Erro ao enviar formulário:", err);
-      setModalType("error");
-      setModalMessage("Erro ao enviar formulário. Tente novamente.");
+      console.error(err);
+      setModalState({
+        type: "error",
+        message: "Erro ao enviar formulário. Tente novamente.",
+      });
       setShowModal(true);
     }
   };
 
   const handleModalClose = () => {
     setShowModal(false);
-    if (modalType === "success") {
+    if (modalState.type === "success") {
       router.push("/dashboardUser");
     }
   };
 
-  const currentDate = new Date().toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
+  const displayDate = formatDateLongBR(new Date());
 
-  if (loading) {
+  if (isLoading) {
     return <DashboardLoading />;
   }
 
@@ -131,7 +93,7 @@ export default function DailyForm() {
           <div className="flex items-center gap-4 bg-[#fdfbf7] px-4 py-2 rounded-lg border border-slate-200">
             <div className="text-right hidden md:block">
               <p className="text-xs text-slate-400 font-bold uppercase">Data</p>
-              <p className="text-[#1e3a29] font-bold">{currentDate}</p>
+              <p className="text-[#1e3a29] font-bold">{displayDate}</p>
             </div>
             <Calendar className="w-8 h-8 text-[#d97706]" />
           </div>
@@ -144,38 +106,38 @@ export default function DailyForm() {
                 <InputField
                   label="Quantidade de Leite (litros)"
                   type="number"
+                  step="0.01"
+                  min="0"
                   disabled={isSubmitting}
                   error={errors.quantity?.message}
                   {...register("quantity", { valueAsNumber: true })}
-                  min="0"
-                  step="0.01"
                 />
 
                 <InputField
                   label="Número de Animais"
                   type="number"
+                  min="0"
                   disabled={isSubmitting}
                   error={errors.numAnimals?.message}
                   {...register("numAnimals", { valueAsNumber: true })}
-                  min="0"
                 />
 
                 <InputField
                   label="Número de Ordenhas"
                   type="number"
+                  min="0"
                   disabled={isSubmitting}
                   error={errors.numOrdens?.message}
                   {...register("numOrdens", { valueAsNumber: true })}
-                  min="0"
                 />
 
                 <InputField
                   label="Número de Lactações"
                   type="number"
+                  min="0"
                   disabled={isSubmitting}
                   error={errors.numLactation?.message}
                   {...register("numLactation", { valueAsNumber: true })}
-                  min="0"
                 />
               </div>
 
@@ -192,37 +154,19 @@ export default function DailyForm() {
               />
 
               <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    id="rationProvided"
-                    disabled={isSubmitting}
-                    {...register("rationProvided")}
-                    className="w-5 h-5 text-[#1e3a29] border-gray-300 rounded focus:ring-[#1e3a29]"
-                  />
-                  <label
-                    htmlFor="rationProvided"
-                    className="text-sm font-medium text-gray-700 cursor-pointer"
-                  >
-                    Ração foi fornecida?
-                  </label>
-                </div>
+                <CheckboxRow
+                  id="rationProvided"
+                  label="Ração foi fornecida?"
+                  register={register}
+                  disabled={isSubmitting}
+                />
 
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    id="technicalAssistance"
-                    disabled={isSubmitting}
-                    {...register("technicalAssistance")}
-                    className="w-5 h-5 text-[#1e3a29] border-gray-300 rounded focus:ring-[#1e3a29]"
-                  />
-                  <label
-                    htmlFor="technicalAssistance"
-                    className="text-sm font-medium text-gray-700 cursor-pointer"
-                  >
-                    Recebeu assistência técnica?
-                  </label>
-                </div>
+                <CheckboxRow
+                  id="technicalAssistance"
+                  label="Recebeu assistência técnica?"
+                  register={register}
+                  disabled={isSubmitting}
+                />
               </div>
 
               <div className="pt-4">
@@ -243,10 +187,36 @@ export default function DailyForm() {
       <ErrorModal
         isOpen={showModal}
         onClose={handleModalClose}
-        title={modalType === "success" ? "Sucesso!" : "Erro"}
-        message={modalMessage}
-        type={modalType}
+        title={modalState.type === "success" ? "Sucesso!" : "Erro"}
+        message={modalState.message}
+        type={modalState.type}
       />
     </div>
   );
 }
+
+// Helper component for checkbox rows
+interface CheckboxRowProps {
+  id: string;
+  label: string;
+  register: any;
+  disabled: boolean;
+}
+
+const CheckboxRow = ({ id, label, register, disabled }: CheckboxRowProps) => (
+  <div className="flex items-center gap-3">
+    <input
+      type="checkbox"
+      id={id}
+      disabled={disabled}
+      {...register(id)}
+      className="w-5 h-5 text-[#1e3a29] border-gray-300 rounded focus:ring-[#1e3a29]"
+    />
+    <label
+      htmlFor={id}
+      className="text-sm font-medium text-gray-700 cursor-pointer"
+    >
+      {label}
+    </label>
+  </div>
+);

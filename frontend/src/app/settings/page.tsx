@@ -4,21 +4,20 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-
 import { Sidebar } from "@/components/layout";
-import { apiBase } from "@/services/baseApi";
 import { Button, InputField, SelectField, ErrorModal } from "@/components/ui";
-import { Estado, Cidade } from "@/interfaces/location";
-import { User } from "@/interfaces/user";
-import { USER_CATEGORIES, sortByNamePtBr } from "@/constants/user-options";
+import { USER_CATEGORIES } from "@/constants/user-options";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { settingsSchema, SettingsData } from "@/schemas/profile";
+import { useLocation } from "@/hooks/useLocation";
+import { useAuthGuard } from "@/hooks/useAuthGuard";
+import { userService } from "@/services/userService";
 
 export default function Settings() {
   const router = useRouter();
+  const { userId, isLoading: authLoading } = useAuthGuard("user");
+  
   const [userType, setUserType] = useState<"user" | "association" | null>(null);
-  const [estados, setEstados] = useState<Estado[]>([]);
-  const [cidades, setCidades] = useState<Cidade[]>([]);
   const [loading, setLoading] = useState(true);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -38,73 +37,37 @@ export default function Settings() {
   });
 
   const selectedState = watch("state");
+  const { estados, cidades, isLoadingCities } = useLocation(selectedState);
 
   useEffect(() => {
-    const token = localStorage.getItem("authToken");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
+    if (!userId) return;
 
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      setUserType(payload.userType);
-      fetchUserData(payload.sub);
-    } catch (err) {
-      console.error("Erro ao decodificar o token:", err);
-      router.push("/login");
-    }
-  }, [router]);
+    const fetchUserData = async () => {
+      try {
+        const user = await userService.getById(userId);
+        // Convert UserType to "user" | "association" | null
+        const mappedUserType = user.userType === undefined 
+          ? null 
+          : (user.userType.toLowerCase() === "associacao" ? "association" : "user");
+        setUserType(mappedUserType as "user" | "association" | null);
+        reset({
+          name: user.name,
+          email: user.email,
+          userType: user.userType || "",
+          userCategory: user.userCategory,
+          state: user.state,
+          city: user.city,
+        });
+        setLoading(false);
+      } catch (err) {
+        console.error("Erro ao buscar usuário:", err);
+        setModalMessage("Erro ao carregar dados do usuário.");
+        setShowErrorModal(true);
+      }
+    };
 
-  useEffect(() => {
-    if (loading) return;
-
-    fetch("https://servicodados.ibge.gov.br/api/v1/localidades/estados")
-      .then((res) => res.json())
-      .then((data) => setEstados(sortByNamePtBr(data)))
-      .catch(console.error);
-  }, [loading]);
-
-  useEffect(() => {
-    if (loading) return;
-
-    if (selectedState) {
-      fetch(
-        `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${selectedState}/municipios`
-      )
-        .then((res) => res.json())
-        .then((data) => setCidades(sortByNamePtBr(data)))
-        .catch(console.error);
-    } else {
-      setCidades([]);
-    }
-  }, [selectedState, loading]);
-
-  const fetchUserData = async (userId: string) => {
-    try {
-      const token = localStorage.getItem("authToken");
-      const response = await apiBase.get<User>(`/users/${userId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const user = response.data;
-      reset({
-        name: user.name,
-        email: user.email,
-        userType: user.userType || "",
-        userCategory: user.userCategory,
-        state: user.state,
-        city: user.city,
-      });
-      setLoading(false);
-    } catch (err) {
-      console.error("Erro ao buscar usuário:", err);
-      setModalMessage("Erro ao carregar dados do usuário.");
-      setShowErrorModal(true);
-    }
-  };
+    fetchUserData();
+  }, [userId, reset]);
 
   const onSubmit = async (data: SettingsData) => {
     setShowConfirmModal(true);
@@ -119,36 +82,14 @@ export default function Settings() {
       userType: userType === "association" ? undefined : formValues.userType,
     };
 
+    if (!userId) {
+      setModalMessage("Usuário não autenticado.");
+      setShowErrorModal(true);
+      return;
+    }
+
     try {
-      const token = localStorage.getItem("authToken");
-
-      if (!token) {
-        setModalMessage("Token de autenticação não encontrado.");
-        setShowErrorModal(true);
-        return;
-      }
-
-      const payload = JSON.parse(atob(token.split(".")[1]));
-
-      if (!payload || !payload.sub) {
-        setModalMessage("Token inválido ou malformado.");
-        setShowErrorModal(true);
-        return;
-      }
-
-      const userId = parseInt(payload.sub, 10);
-
-      if (isNaN(userId)) {
-        setModalMessage("ID do usuário inválido.");
-        setShowErrorModal(true);
-        return;
-      }
-
-      const response = await apiBase.patch(`/users/${userId}`, userData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await userService.update(userId, userData);
 
       if (response.status === 200) {
         setModalMessage("Dados atualizados com sucesso!");
@@ -179,7 +120,7 @@ export default function Settings() {
     label: cat === "Associacao" ? "Associação" : cat,
   }));
 
-  if (loading) {
+  if (authLoading || loading) {
     return <DashboardLoading />;
   }
 

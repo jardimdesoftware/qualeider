@@ -3,4 +3,5 @@
  */
 
 export * from "./useIsMobile";
-export * from "./useLocationData";
+export * from "./useLocation";
+export * from "./useAuthGuard";

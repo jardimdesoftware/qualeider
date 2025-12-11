@@ -4,21 +4,21 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-
 import { Sidebar } from "@/components/layout";
-import { apiBase } from "@/services/baseApi";
 import { Button, InputField, SelectField, ErrorModal } from "@/components/ui";
 import { BREED_OPTIONS } from "@/constants/animal-breeds";
 import { Animal, AnimalType } from "@/interfaces/animal";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { animalSchema, AnimalData } from "@/schemas/animal";
+import { useAuthGuard } from "@/hooks/useAuthGuard";
+import { animalService } from "@/services/animalService";
 
 function EditAnimalContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const animalId = searchParams.get("id");
-
-  const [loading, setLoading] = useState(true);
+  
+  const { userId, isLoading: authLoading } = useAuthGuard("user");
   const [showModal, setShowModal] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
   const [modalType, setModalType] = useState<"success" | "error">("success");
@@ -37,39 +37,14 @@ function EditAnimalContent() {
 
   const selectedAnimalType = watch("animalType");
 
-  useEffect(() => {
-    const token = localStorage.getItem("authToken");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
 
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      if (payload.userType !== "user") {
-        router.push("/");
-      } else {
-        setLoading(false);
-      }
-    } catch (err) {
-      console.error("Erro ao decodificar o token:", err);
-      router.push("/login");
-    }
-  }, [router]);
 
   useEffect(() => {
     if (!animalId) return;
 
     const fetchAnimal = async () => {
       try {
-        const token = localStorage.getItem("authToken");
-        const response = await apiBase.get<Animal>(`/animals/${animalId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const animal = response.data;
+        const animal = await animalService.getById(animalId);
         reset({
           name: animal.name,
           animalType: animal.animalType as AnimalType,
@@ -88,13 +63,10 @@ function EditAnimalContent() {
   }, [animalId, reset]);
 
   const onSubmit = async (data: AnimalData) => {
+    if (!animalId) return;
+    
     try {
-      const token = localStorage.getItem("authToken");
-      await apiBase.put(`/animals/${animalId}`, data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      await animalService.update(animalId, data);
 
       setModalType("success");
       setModalMessage("Animal atualizado com sucesso!");
@@ -120,7 +92,7 @@ function EditAnimalContent() {
       )
     : [];
 
-  if (loading) {
+  if (authLoading) {
     return <DashboardLoading />;
   }
 

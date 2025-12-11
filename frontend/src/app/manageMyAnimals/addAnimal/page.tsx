@@ -1,25 +1,25 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-
 import { Sidebar } from "@/components/layout";
-import { apiBase } from "@/services/baseApi";
 import { Button, InputField, SelectField, ErrorModal } from "@/components/ui";
 import { BREED_OPTIONS } from "@/constants/animal-breeds";
 import { AnimalType } from "@/interfaces/animal";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { animalSchema, AnimalData } from "@/schemas/animal";
+import { useAuthGuard } from "@/hooks/useAuthGuard";
+import { animalService } from "@/services/animalService";
 
 export default function AddAnimal() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
+  const { userId, isLoading } = useAuthGuard("user");
+  
   const [showModal, setShowModal] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
   const [modalType, setModalType] = useState<"success" | "error">("success");
-  const [userId, setUserId] = useState<number>(0);
 
   const {
     register,
@@ -38,36 +38,11 @@ export default function AddAnimal() {
 
   const selectedAnimalType = watch("animalType");
 
-  useEffect(() => {
-    const token = localStorage.getItem("authToken");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      if (payload.userType !== "user") {
-        router.push("/");
-      } else {
-        const id = typeof payload.sub === "string" ? parseInt(payload.sub, 10) : payload.sub;
-        setUserId(id);
-        setLoading(false);
-      }
-    } catch (err) {
-      console.error("Erro ao decodificar o token:", err);
-      router.push("/login");
-    }
-  }, [router]);
-
   const onSubmit = async (data: AnimalData) => {
+    if (!userId) return;
+    
     try {
-      const token = localStorage.getItem("authToken");
-      await apiBase.post("/animals", { ...data, userId }, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      await animalService.create(data, userId);
 
       setModalType("success");
       setModalMessage("Animal cadastrado com sucesso!");
@@ -93,7 +68,7 @@ export default function AddAnimal() {
       )
     : [];
 
-  if (loading) {
+  if (isLoading) {
     return <DashboardLoading />;
   }
 

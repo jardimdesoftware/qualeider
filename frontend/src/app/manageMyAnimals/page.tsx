@@ -3,19 +3,22 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/layout";
-import { apiBase } from "@/services/baseApi";
 import { Button, EmptyState, ErrorModal, InputField } from "@/components/ui";
 import { Cat, Search, Plus, Edit, Trash2 } from "lucide-react";
 import { Animal } from "@/interfaces/animal";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
+import { useAuthGuard } from "@/hooks/useAuthGuard";
+import { animalService } from "@/services/animalService";
 
 export default function ManageAnimals() {
+  const router = useRouter();
+  const { userId, isLoading: authLoading } = useAuthGuard("user");
+  
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [animalsPerPage, setAnimalsPerPage] = useState(7);
-  const router = useRouter();
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -24,42 +27,14 @@ export default function ManageAnimals() {
   const [animalToDelete, setAnimalToDelete] = useState<number | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("authToken");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    if (payload.userType !== "user") {
-      router.push("/");
-    }
-  }, [router]);
+    if (!userId) return;
+    fetchAnimals();
+  }, [userId]);
 
   const fetchAnimals = async () => {
-    const token = localStorage.getItem("authToken");
-
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-
     try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      if (!payload.sub) {
-        setLoading(false);
-        return;
-      }
-
-      const response = await apiBase.get<Animal[]>(
-        `/animals/user/${payload.sub}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      setAnimals(response.data);
+      const data = await animalService.getByUser(userId!);
+      setAnimals(data);
       setLoading(false);
     } catch (err) {
       setLoading(false);
@@ -116,13 +91,8 @@ export default function ManageAnimals() {
   const handleDeleteAnimal = async () => {
     if (!animalToDelete) return;
 
-    const token = localStorage.getItem("authToken");
     try {
-      await apiBase.delete(`/animals/${animalToDelete}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      await animalService.delete(animalToDelete);
       setModalMessage("Animal excluído com sucesso!");
       setShowSuccessModal(true);
       fetchAnimals();
@@ -144,7 +114,7 @@ export default function ManageAnimals() {
     router.push(`/manageMyAnimals/editAnimal?id=${animal.id}`);
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return <DashboardLoading />;
   }
 

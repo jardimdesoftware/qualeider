@@ -1,80 +1,56 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/layout";
 import { apiBase } from "@/services/baseApi";
 import { EmptyState, MetricCard } from "@/components/ui";
-import axios from "axios";
 import { Activity, Milk, Cat, Ruler, Wheat, Droplet, BarChart3, Calendar } from "lucide-react";
 import { Animal } from "@/interfaces/animal";
 import { DailyCollection } from "@/interfaces/daily-collection";
 import AnimalDistributionChart from "@/components/dashboard/AnimalDistributionChart";
 import MilkLast7DaysChart from "@/components/dashboard/MilkLast7DaysChart";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
+import { useAuthGuard } from "@/hooks/useAuthGuard";
+import { animalService } from "@/services/animalService";
 
 export default function DashboardAssociation() {
-  const router = useRouter();
+  const { userId, isLoading: authLoading } = useAuthGuard("association");
+  
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [dailyCollections, setDailyCollections] = useState<DailyCollection[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userName, setUserName] = useState("Usuário");
 
   useEffect(() => {
-    const token = localStorage.getItem("authToken");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
+    if (!userId) return;
 
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      if (payload.userType !== "association") {
-        router.push("/");
-      } else {
-        setUserName(payload.name || "Associação");
-        fetchData(payload.sub);
-        setLoading(false);
-      }
-    } catch (err) {
-      console.error("Erro ao decodificar o token:", err);
-      router.push("/login");
-    }
-  }, [router]);
+    const fetchData = async () => {
+      const token = localStorage.getItem("authToken");
+      const headers = { Authorization: `Bearer ${token}` };
 
-  const fetchData = async (userId: number) => {
-    const token = localStorage.getItem("authToken");
-    const headers = {
-      Authorization: `Bearer ${token}`,
-    } as const;
-
-    const [animalsResult, collectionsResult] = await Promise.allSettled([
-      apiBase.get(`/animals/user/${userId}`, { headers }),
-      apiBase.get(`/daily-collections/user/${userId}`, { headers }),
+      const [animalsResult, collectionsResult] = await Promise.allSettled([
+        animalService.getByUser(userId),
+        apiBase.get(`/daily-collections/user/${userId}`, { headers }),
     ]);
 
-    if (animalsResult.status === "fulfilled") {
-      setAnimals(animalsResult.value.data);
-    } else {
-      const reason = animalsResult.reason;
-      if (axios.isAxiosError(reason) && reason.response?.status === 404) {
+      if (animalsResult.status === "fulfilled") {
+        setAnimals(animalsResult.value);
+      } else {
+        console.error("Erro ao buscar animais:", animalsResult.reason);
         setAnimals([]);
-      } else {
-        console.error("Erro ao buscar animais:", reason);
       }
-    }
 
-    if (collectionsResult.status === "fulfilled") {
-      setDailyCollections(collectionsResult.value.data);
-    } else {
-      const reason = collectionsResult.reason;
-      if (axios.isAxiosError(reason) && reason.response?.status === 404) {
-        setDailyCollections([]);
+      if (collectionsResult.status === "fulfilled") {
+        setDailyCollections(collectionsResult.value.data);
       } else {
-        console.error("Erro ao buscar coletas diárias:", reason);
+        console.error("Erro ao buscar coletas:", collectionsResult.reason);
+        setDailyCollections([]);
       }
-    }
-  };
+
+      setLoading(false);
+    };
+
+    fetchData();
+  }, [userId]);
 
   // Métricas
   const totalAnimals = animals.length;
@@ -176,7 +152,7 @@ export default function DashboardAssociation() {
               Painel de Controle
             </h2>
             <p className="text-slate-500">
-              Bem-vindo, <strong>{userName}</strong>
+              Bem-vindo de volta!
             </p>
           </div>
           <div className="flex items-center gap-4 bg-[#fdfbf7] px-4 py-2 rounded-lg border border-slate-200">

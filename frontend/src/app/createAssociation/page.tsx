@@ -16,15 +16,12 @@ import {
 } from "@/components/ui";
 import { PageFooter } from "@/components/layout";
 import { apiBase } from "@/services/baseApi";
-import { Estado, Cidade } from "@/interfaces/location";
-import { sortByNamePtBr } from "@/constants/user-options";
 import { associationSchema, AssociationData } from "@/schemas/registration";
 import { maskCNPJ, maskPhone, cleanDocument } from "@/utils/masks";
+import { useLocation } from "@/hooks/useLocation";
 
 export default function CreateAssociation() {
   const router = useRouter();
-  const [estados, setEstados] = useState<Estado[]>([]);
-  const [cidades, setCidades] = useState<Cidade[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
   const [modalType, setModalType] = useState<"success" | "error">("success");
@@ -44,28 +41,7 @@ export default function CreateAssociation() {
   });
 
   const selectedState = watch("state");
-
-  // Fetch estados
-  useState(() => {
-    fetch("https://servicodados.ibge.gov.br/api/v1/localidades/estados")
-      .then((res) => res.json())
-      .then((data) => setEstados(sortByNamePtBr(data)))
-      .catch(console.error);
-  });
-
-  // Fetch cidades quando estado muda
-  useState(() => {
-    if (selectedState) {
-      fetch(
-        `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${selectedState}/municipios`
-      )
-        .then((res) => res.json())
-        .then((data) => setCidades(sortByNamePtBr(data)))
-        .catch(console.error);
-    } else {
-      setCidades([]);
-    }
-  });
+  const { estados, cidades, isLoadingCities } = useLocation(selectedState);
 
   const onSubmit = async (data: AssociationData) => {
     try {
