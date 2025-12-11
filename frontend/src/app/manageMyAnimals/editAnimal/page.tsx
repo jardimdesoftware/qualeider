@@ -2,8 +2,9 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Sidebar from "@/components/sidebar";
+import { Sidebar } from "@/components/layout";
 import { apiBase } from "@/services/baseApi";
+import { Button, InputField, SelectField, ErrorModal } from "@/components/ui";
 import { BREED_OPTIONS } from "@/constants/animal-breeds";
 import { Animal, AnimalType, Status } from "@/interfaces/animal";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
@@ -24,7 +25,9 @@ function EditAnimalContent() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
-  const [modalMessage, setModalMessage] = useState<string | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [modalMessage, setModalMessage] = useState("");
+  const [modalType, setModalType] = useState<"success" | "error">("success");
 
   useEffect(() => {
     const token = localStorage.getItem("authToken");
@@ -35,7 +38,7 @@ function EditAnimalContent() {
 
     try {
       const payload = JSON.parse(atob(token.split(".")[1]));
-      if (payload.role !== "Common") {
+      if (payload.userType !== "user") {
         router.push("/");
       } else {
         setFormData((prev) => ({ ...prev, userId: payload.sub }));
@@ -63,26 +66,32 @@ function EditAnimalContent() {
         setFormData(animal);
       } catch (err) {
         console.error("Erro ao buscar animal:", err);
+        setModalType("error");
         setModalMessage("Erro ao carregar dados do animal.");
+        setShowModal(true);
       }
     };
 
     fetchAnimal();
   }, [animalId]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
     if (!formData.name) newErrors.name = "Nome é obrigatório";
     if (!formData.animalType)
       newErrors.animalType = "Tipo de animal é obrigatório";
     if (!formData.breed) newErrors.breed = "Raça é obrigatória";
     if (formData.age < 1)
-      newErrors.age = "Idade deve ser um número inteiro positivo (1 ou mais)";
+      newErrors.age = "Idade deve ser 1 ou mais";
 
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
       return;
     }
 
@@ -95,163 +104,138 @@ function EditAnimalContent() {
       });
 
       if (response.status === 200) {
+        setModalType("success");
         setModalMessage("Animal atualizado com sucesso!");
+        setShowModal(true);
       } else {
+        setModalType("error");
         setModalMessage("Erro ao atualizar animal.");
+        setShowModal(true);
       }
     } catch (err) {
       console.error("Erro ao atualizar animal:", err);
-      setModalMessage("Erro ao atualizar animal.");
+      setModalType("error");
+      setModalMessage("Erro ao atualizar animal. Tente novamente.");
+      setShowModal(true);
     }
   };
 
-  const closeModal = () => {
-    setModalMessage(null);
-    if (modalMessage === "Animal atualizado com sucesso!") {
-      router.push("/manageMyAnimals");
-    }
-    if (modalMessage === "Erro ao carregar dados do animal.") {
+  const handleModalClose = () => {
+    setShowModal(false);
+    if (modalType === "success") {
       router.push("/manageMyAnimals");
     }
   };
+
+  const breedOptions = formData.animalType
+    ? BREED_OPTIONS[formData.animalType as unknown as keyof typeof BREED_OPTIONS].map(
+        (breed) => ({ value: breed, label: breed })
+      )
+    : [];
 
   if (loading) {
     return <DashboardLoading />;
   }
 
   return (
-    <div className="flex flex-col lg:flex-row">
+    <div className="flex flex-col lg:flex-row bg-[#fdfbf7] min-h-screen">
       <Sidebar />
-      <div className="flex-1 p-8">
-        <h1 className="text-2xl font-bold mb-6 mt-12 md:mt-4">Editar Animal</h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Nome do Animal */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Nome <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
-              }
-              className="w-full p-2 border border-gray-300 rounded-lg"
-            />
-            {errors.name && (
-              <p className="text-red-500 text-sm">{errors.name}</p>
-            )}
-          </div>
+      <div className="flex-1 overflow-y-auto">
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b border-slate-200 px-6 md:px-8 py-6">
+          <h2 className="text-2xl md:text-3xl font-black text-[#1e3a29]">
+            Editar Animal
+          </h2>
+          <p className="text-slate-500">Atualize as informações do animal</p>
+        </header>
 
-          {/* Tipo de Animal */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Tipo de Animal <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={formData.animalType}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  animalType: e.target.value as AnimalType,
-                  breed: "",
-                })
-              }
-              className="w-full p-2 border border-gray-300 rounded-lg"
-            >
-              <option value="">Selecione um tipo</option>
-              <option value={AnimalType.Vaca}>Vaca</option>
-              <option value={AnimalType.Cabra}>Cabra</option>
-              <option value={AnimalType.Ovelha}>Ovelha</option>
-              <option value={AnimalType.Bufala}>Bufala</option>
-              <option value={AnimalType.Outro}>Outro</option>
-            </select>
-            {errors.animalType && (
-              <p className="text-red-500 text-sm">{errors.animalType}</p>
-            )}
-          </div>
-
-          {/* Raça do Animal */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Raça <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={formData.breed}
-              onChange={(e) =>
-                setFormData({ ...formData, breed: e.target.value })
-              }
-              className="w-full p-2 border border-gray-300 rounded-lg"
-              disabled={!formData.animalType}
-            >
-              <option value="">Selecione uma raça</option>
-              {formData.animalType &&
-                BREED_OPTIONS[
-                  formData.animalType as unknown as keyof typeof BREED_OPTIONS
-                ].map((breed) => (
-                  <option key={breed} value={breed}>
-                    {breed}
-                  </option>
-                ))}
-            </select>
-            {errors.breed && (
-              <p className="text-red-500 text-sm">{errors.breed}</p>
-            )}
-          </div>
-
-          {/* Idade do Animal */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Idade (em anos) <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="number"
-              value={formData.age}
-              onChange={(e) => {
-                const value = parseInt(e.target.value, 10);
-                if (value >= 1) {
-                  setFormData({ ...formData, age: value });
+        <div className="p-6 md:p-8 max-w-3xl mx-auto">
+          <div className="bg-white rounded-xl shadow-md border border-slate-100 p-6 md:p-8">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <InputField
+                label="Nome do Animal"
+                type="text"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
                 }
-              }}
-              min="1"
-              className="w-full p-2 border border-gray-300 rounded-lg"
-            />
-            {errors.age && <p className="text-red-500 text-sm">{errors.age}</p>}
-          </div>
+                error={errors.name}
+                required
+              />
 
-          {/* Botões de Salvar e Cancelar */}
-          <div className="flex gap-4">
-            <button
-              type="submit"
-              className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
-            >
-              Salvar
-            </button>
-            <button
-              type="button"
-              onClick={() => router.push("/manageMyAnimals")}
-              className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
-            >
-              Cancelar
-            </button>
-          </div>
-        </form>
+              <SelectField
+                label="Tipo de Animal"
+                value={formData.animalType}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    animalType: e.target.value as AnimalType,
+                    breed: "",
+                  })
+                }
+                options={[
+                  { value: AnimalType.Vaca, label: "Vaca" },
+                  { value: AnimalType.Cabra, label: "Cabra" },
+                  { value: AnimalType.Ovelha, label: "Ovelha" },
+                  { value: AnimalType.Bufala, label: "Búfala" },
+                  { value: AnimalType.Outro, label: "Outro" },
+                ]}
+                error={errors.animalType}
+                required
+              />
 
-        {/* Modal de sucesso/erro */}
-        {modalMessage && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-            <div className="bg-white p-6 rounded-lg">
-              <p>{modalMessage}</p>
-              <button
-                onClick={closeModal}
-                className="mt-4 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
-              >
-                OK
-              </button>
-            </div>
+              <SelectField
+                label="Raça"
+                value={formData.breed}
+                onChange={(e) =>
+                  setFormData({ ...formData, breed: e.target.value })
+                }
+                options={breedOptions}
+                error={errors.breed}
+                required
+                disabled={!formData.animalType}
+              />
+
+              <InputField
+                label="Idade (em anos)"
+                type="number"
+                value={formData.age.toString()}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value, 10);
+                  if (value >= 1) {
+                    setFormData({ ...formData, age: value });
+                  }
+                }}
+                error={errors.age}
+                required
+                min="1"
+              />
+
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                <Button type="submit" variant="primary" fullWidth>
+                  Salvar Alterações
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  fullWidth
+                  onClick={() => router.push("/manageMyAnimals")}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </form>
           </div>
-        )}
+        </div>
       </div>
+
+      <ErrorModal
+        isOpen={showModal}
+        onClose={handleModalClose}
+        title={modalType === "success" ? "Sucesso!" : "Erro"}
+        message={modalMessage}
+        type={modalType}
+      />
     </div>
   );
 }

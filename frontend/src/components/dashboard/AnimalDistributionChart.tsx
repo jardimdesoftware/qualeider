@@ -1,7 +1,7 @@
 "use client";
 
 import { PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
-import EmptyState from "@/components/empty-state";
+import { EmptyState } from "@/components/ui";
 import { Cat } from "lucide-react";
 
 interface PieChartData {

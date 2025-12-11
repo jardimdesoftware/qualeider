@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Sidebar from "@/components/sidebar";
+import { Sidebar } from "@/components/layout";
 import { apiBase } from "@/services/baseApi";
+import { Button, InputField, SelectField, ErrorModal } from "@/components/ui";
 import { Estado, Cidade } from "@/interfaces/location";
 import { User } from "@/interfaces/user";
 import { USER_CATEGORIES, sortByNamePtBr } from "@/constants/user-options";
@@ -11,7 +12,7 @@ import DashboardLoading from "@/components/dashboard/DashboardLoading";
 
 export default function Settings() {
   const router = useRouter();
-  const [userRole, setUserRole] = useState<"Admin" | "Common">("Common");
+  const [userType, setUserType] = useState<"user" | "association" | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -25,9 +26,10 @@ export default function Settings() {
   const [estados, setEstados] = useState<Estado[]>([]);
   const [cidades, setCidades] = useState<Cidade[]>([]);
   const [loading, setLoading] = useState(true);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [modalMessage, setModalMessage] = useState("");
 
   useEffect(() => {
     const token = localStorage.getItem("authToken");
@@ -38,7 +40,7 @@ export default function Settings() {
 
     try {
       const payload = JSON.parse(atob(token.split(".")[1]));
-      setUserRole(payload.role);
+      setUserType(payload.userType);
       fetchUserData(payload.sub);
     } catch (err) {
       console.error("Erro ao decodificar o token:", err);
@@ -84,7 +86,6 @@ export default function Settings() {
     fetchCidades();
   }, [formData.state, loading]);
 
-  // Buscar dados do usuário pelo ID
   const fetchUserData = async (userId: string) => {
     try {
       const token = localStorage.getItem("authToken");
@@ -114,13 +115,12 @@ export default function Settings() {
       setLoading(false);
     } catch (err) {
       console.error("Erro ao buscar usuário:", err);
-      setErrorMessage("Erro ao carregar dados do usuário.");
+      setModalMessage("Erro ao carregar dados do usuário.");
+      setShowErrorModal(true);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
     if (!formData.name) newErrors.name = "Nome é obrigatório";
     if (!formData.email) newErrors.email = "Email é obrigatório";
@@ -128,44 +128,53 @@ export default function Settings() {
       newErrors.userCategory = "Categoria é obrigatória";
     if (!formData.state) newErrors.state = "Estado é obrigatório";
     if (!formData.city) newErrors.city = "Cidade é obrigatória";
-    if (userRole === "Common" && !formData.userType)
-      newErrors.userType = "Tipo de usuário é obrigatório para Common";
+    if (userType === "user" && !formData.userType)
+      newErrors.userType = "Tipo de usuário é obrigatório";
 
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
       return;
     }
 
-    setShowConfirmationModal(true);
+    setShowConfirmModal(true);
   };
 
   const handleConfirm = async () => {
-    setShowConfirmationModal(false);
+    setShowConfirmModal(false);
 
     const userData = {
       ...formData,
-      userType: userRole === "Admin" ? null : formData.userType,
+      userType: userType === "association" ? null : formData.userType,
     };
 
     try {
       const token = localStorage.getItem("authToken");
 
       if (!token) {
-        setErrorMessage("Token de autenticação não encontrado.");
+        setModalMessage("Token de autenticação não encontrado.");
+        setShowErrorModal(true);
         return;
       }
 
       const payload = JSON.parse(atob(token.split(".")[1]));
 
       if (!payload || !payload.sub) {
-        setErrorMessage("Token inválido ou malformado.");
+        setModalMessage("Token inválido ou malformado.");
+        setShowErrorModal(true);
         return;
       }
 
       const userId = parseInt(payload.sub, 10);
 
       if (isNaN(userId)) {
-        setErrorMessage("ID do usuário inválido.");
+        setModalMessage("ID do usuário inválido.");
+        setShowErrorModal(true);
         return;
       }
 
@@ -176,19 +185,22 @@ export default function Settings() {
       });
 
       if (response.status === 200) {
-        setSuccessMessage("Dados atualizados com sucesso!");
+        setModalMessage("Dados atualizados com sucesso!");
+        setShowSuccessModal(true);
         setInitialFormData({ ...formData });
       } else {
-        setErrorMessage("Erro ao atualizar dados.");
+        setModalMessage("Erro ao atualizar dados.");
+        setShowErrorModal(true);
       }
     } catch (err) {
       console.error("Erro ao atualizar dados:", err);
-      setErrorMessage("Erro ao atualizar dados.");
+      setModalMessage("Erro ao atualizar dados.");
+      setShowErrorModal(true);
     }
   };
 
   const handleCancel = () => {
-    setShowConfirmationModal(false);
+    setShowConfirmModal(false);
     setFormData({ ...initialFormData });
   };
 
@@ -196,197 +208,157 @@ export default function Settings() {
     return <DashboardLoading />;
   }
 
+  const estadoOptions = estados.map((estado) => ({
+    value: estado.sigla,
+    label: estado.nome,
+  }));
+
+  const cidadeOptions = cidades.map((cidade) => ({
+    value: cidade.nome,
+    label: cidade.nome,
+  }));
+
+  const userCategoryOptions = USER_CATEGORIES.map((cat) => ({
+    value: cat,
+    label: cat === "Associacao" ? "Associação" : cat,
+  }));
+
   return (
-    <div className="flex flex-col lg:flex-row">
+    <div className="flex flex-col lg:flex-row bg-[#fdfbf7] min-h-screen">
       <Sidebar />
-      <div className="flex-1 p-8">
-        <h1 className="text-2xl font-bold mb-6 mt-12 md:mt-4">Configurações</h1>
+      <div className="flex-1 overflow-y-auto">
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b border-slate-200 px-6 md:px-8 py-6">
+          <h2 className="text-2xl md:text-3xl font-black text-[#1e3a29]">
+            Configurações
+          </h2>
+          <p className="text-slate-500">Atualize suas informações pessoais</p>
+        </header>
 
-        {/* Mensagem de sucesso */}
-        {successMessage && (
-          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-6">
-            {successMessage}
-          </div>
-        )}
-
-        {/* Mensagem de erro */}
-        {errorMessage && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
-            {errorMessage}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Categoria (apenas para Common) */}
-          {userRole === "Common" && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Categoria <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={formData.userType}
-                onChange={(e) =>
-                  setFormData({ ...formData, userType: e.target.value })
-                }
-                className="w-full p-2 border border-gray-300 rounded-lg"
-              >
-                <option value="">Selecione uma categoria</option>
-                {USER_CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat === "Associacao" ? "Associação" : cat}
-                  </option>
-                ))}
-              </select>
-              {errors.userType && (
-                <p className="text-red-500 text-sm">{errors.userType}</p>
+        <div className="p-6 md:p-8 max-w-3xl mx-auto">
+          <div className="bg-white rounded-xl shadow-md border border-slate-100 p-6 md:p-8">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {userType === "user" && (
+                <SelectField
+                  label="Categoria"
+                  value={formData.userType}
+                  onChange={(e) =>
+                    setFormData({ ...formData, userType: e.target.value })
+                  }
+                  options={userCategoryOptions}
+                  error={errors.userType}
+                  required
+                />
               )}
-            </div>
-          )}
 
-          {/* Pessoa J ou F */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Pessoa <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={formData.userCategory}
-              onChange={(e) =>
-                setFormData({ ...formData, userCategory: e.target.value })
-              }
-              className="w-full p-2 border border-gray-300 rounded-lg"
-            >
-              <option value="">Selecione um tipo</option>
-              <option value="Fisica">Física</option>
-              <option value="Juridica">Jurídica</option>
-            </select>
-            {errors.userCategory && (
-              <p className="text-red-500 text-sm">{errors.userCategory}</p>
-            )}
-          </div>
-
-          {/* Nome e Email */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Nome <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
-              }
-              className="w-full p-2 border border-gray-300 rounded-lg"
-            />
-            {errors.name && (
-              <p className="text-red-500 text-sm">{errors.name}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Email <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
-              className="w-full p-2 border border-gray-300 rounded-lg"
-            />
-            {errors.email && (
-              <p className="text-red-500 text-sm">{errors.email}</p>
-            )}
-          </div>
-
-          {/* Estado e Cidade */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Estado <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={formData.state}
+              <SelectField
+                label="Pessoa"
+                value={formData.userCategory}
                 onChange={(e) =>
-                  setFormData({ ...formData, state: e.target.value, city: "" })
+                  setFormData({ ...formData, userCategory: e.target.value })
                 }
-                className="w-full p-2 border border-gray-300 rounded-lg"
-              >
-                <option value="">Selecione um estado</option>
-                {estados.map((estado) => (
-                  <option key={estado.id} value={estado.sigla}>
-                    {estado.nome}
-                  </option>
-                ))}
-              </select>
-              {errors.state && (
-                <p className="text-red-500 text-sm">{errors.state}</p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Cidade <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={formData.city}
+                options={[
+                  { value: "Fisica", label: "Física" },
+                  { value: "Juridica", label: "Jurídica" },
+                ]}
+                error={errors.userCategory}
+                required
+              />
+
+              <InputField
+                label="Nome"
+                type="text"
+                value={formData.name}
                 onChange={(e) =>
-                  setFormData({ ...formData, city: e.target.value })
+                  setFormData({ ...formData, name: e.target.value })
                 }
-                className="w-full p-2 border border-gray-300 rounded-lg"
-                disabled={!formData.state}
-              >
-                <option value="">Selecione uma cidade</option>
-                {cidades.map((cidade) => (
-                  <option key={cidade.id} value={cidade.nome}>
-                    {cidade.nome}
-                  </option>
-                ))}
-              </select>
-              {errors.city && (
-                <p className="text-red-500 text-sm">{errors.city}</p>
-              )}
-            </div>
-          </div>
+                error={errors.name}
+                required
+              />
 
-          {/* Botão de Salvar */}
-          <div>
-            <button
-              type="submit"
-              className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
-            >
-              Salvar
-            </button>
-          </div>
-        </form>
+              <InputField
+                label="Email"
+                type="email"
+                value={formData.email}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                error={errors.email}
+                required
+              />
 
-        {/* Popout de confirmação */}
-        {showConfirmationModal && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-            <div className="bg-white p-6 rounded-lg shadow-lg text-center">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">
-                Confirmar Alterações
-              </h2>
-              <p className="text-gray-700 mb-4">
-                Tem certeza que deseja salvar as alterações?
-              </p>
-              <div className="flex justify-center gap-4">
-                <button
-                  onClick={handleCancel}
-                  className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleConfirm}
-                  className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"
-                >
-                  Confirmar
-                </button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <SelectField
+                  label="Estado"
+                  value={formData.state}
+                  onChange={(e) =>
+                    setFormData({ ...formData, state: e.target.value, city: "" })
+                  }
+                  options={estadoOptions}
+                  error={errors.state}
+                  required
+                />
+
+                <SelectField
+                  label="Cidade"
+                  value={formData.city}
+                  onChange={(e) =>
+                    setFormData({ ...formData, city: e.target.value })
+                  }
+                  options={cidadeOptions}
+                  error={errors.city}
+                  required
+                  disabled={!formData.state}
+                />
               </div>
+
+              <div className="pt-4">
+                <Button type="submit" variant="primary" fullWidth>
+                  Salvar Alterações
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
+          <div className="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-full">
+            <h2 className="text-xl font-bold text-[#1e3a29] mb-2">
+              Confirmar Alterações
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Tem certeza que deseja salvar as alterações?
+            </p>
+            <div className="flex gap-3">
+              <Button onClick={handleCancel} variant="outline" fullWidth>
+                Cancelar
+              </Button>
+              <Button onClick={handleConfirm} variant="primary" fullWidth>
+                Confirmar
+              </Button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      <ErrorModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        title="Sucesso!"
+        message={modalMessage}
+        type="success"
+      />
+
+      <ErrorModal
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        title="Erro"
+        message={modalMessage}
+        type="error"
+      />
     </div>
   );
 }

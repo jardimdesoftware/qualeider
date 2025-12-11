@@ -14,7 +14,7 @@ import {
 } from "@/components/ui";
 import { PageFooter } from "@/components/layout";
 import { AssociationService } from "@/services/association.service";
-import { CoverageArea, Status } from "@/interfaces/association";
+import { CoverageArea } from "@/interfaces/association";
 import { useLocationData } from "@/hooks/useLocationData";
 import {
   cleanDocument,
@@ -123,16 +123,16 @@ export default function CreateAssociation() {
   const handleNext = async () => {
     if (step === 1 && validateStep1()) {
       try {
-        const [emailResp, cnpjResp] = await Promise.all([
+        const [emailExists, cnpjExists] = await Promise.all([
           AssociationService.checkEmail(formData.email),
           AssociationService.checkCnpj(cleanDocument(formData.cnpj)),
         ]);
 
-        if (emailResp.exists) {
+        if (emailExists) {
           setErrors((prev) => ({ ...prev, email: "Email já cadastrado" }));
           return;
         }
-        if (cnpjResp.exists) {
+        if (cnpjExists) {
           setErrors((prev) => ({ ...prev, cnpj: "CNPJ já cadastrado" }));
           return;
         }
@@ -186,15 +186,24 @@ export default function CreateAssociation() {
         presidentCpf: cleanDocument(formData.presidentCpf),
         presidentEmail: formData.presidentEmail,
         presidentPhone: formData.presidentPhone.replace(/\D/g, ""),
-        status: Status.Active,
       });
 
       setShowSuccessModal(true);
       setTimeout(() => router.push("/login"), 2000);
-    } catch (error: any) {
-      setErrorMessage(
-        error.response?.data?.message || "Erro ao criar associação"
-      );
+    } catch (error: unknown) {
+      const message =
+        error &&
+        typeof error === "object" &&
+        "response" in error &&
+        error.response &&
+        typeof error.response === "object" &&
+        "data" in error.response &&
+        error.response.data &&
+        typeof error.response.data === "object" &&
+        "message" in error.response.data
+          ? String(error.response.data.message)
+          : "Erro ao criar associação";
+      setErrorMessage(message);
       setShowErrorModal(true);
     } finally {
       setLoading(false);
@@ -418,8 +427,7 @@ export default function CreateAssociation() {
                   options={[
                     { value: CoverageArea.Municipal, label: "Municipal" },
                     { value: CoverageArea.Regional, label: "Regional" },
-                    { value: CoverageArea.State, label: "Estadual" },
-                    { value: CoverageArea.National, label: "Nacional" },
+                    { value: CoverageArea.Estadual, label: "Estadual" },
                   ]}
                 />
                 <InputField

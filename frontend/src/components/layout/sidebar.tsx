@@ -15,7 +15,7 @@ import {
 export default function Sidebar() {
   const [isMobile, setIsMobile] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [userRole, setUserRole] = useState<"Admin" | "Common">("Common");
+  const [userRole, setUserRole] = useState<"association" | "user">("user");
   const [pathname, setPathname] = useState("");
 
   useEffect(() => {
@@ -27,12 +27,12 @@ export default function Sidebar() {
     if (token) {
       try {
         const payload = JSON.parse(atob(token.split(".")[1]));
-        return payload.role;
+        return payload.userType || "user";
       } catch (error) {
         console.error("Erro ao decodificar o token:", error);
       }
     }
-    return "Common";
+    return "user";
   };
 
   useEffect(() => {
@@ -57,11 +57,11 @@ export default function Sidebar() {
   };
 
   const menuItems =
-    userRole === "Admin"
+    userRole === "association"
       ? [
           {
             name: "Dashboard",
-            link: "/dashboardAdmin",
+            link: "/dashboardAssociation",
             icon: <PieChart size={20} />,
           },
           { name: "Usuários", link: "/manageUsers", icon: <Users size={20} /> },
@@ -75,7 +75,7 @@ export default function Sidebar() {
       : [
           {
             name: "Dashboard",
-            link: "/dashboardCommon",
+            link: "/dashboardUser",
             icon: <PieChart size={20} />,
           },
           {

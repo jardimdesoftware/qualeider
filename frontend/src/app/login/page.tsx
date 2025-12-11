@@ -84,9 +84,9 @@ export default function Login() {
       const userType = tokenPayload.userType;
 
       if (userType === "association") {
-        router.push("/dashboardAdmin");
+        router.push("/dashboardAssociation");
       } else if (userType === "user") {
-        router.push("/dashboardCommon");
+        router.push("/dashboardUser");
       } else {
         throw new Error("Tipo de usuário desconhecido");
       }

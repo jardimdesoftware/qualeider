@@ -1,178 +1,33 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import Sidebar from "@/components/sidebar";
-import { apiBase } from "@/services/baseApi";
-import { Activity, PieChart as PieChartIcon, BarChart2 } from "lucide-react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from "recharts";
-import { Animal } from "@/interfaces/animal";
-import MetricCard from "@/components/metric-card";
-import AnimalDistributionChart from "@/components/dashboard/AnimalDistributionChart";
-import DashboardLoading from "@/components/dashboard/DashboardLoading";
+import { useState } from "react";
+import { Sidebar } from "@/components/layout";
+import { EmptyState } from "@/components/ui";
+import { Cat } from "lucide-react";
 
-export default function AnimalDashboard() {
-  const router = useRouter();
-  const [animals, setAnimals] = useState<Animal[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const token = localStorage.getItem("authToken");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      if (payload.role !== "Admin") {
-        router.push("/");
-      } else {
-        fetchAnimals(payload.associationId);
-        setLoading(false);
-      }
-    } catch (err) {
-      console.error("Erro ao decodificar o token:", err);
-      router.push("/login");
-    }
-  }, [router]);
-
-  const fetchAnimals = async (associationId?: number) => {
-    const token = localStorage.getItem("authToken");
-    try {
-      const queryParams = associationId ? `?associationId=${associationId}` : '';
-      
-      const response = await apiBase.get<{ data: Animal[] }>(`/animals${queryParams}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      setAnimals(response.data.data);
-    } catch (err) {
-      console.error("Erro ao carregar os animais:", err);
-      setError("Erro ao carregar os animais.");
-    }
-  };
-
-  // Métricas gerais
-  const totalAnimals = animals.length;
-  const averageAge = (
-    animals.reduce((sum, animal) => sum + animal.age, 0) / totalAnimals
-  ).toFixed(1);
-
-  // Dados para o gráfico de pizza (distribuição por tipo de animal)
-  const animalTypeDistribution = animals.reduce((acc, animal) => {
-    acc[animal.animalType] = (acc[animal.animalType] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const pieChartData = Object.entries(animalTypeDistribution).map(
-    ([type, count]) => ({
-      name: type,
-      value: count,
-    })
-  );
-
-  // Dados para o gráfico de linhas (média de idade por tipo de animal)
-  const averageAgeByType = animals.reduce((acc, animal) => {
-    if (!acc[animal.animalType]) {
-      acc[animal.animalType] = { totalAge: 0, count: 0 };
-    }
-    acc[animal.animalType].totalAge += animal.age;
-    acc[animal.animalType].count += 1;
-    return acc;
-  }, {} as Record<string, { totalAge: number; count: number }>);
-
-  const lineChartData = Object.entries(averageAgeByType).map(
-    ([type, data]) => ({
-      type,
-      averageAge: (data.totalAge / data.count).toFixed(1),
-    })
-  );
-
-  if (loading) return <DashboardLoading />;
-
-  if (error) return <div>Erro: {error}</div>;
-
+export default function ManageAnimals() {
   return (
-    <div className="flex flex-col lg:flex-row">
+    <div className="flex flex-col lg:flex-row bg-[#fdfbf7] min-h-screen">
       <Sidebar />
-      <div className="flex-1 p-8">
-        <h1 className="text-2xl font-bold mb-6 mt-12 md:mt-4">
-          Animais Cadastrados
-        </h1>
+      <div className="flex-1 overflow-y-auto">
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b border-slate-200 px-6 md:px-8 py-6">
+          <h2 className="text-2xl md:text-3xl font-black text-[#1e3a29]">
+            Gerenciar Animais
+          </h2>
+          <p className="text-slate-500">
+            Visualize todos os animais cadastrados na associação
+          </p>
+        </header>
 
-        {/* Métricas Gerais */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <MetricCard
-            icon={<Activity size={24} />}
-            iconColor="text-green-500"
-            title="Total de Animais"
-            value={totalAnimals}
+        <div className="p-6 md:p-8 max-w-7xl mx-auto">
+          <EmptyState
+            icon={<Cat size={48} className="text-slate-400" />}
+            title="Dashboard em desenvolvimento"
+            description="Esta funcionalidade será implementada em breve."
+            actionHref="/dashboard Associação"
+            actionLabel="Voltar ao Dashboard"
           />
-
-          <MetricCard
-            icon={<PieChartIcon size={24} />}
-            iconColor="text-purple-500"
-            title="Tipos de Animais"
-            value={Object.keys(animalTypeDistribution).length}
-          />
-
-          <MetricCard
-            icon={<BarChart2 size={24} />}
-            iconColor="text-yellow-500"
-            title="Média de Idade"
-            value={averageAge}
-          />
-        </div>
-
-        {/* Gráficos */}
-        <div className="flex flex-col lg:flex-row gap-10">
-          {/* Gráfico de Pizza - Distribuição por Tipo de Animal */}
-          <AnimalDistributionChart data={pieChartData} />
-
-          {/* Gráfico de Linhas - Média de Idade por Tipo de Animal */}
-          <div className="bg-white p-4 rounded-lg shadow flex-1 flex flex-col items-center">
-            <h2 className="text-lg font-semibold mb-4">
-              Média de Idade por Tipo de Animal
-            </h2>
-            <div className="w-full h-[300px] flex justify-center items-center">
-              <LineChart
-                width={500}
-                height={300}
-                data={lineChartData}
-                margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="type" />
-                <YAxis />
-                <Tooltip />
-                <Legend
-                  align="center"
-                  wrapperStyle={{
-                    paddingTop: 10,
-                    textAlign: "center",
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="averageAge"
-                  name="Média"
-                  stroke="#9467BD"
-                  activeDot={{ r: 8 }}
-                />
-              </LineChart>
-            </div>
-          </div>
         </div>
       </div>
     </div>
