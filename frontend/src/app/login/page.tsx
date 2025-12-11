@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import Logo from "@/assets/Logo.png";
 import Button from "@/components/global/button";
 import Wave from "@/components/global/waveFooter";
 import { Eye, EyeOff } from "lucide-react";
@@ -148,7 +147,7 @@ export default function Login() {
                 QuaLeiDer
               </h1>
               <Image
-                src={Logo}
+                src="/logo_qualeider.svg"
                 alt="Logo do sistema"
                 className="w-20 h-20"
                 width={80}

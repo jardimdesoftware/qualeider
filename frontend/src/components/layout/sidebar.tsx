@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Logo from "@/assets/Logo.png";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
@@ -124,7 +123,7 @@ export default function Sidebar() {
             {/* Logo */}
             <div className="flex items-center gap-2 p-4">
               <Image
-                src={Logo}
+                src="/logo_qualeider.svg"
                 alt="Logo"
                 className="w-10 h-10"
                 width={40}
@@ -168,7 +167,7 @@ export default function Sidebar() {
             {/* Logo */}
             <div className="flex items-center gap-2 p-4">
               <Image
-                src={Logo}
+                src="/logo_qualeider.svg"
                 alt="Logo"
                 className="w-10 h-10"
                 width={40}

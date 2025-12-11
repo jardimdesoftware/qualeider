@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import Logo from "@/assets/Logo.png";
 import Button from "@/components/global/button";
 import Wave from "@/components/global/waveFooter";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
@@ -256,7 +255,7 @@ export default function ResetPassword() {
           {isMobile && (
             <div className="flex flex-col items-center mb-4">
               <Image
-                src={Logo}
+                src="/logo_qualeider.svg"
                 alt="Logo do sistema"
                 className="w-20 h-20"
                 width={80}
@@ -419,7 +418,7 @@ export default function ResetPassword() {
           </div>
           <div className="absolute bottom-4 right-4">
             <Image
-              src={Logo}
+              src="/logo_qualeider.svg"
               alt="Logo do sistema"
               className="w-20 h-20"
               width={80}
