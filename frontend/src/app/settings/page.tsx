@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+
 import { Sidebar } from "@/components/layout";
 import { apiBase } from "@/services/baseApi";
 import { Button, InputField, SelectField, ErrorModal } from "@/components/ui";
@@ -9,20 +12,11 @@ import { Estado, Cidade } from "@/interfaces/location";
 import { User } from "@/interfaces/user";
 import { USER_CATEGORIES, sortByNamePtBr } from "@/constants/user-options";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
+import { settingsSchema, SettingsData } from "@/schemas/profile";
 
 export default function Settings() {
   const router = useRouter();
   const [userType, setUserType] = useState<"user" | "association" | null>(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    userType: "",
-    userCategory: "",
-    state: "",
-    city: "",
-  });
-  const [initialFormData, setInitialFormData] = useState({ ...formData });
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const [estados, setEstados] = useState<Estado[]>([]);
   const [cidades, setCidades] = useState<Cidade[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +24,20 @@ export default function Settings() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<SettingsData>({
+    resolver: zodResolver(settingsSchema),
+    mode: "onBlur",
+  });
+
+  const selectedState = watch("state");
 
   useEffect(() => {
     const token = localStorage.getItem("authToken");
@@ -51,40 +59,26 @@ export default function Settings() {
   useEffect(() => {
     if (loading) return;
 
-    const fetchEstados = async () => {
-      try {
-        const response = await fetch(
-          "https://servicodados.ibge.gov.br/api/v1/localidades/estados"
-        );
-        const data = await response.json();
-        setEstados(sortByNamePtBr(data));
-      } catch (err) {
-        console.error("Erro ao buscar estados:", err);
-      }
-    };
-    fetchEstados();
+    fetch("https://servicodados.ibge.gov.br/api/v1/localidades/estados")
+      .then((res) => res.json())
+      .then((data) => setEstados(sortByNamePtBr(data)))
+      .catch(console.error);
   }, [loading]);
 
   useEffect(() => {
     if (loading) return;
 
-    const fetchCidades = async () => {
-      if (formData.state) {
-        try {
-          const response = await fetch(
-            `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${formData.state}/municipios`
-          );
-          const data = await response.json();
-          setCidades(sortByNamePtBr(data));
-        } catch (err) {
-          console.error("Erro ao buscar cidades:", err);
-        }
-      } else {
-        setCidades([]);
-      }
-    };
-    fetchCidades();
-  }, [formData.state, loading]);
+    if (selectedState) {
+      fetch(
+        `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${selectedState}/municipios`
+      )
+        .then((res) => res.json())
+        .then((data) => setCidades(sortByNamePtBr(data)))
+        .catch(console.error);
+    } else {
+      setCidades([]);
+    }
+  }, [selectedState, loading]);
 
   const fetchUserData = async (userId: string) => {
     try {
@@ -96,15 +90,7 @@ export default function Settings() {
       });
 
       const user = response.data;
-      setFormData({
-        name: user.name,
-        email: user.email,
-        userType: user.userType || "",
-        userCategory: user.userCategory,
-        state: user.state,
-        city: user.city,
-      });
-      setInitialFormData({
+      reset({
         name: user.name,
         email: user.email,
         userType: user.userType || "",
@@ -120,37 +106,17 @@ export default function Settings() {
     }
   };
 
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-    if (!formData.name) newErrors.name = "Nome é obrigatório";
-    if (!formData.email) newErrors.email = "Email é obrigatório";
-    if (!formData.userCategory)
-      newErrors.userCategory = "Categoria é obrigatória";
-    if (!formData.state) newErrors.state = "Estado é obrigatório";
-    if (!formData.city) newErrors.city = "Cidade é obrigatória";
-    if (userType === "user" && !formData.userType)
-      newErrors.userType = "Tipo de usuário é obrigatório";
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
-
+  const onSubmit = async (data: SettingsData) => {
     setShowConfirmModal(true);
   };
 
   const handleConfirm = async () => {
     setShowConfirmModal(false);
 
+    const formValues = watch();
     const userData = {
-      ...formData,
-      userType: userType === "association" ? null : formData.userType,
+      ...formValues,
+      userType: userType === "association" ? undefined : formValues.userType,
     };
 
     try {
@@ -187,7 +153,6 @@ export default function Settings() {
       if (response.status === 200) {
         setModalMessage("Dados atualizados com sucesso!");
         setShowSuccessModal(true);
-        setInitialFormData({ ...formData });
       } else {
         setModalMessage("Erro ao atualizar dados.");
         setShowErrorModal(true);
@@ -199,23 +164,14 @@ export default function Settings() {
     }
   };
 
-  const handleCancel = () => {
-    setShowConfirmModal(false);
-    setFormData({ ...initialFormData });
-  };
-
-  if (loading) {
-    return <DashboardLoading />;
-  }
-
-  const estadoOptions = estados.map((estado) => ({
-    value: estado.sigla,
-    label: estado.nome,
+  const estadoOptions = estados.map((e) => ({
+    value: e.sigla,
+    label: e.nome,
   }));
 
-  const cidadeOptions = cidades.map((cidade) => ({
-    value: cidade.nome,
-    label: cidade.nome,
+  const cidadeOptions = cidades.map((c) => ({
+    value: c.nome,
+    label: c.nome,
   }));
 
   const userCategoryOptions = USER_CATEGORIES.map((cat) => ({
@@ -223,11 +179,14 @@ export default function Settings() {
     label: cat === "Associacao" ? "Associação" : cat,
   }));
 
+  if (loading) {
+    return <DashboardLoading />;
+  }
+
   return (
     <div className="flex flex-col lg:flex-row bg-[#fdfbf7] min-h-screen">
       <Sidebar />
       <div className="flex-1 overflow-y-auto">
-        {/* Header */}
         <header className="bg-white shadow-sm border-b border-slate-200 px-6 md:px-8 py-6">
           <h2 className="text-2xl md:text-3xl font-black text-[#1e3a29]">
             Configurações
@@ -237,84 +196,74 @@ export default function Settings() {
 
         <div className="p-6 md:p-8 max-w-3xl mx-auto">
           <div className="bg-white rounded-xl shadow-md border border-slate-100 p-6 md:p-8">
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               {userType === "user" && (
                 <SelectField
                   label="Categoria"
-                  value={formData.userType}
-                  onChange={(e) =>
-                    setFormData({ ...formData, userType: e.target.value })
-                  }
+                  disabled={isSubmitting}
+                  error={errors.userType?.message}
+                  {...register("userType")}
                   options={userCategoryOptions}
-                  error={errors.userType}
-                  required
                 />
               )}
 
               <SelectField
                 label="Pessoa"
-                value={formData.userCategory}
-                onChange={(e) =>
-                  setFormData({ ...formData, userCategory: e.target.value })
-                }
+                disabled={isSubmitting}
+                error={errors.userCategory?.message}
+                {...register("userCategory")}
                 options={[
                   { value: "Fisica", label: "Física" },
                   { value: "Juridica", label: "Jurídica" },
                 ]}
-                error={errors.userCategory}
-                required
               />
 
               <InputField
                 label="Nome"
                 type="text"
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
-                error={errors.name}
-                required
+                disabled={isSubmitting}
+                error={errors.name?.message}
+                {...register("name")}
               />
 
               <InputField
                 label="Email"
                 type="email"
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-                error={errors.email}
-                required
+                disabled={isSubmitting}
+                error={errors.email?.message}
+                {...register("email")}
               />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <SelectField
                   label="Estado"
-                  value={formData.state}
-                  onChange={(e) =>
-                    setFormData({ ...formData, state: e.target.value, city: "" })
-                  }
+                  disabled={isSubmitting}
+                  error={errors.state?.message}
+                  {...register("state")}
                   options={estadoOptions}
-                  error={errors.state}
-                  required
+                  onChange={(e) => {
+                    setValue("state", e.target.value);
+                    setValue("city", "");
+                  }}
                 />
 
                 <SelectField
                   label="Cidade"
-                  value={formData.city}
-                  onChange={(e) =>
-                    setFormData({ ...formData, city: e.target.value })
-                  }
+                  disabled={isSubmitting || !selectedState}
+                  error={errors.city?.message}
+                  {...register("city")}
                   options={cidadeOptions}
-                  error={errors.city}
-                  required
-                  disabled={!formData.state}
                 />
               </div>
 
               <div className="pt-4">
-                <Button type="submit" variant="primary" fullWidth>
-                  Salvar Alterações
+                <Button
+                  type="submit"
+                  variant="primary"
+                  fullWidth
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "SALVANDO..." : "SALVAR ALTERAÇÕES"}
                 </Button>
               </div>
             </form>
@@ -333,7 +282,11 @@ export default function Settings() {
               Tem certeza que deseja salvar as alterações?
             </p>
             <div className="flex gap-3">
-              <Button onClick={handleCancel} variant="outline" fullWidth>
+              <Button
+                onClick={() => setShowConfirmModal(false)}
+                variant="outline"
+                fullWidth
+              >
                 Cancelar
               </Button>
               <Button onClick={handleConfirm} variant="primary" fullWidth>

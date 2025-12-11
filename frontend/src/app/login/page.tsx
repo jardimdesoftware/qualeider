@@ -3,6 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+
 import {
   BrandHeader,
   ContentCard,
@@ -12,96 +15,48 @@ import {
   ErrorModal,
 } from "@/components/ui";
 import { PageFooter } from "@/components/layout";
-import { apiBase } from "@/services/baseApi";
+import { authService } from "@/services/authService";
+import { loginSchema, LoginData } from "@/schemas/auth";
 
 export default function Login() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [emailError, setEmailError] = useState("");
-  const [passwordError, setPasswordError] = useState("");
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const validateEmail = (email: string) => {
-    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email) {
-      setEmailError("Email é obrigatório");
-      return false;
-    } else if (!regex.test(email)) {
-      setEmailError("Email inválido");
-      return false;
-    } else {
-      setEmailError("");
-      return true;
-    }
-  };
+  // Setup do React Hook Form
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginData>({
+    resolver: zodResolver(loginSchema),
+    mode: "onBlur", // Valida quando o usuário sai do campo
+  });
 
-  const validatePassword = (password: string) => {
-    if (!password) {
-      setPasswordError("Senha é obrigatória");
-      return false;
-    } else if (password.length < 6) {
-      setPasswordError("Senha deve ter pelo menos 6 caracteres");
-      return false;
-    } else {
-      setPasswordError("");
-      return true;
-    }
-  };
-
-  const handleLogin = async () => {
-    const isEmailValid = validateEmail(email);
-    const isPasswordValid = validatePassword(password);
-
-    if (!isEmailValid || !isPasswordValid) {
-      return;
-    }
-
-    setLoading(true);
+  // Função de Login simplificada
+  const onSubmit = async (data: LoginData) => {
     try {
-      const response = await apiBase.post("/auth/login", {
-        email,
-        password,
-      });
+      const { userType } = await authService.login(data);
 
-      const { data } = response.data;
-      const { access_token } = data;
+      // Roteamento baseado no tipo (Regra de navegação)
+      const routes = {
+        association: "/dashboardAssociation",
+        user: "/dashboardUser",
+      } as const;
 
-      if (!access_token) {
-        throw new Error("Token de acesso inválido ou ausente.");
-      }
+      const targetRoute = routes[userType];
 
-      localStorage.setItem("authToken", access_token);
-
-      const tokenParts = access_token.split(".");
-      if (tokenParts.length < 2) {
-        throw new Error("Formato de token inválido.");
-      }
-
-      const tokenPayload = JSON.parse(atob(tokenParts[1]));
-      const userType = tokenPayload.userType;
-
-      if (userType === "association") {
-        router.push("/dashboardAssociation");
-      } else if (userType === "user") {
-        router.push("/dashboardUser");
+      if (targetRoute) {
+        router.push(targetRoute);
       } else {
         throw new Error("Tipo de usuário desconhecido");
       }
-    } catch (err) {
-      console.error("Erro ao fazer login:", err);
-      setErrorMessage("Erro ao fazer login. Verifique suas credenciais.");
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(
+        err.message || "Erro ao fazer login. Verifique suas credenciais."
+      );
       setShowErrorModal(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      handleLogin();
     }
   };
 
@@ -114,68 +69,59 @@ export default function Login() {
       />
 
       <ContentCard className="max-w-md">
-        <BrandHeader title="QualeiDer" subtitle="Controle de sua produção leiteira" />
+        <BrandHeader
+          title="QualeiDer"
+          subtitle="Controle de sua produção leiteira"
+        />
 
         <div className="p-8 pb-6">
           <h2 className="text-brand-primary text-2xl font-bold text-center mb-6">
             Entrar
           </h2>
 
-          <div className="space-y-4">
+          {/* Uso da tag FORM para suporte nativo a 'Enter' */}
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <InputField
               label="E-mail"
               type="email"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                if (emailError) validateEmail(e.target.value);
-              }}
-              onBlur={(e) => validateEmail(e.target.value)}
-              onKeyPress={handleKeyPress}
-              error={emailError}
               placeholder="seu@email.com"
-              disabled={loading}
+              disabled={isSubmitting}
+              error={errors.email?.message}
+              {...register("email")}
             />
 
             <InputField
               label="Senha"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                if (passwordError) validatePassword(e.target.value);
-              }}
-              onBlur={(e) => validatePassword(e.target.value)}
-              onKeyPress={handleKeyPress}
-              error={passwordError}
-              placeholder="••••••••"
               showPasswordToggle
-              disabled={loading}
+              placeholder="••••••••"
+              disabled={isSubmitting}
+              error={errors.password?.message}
+              {...register("password")}
             />
-          </div>
 
-          <div className="mt-3 text-right">
-            <Link
-              href="/forgotPassword"
-              className="text-brand-primary hover:text-brand-primary-hover font-semibold text-sm transition-colors"
+            <div className="mt-3 text-right">
+              <Link
+                href="/forgotPassword"
+                className="text-brand-primary hover:text-brand-primary-hover font-semibold text-sm transition-colors"
+              >
+                Esqueci minha senha
+              </Link>
+            </div>
+
+            <Button
+              type="submit"
+              variant="primary"
+              fullWidth
+              disabled={isSubmitting}
+              className="mt-6"
             >
-              Esqueci minha senha
-            </Link>
-          </div>
-
-          <Button
-            variant="primary"
-            fullWidth
-            onClick={handleLogin}
-            loading={loading}
-            disabled={!!emailError || !!passwordError}
-            className="mt-6"
-          >
-            ENTRAR
-          </Button>
+              {isSubmitting ? "ENTRANDO..." : "ENTRAR"}
+            </Button>
+          </form>
 
           <Divider text="OU" />
 
-          <p className="text-center text-gray-600 text-sm">
+          <p className="text-center text-gray-600 text-sm mt-4">
             Não tem uma conta?{" "}
             <Link
               href="/createAccount"
