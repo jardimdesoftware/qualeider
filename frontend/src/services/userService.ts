@@ -23,4 +23,26 @@ export const userService = {
     });
     return response.data;
   },
+
+  /**
+   * Check if email already exists
+   */
+  checkEmail: async (email: string): Promise<boolean> => {
+    const { data } = await apiBase.get<{ exists: boolean }>(
+      "/users/check-email",
+      { params: { email } }
+    );
+    return data.exists;
+  },
+
+  /**
+   * Get all users (with optional filters)
+   */
+  findAll: async (params?: any, signal?: AbortSignal): Promise<User[]> => {
+    const { data } = await apiBase.get<User[]>("/users", {
+      params,
+      signal,
+    });
+    return data;
+  },
 };

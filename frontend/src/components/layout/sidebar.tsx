@@ -123,7 +123,7 @@ export default function Sidebar() {
             {/* Logo */}
             <div className="flex items-center gap-2 p-4">
               <Image
-                src="/logo_qualeider.svg"
+                src="/logo_icon.svg"
                 alt="Logo"
                 className="w-10 h-10"
                 width={40}
@@ -167,7 +167,7 @@ export default function Sidebar() {
             {/* Logo */}
             <div className="flex items-center gap-2 p-4">
               <Image
-                src="/logo_qualeider.svg"
+                src="/logo_icon.svg"
                 alt="Logo"
                 className="w-10 h-10"
                 width={40}

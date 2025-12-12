@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { AxiosError } from "axios";
 
 import {
   BrandHeader,
@@ -15,16 +16,19 @@ import {
   ErrorModal,
 } from "@/components/ui";
 import { PageFooter } from "@/components/layout";
-import { apiBase } from "@/services/baseApi";
 import { associationSchema, AssociationData } from "@/schemas/registration";
-import { maskCNPJ, maskPhone, cleanDocument } from "@/utils/masks";
+import { maskCNPJ, maskPhone } from "@/utils/masks";
 import { useLocation } from "@/hooks/useLocation";
+import { associationService } from "@/services/associationService";
 
 export default function CreateAssociation() {
   const router = useRouter();
-  const [showModal, setShowModal] = useState(false);
-  const [modalMessage, setModalMessage] = useState("");
-  const [modalType, setModalType] = useState<"success" | "error">("success");
+
+  const [modalState, setModalState] = useState({
+    isOpen: false,
+    type: "success" as "success" | "error",
+    message: "",
+  });
 
   const {
     register,
@@ -45,71 +49,56 @@ export default function CreateAssociation() {
 
   const onSubmit = async (data: AssociationData) => {
     try {
-      const payload = {
-        name: data.name,
-        email: data.email,
-        password: data.password,
-        cnpj: cleanDocument(data.cnpj),
-        phone: cleanDocument(data.phone),
-        state: data.state,
-        city: data.city,
-        userCategory: "Juridica",
-        coverageArea: data.coverageArea,
-      };
+      await associationService.create(data);
 
-      await apiBase.post("/associations", payload);
-      
-      setModalType("success");
-      setModalMessage("Associação cadastrada com sucesso!");
-      setShowModal(true);
-    } catch (err: any) {
+      setModalState({
+        isOpen: true,
+        type: "success",
+        message: "Associação cadastrada com sucesso!",
+      });
+    } catch (err) {
       console.error(err);
-      setModalType("error");
-      setModalMessage(
-        err.response?.data?.message || "Erro ao cadastrar associação."
-      );
-      setShowModal(true);
+      const error = err as AxiosError<{ message: string }>;
+
+      setModalState({
+        isOpen: true,
+        type: "error",
+        message: error.response?.data?.message || "Erro ao cadastrar associação.",
+      });
     }
   };
 
   const handleModalClose = () => {
-    setShowModal(false);
-    if (modalType === "success") {
+    setModalState((prev) => ({ ...prev, isOpen: false }));
+    if (modalState.type === "success") {
       router.push("/login");
     }
   };
 
-  const estadoOptions = estados.map((e) => ({
-    value: e.sigla,
-    label: e.nome,
-  }));
-
-  const cidadeOptions = cidades.map((c) => ({
-    value: c.nome,
-    label: c.nome,
-  }));
+  const estadoOptions = estados.map((e) => ({ value: e.sigla, label: e.nome }));
+  const cidadeOptions = cidades.map((c) => ({ value: c.nome, label: c.nome }));
 
   return (
     <main className="flex justify-center items-center min-h-screen bg-gray-100 p-4">
       <ErrorModal
-        isOpen={showModal}
+        isOpen={modalState.isOpen}
         onClose={handleModalClose}
-        title={modalType === "success" ? "Sucesso!" : "Erro"}
-        message={modalMessage}
-        type={modalType}
+        title={modalState.type === "success" ? "Sucesso!" : "Erro"}
+        message={modalState.message}
+        type={modalState.type}
       />
 
       <ContentCard className="max-w-2xl">
         <BrandHeader
           title="Cadastro de Associação"
           subtitle="Registre sua associação"
+          className="bg-brand-secondary"
         />
 
         <div className="p-8 pb-6 max-h-[70vh] overflow-y-auto">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <InputField
               label="Nome da Associação"
-              type="text"
               disabled={isSubmitting}
               error={errors.name?.message}
               {...register("name")}
@@ -125,25 +114,21 @@ export default function CreateAssociation() {
 
             <InputField
               label="CNPJ"
-              type="text"
               disabled={isSubmitting}
               error={errors.cnpj?.message}
               {...register("cnpj")}
               onChange={(e) => {
-                const masked = maskCNPJ(e.target.value);
-                setValue("cnpj", masked);
+                setValue("cnpj", maskCNPJ(e.target.value));
               }}
             />
 
             <InputField
               label="Telefone"
-              type="text"
               disabled={isSubmitting}
               error={errors.phone?.message}
               {...register("phone")}
               onChange={(e) => {
-                const masked = maskPhone(e.target.value);
-                setValue("phone", masked);
+                setValue("phone", maskPhone(e.target.value));
               }}
             />
 
@@ -174,7 +159,7 @@ export default function CreateAssociation() {
 
               <SelectField
                 label="Cidade"
-                disabled={isSubmitting || !selectedState}
+                disabled={isSubmitting || !selectedState || isLoadingCities}
                 error={errors.city?.message}
                 {...register("city")}
                 options={cidadeOptions}
@@ -203,6 +188,7 @@ export default function CreateAssociation() {
                 variant="primary"
                 fullWidth
                 disabled={isSubmitting}
+                className="bg-brand-secondary hover:bg-brand-secondary/90 border-transparent"
               >
                 {isSubmitting ? "CADASTRANDO..." : "CADASTRAR"}
               </Button>
@@ -211,6 +197,8 @@ export default function CreateAssociation() {
                 variant="outline"
                 fullWidth
                 onClick={() => router.push("/createAccount")}
+                disabled={isSubmitting}
+                className="text-brand-secondary border-brand-secondary hover:bg-brand-secondary/10"
               >
                 Voltar
               </Button>
@@ -221,7 +209,7 @@ export default function CreateAssociation() {
             Já tem uma conta?{" "}
             <Link
               href="/login"
-              className="text-brand-primary hover:text-brand-primary-hover font-semibold transition-colors"
+              className="text-brand-secondary hover:text-brand-secondary/80 font-semibold transition-colors"
             >
               Fazer Login
             </Link>

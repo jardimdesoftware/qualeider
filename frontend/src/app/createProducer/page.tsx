@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { AxiosError } from "axios";
 
 import {
   BrandHeader,
@@ -15,17 +16,21 @@ import {
   ErrorModal,
 } from "@/components/ui";
 import { PageFooter } from "@/components/layout";
-import { apiBase } from "@/services/baseApi";
 import { USER_CATEGORIES } from "@/constants/user-options";
 import { producerSchema, ProducerData } from "@/schemas/registration";
-import { maskCPF, maskPhone, cleanDocument } from "@/utils/masks";
+import { maskCPF, maskPhone } from "@/utils/masks";
 import { useLocation } from "@/hooks/useLocation";
+import { producerService } from "@/services/producerService";
+import { getFriendlyErrorMessage } from "@/utils/errorMessage";
 
 export default function CreateProducer() {
   const router = useRouter();
-  const [showModal, setShowModal] = useState(false);
-  const [modalMessage, setModalMessage] = useState("");
-  const [modalType, setModalType] = useState<"success" | "error">("success");
+
+  const [modalState, setModalState] = useState({
+    isOpen: false,
+    type: "success" as "success" | "error",
+    message: "",
+  });
 
   const {
     register,
@@ -47,76 +52,53 @@ export default function CreateProducer() {
 
   const onSubmit = async (data: ProducerData) => {
     try {
-      const payload = {
-        name: data.name,
-        email: data.email,
-        password: data.password,
-        cpf: cleanDocument(data.cpf),
-        phone: cleanDocument(data.phone),
-        state: data.state,
-        city: data.city,
-        userCategory: data.userCategory,
-        userType: data.userType,
-      };
+      await producerService.create(data);
 
-      await apiBase.post("/users", payload);
-      
-      setModalType("success");
-      setModalMessage("Produtor cadastrado com sucesso!");
-      setShowModal(true);
-    } catch (err: any) {
+      setModalState({
+        isOpen: true,
+        type: "success",
+        message: "Cadastro realizado com sucesso!",
+      });
+    } catch (err) {
       console.error(err);
-      setModalType("error");
-      setModalMessage(
-        err.response?.data?.message || "Erro ao cadastrar produtor."
-      );
-      setShowModal(true);
+      setModalState({
+        isOpen: true,
+        type: "error",
+        message: getFriendlyErrorMessage(err),
+      });
     }
   };
 
   const handleModalClose = () => {
-    setShowModal(false);
-    if (modalType === "success") {
+    setModalState((prev) => ({ ...prev, isOpen: false }));
+    if (modalState.type === "success") {
       router.push("/login");
     }
   };
 
-  const estadoOptions = estados.map((e) => ({
-    value: e.sigla,
-    label: e.nome,
-  }));
-
-  const cidadeOptions = cidades.map((c) => ({
-    value: c.nome,
-    label: c.nome,
-  }));
-
-  const userTypeOptions = USER_CATEGORIES.map((cat) => ({
-    value: cat,
-    label: cat === "Associacao" ? "Associação" : cat,
-  }));
+  const estadoOptions = estados.map((e) => ({ value: e.sigla, label: e.nome }));
+  const cidadeOptions = cidades.map((c) => ({ value: c.nome, label: c.nome }));
 
   return (
     <main className="flex justify-center items-center min-h-screen bg-gray-100 p-4">
       <ErrorModal
-        isOpen={showModal}
+        isOpen={modalState.isOpen}
         onClose={handleModalClose}
-        title={modalType === "success" ? "Sucesso!" : "Erro"}
-        message={modalMessage}
-        type={modalType}
+        title={modalState.type === "success" ? "Sucesso!" : "Erro"}
+        message={modalState.message}
+        type={modalState.type}
       />
 
       <ContentCard className="max-w-2xl">
         <BrandHeader
           title="Cadastro de Produtor"
-          subtitle="Preencha seus dados para começar"
+          subtitle="Registre-se como produtor"
         />
 
         <div className="p-8 pb-6 max-h-[70vh] overflow-y-auto">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <InputField
               label="Nome Completo"
-              type="text"
               disabled={isSubmitting}
               error={errors.name?.message}
               {...register("name")}
@@ -132,45 +114,30 @@ export default function CreateProducer() {
 
             <InputField
               label="CPF"
-              type="text"
               disabled={isSubmitting}
               error={errors.cpf?.message}
               {...register("cpf")}
               onChange={(e) => {
-                const masked = maskCPF(e.target.value);
-                setValue("cpf", masked);
+                setValue("cpf", maskCPF(e.target.value));
               }}
             />
 
             <InputField
               label="Telefone"
-              type="text"
               disabled={isSubmitting}
               error={errors.phone?.message}
               {...register("phone")}
               onChange={(e) => {
-                const masked = maskPhone(e.target.value);
-                setValue("phone", masked);
+                setValue("phone", maskPhone(e.target.value));
               }}
             />
 
             <SelectField
-              label="Tipo de Pessoa"
-              disabled={isSubmitting}
-              error={errors.userCategory?.message}
-              {...register("userCategory")}
-              options={[
-                { value: "Fisica", label: "Física" },
-                { value: "Juridica", label: "Jurídica" },
-              ]}
-            />
-
-            <SelectField
-              label="Categoria"
+              label="Tipo de Produtor"
               disabled={isSubmitting}
               error={errors.userType?.message}
               {...register("userType")}
-              options={userTypeOptions}
+              options={USER_CATEGORIES.map((cat) => ({ value: cat, label: cat }))}
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -188,7 +155,7 @@ export default function CreateProducer() {
 
               <SelectField
                 label="Cidade"
-                disabled={isSubmitting || !selectedState}
+                disabled={isSubmitting || !selectedState || isLoadingCities}
                 error={errors.city?.message}
                 {...register("city")}
                 options={cidadeOptions}
@@ -225,6 +192,7 @@ export default function CreateProducer() {
                 variant="outline"
                 fullWidth
                 onClick={() => router.push("/createAccount")}
+                disabled={isSubmitting}
               >
                 Voltar
               </Button>

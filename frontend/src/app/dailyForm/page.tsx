@@ -13,15 +13,16 @@ import { dailyCollectionSchema, DailyCollectionData } from "@/schemas/collection
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { collectionService } from "@/services/collectionService";
 import { getLocalDate, formatDateLongBR } from "@/utils/date";
+import { getFriendlyErrorMessage } from "@/utils/errorMessage";
 
 export default function DailyForm() {
   const router = useRouter();
 
   const { userId, isLoading } = useAuthGuard("user");
 
-  const [showModal, setShowModal] = useState(false);
   const [modalState, setModalState] = useState({
-    type: "success" as "success" | "error",
+    isOpen: false,
+    type: "success" as "success" | "error" | "info",
     message: "",
   });
 
@@ -51,24 +52,17 @@ export default function DailyForm() {
       await collectionService.create(data, userId);
 
       setModalState({
+        isOpen: true,
         type: "success",
-        message: "Formulário enviado com sucesso!",
+        message: "Coleta registrada com sucesso!",
       });
-      setShowModal(true);
     } catch (err) {
       console.error(err);
       setModalState({
+        isOpen: true,
         type: "error",
-        message: "Erro ao enviar formulário. Tente novamente.",
+        message: getFriendlyErrorMessage(err),
       });
-      setShowModal(true);
-    }
-  };
-
-  const handleModalClose = () => {
-    setShowModal(false);
-    if (modalState.type === "success") {
-      router.push("/dashboardUser");
     }
   };
 
@@ -185,9 +179,14 @@ export default function DailyForm() {
       </div>
 
       <ErrorModal
-        isOpen={showModal}
-        onClose={handleModalClose}
-        title={modalState.type === "success" ? "Sucesso!" : "Erro"}
+        isOpen={modalState.isOpen}
+        onClose={() => {
+          setModalState(prev => ({ ...prev, isOpen: false }));
+          if (modalState.type === "success") {
+            router.push("/dashboardUser");
+          }
+        }}
+        title={modalState.type === "success" ? "Sucesso!" : "Atenção"}
         message={modalState.message}
         type={modalState.type}
       />

@@ -17,6 +17,7 @@ import {
 import { PageFooter } from "@/components/layout";
 import { authService } from "@/services/authService";
 import { loginSchema, LoginData } from "@/schemas/auth";
+import { getFriendlyErrorMessage } from "@/utils/errorMessage";
 
 export default function Login() {
   const router = useRouter();
@@ -53,9 +54,7 @@ export default function Login() {
       }
     } catch (err: any) {
       console.error(err);
-      setErrorMessage(
-        err.message || "Erro ao fazer login. Verifique suas credenciais."
-      );
+      setErrorMessage(getFriendlyErrorMessage(err));
       setShowErrorModal(true);
     }
   };

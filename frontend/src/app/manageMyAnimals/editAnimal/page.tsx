@@ -12,6 +12,7 @@ import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { animalSchema, AnimalData } from "@/schemas/animal";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { animalService } from "@/services/animalService";
+import { getFriendlyErrorMessage } from "@/utils/errorMessage";
 
 function EditAnimalContent() {
   const router = useRouter();
@@ -19,9 +20,11 @@ function EditAnimalContent() {
   const animalId = searchParams.get("id");
   
   const { userId, isLoading: authLoading } = useAuthGuard("user");
-  const [showModal, setShowModal] = useState(false);
-  const [modalMessage, setModalMessage] = useState("");
-  const [modalType, setModalType] = useState<"success" | "error">("success");
+  const [modalState, setModalState] = useState({
+    isOpen: false,
+    type: "success" as "success" | "error" | "info",
+    message: "",
+  });
 
   const {
     register,
@@ -53,9 +56,11 @@ function EditAnimalContent() {
         });
       } catch (err) {
         console.error("Erro ao buscar animal:", err);
-        setModalType("error");
-        setModalMessage("Erro ao carregar dados do animal.");
-        setShowModal(true);
+        setModalState({
+          isOpen: true,
+          type: "error",
+          message: "Erro ao carregar dados do animal.",
+        });
       }
     };
 
@@ -68,21 +73,18 @@ function EditAnimalContent() {
     try {
       await animalService.update(animalId, data);
 
-      setModalType("success");
-      setModalMessage("Animal atualizado com sucesso!");
-      setShowModal(true);
+      setModalState({
+        isOpen: true,
+        type: "success",
+        message: "Dados atualizados com sucesso!",
+      });
     } catch (err: any) {
       console.error("Erro ao atualizar animal:", err);
-      setModalType("error");
-      setModalMessage("Erro ao atualizar animal. Tente novamente.");
-      setShowModal(true);
-    }
-  };
-
-  const handleModalClose = () => {
-    setShowModal(false);
-    if (modalType === "success") {
-      router.push("/manageMyAnimals");
+      setModalState({
+        isOpen: true,
+        type: "error",
+        message: getFriendlyErrorMessage(err),
+      });
     }
   };
 
@@ -172,11 +174,16 @@ function EditAnimalContent() {
       </div>
 
       <ErrorModal
-        isOpen={showModal}
-        onClose={handleModalClose}
-        title={modalType === "success" ? "Sucesso!" : "Erro"}
-        message={modalMessage}
-        type={modalType}
+        isOpen={modalState.isOpen}
+        onClose={() => {
+          setModalState(prev => ({ ...prev, isOpen: false }));
+          if (modalState.type === "success") {
+            router.push("/manageMyAnimals");
+          }
+        }}
+        title={modalState.type === "success" ? "Sucesso!" : "Atenção"}
+        message={modalState.message}
+        type={modalState.type as any}
       />
     </div>
   );

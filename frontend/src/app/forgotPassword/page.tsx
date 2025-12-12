@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { AxiosError } from "axios";
 
 import {
   BrandHeader,
@@ -14,14 +15,18 @@ import {
   ErrorModal,
 } from "@/components/ui";
 import { PageFooter } from "@/components/layout";
-import { apiBase } from "@/services/baseApi";
 import { forgotPasswordSchema, ForgotPasswordData } from "@/schemas/auth";
+import { authService } from "@/services/authService";
+import { getFriendlyErrorMessage } from "@/utils/errorMessage";
 
 export default function ForgotPassword() {
   const router = useRouter();
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [showErrorModal, setShowErrorModal] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+
+  const [modalState, setModalState] = useState({
+    isOpen: false,
+    type: "success" as "success" | "error",
+    message: "",
+  });
 
   const {
     register,
@@ -34,39 +39,38 @@ export default function ForgotPassword() {
 
   const onSubmit = async (data: ForgotPasswordData) => {
     try {
-      await apiBase.post("/auth/send-reset-code", data);
-      setShowSuccessModal(true);
-    } catch (err: any) {
+      await authService.sendResetCode(data.email);
+
+      setModalState({
+        isOpen: true,
+        type: "success",
+        message: "Verifique seu email para o código de recuperação.",
+      });
+    } catch (err) {
       console.error(err);
-      setErrorMessage(
-        err.response?.data?.message ||
-          "Erro ao enviar código. Tente novamente."
-      );
-      setShowErrorModal(true);
+      setModalState({
+        isOpen: true,
+        type: "error",
+        message: getFriendlyErrorMessage(err),
+      });
     }
   };
 
-  const handleSuccessClose = () => {
-    setShowSuccessModal(false);
-    router.push("/resetPassword");
+  const handleModalClose = () => {
+    setModalState((prev) => ({ ...prev, isOpen: false }));
+    if (modalState.type === "success") {
+      router.push("/resetPassword");
+    }
   };
 
   return (
     <main className="flex justify-center items-center min-h-screen bg-gray-100 p-4">
       <ErrorModal
-        isOpen={showSuccessModal}
-        onClose={handleSuccessClose}
-        title="Código Enviado!"
-        message="Verifique seu email para o código de recuperação."
-        type="success"
-      />
-
-      <ErrorModal
-        isOpen={showErrorModal}
-        onClose={() => setShowErrorModal(false)}
-        title="Erro"
-        message={errorMessage}
-        type="error"
+        isOpen={modalState.isOpen}
+        onClose={handleModalClose}
+        title={modalState.type === "success" ? "Código Enviado!" : "Erro"}
+        message={modalState.message}
+        type={modalState.type}
       />
 
       <ContentCard className="max-w-md">
@@ -80,7 +84,6 @@ export default function ForgotPassword() {
             <InputField
               label="E-mail"
               type="email"
-              placeholder="seu@email.com"
               disabled={isSubmitting}
               error={errors.email?.message}
               {...register("email")}
@@ -91,20 +94,20 @@ export default function ForgotPassword() {
               variant="primary"
               fullWidth
               disabled={isSubmitting}
-              className="mt-6"
             >
               {isSubmitting ? "ENVIANDO..." : "ENVIAR CÓDIGO"}
             </Button>
           </form>
 
-          <div className="mt-6 text-center">
+          <p className="text-center text-gray-600 text-sm mt-6">
+            Lembrou da senha?{" "}
             <Link
               href="/login"
-              className="text-brand-primary hover:text-brand-primary-hover font-semibold text-sm transition-colors"
+              className="text-brand-primary hover:text-brand-primary-hover font-semibold transition-colors"
             >
-              Voltar ao Login
+              Fazer Login
             </Link>
-          </div>
+          </p>
         </div>
 
         <PageFooter />

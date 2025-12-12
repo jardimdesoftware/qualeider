@@ -59,4 +59,23 @@ export const authService = {
   isAuthenticated: (): boolean => {
     return !!authService.getToken();
   },
+
+  /**
+   * Send password reset code to email
+   */
+  sendResetCode: async (email: string) => {
+    const { data } = await apiBase.post("/auth/send-reset-code", { email });
+    return data;
+  },
+
+  /**
+   * Reset password with code
+   */
+  resetPassword: async (code: string, newPassword: string) => {
+    const { data } = await apiBase.post("/auth/reset-password", {
+      code,
+      newPassword,
+    });
+    return data;
+  },
 };

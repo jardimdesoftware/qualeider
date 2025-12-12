@@ -14,7 +14,7 @@ export default function SelectField({
   label,
   error,
   options,
-  placeholder = "Select oneoção",
+  placeholder = "Selecione uma opção",
   className = "",
   ...props
 }: SelectFieldProps) {

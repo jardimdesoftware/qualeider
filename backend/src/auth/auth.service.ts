@@ -38,7 +38,7 @@ export class AuthService {
       return result;
     }
 
-    throw new UnauthorizedException('Credenciais inválidas.');
+    return null;
   }
 
   async validateAssociation(email: string, password: string): Promise<any> {

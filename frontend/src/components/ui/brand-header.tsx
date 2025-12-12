@@ -4,15 +4,17 @@ interface BrandHeaderProps {
   title: string;
   subtitle: string;
   logoSrc?: string;
+  className?: string;
 }
 
 export default function BrandHeader({
   title,
   subtitle,
   logoSrc = "/logo_icon.svg",
+  className = "bg-brand-primary", // Default color
 }: BrandHeaderProps) {
   return (
-    <div className="bg-brand-primary pt-12 pb-8 px-8 relative">
+    <div className={`${className} pt-12 pb-8 px-8 relative`}>
       <div className="flex justify-center mb-6">
         <Image
           src={logoSrc}

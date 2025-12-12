@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { AxiosError } from "axios";
 
 import {
   BrandHeader,
@@ -14,14 +15,18 @@ import {
   ErrorModal,
 } from "@/components/ui";
 import { PageFooter } from "@/components/layout";
-import { apiBase } from "@/services/baseApi";
 import { resetPasswordSchema, ResetPasswordData } from "@/schemas/auth";
+import { authService } from "@/services/authService";
+import { getFriendlyErrorMessage } from "@/utils/errorMessage";
 
 export default function ResetPassword() {
   const router = useRouter();
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [showErrorModal, setShowErrorModal] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+
+  const [modalState, setModalState] = useState({
+    isOpen: false,
+    type: "success" as "success" | "error",
+    message: "",
+  });
 
   const {
     register,
@@ -34,42 +39,38 @@ export default function ResetPassword() {
 
   const onSubmit = async (data: ResetPasswordData) => {
     try {
-      await apiBase.post("/auth/reset-password", {
-        code: data.code,
-        newPassword: data.password,
+      await authService.resetPassword(data.code, data.password);
+
+      setModalState({
+        isOpen: true,
+        type: "success",
+        message: "Sua senha foi alterada com sucesso. Faça login agora.",
       });
-      setShowSuccessModal(true);
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setErrorMessage(
-        err.response?.data?.message ||
-          "Erro ao redefinir senha. Verifique o código."
-      );
-      setShowErrorModal(true);
+      setModalState({
+        isOpen: true,
+        type: "error",
+        message: getFriendlyErrorMessage(err),
+      });
     }
   };
 
-  const handleSuccessClose = () => {
-    setShowSuccessModal(false);
-    router.push("/login");
+  const handleModalClose = () => {
+    setModalState((prev) => ({ ...prev, isOpen: false }));
+    if (modalState.type === "success") {
+      router.push("/login");
+    }
   };
 
   return (
     <main className="flex justify-center items-center min-h-screen bg-gray-100 p-4">
       <ErrorModal
-        isOpen={showSuccessModal}
-        onClose={handleSuccessClose}
-        title="Senha Redefinida!"
-        message="Sua senha foi alterada com sucesso. Faça login agora."
-        type="success"
-      />
-
-      <ErrorModal
-        isOpen={showErrorModal}
-        onClose={() => setShowErrorModal(false)}
-        title="Erro"
-        message={errorMessage}
-        type="error"
+        isOpen={modalState.isOpen}
+        onClose={handleModalClose}
+        title={modalState.type === "success" ? "Senha Redefinida!" : "Erro"}
+        message={modalState.message}
+        type={modalState.type}
       />
 
       <ContentCard className="max-w-md">

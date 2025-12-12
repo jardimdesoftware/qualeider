@@ -81,15 +81,15 @@ export class CreateAssociationDto {
   password!: string;
 
   @ApiProperty({
-    description: 'Telefone Fixo da Associação',
+    description: 'Telefone Principal',
     example: '8737211234',
   })
-  @IsNotEmpty({ message: 'O telefone fixo não pode ser vazio.' })
-  @IsString({ message: 'O telefone fixo deve ser uma string.' })
-  @Matches(/^\d{10,11}$/, {
-    message: 'O telefone fixo deve ter 10 ou 11 dígitos.',
-  })
-  landlinePhone!: string;
+  @IsNotEmpty({ message: 'O telefone não pode ser vazio.' })
+  @IsString({ message: 'O telefone deve ser uma string.' })
+  phone!: string; // Frontend envia 'phone'
+
+  @IsOptional()
+  landlinePhone?: string; // Trocado para opcional pois vem como 'phone'
 
   @ApiProperty({
     description: 'Telefone Celular/WhatsApp',
@@ -98,29 +98,13 @@ export class CreateAssociationDto {
   })
   @IsOptional()
   @IsString({ message: 'O telefone celular deve ser uma string.' })
-  @Matches(/^\d{10,11}$/, {
-    message: 'O telefone celular deve ter 10 ou 11 dígitos.',
-  })
   mobilePhone?: string;
 
-  @ApiProperty({
-    description: 'Website da Associação',
-    example: 'https://www.associacao.org.br',
-    required: false,
-  })
   @IsOptional()
-  @IsString({ message: 'O website deve ser uma string.' })
   website?: string;
 
-  @ApiProperty({
-    description: 'CEP do endereço da Associação',
-    example: '55155000',
-  })
-  @IsNotEmpty({ message: 'O CEP não pode ser vazio.' })
-  @IsString({ message: 'O CEP deve ser uma string.' })
-  @Length(8, 8, { message: 'O CEP deve ter 8 caracteres.' })
-  @Matches(/^\d{8}$/, { message: 'O CEP deve conter apenas números.' })
-  zipCode!: string;
+  @IsOptional()
+  zipCode?: string;
 
   @ApiProperty({
     description: 'Estado (UF) da Associação',
@@ -141,56 +125,22 @@ export class CreateAssociationDto {
   @IsString()
   city!: string;
 
-  @ApiProperty({
-    description: 'Rua/Avenida da Associação',
-    example: 'Rua das Flores',
-  })
-  @IsNotEmpty({ message: 'A rua não pode ser vazia.' })
-  @IsString({ message: 'A rua deve ser uma string.' })
-  street!: string;
-
-  @ApiProperty({
-    description: 'Número do endereço',
-    example: '123',
-  })
-  @IsNotEmpty({ message: 'O número não pode ser vazio.' })
-  @IsString({ message: 'O número deve ser uma string.' })
-  number!: string;
-
-  @ApiProperty({
-    description: 'Complemento do endereço',
-    example: 'Sala 201',
-    required: false,
-  })
   @IsOptional()
-  @IsString({ message: 'O complemento deve ser uma string.' })
+  street?: string;
+
+  @IsOptional()
+  number?: string;
+
+  @IsOptional()
   complement?: string;
 
-  @ApiProperty({
-    description: 'Bairro da Associação',
-    example: 'Centro',
-  })
-  @IsNotEmpty({ message: 'O bairro não pode ser vazio.' })
-  @IsString({ message: 'O bairro deve ser uma string.' })
-  neighborhood!: string;
-
-  @ApiProperty({
-    description: 'Data de Fundação da Associação',
-    example: '2020-01-15',
-    required: false,
-  })
   @IsOptional()
-  @IsDateString({}, { message: 'A data de fundação deve ser uma data válida.' })
+  neighborhood?: string;
+
+  @IsOptional()
   foundationDate?: string;
 
-  @ApiProperty({
-    description: 'Número de Associados',
-    example: 50,
-    required: false,
-  })
   @IsOptional()
-  @IsInt({ message: 'O número de associados deve ser um número inteiro.' })
-  @Min(0, { message: 'O número de associados deve ser maior ou igual a 0.' })
   numberOfMembers?: number;
 
   @ApiProperty({
@@ -204,44 +154,15 @@ export class CreateAssociationDto {
   })
   coverageArea!: CoverageArea;
 
-  @ApiProperty({
-    description: 'Nome do Presidente da Associação',
-    example: 'João da Silva',
-  })
-  @IsNotEmpty({ message: 'O nome do presidente não pode ser vazio.' })
-  @IsString({ message: 'O nome do presidente deve ser uma string.' })
-  @Length(3, 255, {
-    message: 'O nome do presidente deve ter entre 3 e 255 caracteres.',
-  })
-  presidentName!: string;
+  @IsOptional()
+  presidentName?: string;
 
-  @ApiProperty({
-    description: 'CPF do Presidente',
-    example: '12345678900',
-  })
-  @IsNotEmpty({ message: 'O CPF do presidente não pode ser vazio.' })
-  @IsString({ message: 'O CPF do presidente deve ser uma string.' })
-  @Length(11, 11, { message: 'O CPF deve ter 11 caracteres.' })
-  @Matches(/^\d{11}$/, { message: 'O CPF deve conter apenas números.' })
-  presidentCpf!: string;
+  @IsOptional()
+  presidentCpf?: string;
 
-  @ApiProperty({
-    description: 'Email do Presidente',
-    example: 'presidente@email.com',
-  })
-  @IsNotEmpty({ message: 'O email do presidente não pode ser vazio.' })
-  @IsEmail({}, { message: 'O email do presidente não é válido.' })
-  @Transform(({ value }) => value?.toLowerCase().trim())
-  presidentEmail!: string;
+  @IsOptional()
+  presidentEmail?: string;
 
-  @ApiProperty({
-    description: 'Telefone do Presidente',
-    example: '87999999999',
-  })
-  @IsNotEmpty({ message: 'O telefone do presidente não pode ser vazio.' })
-  @IsString({ message: 'O telefone do presidente deve ser uma string.' })
-  @Matches(/^\d{10,11}$/, {
-    message: 'O telefone do presidente deve ter 10 ou 11 dígitos.',
-  })
-  presidentPhone!: string;
+  @IsOptional()
+  presidentPhone?: string;
 }

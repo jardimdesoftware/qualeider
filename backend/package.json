@@ -92,5 +92,8 @@
       "prettier --write",
       "jest --bail --findRelatedTests"
     ]
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
   }
 }

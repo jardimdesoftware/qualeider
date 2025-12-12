@@ -46,7 +46,23 @@ export class AssociationsService {
       throw new BusinessException('CNPJ já cadastrado.');
     }
 
-    const { password, ...rest } = createAssociationDto;
+    // Map 'phone' to 'landlinePhone' if not provided
+    const { phone, password, ...rest } = createAssociationDto;
+    
+    // Provide defaults for MVP (missing fields in frontend)
+    const entityData = {
+      ...rest,
+      landlinePhone: rest.landlinePhone || phone,
+      zipCode: rest.zipCode || '00000000',
+      street: rest.street || 'Não informado',
+      number: rest.number || 'S/N',
+      neighborhood: rest.neighborhood || 'Não informado',
+      presidentName: rest.presidentName || 'Não informado', 
+      presidentCpf: rest.presidentCpf || '00000000000',
+      presidentEmail: rest.presidentEmail || createAssociationDto.email, // Fallback to assoc email
+      presidentPhone: rest.presidentPhone || phone, // Fallback to assoc phone
+      foundationDate: rest.foundationDate ? new Date(rest.foundationDate) : null,
+    };
 
     const hashedPassword = await this.hashService.hash(
       password,
@@ -54,9 +70,8 @@ export class AssociationsService {
     );
 
     const association = await this.associationRepository.create({
-      ...rest,
+      ...entityData,
       password: hashedPassword,
-      foundationDate: rest.foundationDate ? new Date(rest.foundationDate) : null,
     } as any);
 
     this.logger.log(

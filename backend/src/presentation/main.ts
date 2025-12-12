@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { Logger, INestApplication } from '@nestjs/common';
+import { Logger, INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
@@ -24,7 +24,13 @@ function configureCors(configService: ConfigService): CorsOptions {
         .split(',')
         .map((s) => s.trim())
         .filter(Boolean);
-      origin = originsList.length > 1 ? originsList : originsList[0];
+      
+      // Garante suporte ao localhost:3000 (Frontend Local)
+      if (!originsList.includes('http://localhost:3000')) {
+        originsList.push('http://localhost:3000');
+      }
+      
+      origin = originsList;
     }
   }
 
@@ -117,6 +123,7 @@ async function bootstrap() {
   // 2. Configurar filtros globais
   app.useGlobalFilters(new PrismaExceptionFilter());
   app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
   // 3. Configurar prefixo global
   app.setGlobalPrefix('api');
