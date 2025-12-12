@@ -28,8 +28,9 @@ export function HeroSection() {
             </Link>
             <button className="bg-transparent border-2 border-white text-white hover:bg-white/10 font-bold py-4 px-8 rounded-lg text-lg transition-colors flex items-center justify-center gap-2">
               <PlayCircle className="w-6 h-6" />
-              Ver como funciona
+              Ver como funciona 
             </button>
+            <p> Criar video depois</p>
           </div>
 
           <p className="mt-6 text-sm text-slate-400 flex items-center justify-center md:justify-start gap-2">

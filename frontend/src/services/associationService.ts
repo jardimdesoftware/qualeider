@@ -48,4 +48,42 @@ export const associationService = {
     const { data } = await apiBase.get(`/associations/${id}`);
     return data;
   },
+
+  /**
+   * Get list of associates with metrics
+   */
+  getAssociates: async (page = 1, limit = 10): Promise<{ data: any[], total: number }> => {
+    const token = localStorage.getItem("authToken");
+    const { data } = await apiBase.get("/associations/metrics/associates", {
+      headers: { Authorization: `Bearer ${token}` },
+      params: { page, limit }
+    });
+    return data;
+  },
+
+  /**
+   * Get regional herd stats
+   */
+  getHerdStats: async (): Promise<any> => {
+    const token = localStorage.getItem("authToken");
+    const { data } = await apiBase.get("/associations/metrics/herd", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return data;
+  },
+
+  getAvailableProducers: async (): Promise<any[]> => {
+    const token = localStorage.getItem("authToken");
+    const { data } = await apiBase.get("/associations/available-producers", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return data;
+  },
+
+  inviteProducer: async (userId: number): Promise<void> => {
+    const token = localStorage.getItem("authToken");
+    await apiBase.post("/associations/invite", { userId }, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+  },
 };

@@ -33,6 +33,10 @@ export class AssociationsService {
     return this.associationRepository.findByCnpj(cnpj);
   }
 
+  async findById(id: number) {
+    return this.associationRepository.findById(id);
+  }
+
   async create(createAssociationDto: CreateAssociationDto) {
     // Validate email uniqueness
     const existingEmail = await this.findByEmail(createAssociationDto.email);
@@ -46,10 +50,8 @@ export class AssociationsService {
       throw new BusinessException('CNPJ já cadastrado.');
     }
 
-    // Map 'phone' to 'landlinePhone' if not provided
     const { phone, password, ...rest } = createAssociationDto;
     
-    // Provide defaults for MVP (missing fields in frontend)
     const entityData = {
       ...rest,
       landlinePhone: rest.landlinePhone || phone,
@@ -59,8 +61,8 @@ export class AssociationsService {
       neighborhood: rest.neighborhood || 'Não informado',
       presidentName: rest.presidentName || 'Não informado', 
       presidentCpf: rest.presidentCpf || '00000000000',
-      presidentEmail: rest.presidentEmail || createAssociationDto.email, // Fallback to assoc email
-      presidentPhone: rest.presidentPhone || phone, // Fallback to assoc phone
+      presidentEmail: rest.presidentEmail || createAssociationDto.email,
+      presidentPhone: rest.presidentPhone || phone,
       foundationDate: rest.foundationDate ? new Date(rest.foundationDate) : null,
     };
 
@@ -79,5 +81,21 @@ export class AssociationsService {
     );
 
     return this.removePassword(association);
+  }
+
+  async findAssociates(associationId: number, options: { page: number; limit: number }) {
+     return this.associationRepository.findAssociates(associationId, options);
+  }
+
+  async getHerdStats(associationId: number) {
+      return this.associationRepository.getHerdStats(associationId);
+  }
+
+  async getAvailableProducers() {
+      return this.associationRepository.findAvailableProducers();
+  }
+
+  async linkProducer(userId: number, associationId: number) {
+      return this.associationRepository.linkProducer(userId, associationId);
   }
 }

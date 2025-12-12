@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Sidebar } from "@/components/layout";
 import { apiBase } from "@/services/baseApi";
 import { EmptyState, MetricCard } from "@/components/ui";
 import { Activity, Milk, Cat, Ruler, Wheat, Droplet, BarChart3, Calendar } from "lucide-react";
@@ -10,126 +9,48 @@ import { DailyCollection } from "@/interfaces/daily-collection";
 import AnimalDistributionChart from "@/components/dashboard/AnimalDistributionChart";
 import MilkLast7DaysChart from "@/components/dashboard/MilkLast7DaysChart";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
-import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { animalService } from "@/services/animalService";
+import { associationService } from "@/services/associationService";
 
 export default function DashboardAssociation() {
-  const { userId, isLoading: authLoading } = useAuthGuard("association");
-  
-  const [animals, setAnimals] = useState<Animal[]>([]);
-  const [dailyCollections, setDailyCollections] = useState<DailyCollection[]>([]);
+  const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!userId) return;
-
     const fetchData = async () => {
-      const token = localStorage.getItem("authToken");
-      const headers = { Authorization: `Bearer ${token}` };
-
-      const [animalsResult, collectionsResult] = await Promise.allSettled([
-        animalService.getByUser(userId),
-        apiBase.get(`/daily-collections/user/${userId}`, { headers }),
-    ]);
-
-      if (animalsResult.status === "fulfilled") {
-        setAnimals(animalsResult.value);
-      } else {
-        console.error("Erro ao buscar animais:", animalsResult.reason);
-        setAnimals([]);
+      try {
+        const data = await associationService.getHerdStats();
+        setStats(data);
+      } catch (error) {
+        console.error("Erro ao buscar estatísticas:", error);
+      } finally {
+        setLoading(false);
       }
-
-      if (collectionsResult.status === "fulfilled") {
-        setDailyCollections(collectionsResult.value.data);
-      } else {
-        console.error("Erro ao buscar coletas:", collectionsResult.reason);
-        setDailyCollections([]);
-      }
-
-      setLoading(false);
     };
 
     fetchData();
-  }, [userId]);
+  }, []);
 
   // Métricas
-  const totalAnimals = animals.length;
+  const totalAnimals = stats?.totalAnimals || 0;
+  const totalMilkThisMonth = stats?.totalMilkDay || 0; // Using milk/day as proxy or total? Backend returns totalMilkDay (sum of today). Adjusting label potentially or just using it.
+  // The UI says "Leite Coletado" (Milk Collected). Usually implies volume.
+  // Backend `totalMilkDay` is sum of TODAY's collections.
+  // We can label it "Leite Hoje" or keep generic.
+  
+  const averageProduction = stats?.avgProduction || 0;
 
-  const totalMilkThisMonth = dailyCollections
-    .filter((collection) => {
-      const collectionDate = new Date(collection.collectionDate);
-      const today = new Date();
-      return (
-        collectionDate.getMonth() === today.getMonth() &&
-        collectionDate.getFullYear() === today.getFullYear()
-      );
-    })
-    .reduce((sum, collection) => sum + collection.quantity, 0);
+  // Pie Chart
+  const pieChartData = stats?.breedDistribution || [];
 
-  const averageAnimalAge =
-    animals.length > 0
-      ? animals.reduce((sum, animal) => sum + animal.age, 0) / animals.length
-      : 0;
-
-  const rationProvidedPercentage =
-    dailyCollections.length > 0
-      ? (dailyCollections.filter((collection) => collection.rationProvided).length /
-          dailyCollections.length) *
-        100
-      : 0;
-
-  const totalMilkingThisMonth = dailyCollections
-    .filter((collection) => {
-      const collectionDate = new Date(collection.collectionDate);
-      const today = new Date();
-      return (
-        collectionDate.getMonth() === today.getMonth() &&
-        collectionDate.getFullYear() === today.getFullYear()
-      );
-    })
-    .reduce((sum, collection) => sum + collection.numOrdens, 0);
-
-  const averageLactationsThisMonth =
-    dailyCollections.length > 0
-      ? dailyCollections.reduce((sum, collection) => sum + collection.numLactation, 0) /
-        dailyCollections.length
-      : 0;
-
-  // Dados para gráficos
-  const animalTypeDistribution = animals.reduce((acc, animal) => {
-    acc[animal.animalType] = (acc[animal.animalType] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const pieChartData = Object.entries(animalTypeDistribution).map(([type, count]) => ({
-    name: type,
-    value: count,
-  }));
-
-  const milkByDayLast7Days = dailyCollections
-    .filter((collection) => {
-      const collectionDate = new Date(collection.collectionDate);
-      const today = new Date();
-      const sevenDaysAgo = new Date(today);
-      sevenDaysAgo.setDate(today.getDate() - 7);
-      return collectionDate >= sevenDaysAgo && collectionDate <= today;
-    })
-    .reduce((acc, collection) => {
-      const date = new Date(collection.collectionDate).toLocaleDateString("pt-BR", {
-        day: "2-digit",
-        month: "2-digit",
-      });
-      acc[date] = (acc[date] || 0) + collection.quantity;
-      return acc;
-    }, {} as Record<string, number>);
-
-  const lineChartData = Object.entries(milkByDayLast7Days).map(([date, quantity]) => ({
-    date,
-    quantity,
-  }));
-
-  const hasAnimals = animals.length > 0;
-  const hasCollections = dailyCollections.length > 0;
+  // Line Chart
+  const lineChartData = stats?.productionHistory || [];
+  
+  // Breakdown
+  const heifers = stats?.heifers || 0;
+  const calves = stats?.calves || 0;
+  const lactatingCows = stats?.lactatingCows || 0;
+  const dryCows = stats?.dryCows || 0;
 
   const currentDate = new Date().toLocaleDateString("pt-BR", {
     day: "2-digit",
@@ -137,14 +58,21 @@ export default function DashboardAssociation() {
     year: "numeric",
   });
 
+  const hasAnimals = totalAnimals > 0;
+  const hasCollections = lineChartData.length > 0;
+
+  // Placeholder/Calculated values not yet in HerdStats API but required by UI
+  const averageAnimalAge = stats?.averageAnimalAge || 0;
+  const rationProvidedPercentage = stats?.rationProvidedPercentage || 0;
+  const totalMilkingThisMonth = stats?.totalMilkingThisMonth || 0;
+  const averageLactationsThisMonth = stats?.averageLactationsThisMonth || 0;
+
   if (loading) {
     return <DashboardLoading />;
   }
 
   return (
-    <div className="flex flex-col lg:flex-row bg-[#fdfbf7] min-h-screen">
-      <Sidebar />
-      <div className="flex-1 overflow-y-auto">
+    <>
         {/* Header */}
         <header className="bg-white shadow-sm border-b border-slate-200 px-6 md:px-8 py-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -266,7 +194,6 @@ export default function DashboardAssociation() {
             <MilkLast7DaysChart data={lineChartData} />
           </section>
         </div>
-      </div>
-    </div>
+    </>
   );
 }

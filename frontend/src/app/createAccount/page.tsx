@@ -63,21 +63,21 @@ export default function CreateAccount() {
 
             <button
               onClick={() => router.push("/createAssociation")}
-              className="group bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 
-                border-2 border-blue-300 hover:border-blue-600 rounded-xl p-6 transition-all duration-300 
+              className="group bg-gradient-to-br from-amber-50 to-amber-100 hover:from-amber-100 hover:to-amber-200 
+                border-2 border-amber-300 hover:border-brand-secondary rounded-xl p-6 transition-all duration-300 
                 transform hover:scale-105 hover:shadow-lg"
             >
               <div className="flex flex-col items-center text-center">
-                <div className="bg-blue-600 group-hover:bg-blue-700 rounded-full p-4 transition-colors duration-300 mb-3">
+                <div className="bg-brand-secondary group-hover:bg-[#b45309] rounded-full p-4 transition-colors duration-300 mb-3">
                   <Building2 size={32} className="text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-blue-700 mb-2">
+                <h3 className="text-xl font-bold text-brand-secondary mb-2">
                   Sou Associação
                 </h3>
                 <p className="text-gray-600 text-sm mb-3">
                   Gerencie associados e análises regionais
                 </p>
-                <div className="flex items-center text-blue-700 font-semibold text-sm">
+                <div className="flex items-center text-brand-secondary font-semibold text-sm">
                   <span>Continuar</span>
                   <svg
                     className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform"

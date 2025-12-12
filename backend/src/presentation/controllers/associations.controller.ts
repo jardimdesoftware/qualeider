@@ -6,7 +6,12 @@ import {
   HttpStatus,
   Get,
   Query,
+  UseGuards,
+  Req,
+  Param,
+  NotFoundException,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '@/application/guards/jwt-auth.guard';
 import { Throttle } from '@nestjs/throttler';
 import { THROTTLE_TTL } from '@/common/throttler/throttler.config';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
@@ -63,5 +68,63 @@ export class AssociationsController {
     }
     const association = await this.associationsService.findByCnpj(cnpj);
     return { exists: !!association };
+  }
+
+
+  @Get('metrics/associates')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Obter lista resumida de associados paginada' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiResponse({ status: 200, description: 'Lista de associados retornada com sucesso.' })
+  async getAssociates(
+    @Req() req,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+  ) {
+    const associationId = req.user.id; 
+    return this.associationsService.findAssociates(associationId, {
+      page: Number(page),
+      limit: Number(limit),
+    });
+  }
+
+  @Get('available-producers')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Listar produtores sem associação' })
+  @ApiResponse({ status: 200, description: 'Lista de produtores retornada.' })
+  async getAvailableProducers() {
+    return this.associationsService.getAvailableProducers();
+  }
+
+  @Post('invite')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Convidar/Vincular produtor à associação' })
+  @ApiResponse({ status: 200, description: 'Produtor vinculado com sucesso.' })
+  async inviteProducer(@Body() body: { userId: number }, @Req() req) {
+    const associationId = req.user.id;
+    await this.associationsService.linkProducer(body.userId, associationId);
+    return { message: 'Produtor vinculado com sucesso.' };
+  }
+
+  @Get('metrics/herd')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Obter estatísticas do rebanho regional' })
+  @ApiResponse({ status: 200, description: 'Estatísticas retornadas com sucesso.' })
+  async getHerdStats(@Req() req) {
+    const associationId = req.user.id;
+    return this.associationsService.getHerdStats(associationId);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Buscar associação por ID' })
+  @ApiResponse({ status: 200, description: 'Associação encontrada.' })
+  @ApiResponse({ status: 404, description: 'Associação não encontrada.' })
+  async findById(@Param('id') id: string) {
+    const association = await this.associationsService.findById(Number(id));
+    if (!association) {
+      throw new NotFoundException('Associação não encontrada');
+    }
+    return association;
   }
 }

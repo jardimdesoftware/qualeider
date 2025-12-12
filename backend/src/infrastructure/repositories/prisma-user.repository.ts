@@ -111,6 +111,12 @@ export class PrismaUserRepository implements IUserRepository {
         resetToken: data.resetToken,
         resetTokenExpiry: data.resetTokenExpiry,
       };
+      
+      if (data.associationId) {
+        updateData.association = {
+          connect: { id: data.associationId },
+        };
+      }
 
       if (data.userType) updateData.userType = data.userType as unknown as PrismaUserType;
       if (data.userCategory) updateData.userCategory = data.userCategory as unknown as PrismaUserCategory;

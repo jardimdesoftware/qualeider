@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/layout";
 import { apiBase } from "@/services/baseApi";
 import { MetricCard, EmptyState } from "@/components/ui";
@@ -9,48 +10,91 @@ import { Animal } from "@/interfaces/animal";
 import { DailyCollection } from "@/interfaces/daily-collection";
 import AnimalDistributionChart from "@/components/dashboard/AnimalDistributionChart";
 import MilkLast7DaysChart from "@/components/dashboard/MilkLast7DaysChart";
+import { inviteService } from "@/services/inviteService";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { animalService } from "@/services/animalService";
 
 export default function DashboardUser() {
-  const { userId, isLoading: authLoading } = useAuthGuard("user");
-  
+  const router = useRouter();
+  const { userId: authGuardUserId, isLoading: authLoading } = useAuthGuard("user");
+
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [dailyCollections, setDailyCollections] = useState<DailyCollection[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [invites, setInvites] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!userId) return;
+    // Check auth
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    // Decode token to get userId
+    let userId = 0;
+    try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        userId = payload.sub;
+    } catch(e) { console.error(e) }
 
     const fetchData = async () => {
-      const token = localStorage.getItem("authToken");
-      const headers = { Authorization: `Bearer ${token}` };
+      try {
+        const headers = { Authorization: `Bearer ${token}` };
 
-      const [animalsResult, collectionsResult] = await Promise.allSettled([
-        animalService.getByUser(userId),
-        apiBase.get(`/daily-collections/user/${userId}`, { headers }),
-    ]);
+        const [invitesResult, animalsResult, collectionsResult] = await Promise.allSettled([
+             inviteService.getUserPendingInvites(userId),
+             animalService.getByUser(userId),
+             apiBase.get(`/daily-collections/user/${userId}`, { headers }),
+        ]);
+        
+        if (invitesResult.status === "fulfilled") {
+          setInvites(invitesResult.value);
+        } else {
+          console.error("Erro ao buscar convites:", invitesResult.reason);
+        }
 
-      if (animalsResult.status === "fulfilled") {
-        setAnimals(animalsResult.value);
-      } else {
-        console.error("Erro ao buscar animais:", animalsResult.reason);
-        setAnimals([]);
+        if (animalsResult.status === "fulfilled") {
+          setAnimals(animalsResult.value);
+        } else {
+          console.error("Erro ao buscar animais:", animalsResult.reason);
+          setAnimals([]);
+        }
+
+        if (collectionsResult.status === "fulfilled") {
+          setDailyCollections(collectionsResult.value.data);
+        } else {
+            console.error("Erro ao buscar coletas:", collectionsResult.reason);
+            setDailyCollections([]);
+        }
+
+      } catch (err: any) {
+        console.error("Erro ao carregar dados:", err);
+        setError("Não foi possível carregar os dados do painel.");
+      } finally {
+        setLoading(false);
       }
-
-      if (collectionsResult.status === "fulfilled") {
-        setDailyCollections(collectionsResult.value.data);
-      } else {
-        console.error("Erro ao buscar coletas:", collectionsResult.reason);
-        setDailyCollections([]);
-      }
-
-      setLoading(false);
     };
 
     fetchData();
-  }, [userId]);
+  }, [router]);
+
+  const handleInviteResponse = async (token: string, response: 'Accept' | 'Decline') => {
+      try {
+          const result = await inviteService.respondToInvite(token, response);
+          if (response === 'Accept') {
+              alert(result.message);
+              window.location.reload(); // Reload to update association context
+          } else {
+              setInvites(prev => prev.filter(i => i.token !== token));
+          }
+      } catch (err: any) {
+          console.error("Erro ao responder convite", err);
+          alert("Erro ao processar resposta: " + (err.response?.data?.message || err.message));
+      }
+  };
 
   // Métricas
   const totalAnimals = animals.length;
@@ -165,6 +209,40 @@ export default function DashboardUser() {
         </header>
 
         <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8">
+            
+          {/* Pending Invites Section */}
+          {invites.length > 0 && (
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <h3 className="text-lg font-bold text-[#1e3a29] mb-4">Convites Pendentes</h3>
+                <div className="space-y-4">
+                    {invites.map((invite) => (
+                        <div key={invite.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200">
+                            <div>
+                                <p className="font-semibold text-slate-800">
+                                    Convite da Associação <span className="text-[#1e3a29]">{invite.association?.name}</span>
+                                </p>
+                                <p className="text-sm text-slate-600">{invite.message || "Gostaríamos que você fizesse parte da nossa associação."}</p>
+                            </div>
+                            <div className="flex gap-2">
+                                <button 
+                                    onClick={() => handleInviteResponse(invite.token, 'Decline')}
+                                    className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                                >
+                                    Recusar
+                                </button>
+                                <button 
+                                    onClick={() => handleInviteResponse(invite.token, 'Accept')}
+                                    className="px-4 py-2 text-sm font-medium text-white bg-[#1e3a29] hover:bg-[#142920] rounded-lg transition-colors shadow-sm"
+                                >
+                                    Aceitar
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+          )}
+
           {/* Empty States */}
           {(!hasAnimals || !hasCollections) && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
