@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { ArrowLeft, Send } from "lucide-react";
 import Link from "next/link";
 import { associationService } from "@/services/associationService";
@@ -10,7 +9,6 @@ import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import ErrorModal from "@/components/ui/error-modal";
 
 export default function InviteProducerPage() {
-  const router = useRouter();
   const [producers, setProducers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

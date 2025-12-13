@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/layout";
 import { Button, EmptyState, ErrorModal, InputField } from "@/components/ui";
-import { Cat, Search, Plus, Edit, Trash2 } from "lucide-react";
+import { Cat, Plus, Edit, Trash2 } from "lucide-react";
 import { Animal } from "@/interfaces/animal";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
@@ -13,13 +13,11 @@ import { animalService } from "@/services/animalService";
 export default function ManageAnimals() {
   const router = useRouter();
   const { userId, isLoading: authLoading } = useAuthGuard("user");
-  
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [animalsPerPage, setAnimalsPerPage] = useState(7);
-
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);

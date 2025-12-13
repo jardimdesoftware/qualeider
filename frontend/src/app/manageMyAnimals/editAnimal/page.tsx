@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Sidebar } from "@/components/layout";
 import { Button, InputField, SelectField, ErrorModal } from "@/components/ui";
 import { BREED_OPTIONS } from "@/constants/animal-breeds";
-import { Animal, AnimalType } from "@/interfaces/animal";
+import { AnimalType } from "@/interfaces/animal";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { animalSchema, AnimalData } from "@/schemas/animal";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
@@ -19,7 +19,7 @@ function EditAnimalContent() {
   const searchParams = useSearchParams();
   const animalId = searchParams.get("id");
   
-  const { userId, isLoading: authLoading } = useAuthGuard("user");
+  const { isLoading: authLoading } = useAuthGuard("user");
   const [modalState, setModalState] = useState({
     isOpen: false,
     type: "success" as "success" | "error" | "info",

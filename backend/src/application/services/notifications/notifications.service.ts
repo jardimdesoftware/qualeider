@@ -17,7 +17,6 @@ export class NotificationsService {
   async notifyProducers(event: NotificationEvent) {
     const users = await this.getTargetUsers(event);
 
-    // Save Notification to Database
     const notification = await this.prisma.notification.create({
       data: {
         associationId: event.associationId,

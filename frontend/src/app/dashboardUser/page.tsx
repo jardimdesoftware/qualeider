@@ -12,13 +12,10 @@ import AnimalDistributionChart from "@/components/dashboard/AnimalDistributionCh
 import MilkLast7DaysChart from "@/components/dashboard/MilkLast7DaysChart";
 import { inviteService } from "@/services/inviteService";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
-import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { animalService } from "@/services/animalService";
 
 export default function DashboardUser() {
   const router = useRouter();
-  const { userId: authGuardUserId, isLoading: authLoading } = useAuthGuard("user");
-
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [dailyCollections, setDailyCollections] = useState<DailyCollection[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,14 +23,12 @@ export default function DashboardUser() {
   const [invites, setInvites] = useState<any[]>([]);
 
   useEffect(() => {
-    // Check auth
     const token = localStorage.getItem("authToken");
     if (!token) {
       router.push("/login");
       return;
     }
 
-    // Decode token to get userId
     let userId = 0;
     try {
         const payload = JSON.parse(atob(token.split('.')[1]));
@@ -96,7 +91,6 @@ export default function DashboardUser() {
       }
   };
 
-  // Métricas
   const totalAnimals = animals.length;
 
   const totalMilkThisMonth = dailyCollections

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, LayoutDashboard, Users, Cat, Settings, LogOut, Bell } from "lucide-react";
+import { LayoutDashboard, Users, Cat, Settings, LogOut, Bell } from "lucide-react";
 import { associationService } from "@/services/associationService";
 
 export function AssociationSidebar() {

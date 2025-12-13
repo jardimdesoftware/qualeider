@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Sidebar } from "@/components/layout";
 import { EmptyState } from "@/components/ui";
 import { UserPlus } from "lucide-react";

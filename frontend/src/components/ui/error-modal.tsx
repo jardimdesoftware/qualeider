@@ -1,5 +1,3 @@
-import { ReactNode } from "react";
-
 interface ErrorModalProps {
   isOpen: boolean;
   onClose: () => void;

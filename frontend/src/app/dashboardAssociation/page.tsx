@@ -1,15 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { apiBase } from "@/services/baseApi";
 import { EmptyState, MetricCard } from "@/components/ui";
 import { Activity, Milk, Cat, Ruler, Wheat, Droplet, BarChart3, Calendar } from "lucide-react";
-import { Animal } from "@/interfaces/animal";
-import { DailyCollection } from "@/interfaces/daily-collection";
 import AnimalDistributionChart from "@/components/dashboard/AnimalDistributionChart";
 import MilkLast7DaysChart from "@/components/dashboard/MilkLast7DaysChart";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
-import { animalService } from "@/services/animalService";
 import { associationService } from "@/services/associationService";
 
 export default function DashboardAssociation() {
@@ -31,27 +27,11 @@ export default function DashboardAssociation() {
     fetchData();
   }, []);
 
-  // Métricas
   const totalAnimals = stats?.totalAnimals || 0;
-  const totalMilkThisMonth = stats?.totalMilkDay || 0; // Using milk/day as proxy or total? Backend returns totalMilkDay (sum of today). Adjusting label potentially or just using it.
-  // The UI says "Leite Coletado" (Milk Collected). Usually implies volume.
-  // Backend `totalMilkDay` is sum of TODAY's collections.
-  // We can label it "Leite Hoje" or keep generic.
-  
-  const averageProduction = stats?.avgProduction || 0;
-
-  // Pie Chart
+  const totalMilkThisMonth = stats?.totalMilkDay || 0; 
   const pieChartData = stats?.breedDistribution || [];
-
-  // Line Chart
   const lineChartData = stats?.productionHistory || [];
   
-  // Breakdown
-  const heifers = stats?.heifers || 0;
-  const calves = stats?.calves || 0;
-  const lactatingCows = stats?.lactatingCows || 0;
-  const dryCows = stats?.dryCows || 0;
-
   const currentDate = new Date().toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "short",
@@ -60,8 +40,6 @@ export default function DashboardAssociation() {
 
   const hasAnimals = totalAnimals > 0;
   const hasCollections = lineChartData.length > 0;
-
-  // Placeholder/Calculated values not yet in HerdStats API but required by UI
   const averageAnimalAge = stats?.averageAnimalAge || 0;
   const rationProvidedPercentage = stats?.rationProvidedPercentage || 0;
   const totalMilkingThisMonth = stats?.totalMilkingThisMonth || 0;
