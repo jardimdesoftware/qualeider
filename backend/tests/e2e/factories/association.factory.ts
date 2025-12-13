@@ -7,6 +7,7 @@ export interface AssociationFactoryData {
   stateRegistration?: string;
   email?: string;
   password?: string;
+  phone?: string;
   landlinePhone?: string;
   mobilePhone?: string;
   website?: string;
@@ -37,6 +38,7 @@ export class AssociationFactory {
       cnpj: this.generateCNPJ(),
       email: `associacao${this.counter}@test.com`,
       password: 'Test@1234',
+      phone: '8737211234',
       landlinePhone: '8737211234',
       mobilePhone: '87999999999',
       zipCode: '55155000',

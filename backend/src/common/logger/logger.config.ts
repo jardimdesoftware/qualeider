@@ -58,7 +58,7 @@ export const winstonConfig = {
         winston.format.timestamp(),
         winston.format.ms(),
         sanitizerFormat(),
-        nestWinstonModuleUtilities.format.nestLike('MyApp', {
+        nestWinstonModuleUtilities.format.nestLike('QualeiDer', {
           colors: true,
           prettyPrint: true,
         }),

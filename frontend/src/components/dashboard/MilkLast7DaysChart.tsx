@@ -9,7 +9,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import EmptyState from "@/components/empty-state";
+import { EmptyState } from "@/components/ui";
 import { Milk } from "lucide-react";
 
 interface LineChartData {

@@ -1,0 +1,18 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Círculo Fundo Verde Escuro -->
+  <circle cx="60" cy="60" r="58" fill="#1e3a29"/>
+  
+  <!-- Círculo Borda Laranja -->
+  <circle cx="60" cy="60" r="52" stroke="#d97706" stroke-width="3" fill="none"/>
+  
+  <!-- Sol/Horizonte ao fundo -->
+  <path d="M20 70 Q 60 30 100 70" fill="#d97706"/>
+  
+  <!-- Vaca (Desenho Sólido e Claro) -->
+  <path d="M35 55 C30 45 35 30 40 30 L45 35 H75 L80 30 C85 30 90 45 85 55 L85 85 C85 95 60 95 60 95 C60 95 35 95 35 85 Z" fill="white"/>
+  
+  <!-- Detalhes da Vaca -->
+  <path d="M40 85 L80 85" stroke="#1e3a29" stroke-width="2"/>
+  <circle cx="48" cy="50" r="3" fill="#1e3a29"/>
+  <circle cx="72" cy="50" r="3" fill="#1e3a29"/>
+</svg>

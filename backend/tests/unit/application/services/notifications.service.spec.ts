@@ -6,6 +6,7 @@ import { createUser } from '../../../factories/user.factory';
 import { NotificationEvent } from '@/events/notification.events';
 import { NotificationType } from '@/domain/enums/enums';
 import { IUserRepository } from '@/domain/repositories/user.repository';
+import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 
 describe('NotificationsService', () => {
   let service: NotificationsService;
@@ -33,6 +34,21 @@ describe('NotificationsService', () => {
         {
           provide: EventEmitter2,
           useValue: eventEmitter,
+        },
+        {
+          provide: PrismaService,
+          useValue: {
+            notification: {
+              create: jest.fn(),
+            },
+            notificationRecipient: {
+              createMany: jest.fn(),
+            },
+            $transaction: jest.fn((cb) => cb({
+               notification: { create: jest.fn() },
+               notificationRecipient: { createMany: jest.fn() }
+            })),
+          },
         },
       ],
     }).compile();

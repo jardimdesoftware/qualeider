@@ -8,6 +8,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { IHashService } from '@/application/ports/hash.service';
 import { IUserRepository } from '@/domain/repositories/user.repository';
+import { IAssociationRepository } from '@/domain/repositories/association.repository';
 import { MailService } from '@/mail/mail.service';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 import {
@@ -23,6 +24,7 @@ export class AuthService {
 
   constructor(
     @Inject(IUserRepository) private userRepository: IUserRepository,
+    @Inject(IAssociationRepository) private associationRepository: IAssociationRepository,
     private jwtService: JwtService,
     private mailService: MailService,
     @Inject(IHashService) private hashService: IHashService,
@@ -36,27 +38,55 @@ export class AuthService {
       return result;
     }
 
-    throw new UnauthorizedException('Credenciais inválidas.');
+    return null;
+  }
+
+  async validateAssociation(email: string, password: string): Promise<any> {
+    const association = await this.associationRepository.findByEmail(email);
+
+    if (association && (await this.hashService.compare(password, association.password))) {
+      const { password, ...result } = association;
+      return result;
+    }
+
+    return null;
   }
 
   async executeLogin(loginDto: { email: string; password: string }) {
-    const user = await this.validateUser(loginDto.email, loginDto.password);
+    // Try User login first
+    let entity = await this.validateUser(loginDto.email, loginDto.password);
+    let entityType: 'user' | 'association' = 'user';
 
-    if (!user) {
+    // If not a user, try Association login
+    if (!entity) {
+      entity = await this.validateAssociation(loginDto.email, loginDto.password);
+      entityType = 'association';
+    }
+
+    if (!entity) {
       throw new UnauthorizedException('Credenciais inválidas.');
     }
 
-    return this.login(user);
+    return this.loginEntity(entity, entityType);
   }
 
   async login(user: any) {
+    return this.loginEntity(user, 'user');
+  }
+
+  async loginEntity(entity: any, entityType: 'user' | 'association') {
     const payload = {
-      email: user.email,
-      sub: user.id,
-      associationId: user.associationId,
+      email: entity.email,
+      sub: entity.id,
+      associationId: entityType === 'user' ? entity.associationId : null,
+      userType: entityType,
     };
 
-    this.logger.log(`Usuário autenticado: ${user.email}`);
+    this.logger.log(`${entityType === 'user' ? 'Usuário' : 'Associação'} autenticado: ${entity.email}`);
+
+    if (entityType === 'user') {
+      await this.userRepository.update(entity.id, { lastLogin: new Date() });
+    }
 
     return {
       access_token: this.jwtService.sign(payload),

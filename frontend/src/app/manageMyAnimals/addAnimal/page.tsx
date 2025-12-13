@@ -1,233 +1,164 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Sidebar from "@/components/sidebar";
-import { apiBase } from "@/services/baseApi";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Sidebar } from "@/components/layout";
+import { Button, InputField, SelectField, ErrorModal } from "@/components/ui";
 import { BREED_OPTIONS } from "@/constants/animal-breeds";
-import { CreateAnimal } from "@/interfaces/animal";
+import { AnimalType } from "@/interfaces/animal";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
+import { animalSchema, AnimalData } from "@/schemas/animal";
+import { useAuthGuard } from "@/hooks/useAuthGuard";
+import { animalService } from "@/services/animalService";
+import { getFriendlyErrorMessage } from "@/utils/errorMessage";
 
 export default function AddAnimal() {
   const router = useRouter();
-  const [formData, setFormData] = useState<CreateAnimal>({
-    name: "",
-    animalType: "",
-    breed: "",
-    age: 1,
-    userId: 0,
+  const { userId, isLoading } = useAuthGuard("user");
+  
+  const [modalState, setModalState] = useState({
+    isOpen: false,
+    type: "success" as "success" | "error" | "info",
+    message: "",
   });
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(true);
-  const [modalMessage, setModalMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    const token = localStorage.getItem("authToken");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors, isSubmitting },
+  } = useForm<AnimalData>({
+    resolver: zodResolver(animalSchema),
+    mode: "onBlur",
+    defaultValues: {
+      animalType: AnimalType.Vaca,
+      age: 1,
+    },
+  });
 
+  const selectedAnimalType = watch("animalType");
+
+  const onSubmit = async (data: AnimalData) => {
+    if (!userId) return;
+    
     try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      if (payload.role !== "Common") {
-        router.push("/");
-      } else {
-        // payload.sub from JWT is typically a string; ensure numeric userId
-        const userId =
-          typeof payload.sub === "string"
-            ? parseInt(payload.sub, 10)
-            : payload.sub;
-        setFormData((prev) => ({ ...prev, userId }));
-        setLoading(false);
-      }
-    } catch (err) {
-      console.error("Erro ao decodificar o token:", err);
-      router.push("/login");
-    }
-  }, [router]);
+      await animalService.create(data, userId);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const newErrors: Record<string, string> = {};
-    if (!formData.name) newErrors.name = "Nome é obrigatório";
-    if (!formData.animalType)
-      newErrors.animalType = "Tipo de animal é obrigatório";
-    if (!formData.breed) newErrors.breed = "Raça é obrigatória";
-    if (formData.age < 1)
-      newErrors.age = "Idade deve ser um número inteiro positivo (1 ou mais)";
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("authToken");
-      const response = await apiBase.post("/animals", formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      setModalState({
+        isOpen: true,
+        type: "success",
+        message: "Animal cadastrado com sucesso!",
       });
-
-      if (response.status === 201) {
-        setModalMessage("Animal cadastrado com sucesso!");
-      } else {
-        setModalMessage("Erro ao cadastrar animal");
-      }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro ao cadastrar animal:", err);
-      setModalMessage("Erro ao cadastrar animal");
+      setModalState({
+        isOpen: true,
+        type: "error",
+        message: getFriendlyErrorMessage(err),
+      });
     }
   };
 
-  const closeModal = () => {
-    setModalMessage(null);
-    if (modalMessage === "Animal cadastrado com sucesso!") {
-      router.push("/manageMyAnimals");
-    }
-  };
+  const breedOptions = selectedAnimalType
+    ? BREED_OPTIONS[selectedAnimalType as unknown as keyof typeof BREED_OPTIONS].map(
+        (breed) => ({ value: breed, label: breed })
+      )
+    : [];
 
-  if (loading) {
+  if (isLoading) {
     return <DashboardLoading />;
   }
 
   return (
-    <div className="flex flex-col lg:flex-row">
+    <div className="flex flex-col lg:flex-row bg-[#fdfbf7] min-h-screen">
       <Sidebar />
-      <div className="flex-1 p-8">
-        <h1 className="text-2xl font-bold mb-6 mt-12 md:mt-4">
-          Adicionar Animal
-        </h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Nome do Animal */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Nome <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
-              }
-              className="w-full p-2 border border-gray-300 rounded-lg"
-            />
-            {errors.name && (
-              <p className="text-red-500 text-sm">{errors.name}</p>
-            )}
-          </div>
+      <div className="flex-1 overflow-y-auto">
+        <header className="bg-white shadow-sm border-b border-slate-200 px-6 md:px-8 py-6">
+          <h2 className="text-2xl md:text-3xl font-black text-[#1e3a29]">
+            Adicionar Animal
+          </h2>
+          <p className="text-slate-500">Cadastre um novo animal no rebanho</p>
+        </header>
 
-          {/* Tipo de Animal */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Tipo de Animal <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={formData.animalType}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  animalType: e.target.value,
-                  breed: "",
-                })
-              }
-              className="w-full p-2 border border-gray-300 rounded-lg"
-            >
-              <option value="">Selecione um tipo</option>
-              <option value="Vaca">Vaca</option>
-              <option value="Cabra">Cabra</option>
-              <option value="Ovelha">Ovelha</option>
-              <option value="Bufala">Bufala</option>
-              <option value="Outro">Outro</option>
-            </select>
-            {errors.animalType && (
-              <p className="text-red-500 text-sm">{errors.animalType}</p>
-            )}
-          </div>
+        <div className="p-6 md:p-8 max-w-3xl mx-auto">
+          <div className="bg-white rounded-xl shadow-md border border-slate-100 p-6 md:p-8">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              <InputField
+                label="Nome do Animal"
+                type="text"
+                disabled={isSubmitting}
+                error={errors.name?.message}
+                {...register("name")}
+              />
 
-          {/* Raça do Animal */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Raça <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={formData.breed}
-              onChange={(e) =>
-                setFormData({ ...formData, breed: e.target.value })
-              }
-              className="w-full p-2 border border-gray-300 rounded-lg"
-              disabled={!formData.animalType}
-            >
-              <option value="">Selecione uma raça</option>
-              {formData.animalType &&
-                BREED_OPTIONS[
-                  formData.animalType as keyof typeof BREED_OPTIONS
-                ].map((breed) => (
-                  <option key={breed} value={breed}>
-                    {breed}
-                  </option>
-                ))}
-            </select>
-            {errors.breed && (
-              <p className="text-red-500 text-sm">{errors.breed}</p>
-            )}
-          </div>
+              <SelectField
+                label="Tipo de Animal"
+                disabled={isSubmitting}
+                error={errors.animalType?.message}
+                {...register("animalType")}
+                onChange={(e) => {
+                  setValue("animalType", e.target.value as AnimalType);
+                  setValue("breed", "");
+                }}
+                options={[
+                  { value: AnimalType.Vaca, label: "Vaca" },
+                  { value: AnimalType.Cabra, label: "Cabra" },
+                  { value: AnimalType.Ovelha, label: "Ovelha" },
+                  { value: AnimalType.Bufala, label: "Búfala" },
+                  { value: AnimalType.Outro, label: "Outro" },
+                ]}
+              />
 
-          {/* Idade do Animal */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Idade (em anos) <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="number"
-              value={formData.age}
-              onChange={(e) => {
-                const value = parseInt(e.target.value, 10);
-                if (value >= 1) {
-                  setFormData({ ...formData, age: value });
-                }
-              }}
-              min="1"
-              className="w-full p-2 border border-gray-300 rounded-lg"
-            />
-            {errors.age && <p className="text-red-500 text-sm">{errors.age}</p>}
-          </div>
+              <SelectField
+                label="Raça"
+                disabled={isSubmitting || !selectedAnimalType}
+                error={errors.breed?.message}
+                {...register("breed")}
+                options={breedOptions}
+              />
 
-          {/* Botões de Cadastrar e Cancelar */}
-          <div className="flex gap-4">
-            <button
-              type="submit"
-              className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
-            >
-              Cadastrar
-            </button>
-            <button
-              type="button"
-              onClick={() => router.push("/manageMyAnimals")}
-              className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
-            >
-              Cancelar
-            </button>
-          </div>
-        </form>
+              <InputField
+                label="Idade (em anos)"
+                type="number"
+                disabled={isSubmitting}
+                error={errors.age?.message}
+                {...register("age", { valueAsNumber: true })}
+                min="1"
+              />
 
-        {/* Modal de sucesso/erro */}
-        {modalMessage && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-            <div className="bg-white p-6 rounded-lg">
-              <p>{modalMessage}</p>
-              <button
-                onClick={closeModal}
-                className="mt-4 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
-              >
-                OK
-              </button>
-            </div>
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                <Button type="submit" variant="primary" fullWidth disabled={isSubmitting}>
+                  {isSubmitting ? "CADASTRANDO..." : "CADASTRAR ANIMAL"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  fullWidth
+                  onClick={() => router.push("/manageMyAnimals")}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </form>
           </div>
-        )}
+        </div>
       </div>
+
+      <ErrorModal
+        isOpen={modalState.isOpen}
+        onClose={() => {
+          setModalState(prev => ({ ...prev, isOpen: false }));
+          if (modalState.type === "success") {
+            router.push("/manageMyAnimals");
+          }
+        }}
+        title={modalState.type === "success" ? "Sucesso!" : "Erro"}
+        message={modalState.message}
+        type={modalState.type}
+      />
     </div>
   );
 }

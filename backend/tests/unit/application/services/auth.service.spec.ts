@@ -11,6 +11,7 @@ import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.ex
 import { IHashService as IHashServiceSymbol, type IHashService } from '@/application/ports/hash.service';
 import { createUser } from '../../../factories';
 
+import { IAssociationRepository } from '@/domain/repositories/association.repository';
 import { BCRYPT_ROUNDS_RESET_PASSWORD } from '@/common/constants/security.constants';
 
 describe('AuthService', () => {
@@ -43,6 +44,15 @@ describe('AuthService', () => {
           provide: MailService,
           useValue: {
             sendResetPasswordEmail: jest.fn(),
+          },
+        },
+        {
+          provide: IAssociationRepository,
+          useValue: {
+            findById: jest.fn(),
+            findByEmail: jest.fn(),
+            create: jest.fn(),
+            update: jest.fn(),
           },
         },
         {
@@ -90,15 +100,14 @@ describe('AuthService', () => {
       expect(result.email).toBe('test@example.com');
     });
 
-    it('deve lançar UnauthorizedException quando usuário não for encontrado', async () => {
+    it('deve retornar null quando usuário não for encontrado', async () => {
       (userRepository.findByEmail as jest.Mock).mockResolvedValue(null);
 
-      await expect(
-        service.validateUser('nonexistent@example.com', 'password123'),
-      ).rejects.toThrow(UnauthorizedException);
+      const result = await service.validateUser('nonexistent@example.com', 'password123');
+      expect(result).toBeNull();
     });
 
-    it('deve lançar UnauthorizedException quando a senha estiver incorreta', async () => {
+    it('deve retornar null quando a senha estiver incorreta', async () => {
       const mockUser = createUser({
         email: 'test@example.com',
         password: 'hashedPassword',
@@ -107,9 +116,8 @@ describe('AuthService', () => {
       (userRepository.findByEmail as jest.Mock).mockResolvedValue(mockUser);
       (hashService.compare as jest.Mock).mockResolvedValue(false);
 
-      await expect(
-        service.validateUser('test@example.com', 'wrongPassword'),
-      ).rejects.toThrow(UnauthorizedException);
+      const result = await service.validateUser('test@example.com', 'wrongPassword');
+      expect(result).toBeNull();
     });
   });
 
@@ -120,7 +128,7 @@ describe('AuthService', () => {
       const mockToken = { access_token: 'jwt-token' };
 
       jest.spyOn(service, 'validateUser').mockResolvedValue(mockUser);
-      jest.spyOn(service, 'login').mockResolvedValue(mockToken);
+      jest.spyOn(service, 'loginEntity').mockResolvedValue(mockToken);
 
       const result = await service.executeLogin(loginDto);
 
@@ -128,7 +136,7 @@ describe('AuthService', () => {
         loginDto.email,
         loginDto.password,
       );
-      expect(service.login).toHaveBeenCalledWith(mockUser);
+      expect(service.loginEntity).toHaveBeenCalledWith(mockUser, 'user');
       expect(result).toEqual(mockToken);
     });
 
@@ -159,6 +167,7 @@ describe('AuthService', () => {
         email: 'test@example.com',
         sub: 1,
         associationId: 10,
+        userType: 'user',
       });
       expect(result).toEqual({ access_token: 'mock-jwt-token' });
     });
@@ -178,6 +187,7 @@ describe('AuthService', () => {
         email: 'independent@example.com',
         sub: 2,
         associationId: null,
+        userType: 'user',
       });
       expect(result.access_token).toBe('mock-jwt-token-2');
     });

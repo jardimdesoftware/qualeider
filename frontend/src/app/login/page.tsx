@@ -1,257 +1,138 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Image from "next/image";
-import Logo from "@/assets/Logo.png";
-import Button from "@/components/global/button";
-import Wave from "@/components/global/waveFooter";
-import { Eye, EyeOff } from "lucide-react";
-import { apiBase } from "@/services/baseApi";
-import InfoSidebar from "@/components/global/InfoSidebar";
-import { loginSidebarData } from "@/constants/sidebarData";
-import Footer from "@/components/global/Footer";
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+import {
+  BrandHeader,
+  ContentCard,
+  InputField,
+  Button,
+  Divider,
+  ErrorModal,
+} from "@/components/ui";
+import { PageFooter } from "@/components/layout";
+import { authService } from "@/services/authService";
+import { loginSchema, LoginData } from "@/schemas/auth";
+import { getFriendlyErrorMessage } from "@/utils/errorMessage";
 
 export default function Login() {
-  const [isMobile, setIsMobile] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [emailError, setEmailError] = useState("");
-  const [passwordError, setPasswordError] = useState("");
-  const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const router = useRouter();
+  const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [showWave, setShowWave] = useState(false);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollPosition = window.scrollY;
-      const maxScroll =
-        document.documentElement.scrollHeight - window.innerHeight;
-      const scrollThreshold = 0.8;
-      setShowWave(scrollPosition > maxScroll * scrollThreshold);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  // Setup do React Hook Form
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginData>({
+    resolver: zodResolver(loginSchema),
+    mode: "onBlur", // Valida quando o usuário sai do campo
+  });
 
-  useEffect(() => {
-    const checkScreenSize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkScreenSize();
-    window.addEventListener("resize", checkScreenSize);
-    return () => window.removeEventListener("resize", checkScreenSize);
-  }, []);
-
-  const validateEmail = (email: string) => {
-    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email) {
-      setEmailError("Email é obrigatório");
-    } else if (!regex.test(email)) {
-      setEmailError("Email inválido");
-    } else {
-      setEmailError("");
-    }
-  };
-
-  const validatePassword = (password: string) => {
-    if (!password) {
-      setPasswordError("Senha é obrigatória");
-    } else if (password.length < 6) {
-      setPasswordError("Senha deve ter pelo menos 6 caracteres");
-    } else {
-      setPasswordError("");
-    }
-  };
-
-  const handleLogin = async () => {
-    validateEmail(email);
-    validatePassword(password);
-
-    if (emailError || passwordError) {
-      return;
-    }
-
-    setLoading(true);
+  // Função de Login simplificada
+  const onSubmit = async (data: LoginData) => {
     try {
-      const response = await apiBase.post("/auth/login", {
-        email,
-        password,
-      });
+      const { userType } = await authService.login(data);
 
-      const { access_token } = response.data;
+      // Roteamento baseado no tipo (Regra de navegação)
+      const routes = {
+        association: "/dashboardAssociation",
+        user: "/dashboardUser",
+      } as const;
 
-      localStorage.setItem("authToken", access_token);
+      const targetRoute = routes[userType];
 
-      const tokenPayload = JSON.parse(atob(access_token.split(".")[1]));
-      const userRole = tokenPayload.role;
-
-      if (userRole === "Admin") {
-        window.location.href = "/dashboardAdmin";
-      } else if (userRole === "Common") {
-        window.location.href = "/dashboardCommon";
+      if (targetRoute) {
+        router.push(targetRoute);
       } else {
         throw new Error("Tipo de usuário desconhecido");
       }
-
-      console.log("Token recebido:", access_token);
-    } catch (err) {
-      console.error("Erro ao fazer login:", err);
-      setErrorMessage("Erro ao fazer login. Verifique suas credenciais.");
-      setShowErrorPopup(true);
-    } finally {
-      setLoading(false);
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(getFriendlyErrorMessage(err));
+      setShowErrorModal(true);
     }
   };
 
   return (
-    <main
-      className={`flex justify-center items-center min-h-screen p-8 ${
-        isMobile ? "bg-green-background" : ""
-      }`}
-    >
-      {/* Popout de Erro */}
-      {showErrorPopup && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg text-center">
-            <h2 className="text-xl font-bold text-red-600 mb-4">Erro</h2>
-            <p className="text-gray-700 mb-4">{errorMessage}</p>
-            <button
-              onClick={() => setShowErrorPopup(false)}
-              className="bg-green-800 text-white px-4 py-2 rounded-lg hover:bg-green-900"
-            >
-              Fechar
-            </button>
-          </div>
-        </div>
-      )}
+    <main className="flex justify-center items-center min-h-screen bg-gray-100 p-4">
+      <ErrorModal
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        message={errorMessage}
+      />
 
-      {/* Container Central */}
-      <div className="w-full max-w-4xl bg-white shadow-lg rounded-lg overflow-hidden flex flex-col md:flex-row">
-        {/* Seção Esquerda - Login */}
-        <div className="w-full md:w-1/2 p-8 flex flex-col justify-center">
-          {/* Exibe a logo e o nome QuaLeiDer apenas no mobile */}
-          {isMobile && (
-            <div className="flex flex-col items-center mb-4">
-              <h1 className="text-2xl font-bold text-gray-900 mt-2">
-                QuaLeiDer
-              </h1>
-              <Image
-                src={Logo}
-                alt="Logo do sistema"
-                className="w-20 h-20"
-                width={80}
-                height={80}
-              />
-            </div>
-          )}
+      <ContentCard className="max-w-md">
+        <BrandHeader
+          title="QualeiDer"
+          subtitle="Controle de sua produção leiteira"
+        />
 
-          {/* Título */}
-          <h1 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-            Login
-          </h1>
+        <div className="p-8 pb-6">
+          <h2 className="text-brand-primary text-2xl font-bold text-center mb-6">
+            Entrar
+          </h2>
 
-          {/* Campos de entrada */}
-          <div className="space-y-4">
-            <div>
-              <label className="text-gray-700 font-medium">E-mail</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  validateEmail(e.target.value);
-                }}
-                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                required
-              />
-              {emailError && (
-                <p className="text-red-500 text-sm mt-1">{emailError}</p>
-              )}
-            </div>
-            <div className="relative">
-              <label className="text-gray-700 font-medium">Senha</label>
-              <input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  validatePassword(e.target.value);
-                }}
-                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 pr-10"
-                required
-              />
-              <button
-                type="button"
-                className="absolute right-3 top-1/2 text-gray-500 hover:text-gray-700"
-                onClick={() => setShowPassword(!showPassword)}
+          {/* Uso da tag FORM para suporte nativo a 'Enter' */}
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <InputField
+              label="E-mail"
+              type="email"
+              placeholder="seu@email.com"
+              disabled={isSubmitting}
+              error={errors.email?.message}
+              {...register("email")}
+            />
+
+            <InputField
+              label="Senha"
+              showPasswordToggle
+              placeholder="••••••••"
+              disabled={isSubmitting}
+              error={errors.password?.message}
+              {...register("password")}
+            />
+
+            <div className="mt-3 text-right">
+              <Link
+                href="/forgotPassword"
+                className="text-brand-primary hover:text-brand-primary-hover font-semibold text-sm transition-colors"
               >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-              {passwordError && (
-                <p className="text-red-500 text-sm mt-1">{passwordError}</p>
-              )}
+                Esqueci minha senha
+              </Link>
             </div>
-          </div>
 
-          {/* Esqueci minha senha */}
-          <a
-            href="/forgotPassword"
-            className="text-green-700 font-semibold text-sm mt-2 inline-block"
-          >
-            Esqueci minha senha
-          </a>
-
-          {/* Botão "ENTRAR" */}
-          <Button
-            text={loading ? "Entrando..." : "ENTRAR"}
-            onClick={handleLogin}
-            bgColor="bg-green-800"
-            textColor="text-white"
-            hoverColor="hover:bg-green-900"
-            className="w-full mt-4"
-            disabled={loading || !!emailError || !!passwordError}
-          />
-
-          {/* Link de registro */}
-          <p className="text-center text-gray-700 mt-4 text-sm">
-            Não tem uma conta?{" "}
-            <a href="/createAccount" className="text-green-700 font-semibold">
-              Criar Conta
-            </a>
-          </p>
-
-          <p className="text-center text-gray-700 mt-2 text-sm opacity-0">
-            É uma associação?{" "}
-            <a
-              href="/createAssociation"
-              className="text-green-700 font-semibold"
+            <Button
+              type="submit"
+              variant="primary"
+              fullWidth
+              disabled={isSubmitting}
+              className="mt-6"
             >
-              Cadastre sua Associação
-            </a>
-          </p>
+              {isSubmitting ? "ENTRANDO..." : "ENTRAR"}
+            </Button>
+          </form>
 
-          <Footer className="mt-6" />
+          <Divider text="OU" />
+
+          <p className="text-center text-gray-600 text-sm mt-4">
+            Não tem uma conta?{" "}
+            <Link
+              href="/createAccount"
+              className="text-brand-primary hover:text-brand-primary-hover font-semibold transition-colors"
+            >
+              Criar Conta
+            </Link>
+          </p>
         </div>
 
-        {/* Seção Direita - Informações */}
-        {!isMobile && (
-          <InfoSidebar
-            title={loginSidebarData.title}
-            subtitle={loginSidebarData.subtitle}
-            items={loginSidebarData.items}
-          />
-        )}
-      </div>
-      {/* Wave - Aparece apenas ao scroll */}
-      <div
-        className={`fixed bottom-0 left-0 right-0 z-50 transition-all duration-300 ${
-          showWave ? "translate-y-0" : "translate-y-full"
-        }`}
-      >
-        <Wave />
-      </div>
+        <PageFooter />
+      </ContentCard>
     </main>
   );
 }

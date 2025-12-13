@@ -22,7 +22,7 @@ describe('InviteDomainService', () => {
       const expirationDate = service.calculateExpirationDate();
       
       const diffTime = Math.abs(expirationDate.getTime() - now.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24)); 
       
       expect(diffDays).toBeCloseTo(INVITE_EXPIRATION_DAYS, 0);
     });
@@ -90,6 +90,45 @@ describe('InviteDomainService', () => {
       } as InviteEntity;
 
       expect(() => service.decline(invite)).toThrow(BusinessException);
+    });
+  });
+  describe('cancel', () => {
+    it('deve alterar o status para CANCELED e definir respondedAt', () => {
+      const invite = {
+        status: InviteStatus.PENDING,
+        expiresAt: new Date(Date.now() + 10000),
+      } as InviteEntity;
+
+      const result = service.cancel(invite);
+
+      expect(result.status).toBe(InviteStatus.CANCELED);
+      expect(result.respondedAt).toBeDefined();
+    });
+
+    it('deve lançar erro se tentar cancelar convite não pendente', () => {
+      const invite = {
+        status: InviteStatus.ACCEPTED,
+      } as InviteEntity;
+
+      expect(() => service.cancel(invite)).toThrow(BusinessException);
+    });
+  });
+
+  describe('isExpired', () => {
+    it('deve retornar true se a data atual for maior que expiresAt', () => {
+      const invite = {
+        expiresAt: new Date(Date.now() - 10000),
+      } as InviteEntity;
+
+      expect(service.isExpired(invite)).toBe(true);
+    });
+
+    it('deve retornar false se a data atual for menor que expiresAt', () => {
+      const invite = {
+        expiresAt: new Date(Date.now() + 10000),
+      } as InviteEntity;
+
+      expect(service.isExpired(invite)).toBe(false);
     });
   });
 });

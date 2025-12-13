@@ -1,0 +1,36 @@
+<svg width="450" height="140" viewBox="0 0 450 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@900&amp;family=Roboto:wght@700&amp;display=swap');
+      .text-brand { font-family: 'Roboto Slab', serif; font-weight: 900; }
+      .text-slogan { font-family: 'Roboto', sans-serif; font-weight: 700; }
+    </style>
+  </defs>
+
+  <!-- Símbolo: Selo com Vaca -->
+  <g transform="translate(10, 10)">
+    <!-- Círculo Fundo (transparente ou branco opaco) -->
+    <circle cx="60" cy="60" r="58" fill="#ffffff" fill-opacity="0.1"/>
+    <circle cx="60" cy="60" r="52" stroke="#fceeb5" stroke-width="2"/>
+    
+    <!-- Sol/Horizonte ao fundo -->
+    <path d="M20 70 Q 60 30 100 70" fill="#fbbf24"/>
+    
+    <!-- Vaca -->
+    <path d="M35 55 C30 45 35 30 40 30 L45 35 H75 L80 30 C85 30 90 45 85 55 L85 85 C85 95 60 95 60 95 C60 95 35 95 35 85 Z" fill="white"/>
+    
+    <!-- Detalhes da Vaca -->
+    <path d="M40 85 L80 85" stroke="#1e3a29" stroke-width="2"/>
+    <circle cx="48" cy="50" r="3" fill="#1e3a29"/>
+    <circle cx="72" cy="50" r="3" fill="#1e3a29"/>
+  </g>
+  
+  <!-- Tipografia Principal -->
+  <text x="140" y="80" class="text-brand" font-size="62" fill="white" letter-spacing="-1">QualeiDer</text>
+  
+  <!-- Linha de base decorativa -->
+  <rect x="145" y="95" width="280" height="4" fill="#fbbf24"/>
+  
+  <!-- Slogan -->
+  <text x="145" y="120" class="text-slogan" font-size="18" fill="#e5e5e5" letter-spacing="1" style="text-transform: uppercase;">Gestão da sua Produção</text>
+</svg>

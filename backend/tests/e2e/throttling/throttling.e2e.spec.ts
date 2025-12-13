@@ -20,7 +20,9 @@ describe('E2E: Rate Limiting (Throttling)', () => {
   });
 
   afterAll(async () => {
-    await testApp.close();
+    if (testApp) {
+      await testApp.close();
+    }
     await teardownE2ETests();
   });
 

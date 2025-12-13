@@ -18,6 +18,7 @@ export class UserMapper {
             resetTokenExpiry: raw.resetTokenExpiry,
             createdAt: raw.createdAt,
             updatedAt: raw.updatedAt,
+            lastLogin: raw.lastLogin,
         });
     }
 
@@ -36,6 +37,7 @@ export class UserMapper {
             resetTokenExpiry: user.resetTokenExpiry,
             createdAt: user.createdAt,
             updatedAt: user.updatedAt,
+            lastLogin: user.lastLogin,
         } as PrismaUser;
     }
 }

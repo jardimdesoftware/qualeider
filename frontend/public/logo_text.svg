@@ -1,0 +1,18 @@
+<svg width="280" height="100" viewBox="0 0 280 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@900&amp;family=Roboto:wght@700&amp;display=swap');
+      .text-brand { font-family: 'Roboto Slab', serif; font-weight: 900; }
+      .text-slogan { font-family: 'Roboto', sans-serif; font-weight: 700; }
+    </style>
+  </defs>
+  
+  <!-- Tipografia Principal -->
+  <text x="5" y="55" class="text-brand" font-size="52" fill="#1e3a29" letter-spacing="-1">QualeiDer</text>
+  
+  <!-- Linha de base decorativa -->
+  <rect x="5" y="70" width="270" height="3" fill="#d97706"/>
+  
+  <!-- Slogan -->
+  <text x="5" y="92" class="text-slogan" font-size="16" fill="#57534e" letter-spacing="1" style="text-transform: uppercase;">Gestão da sua Produção</text>
+</svg>

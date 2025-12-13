@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Logo from "@/assets/Logo.png";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
@@ -11,12 +10,13 @@ import {
   LogOut,
   Milk,
   Settings,
+  Bell,
 } from "lucide-react";
 
 export default function Sidebar() {
   const [isMobile, setIsMobile] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [userRole, setUserRole] = useState<"Admin" | "Common">("Common");
+  const [userRole, setUserRole] = useState<"association" | "user">("user");
   const [pathname, setPathname] = useState("");
 
   useEffect(() => {
@@ -28,12 +28,12 @@ export default function Sidebar() {
     if (token) {
       try {
         const payload = JSON.parse(atob(token.split(".")[1]));
-        return payload.role;
+        return payload.userType || "user";
       } catch (error) {
         console.error("Erro ao decodificar o token:", error);
       }
     }
-    return "Common";
+    return "user";
   };
 
   useEffect(() => {
@@ -58,15 +58,20 @@ export default function Sidebar() {
   };
 
   const menuItems =
-    userRole === "Admin"
+    userRole === "association"
       ? [
           {
             name: "Dashboard",
-            link: "/dashboardAdmin",
+            link: "/dashboardAssociation",
             icon: <PieChart size={20} />,
           },
           { name: "Usuários", link: "/manageUsers", icon: <Users size={20} /> },
           { name: "Animais", link: "/manageAnimals", icon: <Milk size={20} /> },
+          {
+            name: "Notificações",
+            link: "/dashboardAssociation/notifications",
+            icon: <Bell size={20} />,
+          },
           {
             name: "Configuração",
             link: "/settings",
@@ -76,7 +81,7 @@ export default function Sidebar() {
       : [
           {
             name: "Dashboard",
-            link: "/dashboardCommon",
+            link: "/dashboardUser",
             icon: <PieChart size={20} />,
           },
           {
@@ -88,6 +93,16 @@ export default function Sidebar() {
             name: "Formulário",
             link: "/dailyForm",
             icon: <FileText size={20} />,
+          },
+          {
+            name: "Histórico",
+            link: "/dashboardUser/history",
+            icon: <FileText size={20} />,
+          },
+          {
+            name: "Notificações",
+            link: "/dashboardUser/notifications",
+            icon: <Bell size={20} />,
           },
           {
             name: "Configuração",
@@ -124,7 +139,7 @@ export default function Sidebar() {
             {/* Logo */}
             <div className="flex items-center gap-2 p-4">
               <Image
-                src={Logo}
+                src="/logo_icon.svg"
                 alt="Logo"
                 className="w-10 h-10"
                 width={40}
@@ -168,7 +183,7 @@ export default function Sidebar() {
             {/* Logo */}
             <div className="flex items-center gap-2 p-4">
               <Image
-                src={Logo}
+                src="/logo_icon.svg"
                 alt="Logo"
                 className="w-10 h-10"
                 width={40}

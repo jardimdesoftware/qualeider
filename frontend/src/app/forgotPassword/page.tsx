@@ -1,216 +1,117 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Image from "next/image";
-import Logo from "@/assets/Logo.png";
-import Button from "@/components/global/button";
-import Wave from "@/components/global/waveFooter";
-import { ArrowLeft } from "lucide-react";
+import { useState } from "react";
 import Link from "next/link";
-import { apiBase } from "@/services/baseApi";
-import axios from "axios";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { AxiosError } from "axios";
+
+import {
+  BrandHeader,
+  ContentCard,
+  InputField,
+  Button,
+  ErrorModal,
+} from "@/components/ui";
+import { PageFooter } from "@/components/layout";
+import { forgotPasswordSchema, ForgotPasswordData } from "@/schemas/auth";
+import { authService } from "@/services/authService";
+import { getFriendlyErrorMessage } from "@/utils/errorMessage";
 
 export default function ForgotPassword() {
-  const [isMobile, setIsMobile] = useState(false);
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [emailError, setEmailError] = useState("");
-  const [showErrorPopup, setShowErrorPopup] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  const router = useRouter();
 
-  useEffect(() => {
-    const checkScreenSize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
+  const [modalState, setModalState] = useState({
+    isOpen: false,
+    type: "success" as "success" | "error",
+    message: "",
+  });
 
-    checkScreenSize();
-    window.addEventListener("resize", checkScreenSize);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<ForgotPasswordData>({
+    resolver: zodResolver(forgotPasswordSchema),
+    mode: "onBlur",
+  });
 
-    return () => window.removeEventListener("resize", checkScreenSize);
-  }, []);
+  const onSubmit = async (data: ForgotPasswordData) => {
+    try {
+      await authService.sendResetCode(data.email);
 
-  const validateEmail = (email: string) => {
-    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email) {
-      setEmailError("E-mail é obrigatório");
-    } else if (!regex.test(email)) {
-      setEmailError("E-mail inválido");
-    } else {
-      setEmailError("");
+      setModalState({
+        isOpen: true,
+        type: "success",
+        message: "Verifique seu email para o código de recuperação.",
+      });
+    } catch (err) {
+      console.error(err);
+      setModalState({
+        isOpen: true,
+        type: "error",
+        message: getFriendlyErrorMessage(err),
+      });
     }
   };
 
-  const handleResetPassword = async () => {
-    validateEmail(email);
-
-    if (emailError) {
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const response = await apiBase.post("/auth/forgot-password", {
-        email,
-      });
-
-      if (response.status === 201) {
-        localStorage.setItem("resetEmail", email);
-        window.location.href = "/resetPassword";
-      } else {
-        throw new Error(
-          response.data.message || "Erro ao enviar e-mail de recuperação"
-        );
-      }
-    } catch (err) {
-      console.error("Erro no frontend:", err);
-
-      if (axios.isAxiosError(err) && err.response) {
-        if (err.response.status === 404) {
-          setErrorMessage(
-            "E-mail não encontrado no sistema. Verifique o endereço digitado."
-          );
-        } else if (err.response.status === 500) {
-          setErrorMessage(
-            "Erro ao enviar e-mail de recuperação. Tente novamente mais tarde."
-          );
-        } else {
-          setErrorMessage(
-            err.response.data.message || "Ocorreu um erro inesperado."
-          );
-        }
-      } else {
-        setErrorMessage(
-          "Erro ao conectar com o servidor. Verifique sua conexão."
-        );
-      }
-
-      setShowErrorPopup(true);
-    } finally {
-      setLoading(false);
+  const handleModalClose = () => {
+    setModalState((prev) => ({ ...prev, isOpen: false }));
+    if (modalState.type === "success") {
+      router.push("/resetPassword");
     }
   };
 
   return (
-    <main
-      className={`flex justify-center items-center min-h-screen p-8 ${
-        isMobile ? "bg-green-background" : ""
-      }`}
-    >
-      {/* Popup de Erro */}
-      {showErrorPopup && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg text-center z-50">
-            <h2 className="text-xl font-bold text-red-600 mb-4">Erro</h2>
-            <p className="text-gray-700 mb-4">{errorMessage}</p>
-            <button
-              onClick={() => setShowErrorPopup(false)}
-              className="bg-green-800 text-white px-4 py-2 rounded-lg hover:bg-green-900"
-            >
-              Fechar
-            </button>
-          </div>
-        </div>
-      )}
+    <main className="flex justify-center items-center min-h-screen bg-gray-100 p-4">
+      <ErrorModal
+        isOpen={modalState.isOpen}
+        onClose={handleModalClose}
+        title={modalState.type === "success" ? "Código Enviado!" : "Erro"}
+        message={modalState.message}
+        type={modalState.type}
+      />
 
-      <div className="w-full max-w-4xl bg-white shadow-lg rounded-lg overflow-hidden flex flex-col md:flex-row">
-        {/* Seção Esquerda - Recuperação de Senha */}
-        <div className="w-full md:w-1/2 p-8 flex flex-col justify-center">
-          <Link href="/login" className="flex items-center text-gray-700 mb-4">
-            <ArrowLeft size={20} />
-            <span className="ml-2 font-semibold">Voltar</span>
-          </Link>
-          {isMobile && (
-            <div className="flex flex-col items-center mb-4">
-              <Image
-                src={Logo}
-                alt="Logo do sistema"
-                className="w-20 h-20"
-                width={80}
-                height={80}
-              />
-            </div>
-          )}
-          <h1 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-            Esqueceu a Senha?
-          </h1>
-          <p className="text-center text-gray-700 mb-4">
-            Insira seu e-mail para recuperar a senha de acesso da sua conta.
-          </p>
-          <div>
-            <label className="text-gray-700 font-medium">E-mail</label>
-            <input
+      <ContentCard className="max-w-md">
+        <BrandHeader
+          title="Recuperar Senha"
+          subtitle="Digite seu email para receber o código"
+        />
+
+        <div className="p-8 pb-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <InputField
+              label="E-mail"
               type="email"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                validateEmail(e.target.value);
-              }}
-              className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-              required
+              disabled={isSubmitting}
+              error={errors.email?.message}
+              {...register("email")}
             />
-            {emailError && (
-              <p className="text-red-500 text-sm mt-1">{emailError}</p>
-            )}
-          </div>
-          <Button
-            text={loading ? "Enviando..." : "RECUPERAR SENHA"}
-            onClick={handleResetPassword}
-            bgColor="bg-green-800"
-            textColor="text-white"
-            hoverColor="hover:bg-green-900"
-            className="w-full mt-4"
-            disabled={loading || !!emailError}
-          />
-          <p className="text-center text-gray-700 mt-4 text-sm">
-            Não tem uma conta?{" "}
-            <Link
-              href="/createAccount"
-              className="text-green-700 font-semibold"
+
+            <Button
+              type="submit"
+              variant="primary"
+              fullWidth
+              disabled={isSubmitting}
             >
-              Registre-se
+              {isSubmitting ? "ENVIANDO..." : "ENVIAR CÓDIGO"}
+            </Button>
+          </form>
+
+          <p className="text-center text-gray-600 text-sm mt-6">
+            Lembrou da senha?{" "}
+            <Link
+              href="/login"
+              className="text-brand-primary hover:text-brand-primary-hover font-semibold transition-colors"
+            >
+              Fazer Login
             </Link>
           </p>
         </div>
-        {/* Seção Direita - Informações */}
-        <div className="hidden md:flex w-full md:w-1/2 bg-green-background p-10 flex-col justify-between items-center relative">
-          <div className="text-center">
-            <h1 className="text-2xl text-white mb-4">
-              Bem-vindo ao <span className="font-bold">QualeiDer!</span>
-            </h1>
-            <div className="text-white space-y-2 text-sm">
-              <p>
-                Esqueceu sua senha? Sem problemas! Siga os passos abaixo para
-                redefinir sua senha e acessar sua conta novamente:
-              </p>
-              <ol className="list-decimal list-inside text-left">
-                <li>Insira o e-mail cadastrado no campo.</li>
-                <li>
-                  Clique em &ldquo;Enviar&rdquo; para receber um link de
-                  redefinição.
-                </li>
-                <li>
-                  Acesse seu e-mail e siga as instruções para criar uma nova
-                  senha.
-                </li>
-              </ol>
-              <p>
-                Se você não receber o e-mail em alguns minutos, verifique sua
-                caixa de spam ou entre em contato conosco.
-              </p>
-            </div>
-          </div>
-          <div className="absolute bottom-4 right-4">
-            <Image
-              src={Logo}
-              alt="Logo do sistema"
-              className="w-20 h-20"
-              width={80}
-              height={80}
-            />
-          </div>
-        </div>
-      </div>
-      <Wave />
+
+        <PageFooter />
+      </ContentCard>
     </main>
   );
 }
