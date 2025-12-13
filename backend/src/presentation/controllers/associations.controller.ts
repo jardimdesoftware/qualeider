@@ -10,6 +10,7 @@ import {
   Req,
   Param,
   NotFoundException,
+  Patch,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '@/application/guards/jwt-auth.guard';
 import { Throttle } from '@nestjs/throttler';
@@ -126,5 +127,12 @@ export class AssociationsController {
       throw new NotFoundException('Associação não encontrada');
     }
     return association;
+  }
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Atualizar dados da associação' })
+  @ApiResponse({ status: 200, description: 'Associação atualizada com sucesso.' })
+  async update(@Param('id') id: string, @Body() body: any) {
+    return this.associationsService.update(Number(id), body);
   }
 }

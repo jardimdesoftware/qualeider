@@ -20,4 +20,5 @@ export class UserEntity {
   resetTokenExpiry?: Date | null;
   createdAt!: Date;
   updatedAt!: Date;
+  lastLogin?: Date | null;
 }

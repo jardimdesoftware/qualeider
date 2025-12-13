@@ -3,6 +3,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { NotificationEvent } from '@/events/notification.events';
 import { NotificationSendPayload } from '@/events/notification-payload.interface';
 import { IUserRepository } from '@/domain/repositories/user.repository';
+import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 
 @Injectable()
 export class NotificationsService {
@@ -10,10 +11,25 @@ export class NotificationsService {
     @Inject(IUserRepository)
     private readonly userRepository: IUserRepository,
     private readonly eventEmitter: EventEmitter2,
+    private readonly prisma: PrismaService,
   ) {}
 
   async notifyProducers(event: NotificationEvent) {
     const users = await this.getTargetUsers(event);
+
+    // Save Notification to Database
+    const notification = await this.prisma.notification.create({
+      data: {
+        associationId: event.associationId,
+        subject: event.subject,
+        message: event.message,
+        recipients: {
+          create: users.map((user) => ({
+            userId: user.id as number,
+          })),
+        },
+      },
+    });
 
     for (const user of users) {
       const payload: NotificationSendPayload = {
@@ -38,5 +54,24 @@ export class NotificationsService {
         associationId: event.associationId,
       });
     }
+  }
+
+  async getUserNotifications(userId: number) {
+    return this.prisma.notificationRecipient.findMany({
+        where: { userId },
+        include: {
+            notification: true
+        },
+        orderBy: {
+            createdAt: 'desc'
+        }
+    });
+  }
+
+  async markAsRead(recipientId: number) {
+    return this.prisma.notificationRecipient.update({
+        where: { id: recipientId },
+        data: { read: true, readAt: new Date() }
+    });
   }
 }

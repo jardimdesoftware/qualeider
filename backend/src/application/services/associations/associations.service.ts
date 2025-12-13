@@ -98,4 +98,19 @@ export class AssociationsService {
   async linkProducer(userId: number, associationId: number) {
       return this.associationRepository.linkProducer(userId, associationId);
   }
+
+  async update(id: number, data: Partial<CreateAssociationDto>) {
+      const { password, ...updateData } = data as any;
+      
+      // If password update is needed, hash it.
+      if (password) {
+         updateData.password = await this.hashService.hash(
+          password,
+          BCRYPT_ROUNDS_USER_CREATION,
+        );
+      }
+
+      const updated = await this.associationRepository.update(id, updateData);
+      return this.removePassword(updated);
+  }
 }

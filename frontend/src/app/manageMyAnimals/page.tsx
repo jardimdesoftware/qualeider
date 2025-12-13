@@ -131,22 +131,24 @@ export default function ManageAnimals() {
               </h2>
               <p className="text-slate-500">Gerencie seu rebanho</p>
             </div>
-            <Button onClick={handleAddAnimal} variant="primary">
-              <Plus size={20} className="mr-2" />
-              Adicionar Animal
-            </Button>
           </div>
         </header>
 
         <div className="p-6 md:p-8 max-w-7xl mx-auto">
-          {/* Search Bar */}
-          <div className="mb-6">
-            <InputField
-              label="Buscar animais"
-              placeholder="Digite nome, tipo ou raça..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          {/* Search Bar & Action */}
+          <div className="mb-6 flex flex-col md:flex-row gap-4 md:items-end justify-between">
+            <div className="flex-1">
+              <InputField
+                label="Buscar animais"
+                placeholder="Digite nome, tipo ou raça..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <Button onClick={handleAddAnimal} variant="primary" className="mb-[2px]">
+              <Plus size={20} className="mr-2" />
+              Adicionar Animal
+            </Button>
           </div>
 
           {/* Empty State */}

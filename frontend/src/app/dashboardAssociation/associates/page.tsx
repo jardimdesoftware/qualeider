@@ -30,7 +30,9 @@ export default function AssociatesPage() {
           farmName: item.farmName || "Fazenda não informada",
           location: `${item.city}, ${item.state}`,
           status: item.status === "Active" ? "Ativo" : "Pendente",
-          lastAccess: item.lastAccess || "Nunca",
+          lastAccess: item.lastAccess 
+            ? new Date(item.lastAccess).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+            : "Nunca",
           animalsCount: item.animalsCount,
           dailyProduction: item.dailyProduction ? `${item.dailyProduction}L` : null,
           initials: item.name.split(' ').map((n: string) => n[0]).join('').substring(0,2).toUpperCase()

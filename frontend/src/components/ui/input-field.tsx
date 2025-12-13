@@ -5,6 +5,7 @@ interface InputFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
   error?: string;
   showPasswordToggle?: boolean;
+  registration?: any; 
 }
 
 export default function InputField({
@@ -13,6 +14,7 @@ export default function InputField({
   showPasswordToggle,
   type = "text",
   className = "",
+  registration,
   ...props
 }: InputFieldProps) {
   const [showPassword, setShowPassword] = useState(false);
@@ -35,6 +37,7 @@ export default function InputField({
             ${error ? "border-red-500" : ""}
             ${showPasswordToggle ? "pr-10" : ""}
             ${className}`}
+          {...registration}
           {...props}
         />
         {showPasswordToggle && (

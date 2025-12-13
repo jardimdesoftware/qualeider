@@ -86,4 +86,14 @@ export const associationService = {
       headers: { Authorization: `Bearer ${token}` }
     });
   },
+
+  /**
+   * Update association data
+   */
+  update: async (id: number, data: any): Promise<void> => {
+    const token = localStorage.getItem("authToken");
+    await apiBase.patch(`/associations/${id}`, data, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+  },
 };

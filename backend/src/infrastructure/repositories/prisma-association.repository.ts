@@ -94,7 +94,7 @@ export class PrismaAssociationRepository implements IAssociationRepository {
       status: associate.status,
       animalsCount: associate._count.animals,
       dailyProduction: associate.dailyCollections[0]?.quantity || null,
-      lastAccess: null, // Log system not fully implemented yet
+      lastAccess: associate.lastLogin,
     }));
 
     return { data, total };
@@ -273,5 +273,34 @@ export class PrismaAssociationRepository implements IAssociationRepository {
           where: { id: userId },
           data: { associationId }
       });
+  }
+
+  async update(id: number, data: Partial<AssociationEntity>): Promise<AssociationEntity> {
+    const { ...updateData } = data;
+
+    // Handle foundationDate conversion if present
+    if (data.foundationDate) {
+        (updateData as any).foundationDate = new Date(data.foundationDate);
+    }
+
+    try {
+        const updated = await this.prisma.association.update({
+            where: { id },
+            data: updateData,
+        });
+        return AssociationMapper.toDomain(updated);
+    } catch (error) {
+         if (isPrismaError(error) && error.code === PrismaErrorCode.UNIQUE_CONSTRAINT_VIOLATION) {
+            const target = error.meta?.target as string[];
+            
+            if (target?.includes('cnpj')) {
+              throw new BusinessException('CNPJ já cadastrado.');
+            }
+            if (target?.includes('email')) {
+              throw new BusinessException('Email já cadastrado.');
+            }
+          }
+        handlePrismaError(error);
+    }
   }
 }

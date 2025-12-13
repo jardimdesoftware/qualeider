@@ -13,4 +13,5 @@ export interface IAssociationRepository {
   getHerdStats(associationId: number): Promise<any>; // Returns RegionalHerdStatsDto
   findAvailableProducers(): Promise<any[]>;
   linkProducer(userId: number, associationId: number): Promise<void>;
+  update(id: number, data: Partial<AssociationEntity>): Promise<AssociationEntity>;
 }

@@ -84,6 +84,10 @@ export class AuthService {
 
     this.logger.log(`${entityType === 'user' ? 'Usuário' : 'Associação'} autenticado: ${entity.email}`);
 
+    if (entityType === 'user') {
+      await this.userRepository.update(entity.id, { lastLogin: new Date() });
+    }
+
     return {
       access_token: this.jwtService.sign(payload),
     };

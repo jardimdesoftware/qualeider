@@ -10,6 +10,7 @@ import {
   LogOut,
   Milk,
   Settings,
+  Bell,
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -67,6 +68,11 @@ export default function Sidebar() {
           { name: "Usuários", link: "/manageUsers", icon: <Users size={20} /> },
           { name: "Animais", link: "/manageAnimals", icon: <Milk size={20} /> },
           {
+            name: "Notificações",
+            link: "/dashboardAssociation/notifications",
+            icon: <Bell size={20} />,
+          },
+          {
             name: "Configuração",
             link: "/settings",
             icon: <Settings size={20} />,
@@ -87,6 +93,16 @@ export default function Sidebar() {
             name: "Formulário",
             link: "/dailyForm",
             icon: <FileText size={20} />,
+          },
+          {
+            name: "Histórico",
+            link: "/dashboardUser/history",
+            icon: <FileText size={20} />,
+          },
+          {
+            name: "Notificações",
+            link: "/dashboardUser/notifications",
+            icon: <Bell size={20} />,
           },
           {
             name: "Configuração",
