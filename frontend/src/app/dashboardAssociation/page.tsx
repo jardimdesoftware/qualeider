@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import { EmptyState, MetricCard } from "@/components/ui";
 import { Activity, Milk, Cat, Ruler, Wheat, Droplet, BarChart3, Calendar } from "lucide-react";
-import AnimalDistributionChart from "@/components/dashboard/AnimalDistributionChart";
-import MilkLast7DaysChart from "@/components/dashboard/MilkLast7DaysChart";
+import dynamic from "next/dynamic";
+const AnimalDistributionChart = dynamic(() => import("@/components/dashboard/AnimalDistributionChart"), { ssr: false, loading: () => <p className="text-center py-10 text-slate-400">Carregando gráfico...</p> });
+const MilkLast7DaysChart = dynamic(() => import("@/components/dashboard/MilkLast7DaysChart"), { ssr: false, loading: () => <p className="text-center py-10 text-slate-400">Carregando gráfico...</p> });
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { associationService } from "@/services/associationService";
 
