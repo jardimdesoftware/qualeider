@@ -38,6 +38,8 @@ export class NotificationsController {
     const count = dto.type === NotificationType.INDIVIDUAL ? dto.userIds?.length : 'todos';
 
     return {
+      statusCode: HttpStatus.CREATED,
+      message: 'Notificação enviada com sucesso',
       data: { count },
     };
   }
