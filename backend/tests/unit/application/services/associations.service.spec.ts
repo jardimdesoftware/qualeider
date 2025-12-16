@@ -16,6 +16,12 @@ describe('AssociationsService', () => {
       findByEmail: jest.fn(),
       findByCnpj: jest.fn(),
       create: jest.fn(),
+      findById: jest.fn(),
+      findAssociates: jest.fn(),
+      getHerdStats: jest.fn(),
+      findAvailableProducers: jest.fn(),
+      linkProducer: jest.fn(),
+      update: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -269,6 +275,106 @@ describe('AssociationsService', () => {
       const result = await service.create(createDto as any);
 
       expect(result).not.toHaveProperty('password');
+    });
+  });
+
+  describe('findById', () => {
+    it('deve buscar associação por ID', async () => {
+      const mockAssociation = createAssociation({ id: 1 });
+      associationRepository.findById.mockResolvedValue(mockAssociation as any);
+
+      const result = await service.findById(1);
+
+      expect(result).toEqual(mockAssociation);
+      expect(associationRepository.findById).toHaveBeenCalledWith(1);
+    });
+  });
+
+  describe('findAssociates', () => {
+    it('deve buscar associados com paginação', async () => {
+      const mockAssociates = {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 0,
+      };
+      
+      (associationRepository as any).findAssociates = jest.fn().mockResolvedValue(mockAssociates);
+
+      const result = await service.findAssociates(1, { page: 1, limit: 10 });
+
+      expect(result).toEqual(mockAssociates);
+      expect((associationRepository as any).findAssociates).toHaveBeenCalledWith(1, { page: 1, limit: 10 });
+    });
+  });
+
+  describe('getHerdStats', () => {
+    it('deve retornar estatísticas do rebanho', async () => {
+      const mockStats = {
+        totalAnimals: 100,
+        milkingCows: 50,
+        dryCows: 50,
+        heifers: 0,
+        calves: 0,
+        bulls: 0,
+        averageProduction: 10,
+      };
+      (associationRepository as any).getHerdStats = jest.fn().mockResolvedValue(mockStats);
+
+      const result = await service.getHerdStats(1);
+
+      expect(result).toEqual(mockStats);
+      expect((associationRepository as any).getHerdStats).toHaveBeenCalledWith(1);
+    });
+  });
+
+  describe('getAvailableProducers', () => {
+    it('deve retornar produtores disponíveis', async () => {
+      const mockProducers = [];
+      (associationRepository as any).findAvailableProducers = jest.fn().mockResolvedValue(mockProducers);
+
+      const result = await service.getAvailableProducers();
+
+      expect(result).toEqual(mockProducers);
+      expect((associationRepository as any).findAvailableProducers).toHaveBeenCalled();
+    });
+  });
+
+  describe('linkProducer', () => {
+    it('deve vincular produtor à associação', async () => {
+      (associationRepository as any).linkProducer = jest.fn().mockResolvedValue(undefined);
+
+      await service.linkProducer(1, 1);
+
+      expect((associationRepository as any).linkProducer).toHaveBeenCalledWith(1, 1);
+    });
+  });
+
+  describe('update', () => {
+    it('deve atualizar associação sem senha', async () => {
+        const updateDto = { name: 'Updated Name' };
+        const mockUpdated = createAssociation({ id: 1, name: 'Updated Name' });
+        delete (mockUpdated as any).password;
+        associationRepository.update = jest.fn().mockResolvedValue(mockUpdated as any);
+
+        const result = await service.update(1, updateDto);
+
+        expect(result).toEqual(mockUpdated);
+        expect(associationRepository.update).toHaveBeenCalledWith(1, updateDto);
+        expect(hashService.hash).not.toHaveBeenCalled();
+    });
+
+    it('deve hashear senha se fornecida no update', async () => {
+        const updateDto = { password: 'newpassword' };
+        const mockUpdated = createAssociation({ id: 1 });
+        associationRepository.update = jest.fn().mockResolvedValue(mockUpdated as any);
+        (hashService.hash as jest.Mock).mockResolvedValue('hashed');
+
+        await service.update(1, updateDto);
+
+        expect(hashService.hash).toHaveBeenCalledWith('newpassword', BCRYPT_ROUNDS_USER_CREATION);
+        expect(associationRepository.update).toHaveBeenCalledWith(1, { password: 'hashed' });
     });
   });
 });

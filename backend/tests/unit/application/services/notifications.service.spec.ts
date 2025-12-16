@@ -41,13 +41,16 @@ describe('NotificationsService', () => {
             notification: {
               create: jest.fn(),
             },
-            notificationRecipient: {
-              createMany: jest.fn(),
-            },
+
             $transaction: jest.fn((cb) => cb({
                notification: { create: jest.fn() },
-               notificationRecipient: { createMany: jest.fn() }
+               notificationRecipient: { createMany: jest.fn(), findMany: jest.fn(), update: jest.fn() }
             })),
+            notificationRecipient: {
+              createMany: jest.fn(),
+              findMany: jest.fn(),
+              update: jest.fn()
+            }
           },
         },
       ],
@@ -204,6 +207,37 @@ describe('NotificationsService', () => {
         message: 'Conteúdo da notificação',
         userName: 'João Silva',
       });
+    });
+  });
+
+  describe('getUserNotifications', () => {
+    it('deve retornar notificações do usuário', async () => {
+        const mockNotifications = [{ id: 1, notification: { message: 'test' } }];
+        (service['prisma'].notificationRecipient.findMany as jest.Mock).mockResolvedValue(mockNotifications);
+
+        const result = await service.getUserNotifications(1);
+
+        expect(service['prisma'].notificationRecipient.findMany).toHaveBeenCalledWith({
+            where: { userId: 1 },
+            include: { notification: true },
+            orderBy: { createdAt: 'desc' }
+        });
+        expect(result).toEqual(mockNotifications);
+    });
+  });
+
+  describe('markAsRead', () => {
+    it('deve marcar notificação como lida', async () => {
+        const mockUpdated = { id: 1, read: true, readAt: new Date() };
+        (service['prisma'].notificationRecipient.update as jest.Mock).mockResolvedValue(mockUpdated);
+
+        const result = await service.markAsRead(1);
+
+        expect(service['prisma'].notificationRecipient.update).toHaveBeenCalledWith({
+            where: { id: 1 },
+            data: { read: true, readAt: expect.any(Date) }
+        });
+        expect(result).toEqual(mockUpdated);
     });
   });
 });
