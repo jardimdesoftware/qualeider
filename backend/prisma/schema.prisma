@@ -139,7 +139,7 @@ model DailyCollection {
 model DailyCollectionItem {
   id                Int             @id @default(autoincrement())
   dailyCollectionId Int
-  dailyCollection   DailyCollection @relation(fields: [dailyCollectionId], references: [id])
+  dailyCollection   DailyCollection @relation(fields: [dailyCollectionId], references: [id], onDelete: Cascade)
   animalId          Int
   animal            Animal          @relation(fields: [animalId], references: [id])
   quantity          Float

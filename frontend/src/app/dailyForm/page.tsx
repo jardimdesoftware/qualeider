@@ -88,7 +88,6 @@ export default function DailyForm() {
   useEffect(() => {
     setValue("quantity", totals.totalMilk);
     setValue("numAnimals", totals.milkedCows);
-    setValue("numLactation", totals.milkedCows); 
   }, [totals, setValue]);
 
   const handleProductionChange = (animalId: number, val: string) => {
@@ -105,6 +104,16 @@ export default function DailyForm() {
           quantity: parseFloat(val) || 0,
         }))
         .filter((item) => item.quantity > 0);
+
+      if (items.length === 0) {
+        setModalState({
+          isOpen: true,
+          type: "error",
+          message: "Adicione pelo menos um animal com produção para finalizar a coleta.",
+        });
+        setIsFinalizing(false);
+        return;
+      }
 
       const payload = { ...data, items };
 
@@ -165,8 +174,10 @@ export default function DailyForm() {
         {/* Floating Save Button */}
         <div className="fixed bottom-6 left-0 w-full px-4 z-30 lg:left-64 lg:w-[calc(100%-16rem)] flex justify-center pointer-events-none">
           <button
+            type="button"
             onClick={() => setIsFinalizing(true)}
             className="w-full max-w-md bg-[#d97706] hover:bg-[#b45309] text-white p-4 rounded-xl shadow-xl font-bold text-lg flex justify-center items-center gap-2 transform active:scale-95 transition-all pointer-events-auto"
+            aria-label="Finalizar e salvar coleta"
           >
             <Save className="w-6 h-6" />
             Finalizar Coleta

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { X, Milk } from 'lucide-react';
 import { DailyCollection } from '@/interfaces/daily-collection';
 
@@ -10,16 +10,31 @@ interface CollectionDetailsModalProps {
 }
 
 export function CollectionDetailsModal({ isOpen, onClose, collection }: CollectionDetailsModalProps) {
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
+    }
+  }, [isOpen, onClose]);
+
   if (!isOpen || !collection) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+      <div 
+        className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="collection-details-title"
+      >
         <header className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-[#fdfbf7]">
           <div className="flex items-center gap-2">
             <Milk className="text-[#d97706]" size={24} />
             <div>
-              <h3 className="text-lg font-bold text-[#1e3a29]">Detalhes da Coleta</h3>
+            <h3 id="collection-details-title" className="text-lg font-bold text-[#1e3a29]">Detalhes da Coleta</h3>
               <p className="text-sm text-slate-500">
                 {new Date(collection.collectionDate).toLocaleDateString("pt-BR", { timeZone: "UTC" })}
               </p>
@@ -28,6 +43,7 @@ export function CollectionDetailsModal({ isOpen, onClose, collection }: Collecti
           <button
             onClick={onClose}
             className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+            aria-label="Fechar modal"
           >
             <X size={20} />
           </button>
@@ -73,12 +89,6 @@ export function CollectionDetailsModal({ isOpen, onClose, collection }: Collecti
                   collection.items.map((item) => (
                     <tr key={item.id} className="hover:bg-slate-50/50">
                       <td className="px-4 py-3 font-medium text-slate-800">
-                        {/* Assuming animal relation is populated. If not, we might need to fetch or use ID. 
-                            The DTO update I made earlier suggested adding `animal` property. 
-                            I should check if backend `findOne` uses `include: { items: { include: { animal: true } } }`. 
-                            Based on repo code `include: { items: true }`, animal relation inside items is NOT included by default.
-                            I may need to update repo or handle missing animal name. 
-                            For now, using item.animalId is safe fall back. */}
                         {item.animal ? item.animal.name : `Animal #${item.animalId}`}
                       </td>
                       <td className="px-4 py-3 text-right font-bold text-brand-primary">

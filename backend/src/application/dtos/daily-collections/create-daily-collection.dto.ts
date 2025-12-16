@@ -4,8 +4,9 @@ import {
   IsDate,
   IsEnum,
   IsInt,
-  IsNotEmpty,
   IsNumber,
+  IsOptional,
+  Min,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -17,6 +18,7 @@ export class CreateDailyCollectionDto {
     example: 25,
   })
   @IsNumber()
+  @Min(0)
   quantity!: number;
 
   @ApiProperty({ description: 'Id do usuário', example: 2 })
@@ -60,9 +62,10 @@ export class CreateDailyCollectionDto {
     description: 'Itens da coleta (detalhamento por animal)',
     type: () => [CreateDailyCollectionItemDto],
   })
+  @IsOptional()
   @ValidateNested({ each: true })
   @Type(() => CreateDailyCollectionItemDto)
-  items!: CreateDailyCollectionItemDto[];
+  items?: CreateDailyCollectionItemDto[];
 }
 
 export class CreateDailyCollectionItemDto {
@@ -72,5 +75,6 @@ export class CreateDailyCollectionItemDto {
 
   @ApiProperty({ description: 'Quantidade de leite produzida', example: 12.5 })
   @IsNumber()
+  @Min(0)
   quantity!: number;
 }

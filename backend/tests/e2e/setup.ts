@@ -26,7 +26,6 @@ async function safeDeleteMany(deleteFn: () => Promise<any>): Promise<void> {
   try {
     await deleteFn();
   } catch (error: any) {
-    // Ignore P2021 error (table does not exist) as it may not be created yet in CI
     if (error?.code !== 'P2021') {
       throw error;
     }

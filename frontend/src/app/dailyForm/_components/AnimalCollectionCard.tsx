@@ -1,6 +1,6 @@
 import { Animal, Status } from "@/interfaces/animal";
 import { useState } from "react";
-import { Check, Ban, AlertCircle, Droplets, Milk } from "lucide-react";
+import { Check, Ban, Milk } from "lucide-react";
 
 interface AnimalCollectionCardProps {
   animal: Animal;

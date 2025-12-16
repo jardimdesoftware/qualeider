@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { UseFormRegister, FieldErrors } from "react-hook-form";
 import { DailyCollectionData } from "@/schemas/collection";
 import { MilkingPlace } from "@/interfaces/daily-collection";
@@ -26,12 +26,27 @@ export function CollectionSummaryModal({
   errors,
   isSubmitting,
 }: CollectionSummaryModalProps) {
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
+    }
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 zoom-in duration-200">
-        <h2 className="text-2xl font-bold text-[#1e3a29] font-serif mb-4">
+      <div 
+        className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 zoom-in duration-200"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="collection-summary-modal-title"
+      >
+        <h2 id="collection-summary-modal-title" className="text-2xl font-bold text-[#1e3a29] font-serif mb-4">
           Resumo da Coleta
         </h2>
 
