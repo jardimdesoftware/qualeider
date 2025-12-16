@@ -1,109 +1,57 @@
+<!DOCTYPE html>
 <html>
-  <head>
-    <meta charset='UTF-8' />
-    <title>Convite Recusado</title>
-  </head>
-  <body
-    style='margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;'
-  >
-    <table
-      width='100%'
-      cellpadding='0'
-      cellspacing='0'
-      style='background-color: #f4f4f4; padding: 20px;'
-    >
-      <tr>
-        <td align='center'>
-          <table
-            width='600'
-            cellpadding='0'
-            cellspacing='0'
-            style='background-color: #ffffff; border-radius: 8px; overflow: hidden;'
-          >
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convite Recusado - QualeiDer</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #fdfbf7; font-family: 'Roboto', Arial, sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fdfbf7; padding: 40px 20px;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #e2e8f0;">
+                    
+                    <tr>
+                        <td style="background-color: #475569; padding: 30px; text-align: center; border-bottom: 4px solid #1e3a29;">
+                            <h1 style="color: #ffffff; margin: 0; font-family: 'Roboto Slab', Georgia, serif; font-size: 24px;">Convite Recusado</h1>
+                        </td>
+                    </tr>
 
-            <!-- Header -->
-            <tr>
-              <td
-                style='background-color: #6c757d; padding: 30px; text-align: center;'
-              >
-                <h1 style='color: #ffffff; margin: 0; font-size: 24px;'>
-                  ❌ Convite Recusado
-                </h1>
-              </td>
-            </tr>
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <p style="font-size: 16px; color: #334155; margin-bottom: 20px;">
+                                Olá, <strong>{{associationName}}</strong>.
+                            </p>
 
-            <!-- Body -->
-            <tr>
-              <td style='padding: 40px 30px;'>
-                <p style='font-size: 16px; color: #333333; margin: 0 0 20px 0;'>
-                  Olá,
-                  <strong>{{associationName}}</strong>,
-                </p>
+                            <p style="font-size: 16px; color: #334155; line-height: 1.6; margin-bottom: 30px;">
+                                O produtor <strong>{{userName}}</strong> optou por <span style="color: #ef4444; font-weight: bold;">não aceitar</span> o convite para ingressar na associação neste momento.
+                            </p>
 
-                <p
-                  style='font-size: 16px; color: #333333; line-height: 1.6; margin: 0 0 20px 0;'
-                >
-                  Informamos que
-                  <strong>{{userName}}</strong>
-                  recusou o convite para fazer parte da sua associação.
-                </p>
+                            <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                                <h3 style="margin-top: 0; font-size: 14px; color: #1e3a29; text-transform: uppercase;">Sugestões:</h3>
+                                <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #64748b; line-height: 1.6;">
+                                    <li>Verifique se o e-mail estava correto.</li>
+                                    <li>Entre em contato direto com o produtor.</li>
+                                    <li>Envie um novo convite futuramente.</li>
+                                </ul>
+                            </div>
 
-                <div
-                  style='background-color: #f8f9fa; border-left: 4px solid #6c757d; padding: 15px; margin: 20px 0;'
-                >
-                  <p style='margin: 0; font-size: 14px; color: #495057;'>
-                    <strong>O que você pode fazer:</strong><br />
-                    • Entrar em contato com o produtor para entender o motivo<br
-                    />
-                    • Enviar um novo convite no futuro, se houver interesse<br
-                    />
-                    • Convidar outros produtores para fortalecer a associação
-                  </p>
-                </div>
+                            <div style="text-align: center; margin-top: 30px;">
+                                <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboardAssociation/associates/invite" style="color: #1e3a29; text-decoration: none; font-weight: bold; font-size: 14px; border-bottom: 1px solid #1e3a29;">Convidar outro produtor</a>
+                            </div>
+                        </td>
+                    </tr>
 
-                <p
-                  style='font-size: 14px; color: #666666; line-height: 1.6; margin: 20px 0;'
-                >
-                  Lembre-se: a decisão de fazer parte de uma associação é
-                  pessoal e deve ser respeitada. Continue seu trabalho de
-                  expansão e fortalecimento da comunidade!
-                </p>
-
-                <table
-                  width='100%'
-                  cellpadding='0'
-                  cellspacing='0'
-                  style='margin: 30px 0;'
-                >
-                  <tr>
-                    <td align='center'>
-                      <a
-                        href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/association/invites"
-                        style='display: inline-block; background-color: #28a745; color: #ffffff; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-size: 16px; font-weight: bold;'
-                      >
-                        Ver Outros Convites
-                      </a>
-                    </td>
-                  </tr>
+                    <tr>
+                        <td style="background-color: #f1f5f9; padding: 20px; text-align: center;">
+                            <p style="margin: 0; font-size: 12px; color: #94a3b8;">
+                                © 2025 QualeiDer
+                            </p>
+                        </td>
+                    </tr>
                 </table>
-              </td>
-            </tr>
-
-            <!-- Footer -->
-            <tr>
-              <td
-                style='background-color: #f9f9f9; padding: 20px; text-align: center; border-top: 1px solid #e0e0e0;'
-              >
-                <p style='margin: 0; font-size: 12px; color: #999999;'>
-                  Sistema QualeiDer - Gestão de Associações<br />
-                  Instituto Federal de Pernambuco
-                </p>
-              </td>
-            </tr>
-
-          </table>
-        </td>
-      </tr>
+            </td>
+        </tr>
     </table>
-  </body>
+</body>
 </html>

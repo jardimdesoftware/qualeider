@@ -1,109 +1,62 @@
+<!DOCTYPE html>
 <html>
-  <head>
-    <meta charset='UTF-8' />
-    <title>Convite Aceito</title>
-  </head>
-  <body
-    style='margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;'
-  >
-    <table
-      width='100%'
-      cellpadding='0'
-      cellspacing='0'
-      style='background-color: #f4f4f4; padding: 20px;'
-    >
-      <tr>
-        <td align='center'>
-          <table
-            width='600'
-            cellpadding='0'
-            cellspacing='0'
-            style='background-color: #ffffff; border-radius: 8px; overflow: hidden;'
-          >
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Novo Membro - QualeiDer</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #fdfbf7; font-family: 'Roboto', Arial, sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fdfbf7; padding: 40px 20px;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 1px solid #e2e8f0;">
+                    
+                    <tr>
+                        <td style="background-color: #1e3a29; padding: 30px; text-align: center; background-image: radial-gradient(circle, #254632 10%, #1e3a29 100%);">
+                            <span style="font-size: 40px;">🎉</span>
+                            <h1 style="color: #ffffff; margin: 10px 0 0 0; font-family: 'Roboto Slab', Georgia, serif; font-size: 26px;">Novo Membro Aceito!</h1>
+                        </td>
+                    </tr>
 
-            <!-- Header -->
-            <tr>
-              <td
-                style='background-color: #28a745; padding: 30px; text-align: center;'
-              >
-                <h1 style='color: #ffffff; margin: 0; font-size: 24px;'>
-                  Novo Membro Aceito!
-                </h1>
-              </td>
-            </tr>
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <p style="font-size: 16px; color: #334155; margin-bottom: 20px;">
+                                Olá, <strong>{{associationName}}</strong>!
+                            </p>
 
-            <!-- Body -->
-            <tr>
-              <td style='padding: 40px 30px;'>
-                <p style='font-size: 16px; color: #333333; margin: 0 0 20px 0;'>
-                  Olá,
-                  <strong>{{associationName}}</strong>!
-                </p>
+                            <p style="font-size: 18px; color: #1e3a29; line-height: 1.5; margin-bottom: 25px;">
+                                O produtor <strong>{{userName}}</strong> aceitou seu convite e agora faz parte da rede.
+                            </p>
 
-                <p
-                  style='font-size: 16px; color: #333333; line-height: 1.6; margin: 0 0 20px 0;'
-                >
-                  Temos boas notícias!
-                  <strong style='color: #28a745;'>{{userName}}</strong>
-                  aceitou seu convite e agora faz parte da sua associação! 🎉
-                </p>
+                            <div style="background-color: #f0fdf4; border-left: 4px solid #15803d; padding: 20px; margin-bottom: 30px;">
+                                <h3 style="margin-top: 0; margin-bottom: 10px; font-size: 14px; color: #166534; text-transform: uppercase;">Próximos Passos</h3>
+                                <p style="margin: 0; font-size: 14px; color: #15803d; line-height: 1.6;">
+                                    Os dados de produção deste membro já começarão a ser contabilizados nos relatórios regionais da associação.
+                                </p>
+                            </div>
 
-                <div
-                  style='background-color: #d4edda; border-left: 4px solid #28a745; padding: 15px; margin: 20px 0;'
-                >
-                  <p style='margin: 0; font-size: 14px; color: #155724;'>
-                    <strong>Próximos passos:</strong><br />
-                    •
-                    {{userName}}
-                    agora pode acessar o sistema<br />
-                    • Você pode visualizar o perfil completo do novo membro<br
-                    />
-                    • Comece a enviar notificações e convites para ele
-                  </p>
-                </div>
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td align="center">
+                                        <a href="{{userProfileUrl}}" style="display: inline-block; background-color: #1e3a29; color: #ffffff; padding: 15px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(30, 58, 41, 0.2);">
+                                            Ver Perfil do Membro
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
 
-                <table
-                  width='100%'
-                  cellpadding='0'
-                  cellspacing='0'
-                  style='margin: 30px 0;'
-                >
-                  <tr>
-                    <td align='center'>
-                      <a
-                        href='{{userProfileUrl}}'
-                        style='display: inline-block; background-color: #28a745; color: #ffffff; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-size: 16px; font-weight: bold;'
-                      >
-                        Ver Perfil do Membro
-                      </a>
-                    </td>
-                  </tr>
+                    <tr>
+                        <td style="background-color: #1e3a29; padding: 20px; text-align: center;">
+                            <p style="margin: 0; font-size: 12px; color: #94a3b8;">
+                                © 2025 QualeiDer • IFPE Campus Belo Jardim
+                            </p>
+                        </td>
+                    </tr>
                 </table>
-
-                <p
-                  style='font-size: 14px; color: #666666; text-align: center; margin: 20px 0 0 0;'
-                >
-                  Continue expandindo sua associação e fortalecendo a
-                  comunidade!
-                </p>
-              </td>
-            </tr>
-
-            <!-- Footer -->
-            <tr>
-              <td
-                style='background-color: #f9f9f9; padding: 20px; text-align: center; border-top: 1px solid #e0e0e0;'
-              >
-                <p style='margin: 0; font-size: 12px; color: #999999;'>
-                  Sistema QualeiDer - Gestão de Associações<br />
-                  Instituto Federal de Pernambuco
-                </p>
-              </td>
-            </tr>
-
-          </table>
-        </td>
-      </tr>
+            </td>
+        </tr>
     </table>
-  </body>
+</body>
 </html>
