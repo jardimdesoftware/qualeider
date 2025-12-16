@@ -6,6 +6,7 @@ import {
   IsInt,
   IsNotEmpty,
   IsNumber,
+  ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { MilkingPlace } from '@/domain/enums/enums';
@@ -54,4 +55,22 @@ export class CreateDailyCollectionDto {
   @Type(() => Date)
   @IsDate()
   collectionDate!: Date;
+
+  @ApiProperty({
+    description: 'Itens da coleta (detalhamento por animal)',
+    type: () => [CreateDailyCollectionItemDto],
+  })
+  @ValidateNested({ each: true })
+  @Type(() => CreateDailyCollectionItemDto)
+  items!: CreateDailyCollectionItemDto[];
+}
+
+export class CreateDailyCollectionItemDto {
+  @ApiProperty({ description: 'ID do animal', example: 10 })
+  @IsInt()
+  animalId!: number;
+
+  @ApiProperty({ description: 'Quantidade de leite produzida', example: 12.5 })
+  @IsNumber()
+  quantity!: number;
 }

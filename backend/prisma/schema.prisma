@@ -116,6 +116,7 @@ model Animal {
   user                  User             @relation(fields: [userId], references: [id])
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
+  dailyCollectionItems  DailyCollectionItem[]
 }
 
 model DailyCollection {
@@ -130,8 +131,23 @@ model DailyCollection {
   numLactation          Int              
   milkingPlace          MilkingPlace     
   technicalAssistance   Boolean          
+  items                 DailyCollectionItem[]
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
+}
+
+model DailyCollectionItem {
+  id                Int             @id @default(autoincrement())
+  dailyCollectionId Int
+  dailyCollection   DailyCollection @relation(fields: [dailyCollectionId], references: [id])
+  animalId          Int
+  animal            Animal          @relation(fields: [animalId], references: [id])
+  quantity          Float
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([dailyCollectionId])
+  @@index([animalId])
 }
 
 enum InviteStatus {

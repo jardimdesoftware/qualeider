@@ -6,7 +6,7 @@ import {
 import { MilkingPlace } from '@/domain/enums/enums';
 
 export class DailyCollectionMapper {
-  static toDomain(raw: PrismaDailyCollection): DailyCollectionEntity {
+  static toDomain(raw: PrismaDailyCollection & { items?: any[] }): DailyCollectionEntity {
     return new DailyCollectionEntity({
       id: raw.id,
       quantity: raw.quantity,
@@ -20,6 +20,12 @@ export class DailyCollectionMapper {
       technicalAssistance: raw.technicalAssistance,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
+      items: raw.items ? raw.items.map(item => ({
+        id: item.id,
+        dailyCollectionId: item.dailyCollectionId,
+        animalId: item.animalId,
+        quantity: item.quantity,
+      })) : undefined,
     });
   }
 

@@ -62,6 +62,7 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
       expect(response.body.data.numOrdens).toBe(2);
       expect(response.body.data.rationProvided).toBe(true);
       expect(response.body.data.userId).toBe(userId);
+      expect(response.body.data.items).toHaveLength(2);
     });
 
     it('deve criar coleta com assistência técnica', async () => {

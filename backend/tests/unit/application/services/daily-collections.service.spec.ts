@@ -61,8 +61,21 @@ describe('DailyCollectionsService', () => {
         milkingPlace: MilkingPlace.Curral,
         technicalAssistance: false,
         collectionDate: new Date(),
+        items: [
+          { animalId: 10, quantity: 25.25 },
+          { animalId: 11, quantity: 25.25 }
+        ],
       };
-      const mockCollection = createDailyCollection({ ...createDto, id: 1 });
+      
+      const mockCollection = createDailyCollection({
+        ...createDto,
+        id: 1,
+        items: createDto.items.map((item, index) => ({
+          ...item,
+          id: index + 1,
+          dailyCollectionId: 1,
+        })),
+      });
 
       userRepository.findById.mockResolvedValue(mockUser);
       dailyCollectionRepository.create.mockResolvedValue(mockCollection);
@@ -71,7 +84,7 @@ describe('DailyCollectionsService', () => {
 
       expect(result).toEqual(mockCollection);
       expect(userRepository.findById).toHaveBeenCalledWith(userId);
-      expect(dailyCollectionRepository.create).toHaveBeenCalledWith(createDto);
+      expect(dailyCollectionRepository.create).toHaveBeenCalledWith(createDto as any);
     });
 
     it('deve lançar NotFoundException se usuário não existe', async () => {
@@ -85,6 +98,7 @@ describe('DailyCollectionsService', () => {
         milkingPlace: MilkingPlace.Aberto,
         technicalAssistance: false,
         collectionDate: new Date(),
+        items: [],
       };
 
       userRepository.findById.mockResolvedValue(null);
@@ -166,7 +180,7 @@ describe('DailyCollectionsService', () => {
       const mockExistingCollection = createDailyCollection({ id: 1, quantity: 50 });
       const mockUpdatedCollection = createDailyCollection({
         id: 1,
-        ...updateDto,
+        ...(updateDto as any),
       });
 
       dailyCollectionRepository.findById.mockResolvedValue(mockExistingCollection);

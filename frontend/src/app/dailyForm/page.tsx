@@ -55,7 +55,6 @@ export default function DailyForm() {
     },
   });
 
-  // Fetch Animals
   useEffect(() => {
     if (userId) {
       animalService
@@ -71,7 +70,6 @@ export default function DailyForm() {
     }
   }, [userId]);
 
-  // Aggregation Logic
   const totals = useMemo(() => {
     let totalMilk = 0;
     let milkedCows = 0;
@@ -87,7 +85,6 @@ export default function DailyForm() {
     return { totalMilk, milkedCows };
   }, [productionMap]);
 
-  // Update Form Values based on Aggregation
   useEffect(() => {
     setValue("quantity", totals.totalMilk);
     setValue("numAnimals", totals.milkedCows);
@@ -102,7 +99,16 @@ export default function DailyForm() {
     if (!userId) return;
 
     try {
-      await collectionService.create(data, userId);
+      const items = Object.entries(productionMap)
+        .map(([animalId, val]) => ({
+          animalId: Number(animalId),
+          quantity: parseFloat(val) || 0,
+        }))
+        .filter((item) => item.quantity > 0);
+
+      const payload = { ...data, items };
+
+      await collectionService.create(payload, userId);
 
       setModalState({
         isOpen: true,

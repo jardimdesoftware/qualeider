@@ -46,7 +46,9 @@ export class DailyCollectionsService {
 
   async update(id: number, updateDailyCollectionDto: UpdateDailyCollectionDto) {
     await this.findOne(id); 
-    return this.dailyCollectionRepository.update(id, updateDailyCollectionDto);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { items, ...data } = updateDailyCollectionDto;
+    return this.dailyCollectionRepository.update(id, data);
   }
 
   async remove(id: number) {

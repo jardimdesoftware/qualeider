@@ -41,7 +41,6 @@ export function AnimalCollectionCard({
     );
   }
 
-  // Active Card (Green "Saved" View) - ONLY when not focused
   if (showSavedView) {
     return (
       <div className="bg-green-50 rounded-xl shadow-sm border border-green-200 overflow-hidden relative opacity-100 transition-all">
