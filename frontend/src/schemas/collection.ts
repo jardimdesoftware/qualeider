@@ -13,7 +13,11 @@ export const dailyCollectionSchema = z.object({
   numLactation: z.number().min(0, "Número de lactações deve ser preenchido"),
   milkingPlace: z.enum(["Aberto", "Curral", "Ambos"]),
   technicalAssistance: z.boolean(),
-  userId: z.number().optional(), // Set by the component
+  userId: z.number().optional(),
+  items: z.array(z.object({
+    animalId: z.number(),
+    quantity: z.number().min(0),
+  })).optional(),
 });
 
 // ===========================

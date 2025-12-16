@@ -16,4 +16,16 @@ export class DailyCollectionEntity {
   technicalAssistance!: boolean;
   createdAt!: Date;
   updatedAt!: Date;
+  items?: DailyCollectionItem[];
+}
+
+export interface DailyCollectionItem {
+  id: ID;
+  dailyCollectionId: ID;
+  animalId: ID;
+  quantity: number;
+  animal?: {
+    id: ID;
+    name: string;
+  };
 }

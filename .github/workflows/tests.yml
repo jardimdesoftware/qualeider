@@ -44,11 +44,11 @@ jobs:
         working-directory: backend
         run: cp .env.example .env
 
-      - name: Executar migrations
+      - name: Sincronizar schema do banco de dados
         working-directory: backend
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/qualeider_test
-        run: npx prisma migrate deploy
+        run: npx prisma db push --accept-data-loss
 
       - name: Executar testes unitários com cobertura
         working-directory: backend

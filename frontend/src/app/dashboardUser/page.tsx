@@ -14,30 +14,24 @@ const MilkLast7DaysChart = dynamic(() => import("@/components/dashboard/MilkLast
 import { inviteService } from "@/services/inviteService";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { animalService } from "@/services/animalService";
+import { useAuthGuard } from "@/hooks/useAuthGuard";
+
 
 export default function DashboardUser() {
   const router = useRouter();
+  const { userId, isLoading: isAuthLoading } = useAuthGuard("user");
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [dailyCollections, setDailyCollections] = useState<DailyCollection[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [invites, setInvites] = useState<any[]>([]);
 
   useEffect(() => {
-    const token = localStorage.getItem("authToken");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
-    let userId = 0;
-    try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        userId = payload.sub;
-    } catch(e) { console.error(e) }
+    if (!userId) return;
 
     const fetchData = async () => {
       try {
+        const token = localStorage.getItem("authToken"); 
         const headers = { Authorization: `Bearer ${token}` };
 
         const [invitesResult, animalsResult, collectionsResult] = await Promise.allSettled([
@@ -70,12 +64,12 @@ export default function DashboardUser() {
         console.error("Erro ao carregar dados:", err);
         setError("Não foi possível carregar os dados do painel.");
       } finally {
-        setLoading(false);
+        setDataLoading(false);
       }
     };
 
     fetchData();
-  }, [router]);
+  }, [userId]);
 
   const handleInviteResponse = async (token: string, response: 'Accept' | 'Decline') => {
       try {
@@ -176,7 +170,7 @@ export default function DashboardUser() {
     year: "numeric",
   });
 
-  if (loading) {
+  if (isAuthLoading || dataLoading) {
     return <DashboardLoading />;
   }
 

@@ -17,6 +17,16 @@ export interface DailyCollection {
   technicalAssistance: boolean;
   createdAt?: string;
   updatedAt?: string;
+  items?: {
+    id: number;
+    animalId: number;
+    dailyCollectionId: number;
+    quantity: number;
+    animal?: {
+      id: number;
+      name: string;
+    };
+  }[];
 }
 
 export type DailyCollectionCreate = Omit<

@@ -32,6 +32,20 @@ export class DailyCollectionFactory {
       technicalAssistance: false,
       createdAt: timestamp,
       updatedAt: timestamp,
+      items: [
+        {
+          id: 1,
+          dailyCollectionId: id,
+          animalId: 10,
+          quantity: 25.25,
+        },
+        {
+          id: 2,
+          dailyCollectionId: id,
+          animalId: 11,
+          quantity: 25.25,
+        }
+      ],
       ...overrides,
     };
   }
@@ -50,6 +64,16 @@ export class DailyCollectionFactory {
       numLactation: 2,
       milkingPlace: MilkingPlace.Curral,
       technicalAssistance: false,
+      items: [
+        {
+          animalId: 10,
+          quantity: 25.25,
+        },
+        {
+          animalId: 11,
+          quantity: 25.25,
+        }
+      ],
       ...overrides,
       collectionDate: overrides.collectionDate || new Date().toISOString().split('T')[0],
     };

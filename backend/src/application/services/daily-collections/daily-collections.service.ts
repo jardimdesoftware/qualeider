@@ -4,7 +4,6 @@ import { IUserRepository } from '@/domain/repositories/user.repository';
 import { CreateDailyCollectionDto } from '@/application/dtos/daily-collections/create-daily-collection.dto';
 import { UpdateDailyCollectionDto } from '@/application/dtos/daily-collections/update-daily-collection.dto';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
-import { BusinessException } from '@/common/exceptions/business.exception';
 import { DailyCollectionCriteria } from '@/domain/criteria/daily-collection.criteria';
 
 @Injectable()
@@ -46,7 +45,8 @@ export class DailyCollectionsService {
 
   async update(id: number, updateDailyCollectionDto: UpdateDailyCollectionDto) {
     await this.findOne(id); 
-    return this.dailyCollectionRepository.update(id, updateDailyCollectionDto);
+    const { items, ...data } = updateDailyCollectionDto;
+    return this.dailyCollectionRepository.update(id, data);
   }
 
   async remove(id: number) {

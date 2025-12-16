@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { MilkingPlace, Prisma } from '@prisma/client';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
-import { IDailyCollectionRepository, DailyCollectionFindOneOptions } from '@/domain/repositories/daily-collection.repository';
+import { IDailyCollectionRepository, DailyCollectionFindOneOptions, CreateDailyCollectionData } from '@/domain/repositories/daily-collection.repository';
 import { ID } from '@/domain/enums/enums';
 import { DailyCollectionEntity } from '@/domain/entities/daily-collection.entity';
 import { DailyCollectionCriteria } from '@/domain/criteria/daily-collection.criteria';
@@ -12,7 +12,7 @@ import { DailyCollectionMapper } from '@/infrastructure/mappers/daily-collection
 export class PrismaDailyCollectionRepository implements IDailyCollectionRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Omit<DailyCollectionEntity, 'id' | 'createdAt' | 'updatedAt'>): Promise<DailyCollectionEntity> {
+  async create(data: CreateDailyCollectionData): Promise<DailyCollectionEntity> {
     try {
       const created = await this.prisma.dailyCollection.create({
         data: {
@@ -25,7 +25,14 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
           numLactation: data.numLactation,
           milkingPlace: data.milkingPlace as unknown as MilkingPlace,
           technicalAssistance: data.technicalAssistance,
+          items: data.items ? {
+            create: data.items.map((item) => ({
+              animalId: item.animalId,
+              quantity: item.quantity,
+            })),
+          } : undefined,
         },
+        include: { items: true },
       });
       return DailyCollectionMapper.toDomain(created);
     } catch (error) {
@@ -55,7 +62,11 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
       };
     }
 
-    const include: Prisma.DailyCollectionInclude = {};
+    const include: Prisma.DailyCollectionInclude = { 
+      items: {
+        include: { animal: true }
+      } 
+    };
     if (criteria.includeUser) {
       include.user = true;
     }
@@ -70,7 +81,11 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
   }
 
   async findById(id: ID, options?: DailyCollectionFindOneOptions): Promise<DailyCollectionEntity | null> {
-    const include: Prisma.DailyCollectionInclude = {};
+    const include: Prisma.DailyCollectionInclude = { 
+      items: {
+        include: { animal: true }
+      } 
+    };
     
     if (options?.includeUser) {
       include.user = true;
@@ -114,8 +129,13 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
 
   async delete(id: ID): Promise<void> {
     try {
-      await this.prisma.dailyCollection.delete({
-        where: { id },
+      await this.prisma.$transaction(async (prisma) => {
+        await prisma.dailyCollectionItem.deleteMany({
+          where: { dailyCollectionId: id },
+        });
+        await prisma.dailyCollection.delete({
+          where: { id },
+        });
       });
     } catch (error) {
       handlePrismaError(error, {

@@ -10,6 +10,7 @@ export interface DailyCollectionFactoryData {
   milkingPlace?: MilkingPlace;
   technicalAssistance?: boolean;
   collectionDate?: string | Date;
+  items?: { animalId: number; quantity: number }[];
 }
 
 /**
@@ -34,6 +35,10 @@ export class DailyCollectionFactory {
       numLactation: 2,
       milkingPlace: MilkingPlace.Curral,
       technicalAssistance: true,
+      items: [
+        { animalId: 10, quantity: 12.75 },
+        { animalId: 11, quantity: 12.75 }
+      ],
       ...overrides,
       collectionDate: (overrides as any).collectionDate || new Date().toISOString().split('T')[0],
     };

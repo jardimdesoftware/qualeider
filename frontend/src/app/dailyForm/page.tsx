@@ -1,24 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Calendar } from "lucide-react";
+import { Save } from "lucide-react";
 import { Sidebar } from "@/components/layout";
-import { InputField, SelectField, Button, ErrorModal } from "@/components/ui";
+import { ErrorModal } from "@/components/ui";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { MilkingPlace } from "@/interfaces/daily-collection";
-import { dailyCollectionSchema, DailyCollectionData } from "@/schemas/collection";
+import { DailyCollectionData, dailyCollectionSchema } from "@/schemas/collection";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { collectionService } from "@/services/collectionService";
+import { animalService } from "@/services/animalService";
+import { Animal } from "@/interfaces/animal";
 import { getLocalDate, formatDateLongBR } from "@/utils/date";
 import { getFriendlyErrorMessage } from "@/utils/errorMessage";
+import { AnimalCollectionCard } from "./_components/AnimalCollectionCard";
+import { DailyHeader } from "./_components/DailyHeader";
+import { CollectionSummaryModal } from "./_components/CollectionSummaryModal";
 
 export default function DailyForm() {
   const router = useRouter();
+  const { userId, isLoading: isAuthLoading } = useAuthGuard("user");
 
-  const { userId, isLoading } = useAuthGuard("user");
+  const [animals, setAnimals] = useState<Animal[]>([]);
+  const [productionMap, setProductionMap] = useState<Record<number, string>>({});
+  const [isLoadingAnimals, setIsLoadingAnimals] = useState(true);
+  const [isFinalizing, setIsFinalizing] = useState(false);
 
   const [modalState, setModalState] = useState({
     isOpen: false,
@@ -29,6 +38,7 @@ export default function DailyForm() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<DailyCollectionData>({
     resolver: zodResolver(dailyCollectionSchema),
@@ -41,15 +51,73 @@ export default function DailyForm() {
       numLactation: 0,
       milkingPlace: MilkingPlace.Aberto,
       technicalAssistance: false,
-      collectionDate: getLocalDate(), 
+      collectionDate: getLocalDate(),
     },
   });
 
-  const onSubmit = async (data: DailyCollectionData) => {
+  useEffect(() => {
+    if (userId) {
+      animalService
+        .getByUser(userId)
+        .then((data) => {
+          setAnimals(data);
+          setIsLoadingAnimals(false);
+        })
+        .catch((err) => {
+          console.error(err);
+          setIsLoadingAnimals(false);
+        });
+    }
+  }, [userId]);
+
+  const totals = useMemo(() => {
+    let totalMilk = 0;
+    let milkedCows = 0;
+
+    Object.values(productionMap).forEach((val) => {
+      const num = parseFloat(val);
+      if (!isNaN(num) && num > 0) {
+        totalMilk += num;
+        milkedCows++;
+      }
+    });
+
+    return { totalMilk, milkedCows };
+  }, [productionMap]);
+
+  useEffect(() => {
+    setValue("quantity", totals.totalMilk);
+    setValue("numAnimals", totals.milkedCows);
+  }, [totals, setValue]);
+
+  const handleProductionChange = (animalId: number, val: string) => {
+    setProductionMap((prev) => ({ ...prev, [animalId]: val }));
+  };
+
+  const onFinalSubmit = async (data: DailyCollectionData) => {
     if (!userId) return;
 
     try {
-      await collectionService.create(data, userId);
+      const items = Object.entries(productionMap)
+        .map(([animalId, val]) => ({
+          animalId: Number(animalId),
+          quantity: parseFloat(val) || 0,
+        }))
+        .filter((item) => item.quantity > 0);
+
+      if (items.length === 0) {
+        setModalState({
+          isOpen: true,
+          type: "error",
+          message: "Adicione pelo menos um animal com produção para finalizar a coleta.",
+        });
+        setIsFinalizing(false);
+        return;
+      }
+
+      const payload = { ...data, items };
+
+      await collectionService.create(payload, userId);
 
       setModalState({
         isOpen: true,
@@ -68,115 +136,64 @@ export default function DailyForm() {
 
   const displayDate = formatDateLongBR(new Date());
 
-  if (isLoading) {
+  if (isAuthLoading || isLoadingAnimals) {
     return <DashboardLoading />;
   }
 
   return (
     <div className="flex flex-col lg:flex-row bg-[#fdfbf7] min-h-screen">
       <Sidebar />
-      <div className="flex-1 overflow-y-auto">
-        {/* Header */}
-        <header className="bg-white shadow-sm border-b border-slate-200 px-6 md:px-8 py-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl md:text-3xl font-black text-[#1e3a29]">
-              Formulário Diário
-            </h2>
-            <p className="text-slate-500">Registro de Coleta de Leite</p>
-          </div>
-          <div className="flex items-center gap-4 bg-[#fdfbf7] px-4 py-2 rounded-lg border border-slate-200">
-            <div className="text-right hidden md:block">
-              <p className="text-xs text-slate-400 font-bold uppercase">Data</p>
-              <p className="text-[#1e3a29] font-bold">{displayDate}</p>
+      <div className="flex-1 overflow-y-auto pb-24 md:pb-0">
+        
+        <DailyHeader
+          totalMilk={totals.totalMilk}
+          milkedCows={totals.milkedCows}
+          totalAnimals={animals.length}
+          displayDate={displayDate}
+        />
+
+        {/* Animal List */}
+        <div className="p-4 space-y-4 max-w-2xl mx-auto">
+          {animals.length === 0 ? (
+            <div className="text-center text-slate-500 py-10">
+              Nenhum animal cadastrado. Adicione animais para registrar a coleta.
             </div>
-            <Calendar className="w-8 h-8 text-[#d97706]" />
-          </div>
-        </header>
-
-        <div className="p-6 md:p-8 max-w-4xl mx-auto">
-          <div className="bg-white rounded-xl shadow-md border border-slate-100 p-6 md:p-8">
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <InputField
-                  label="Quantidade de Leite (litros)"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  disabled={isSubmitting}
-                  error={errors.quantity?.message}
-                  {...register("quantity", { valueAsNumber: true })}
-                />
-
-                <InputField
-                  label="Número de Animais"
-                  type="number"
-                  min="0"
-                  disabled={isSubmitting}
-                  error={errors.numAnimals?.message}
-                  {...register("numAnimals", { valueAsNumber: true })}
-                />
-
-                <InputField
-                  label="Número de Ordenhas"
-                  type="number"
-                  min="0"
-                  disabled={isSubmitting}
-                  error={errors.numOrdens?.message}
-                  {...register("numOrdens", { valueAsNumber: true })}
-                />
-
-                <InputField
-                  label="Número de Lactações"
-                  type="number"
-                  min="0"
-                  disabled={isSubmitting}
-                  error={errors.numLactation?.message}
-                  {...register("numLactation", { valueAsNumber: true })}
-                />
-              </div>
-
-              <SelectField
-                label="Local de Ordenha"
+          ) : (
+            animals.map((animal) => (
+              <AnimalCollectionCard
+                key={animal.id}
+                animal={animal}
+                value={productionMap[animal.id] || ""}
+                onChange={(val) => handleProductionChange(animal.id, val)}
                 disabled={isSubmitting}
-                error={errors.milkingPlace?.message}
-                {...register("milkingPlace")}
-                options={[
-                  { value: MilkingPlace.Aberto, label: "Aberto" },
-                  { value: MilkingPlace.Curral, label: "Curral" },
-                  { value: MilkingPlace.Ambos, label: "Ambos" },
-                ]}
               />
+            ))
+          )}
+        </div>
 
-              <div className="space-y-4">
-                <CheckboxRow
-                  id="rationProvided"
-                  label="Ração foi fornecida?"
-                  register={register}
-                  disabled={isSubmitting}
-                />
-
-                <CheckboxRow
-                  id="technicalAssistance"
-                  label="Recebeu assistência técnica?"
-                  register={register}
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              <div className="pt-4">
-                <Button
-                  type="submit"
-                  variant="primary"
-                  fullWidth
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? "ENVIANDO..." : "ENVIAR FORMULÁRIO"}
-                </Button>
-              </div>
-            </form>
-          </div>
+        {/* Floating Save Button */}
+        <div className="fixed bottom-6 left-0 w-full px-4 z-30 lg:left-64 lg:w-[calc(100%-16rem)] flex justify-center pointer-events-none">
+          <button
+            type="button"
+            onClick={() => setIsFinalizing(true)}
+            className="w-full max-w-md bg-[#d97706] hover:bg-[#b45309] text-white p-4 rounded-xl shadow-xl font-bold text-lg flex justify-center items-center gap-2 transform active:scale-95 transition-all pointer-events-auto"
+            aria-label="Finalizar e salvar coleta"
+          >
+            <Save className="w-6 h-6" />
+            Finalizar Coleta
+          </button>
         </div>
       </div>
+
+      <CollectionSummaryModal
+        isOpen={isFinalizing}
+        onClose={() => setIsFinalizing(false)}
+        onSubmit={handleSubmit(onFinalSubmit)}
+        totals={totals}
+        register={register}
+        errors={errors}
+        isSubmitting={isSubmitting}
+      />
 
       <ErrorModal
         isOpen={modalState.isOpen}
@@ -193,29 +210,3 @@ export default function DailyForm() {
     </div>
   );
 }
-
-// Helper component for checkbox rows
-interface CheckboxRowProps {
-  id: string;
-  label: string;
-  register: any;
-  disabled: boolean;
-}
-
-const CheckboxRow = ({ id, label, register, disabled }: CheckboxRowProps) => (
-  <div className="flex items-center gap-3">
-    <input
-      type="checkbox"
-      id={id}
-      disabled={disabled}
-      {...register(id)}
-      className="w-5 h-5 text-[#1e3a29] border-gray-300 rounded focus:ring-[#1e3a29]"
-    />
-    <label
-      htmlFor={id}
-      className="text-sm font-medium text-gray-700 cursor-pointer"
-    >
-      {label}
-    </label>
-  </div>
-);
