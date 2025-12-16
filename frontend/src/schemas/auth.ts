@@ -62,6 +62,7 @@ export const forgotPasswordSchema = z.object({
 });
 
 export const resetPasswordSchema = z.object({
+  email: emailRule,
   code: codeRule,
   password: passwordRule,
   confirmPassword: z.string(),

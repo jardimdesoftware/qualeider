@@ -60,20 +60,23 @@ export const authService = {
     return !!authService.getToken();
   },
 
-  /**
-   * Send password reset code to email
-   */
   sendResetCode: async (email: string) => {
-    const { data } = await apiBase.post("/auth/send-reset-code", { email });
+    const { data } = await apiBase.post("/auth/forgot-password", { email });
     return data;
   },
 
-  /**
-   * Reset password with code
-   */
-  resetPassword: async (code: string, newPassword: string) => {
+  validateResetToken: async (email: string, code: string) => {
+    const { data } = await apiBase.post("/auth/validate-reset-token", {
+      email,
+      token: code,
+    });
+    return data;
+  },
+
+  resetPassword: async (email: string, code: string, newPassword: string) => {
     const { data } = await apiBase.post("/auth/reset-password", {
-      code,
+      email,
+      token: code,
       newPassword,
     });
     return data;

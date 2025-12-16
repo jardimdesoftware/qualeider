@@ -1,25 +1,28 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
-import {
-  BrandHeader,
-  ContentCard,
-  InputField,
-  Button,
-  ErrorModal,
-} from "@/components/ui";
+import { BrandHeader, ContentCard, ErrorModal } from "@/components/ui";
 import { PageFooter } from "@/components/layout";
-import { resetPasswordSchema, ResetPasswordData } from "@/schemas/auth";
-import { authService } from "@/services/authService";
 import { getFriendlyErrorMessage } from "@/utils/errorMessage";
+import { VerifyCodeStep } from "./_components/VerifyCodeStep";
+import { NewPasswordStep } from "./_components/NewPasswordStep";
 
-export default function ResetPassword() {
+function ResetPasswordForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const rawEmail = searchParams.get("email");
+  const emailParam = rawEmail ? rawEmail.trim() : "";
+
+  const [step, setStep] = useState<"verify-code" | "reset-password">(
+    "verify-code"
+  );
+  const [resetData, setResetData] = useState<{ email: string; code: string }>({
+    email: "",
+    code: "",
+  });
 
   const [modalState, setModalState] = useState({
     isOpen: false,
@@ -27,32 +30,26 @@ export default function ResetPassword() {
     message: "",
   });
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<ResetPasswordData>({
-    resolver: zodResolver(resetPasswordSchema),
-    mode: "onBlur",
-  });
+  const handleVerifySuccess = (code: string, email: string) => {
+    setResetData({ email, code });
+    setStep("reset-password");
+  };
 
-  const onSubmit = async (data: ResetPasswordData) => {
-    try {
-      await authService.resetPassword(data.code, data.password);
+  const handleResetSuccess = () => {
+    setModalState({
+      isOpen: true,
+      type: "success",
+      message: "Sua senha foi alterada com sucesso. Faça login agora.",
+    });
+  };
 
-      setModalState({
-        isOpen: true,
-        type: "success",
-        message: "Sua senha foi alterada com sucesso. Faça login agora.",
-      });
-    } catch (err) {
-      console.error(err);
-      setModalState({
-        isOpen: true,
-        type: "error",
-        message: getFriendlyErrorMessage(err),
-      });
-    }
+  const handleError = (err: unknown) => {
+    console.error("Erro no processo:", err);
+    setModalState({
+      isOpen: true,
+      type: "error",
+      message: getFriendlyErrorMessage(err),
+    });
   };
 
   const handleModalClose = () => {
@@ -67,69 +64,63 @@ export default function ResetPassword() {
       <ErrorModal
         isOpen={modalState.isOpen}
         onClose={handleModalClose}
-        title={modalState.type === "success" ? "Senha Redefinida!" : "Erro"}
+        title={modalState.type === "success" ? "Sucesso" : "Atenção"}
         message={modalState.message}
         type={modalState.type}
       />
 
-      <ContentCard className="max-w-md">
+      <ContentCard className="max-w-md w-full">
         <BrandHeader
-          title="Nova Senha"
-          subtitle="Digite o código recebido por email"
+          title={step === "verify-code" ? "Verificar Código" : "Nova Senha"}
+          subtitle={
+            step === "verify-code"
+              ? "Confirme o código recebido"
+              : "Crie uma nova senha"
+          }
         />
 
         <div className="p-8 pb-6">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <InputField
-              label="Código de Verificação"
-              type="text"
-              placeholder="000000"
-              disabled={isSubmitting}
-              error={errors.code?.message}
-              {...register("code")}
+          {step === "verify-code" && (
+            <VerifyCodeStep
+              emailParam={emailParam}
+              onVerifySuccess={handleVerifySuccess}
+              onError={handleError}
             />
+          )}
 
-            <InputField
-              label="Nova Senha"
-              showPasswordToggle
-              placeholder="••••••••"
-              disabled={isSubmitting}
-              error={errors.password?.message}
-              {...register("password")}
+          {step === "reset-password" && (
+            <NewPasswordStep
+              email={resetData.email}
+              code={resetData.code}
+              onResetSuccess={handleResetSuccess}
+              onError={handleError}
             />
-
-            <InputField
-              label="Confirmar Senha"
-              showPasswordToggle
-              placeholder="••••••••"
-              disabled={isSubmitting}
-              error={errors.confirmPassword?.message}
-              {...register("confirmPassword")}
-            />
-
-            <Button
-              type="submit"
-              variant="primary"
-              fullWidth
-              disabled={isSubmitting}
-              className="mt-6"
-            >
-              {isSubmitting ? "REDEFININDO..." : "REDEFINIR SENHA"}
-            </Button>
-          </form>
+          )}
 
           <div className="mt-6 text-center">
-            <Link
-              href="/login"
+            <button
+              onClick={() => router.push("/login")}
               className="text-brand-primary hover:text-brand-primary-hover font-semibold text-sm transition-colors"
             >
               Voltar ao Login
-            </Link>
+            </button>
           </div>
         </div>
 
         <PageFooter />
       </ContentCard>
     </main>
+  );
+}
+
+export default function ResetPassword() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex justify-center p-10">Carregando formulário...</div>
+      }
+    >
+      <ResetPasswordForm />
+    </Suspense>
   );
 }
