@@ -62,7 +62,11 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
       };
     }
 
-    const include: Prisma.DailyCollectionInclude = { items: true };
+    const include: Prisma.DailyCollectionInclude = { 
+      items: {
+        include: { animal: true }
+      } 
+    };
     if (criteria.includeUser) {
       include.user = true;
     }
@@ -77,7 +81,11 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
   }
 
   async findById(id: ID, options?: DailyCollectionFindOneOptions): Promise<DailyCollectionEntity | null> {
-    const include: Prisma.DailyCollectionInclude = { items: true };
+    const include: Prisma.DailyCollectionInclude = { 
+      items: {
+        include: { animal: true }
+      } 
+    };
     
     if (options?.includeUser) {
       include.user = true;

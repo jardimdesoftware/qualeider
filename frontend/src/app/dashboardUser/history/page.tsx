@@ -6,11 +6,14 @@ import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { collectionService } from "@/services/collectionService";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { FileText } from "lucide-react";
+import { CollectionDetailsModal } from "./_components/CollectionDetailsModal";
 
 export default function CollectionHistory() {
   const { userId, isLoading: authLoading } = useAuthGuard("user");
   const [loading, setLoading] = useState(true);
   const [collections, setCollections] = useState<any[]>([]);
+
+  const [selectedCollection, setSelectedCollection] = useState<any | null>(null);
 
   useEffect(() => {
     if (userId) {
@@ -59,14 +62,15 @@ export default function CollectionHistory() {
                   <tr className="bg-gray-50 border-b border-gray-100 text-xs uppercase text-gray-500 font-semibold tracking-wider">
                     <th className="px-6 py-4">Data</th>
                     <th className="px-6 py-4">Quantidade (L)</th>
-                    <th className="px-6 py-4">Período</th>
+                    <th className="px-6 py-4">Animais</th>
                     <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {collections.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
+                      <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
                         Nenhuma coleta registrada.
                       </td>
                     </tr>
@@ -80,16 +84,20 @@ export default function CollectionHistory() {
                           {item.quantity} L
                         </td>
                          <td className="px-6 py-4 text-gray-600">
-                          {/* Assuming period or similar field exists, or we default to '-' if not in DTO yet. 
-                              Checking DailyCollectionController, it saves quantity and likely date. 
-                              If we don't have period, we can skip or show time. 
-                              Let's verify model fields if possible, or just default. */}
-                           -
+                           {item.numAnimals}
                         </td>
                         <td className="px-6 py-4">
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                             Recebido
                           </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <button
+                            onClick={() => setSelectedCollection(item)}
+                            className="text-sm font-medium text-[#d97706] hover:text-[#b45309] hover:underline"
+                          >
+                            Ver Detalhes
+                          </button>
                         </td>
                       </tr>
                     ))
@@ -100,6 +108,12 @@ export default function CollectionHistory() {
           </div>
         </div>
       </div>
+
+      <CollectionDetailsModal 
+        isOpen={!!selectedCollection}
+        onClose={() => setSelectedCollection(null)}
+        collection={selectedCollection}
+      />
     </div>
   );
 }

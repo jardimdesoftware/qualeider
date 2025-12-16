@@ -24,4 +24,8 @@ export interface DailyCollectionItem {
   dailyCollectionId: ID;
   animalId: ID;
   quantity: number;
+  animal?: {
+    id: ID;
+    name: string;
+  };
 }
