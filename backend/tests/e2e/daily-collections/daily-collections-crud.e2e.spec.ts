@@ -1,13 +1,16 @@
 import { setupE2ETests, teardownE2ETests } from '../setup';
 import { TestApp, AuthHelper } from '../helpers';
 import { MilkingPlace } from '@/domain/enums/enums';
-import { UserFactory, DailyCollectionFactory } from '../factories';
+import { UserFactory, DailyCollectionFactory, AnimalFactory } from '../factories';
+import { AnimalsService } from '@/application/services/animals/animals.service';
 
 describe('E2E: Coletas Diárias - Operações CRUD', () => {
   let testApp: TestApp;
   let authHelper: AuthHelper;
   let userToken: string;
   let userId: number;
+  let animal1Id: number;
+  let animal2Id: number;
 
   beforeAll(async () => {
     await setupE2ETests();
@@ -23,6 +26,17 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
     const user = await authHelper.createUserAndLogin(userData);
     userToken = user.token;
     userId = user.user.id;
+
+    // Create animals for testing
+    const animalsService = testApp.getApp().get(AnimalsService);
+    const animal1Data = AnimalFactory.build({ userId }) as any;
+    const animal2Data = AnimalFactory.build({ userId }) as any;
+    
+    const animal1 = await animalsService.create(animal1Data);
+    const animal2 = await animalsService.create(animal2Data);
+    
+    animal1Id = animal1.id;
+    animal2Id = animal2.id;
   });
 
   afterAll(async () => {
@@ -30,10 +44,20 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
     await teardownE2ETests();
   });
 
+  const buildCollectionWithValidItems = (overrides: any = {}) => {
+    return DailyCollectionFactory.build({
+      userId,
+      items: [
+        { animalId: animal1Id, quantity: 15 },
+        { animalId: animal2Id, quantity: 15 }
+      ],
+      ...overrides
+    });
+  };
+
   describe('POST /daily-collections (Criar)', () => {
     it('deve criar uma nova coleta com dados válidos', async () => {
-      const collectionData = DailyCollectionFactory.build({
-        userId,
+      const collectionData = buildCollectionWithValidItems({
         quantity: 30,
         numAnimals: 6,
         numOrdens: 2,
@@ -42,7 +66,6 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
         milkingPlace: MilkingPlace.Curral,
         technicalAssistance: true,
       });
-
 
 
       const response = await testApp
@@ -66,8 +89,9 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
     });
 
     it('deve criar coleta com assistência técnica', async () => {
-      const collectionData = DailyCollectionFactory.buildWithAssistance({
-        userId,
+      const collectionData = buildCollectionWithValidItems({
+        technicalAssistance: true,
+        rationProvided: true
       });
 
       const response = await testApp
@@ -81,8 +105,9 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
     });
 
     it('deve criar coleta sem assistência técnica', async () => {
-      const collectionData = DailyCollectionFactory.buildWithoutAssistance({
-        userId,
+      const collectionData = buildCollectionWithValidItems({
+        technicalAssistance: false,
+        rationProvided: false
       });
 
       const response = await testApp
@@ -103,8 +128,7 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
       ];
 
       for (const place of places) {
-        const collectionData = DailyCollectionFactory.build({
-          userId,
+        const collectionData = buildCollectionWithValidItems({
           milkingPlace: place,
         });
 
@@ -119,7 +143,7 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
     });
 
     it('deve retornar 404 com userId inexistente', async () => {
-      const collectionData = DailyCollectionFactory.build({
+      const collectionData = buildCollectionWithValidItems({
         userId: 99999,
       });
 
@@ -189,7 +213,7 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
 
   describe('GET /daily-collections/:id (Buscar por ID)', () => {
     it('deve buscar coleta por ID', async () => {
-      const collectionData = DailyCollectionFactory.build({ userId });
+      const collectionData = buildCollectionWithValidItems({ userId });
       const created = await testApp
         .request()
         .post('/daily-collections')
@@ -214,7 +238,7 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
 
   describe('PUT /daily-collections/:id (Atualizar)', () => {
     it('deve atualizar coleta com dados válidos', async () => {
-      const collectionData = DailyCollectionFactory.build({
+      const collectionData = buildCollectionWithValidItems({
         userId,
         quantity: 20,
       });
@@ -232,6 +256,10 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
         .send({
           quantity: 35,
           numAnimals: 8,
+          userId, // Important: pass userId to authorization check if needed
+          items: [
+            { animalId: animal1Id, quantity: 35 } // Only 1 animal contributing 35
+          ]
         })
         .expect(200);
 
@@ -255,7 +283,7 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
 
   describe('DELETE /daily-collections/:id (Deletar)', () => {
     it('deve deletar coleta com sucesso', async () => {
-      const collectionData = DailyCollectionFactory.build({
+      const collectionData = buildCollectionWithValidItems({
         userId,
       });
       const created = await testApp

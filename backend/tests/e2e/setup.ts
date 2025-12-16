@@ -24,12 +24,19 @@ export async function teardownE2ETests(): Promise<void> {
  */
 export async function cleanDatabase(): Promise<void> {
   try {
-    await prisma.dailyCollection.deleteMany();
+    await Promise.all([
+      prisma.dailyCollectionItem.deleteMany(),
+      prisma.notificationRecipient.deleteMany(),
+    ]);
+
+    await Promise.all([
+      prisma.dailyCollection.deleteMany(),
+      prisma.notification.deleteMany(),
+    ]);
 
     await Promise.all([
       prisma.animal.deleteMany(),
       prisma.invite.deleteMany(),
-      prisma.notification.deleteMany(),
     ]);
 
     await Promise.all([
