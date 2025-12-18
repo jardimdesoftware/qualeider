@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Cat, Settings, LogOut, Bell } from "lucide-react";
+import { LayoutDashboard, Users, Cat, Settings, LogOut, Bell, BarChart3 } from "lucide-react";
 import { associationService } from "@/services/associationService";
 
 export function AssociationSidebar() {
@@ -92,6 +92,18 @@ export function AssociationSidebar() {
         >
           <Cat className={`w-5 h-5 ${pathname === "/dashboardAssociation/herd" ? "text-[#d97706]" : "group-hover:text-[#d97706] transition-colors"}`} />
           <span className="font-medium">Rebanho Regional</span>
+        </Link>
+
+        <Link
+          href="/dashboardAssociation/reports"
+          className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all group ${
+            pathname === "/dashboardAssociation/reports"
+              ? "bg-[#fff7ed] text-[#d97706] border-l-4 border-[#d97706] font-bold"
+              : "text-slate-600 hover:bg-slate-50 hover:text-[#1e3a29]"
+          }`}
+        >
+          <BarChart3 className={`w-5 h-5 ${pathname === "/dashboardAssociation/reports" ? "text-[#d97706]" : "group-hover:text-[#d97706] transition-colors"}`} />
+          <span className="font-medium">Relatórios</span>
         </Link>
         
         <Link

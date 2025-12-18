@@ -88,7 +88,6 @@ export class PrismaAssociationRepository implements IAssociationRepository {
     const data = associates.map((associate) => ({
       id: associate.id,
       name: associate.name,
-      farmName: 'Fazenda padrão', // Placeholder as not in schema
       city: associate.city,
       state: associate.state,
       status: associate.status,
@@ -246,6 +245,114 @@ export class PrismaAssociationRepository implements IAssociationRepository {
     };
   }
 
+  async getProducerRanking(associationId: number, startDate?: Date, endDate?: Date): Promise<any[]> {
+    const end = endDate || new Date();
+    const start = startDate || new Date();
+    if (!startDate) {
+      start.setDate(end.getDate() - 30);
+    }
+
+    const producers = await this.prisma.user.findMany({
+      where: { associationId },
+      include: {
+        _count: {
+          select: { animals: true },
+        },
+        dailyCollections: {
+          where: {
+            collectionDate: {
+              gte: start,
+              lte: end,
+            },
+          },
+        },
+      },
+    });
+
+    const producersWithMetrics = producers.map(producer => {
+      const totalProduction = producer.dailyCollections.reduce(
+        (sum, collection) => sum + (collection.quantity || 0),
+        0
+      );
+
+      const daysDiff = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+      const avgProductionPerDay = totalProduction / daysDiff;
+
+      return {
+        id: producer.id,
+        name: producer.name,
+        city: producer.city,
+        state: producer.state,
+        totalProduction,
+        animalsCount: producer._count.animals,
+        avgProductionPerDay,
+      };
+    });
+
+    const ranked = producersWithMetrics
+      .sort((a, b) => b.totalProduction - a.totalProduction)
+      .map((producer, index) => ({
+        ...producer,
+        rank: index + 1,
+      }));
+
+    return ranked;
+  }
+
+  async getMonthlyReport(associationId: number, year: number, month: number): Promise<any> {
+    const startOfMonth = new Date(year, month - 1, 1);
+    const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
+
+    const productionAgg = await this.prisma.dailyCollection.aggregate({
+      _sum: { quantity: true },
+      _count: { id: true },
+      where: {
+        user: { associationId },
+        collectionDate: {
+          gte: startOfMonth,
+          lte: endOfMonth,
+        },
+      },
+    });
+
+    const totalProduction = productionAgg._sum.quantity || 0;
+    const totalCollections = productionAgg._count.id;
+
+    const activeProducers = await this.prisma.user.count({
+      where: {
+        associationId,
+        dailyCollections: {
+          some: {
+            collectionDate: {
+              gte: startOfMonth,
+              lte: endOfMonth,
+            },
+          },
+        },
+      },
+    });
+
+    const totalAnimals = await this.prisma.animal.count({
+      where: {
+        user: { associationId },
+        status: 'Active',
+      },
+    });
+
+    const averagePerProducer = activeProducers > 0 ? totalProduction / activeProducers : 0;
+    const avgPerAnimal = totalAnimals > 0 ? totalProduction / totalAnimals : 0;
+
+    return {
+      month: `${month.toString().padStart(2, '0')}/${year}`,
+      totalProduction,
+      totalProducers: activeProducers,
+      averagePerProducer,
+      totalAnimals,
+      totalCollections,
+      avgPerAnimal,
+    };
+  }
+
   async findAvailableProducers(): Promise<any[]> {
     const producers = await this.prisma.user.findMany({
       where: {
@@ -264,7 +371,6 @@ export class PrismaAssociationRepository implements IAssociationRepository {
         name: p.name,
         city: p.city,
         state: p.state,
-        farmName: 'Fazenda padrão'
     }));
   }
 
@@ -278,7 +384,6 @@ export class PrismaAssociationRepository implements IAssociationRepository {
   async update(id: number, data: Partial<AssociationEntity>): Promise<AssociationEntity> {
     const { ...updateData } = data;
 
-    // Handle foundationDate conversion if present
     if (data.foundationDate) {
         (updateData as any).foundationDate = new Date(data.foundationDate);
     }

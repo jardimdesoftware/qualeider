@@ -9,8 +9,10 @@ export interface IAssociationRepository {
   findByEmail(email: string): Promise<AssociationEntity | null>;
   findByCnpj(cnpj: string): Promise<AssociationEntity | null>;
   findById(id: number): Promise<AssociationEntity | null>;
-  findAssociates(associationId: number, options: { page: number; limit: number }): Promise<{ data: any[]; total: number }>; // Returns { data: AssociateSummaryDto[], total: number }
-  getHerdStats(associationId: number): Promise<any>; // Returns RegionalHerdStatsDto
+  findAssociates(associationId: number, options: { page: number; limit: number }): Promise<{ data: any[]; total: number }>;
+  getHerdStats(associationId: number): Promise<any>;
+  getProducerRanking(associationId: number, startDate?: Date, endDate?: Date): Promise<any[]>;
+  getMonthlyReport(associationId: number, year: number, month: number): Promise<any>;
   findAvailableProducers(): Promise<any[]>;
   linkProducer(userId: number, associationId: number): Promise<void>;
   update(id: number, data: Partial<AssociationEntity>): Promise<AssociationEntity>;

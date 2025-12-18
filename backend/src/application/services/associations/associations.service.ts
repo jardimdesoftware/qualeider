@@ -113,4 +113,12 @@ export class AssociationsService {
       const updated = await this.associationRepository.update(id, updateData);
       return this.removePassword(updated);
   }
+
+  async getProducerRanking(associationId: number, startDate?: Date, endDate?: Date) {
+    return this.associationRepository.getProducerRanking(associationId, startDate, endDate);
+  }
+
+  async getMonthlyReport(associationId: number, year: number, month: number) {
+    return this.associationRepository.getMonthlyReport(associationId, year, month);
+  }
 }

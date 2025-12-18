@@ -117,6 +117,30 @@ export class AssociationsController {
     return this.associationsService.getHerdStats(associationId);
   }
 
+  @Get('reports/producer-ranking')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Obter ranking de produtores por produção' })
+  @ApiQuery({ name: 'startDate', required: false, type: String, description: 'Data de início (ISO)' })
+  @ApiQuery({ name: 'endDate', required: false, type: String, description: 'Data de fim (ISO)' })
+  @ApiResponse({ status: 200, description: 'Ranking retornado com sucesso.' })
+  async getProducerRanking(@Req() req, @Query('startDate') startDate?: string, @Query('endDate') endDate?: string) {
+    const associationId = req.user.id;
+    const start = startDate ? new Date(startDate) : undefined;
+    const end = endDate ? new Date(endDate) : undefined;
+    return this.associationsService.getProducerRanking(associationId, start, end);
+  }
+
+  @Get('reports/monthly')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Obter relatório mensal agregado' })
+  @ApiQuery({ name: 'year', required: true, type: Number, description: 'Ano' })
+  @ApiQuery({ name: 'month', required: true, type: Number, description: 'Mês (1-12)' })
+  @ApiResponse({ status: 200, description: 'Relatório mensal retornado com sucesso.' })
+  async getMonthlyReport(@Req() req, @Query('year') year: number, @Query('month') month: number) {
+    const associationId = req.user.id;
+    return this.associationsService.getMonthlyReport(associationId, Number(year), Number(month));
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Buscar associação por ID' })
   @ApiResponse({ status: 200, description: 'Associação encontrada.' })
