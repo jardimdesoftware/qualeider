@@ -50,7 +50,7 @@ function EditAnimalContent() {
         const animal = await animalService.getById(animalId);
         reset({
           name: animal.name,
-          animalType: animal.animalType as AnimalType,
+          animalType: animal.animalType,
           breed: animal.breed,
           age: animal.age,
         });

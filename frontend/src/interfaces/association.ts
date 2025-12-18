@@ -44,3 +44,32 @@ export type CreateAssociationDto = Omit<
 > & {
   password: string;
 };
+
+export interface AssociateResponse {
+  data: {
+    id: number;
+    name: string;
+    city: string;
+    state: string;
+    status: string;
+    animalsCount: number;
+    dailyProduction: number | null;
+    lastAccess: Date | null;
+  }[];
+  total: number;
+}
+
+export interface HerdStats {
+  totalAnimals: number;
+  activeAnimals: number;
+  avgMilkPerAnimal: number;
+  totalMilkProduction: number;
+  dailyHistory: {
+    date: string;
+    production: number;
+  }[];
+  breedDistribution: {
+    breed: string;
+    count: number;
+  }[];
+}

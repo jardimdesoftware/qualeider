@@ -1,12 +1,11 @@
 import { apiBase } from "./baseApi";
 import { AssociationData } from "@/schemas/registration";
 import { cleanDocument } from "@/utils/masks";
+import { User } from "@/interfaces/user";
+import { AssociateResponse, HerdStats, Association } from "@/interfaces/association";
 
 export const associationService = {
-  /**
-   * Create a new association
-   */
-  create: async (data: AssociationData) => {
+  create: async (data: AssociationData): Promise<Association> => {
     const payload = {
       ...data,
       cnpj: cleanDocument(data.cnpj),
@@ -18,9 +17,6 @@ export const associationService = {
     return response.data;
   },
 
-  /**
- * Check if email already exists
-   */
   checkEmail: async (email: string): Promise<boolean> => {
     const { data } = await apiBase.get<{ exists: boolean }>(
       "/associations/check-email",
@@ -29,9 +25,6 @@ export const associationService = {
     return data.exists;
   },
 
-  /**
-   * Check if CNPJ already exists
-   */
   checkCnpj: async (cnpj: string): Promise<boolean> => {
     const cleanCnpj = cleanDocument(cnpj);
     const { data } = await apiBase.get<{ exists: boolean }>(
@@ -41,59 +34,33 @@ export const associationService = {
     return data.exists;
   },
 
-  /**
-   * Find association by ID
-   */
-  findById: async (id: number) => {
+  findById: async (id: number): Promise<Association> => {
     const { data } = await apiBase.get(`/associations/${id}`);
     return data;
   },
 
-  /**
-   * Get list of associates with metrics
-   */
-  getAssociates: async (page = 1, limit = 10): Promise<{ data: any[], total: number }> => {
-    const token = localStorage.getItem("authToken");
-    const { data } = await apiBase.get("/associations/metrics/associates", {
-      headers: { Authorization: `Bearer ${token}` },
+  getAssociates: async (page = 1, limit = 10): Promise<AssociateResponse> => {
+    const { data } = await apiBase.get<AssociateResponse>("/associations/metrics/associates", {
       params: { page, limit }
     });
     return data;
   },
 
-  /**
-   * Get regional herd stats
-   */
-  getHerdStats: async (): Promise<any> => {
-    const token = localStorage.getItem("authToken");
-    const { data } = await apiBase.get("/associations/metrics/herd", {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+  getHerdStats: async (): Promise<HerdStats> => {
+    const { data } = await apiBase.get<HerdStats>("/associations/metrics/herd");
     return data;
   },
 
-  getAvailableProducers: async (): Promise<any[]> => {
-    const token = localStorage.getItem("authToken");
-    const { data } = await apiBase.get("/associations/available-producers", {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+  getAvailableProducers: async (): Promise<User[]> => {
+    const { data } = await apiBase.get<User[]>("/associations/available-producers");
     return data;
   },
 
   inviteProducer: async (userId: number): Promise<void> => {
-    const token = localStorage.getItem("authToken");
-    await apiBase.post("/associations/invite", { userId }, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    await apiBase.post("/associations/invite", { userId });
   },
 
-  /**
-   * Update association data
-   */
-  update: async (id: number, data: any): Promise<void> => {
-    const token = localStorage.getItem("authToken");
-    await apiBase.patch(`/associations/${id}`, data, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+  update: async (id: number, updateData: Partial<Association>): Promise<void> => {
+    await apiBase.patch(`/associations/${id}`, updateData);
   },
 };

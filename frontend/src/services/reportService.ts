@@ -1,45 +1,23 @@
-import { apiBase } from './baseApi';
-import { ProducerRanking, MonthlyReport } from '@/interfaces/report';
+import { apiBase } from "./baseApi";
+import { ProducerRanking, MonthlyReport } from "@/interfaces/report";
 
 export const reportService = {
   async getProducerRanking(startDate?: string, endDate?: string): Promise<ProducerRanking[]> {
-    const params = new URLSearchParams();
-    if (startDate) params.append('startDate', startDate);
-    if (endDate) params.append('endDate', endDate);
-    
-    const query = params.toString();
-    const url = `/associations/reports/producer-ranking${query ? `?${query}` : ''}`;
-    
-    const response = await fetch(`${apiBase}${url}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        'Content-Type': 'application/json',
-      },
+    const params = { startDate, endDate };
+
+    const { data } = await apiBase.get<ProducerRanking[]>("/associations/reports/producer-ranking", {
+      params,
     });
 
-    if (!response.ok) {
-      throw new Error('Erro ao buscar ranking de produtores');
-    }
-
-    return response.json();
+    return data;
   },
 
   async getMonthlyReport(year: number, month: number): Promise<MonthlyReport> {
-    const response = await fetch(
-      `${apiBase}/associations/reports/monthly?year=${year}&month=${month}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    const { data } = await apiBase.get<MonthlyReport>("/associations/reports/monthly", {
+      params: { year, month },
+    });
 
-    if (!response.ok) {
-      throw new Error('Erro ao buscar relatório mensal');
-    }
-
-    return response.json();
+    return data;
   },
 
   async getCurrentMonthReport(): Promise<MonthlyReport> {

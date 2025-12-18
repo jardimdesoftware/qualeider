@@ -1,4 +1,4 @@
-import { apiBase } from "./baseApi";
+import { apiBase, STORAGE_KEY } from "./baseApi";
 import { jwtDecode } from "jwt-decode";
 
 interface TokenPayload {
@@ -29,7 +29,7 @@ export const authService = {
     }
 
     // Salva o token
-    localStorage.setItem("authToken", token);
+    localStorage.setItem(STORAGE_KEY, token);
 
     // Decodifica para saber quem é o usuário
     const payload = jwtDecode<TokenPayload>(token);
@@ -38,11 +38,11 @@ export const authService = {
   },
 
   logout: () => {
-    localStorage.removeItem("authToken");
+    localStorage.removeItem(STORAGE_KEY);
   },
 
   getToken: (): string | null => {
-    return localStorage.getItem("authToken");
+    return localStorage.getItem(STORAGE_KEY);
   },
 
   getPayload: (): TokenPayload | null => {

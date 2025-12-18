@@ -3,26 +3,15 @@
 import { useEffect, useState } from "react";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { notificationService } from "@/services/notificationService";
+import { UserNotification } from "@/interfaces/notification";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { Bell, CheckCircle, MailOpen } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-interface NotificationDisplay {
-  id: number;
-  notification: {
-    subject: string;
-    message: string;
-    createdAt: string;
-  };
-  read: boolean;
-  readAt: string | null;
-  createdAt: string;
-}
-
 export default function UserNotificationsPage() {
   const { userId, isLoading: authLoading } = useAuthGuard("user");
-  const [notifications, setNotifications] = useState<NotificationDisplay[]>([]);
+  const [notifications, setNotifications] = useState<UserNotification[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

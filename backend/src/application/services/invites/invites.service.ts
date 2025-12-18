@@ -65,9 +65,6 @@ export class InvitesService {
     return { user, association };
   }
 
-  /**
-   * Associação envia convite para um usuário
-   */
   async createInvite(associationId: number, dto: CreateInviteDto) {
     const { user, association } = await this.validateInvitePrerequisites(
       associationId,
@@ -106,9 +103,6 @@ export class InvitesService {
     };
   }
 
-  /**
-   * Usuário aceita ou recusa convite via token
-   */
   async respondToInvite(token: string, response: InviteAction) {
     const invite = await this.inviteRepository.findByToken(token, {
       includeUser: true,

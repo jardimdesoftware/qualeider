@@ -42,7 +42,14 @@ export default function AddAnimal() {
   const selectedAnimalType = watch("animalType");
 
   const onSubmit = async (data: AnimalData) => {
-    if (!userId) return;
+    if (!userId || typeof userId !== 'number') {
+      setModalState({
+        isOpen: true,
+        type: "error",
+        message: "Erro de autenticação. Por favor, faça login novamente.",
+      });
+      return;
+    }
     
     try {
       await animalService.create(data, userId);
