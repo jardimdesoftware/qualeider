@@ -16,7 +16,7 @@ export const createTestingModule = async (
  * Helper para criar um mock de repositório com métodos padrão
  * Útil para mockar IUserRepository, IAnimalRepository, etc.
  */
-export const mockRepository = <T>() => ({
+export const mockRepository = () => ({
   create: jest.fn(),
   findAllActive: jest.fn(),
   findById: jest.fn(),

@@ -1,11 +1,10 @@
 import { setupE2ETests, teardownE2ETests } from '../setup';
-import { TestApp, AuthHelper } from '../helpers';
+import { TestApp } from '../helpers';
 import { AssociationFactory, UserFactory, AnimalFactory, DailyCollectionFactory } from '../factories';
 import { HttpStatus } from '@nestjs/common';
 
 describe('E2E: Associations - Relatórios', () => {
   let testApp: TestApp;
-  let authHelper: AuthHelper;
   let associationToken: string;
   let associationId: number;
   let producer1Id: number;
@@ -19,7 +18,6 @@ describe('E2E: Associations - Relatórios', () => {
     await setupE2ETests();
     testApp = new TestApp();
     await testApp.setup();
-    authHelper = new AuthHelper(testApp);
 
     // FIX: Estabelecer datas fixas no meio do dia para evitar problemas de Timezone/Borda
     globalToday = new Date();

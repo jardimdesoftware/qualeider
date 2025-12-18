@@ -8,8 +8,8 @@ import { HttpExceptionFilter } from '@/common/filters/http-exception.filter';
 import { PrismaExceptionFilter } from '@/common/filters/prisma-exception.filter';
 
 export class TestApp {
-  private app: INestApplication;
-  private moduleRef: TestingModule;
+  private app!: INestApplication;
+  private moduleRef!: TestingModule;
 
   async setup(): Promise<INestApplication> {
     // Define que estamos em modo de teste estrito (limites baixos)

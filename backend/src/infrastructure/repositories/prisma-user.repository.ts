@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { IUserRepository } from '@/domain/repositories/user.repository';
-import { ID, Status } from '@/domain/enums/enums';
+import { ID } from '@/domain/enums/enums';
 import { UserEntity } from '@/domain/entities/user.entity';
 import { UserCriteria } from '@/domain/criteria/user.criteria';
 import { handlePrismaError, PrismaErrorCode } from '@/common/utils/prisma-error-handler';

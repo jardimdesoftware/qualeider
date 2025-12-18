@@ -3,7 +3,6 @@ import {
   Post,
   Body,
   HttpCode,
-  Req,
   HttpStatus,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
@@ -14,7 +13,6 @@ import { ForgotPasswordDto } from '@/application/dtos/auth/forgot-password.dto';
 import { ResetPasswordDto } from '@/application/dtos/auth/reset-password.dto';
 import { ValidateTokenDto } from '@/application/dtos/auth/validate-token.dto';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Request } from 'express';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -52,9 +50,8 @@ export class AuthController {
   @ApiResponse({ status: 404, description: 'Usuário não encontrado.' })
   async forgotPassword(
     @Body() forgotPasswordDto: ForgotPasswordDto,
-    @Req() request: Request,
   ) {
-    await this.authService.forgotPassword(forgotPasswordDto.email, request);
+    await this.authService.forgotPassword(forgotPasswordDto.email);
 
     return {
       statusCode: HttpStatus.OK,
@@ -69,7 +66,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Token válido.' })
   @ApiResponse({ status: 401, description: 'Token inválido ou expirado.' })
   async validateResetToken(@Body() dto: ValidateTokenDto) {
-    const isValid = await this.authService.validateResetToken(
+    await this.authService.validateResetToken(
       dto.email,
       dto.token,
     );

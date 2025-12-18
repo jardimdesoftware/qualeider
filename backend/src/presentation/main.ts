@@ -74,7 +74,6 @@ function getAppPort(configService: ConfigService): number {
  */
 async function logAppStatus(
   app: INestApplication,
-  port: number,
   corsOptions: CorsOptions,
 ): Promise<void> {
   const appUrl = await app.getUrl();
@@ -136,7 +135,7 @@ async function bootstrap() {
   await app.listen(port, '0.0.0.0');
 
   // 5. Logar o status da aplicação
-  await logAppStatus(app, port, corsOptions);
+  await logAppStatus(app, corsOptions);
 }
 
 bootstrap();

@@ -256,7 +256,7 @@ describe('AuthService', () => {
       (userRepository.findByEmail as jest.Mock).mockResolvedValue(mockUser);
 
       let capturedToken: string = '';
-      (userRepository.update as jest.Mock).mockImplementation((id, data) => {
+      (userRepository.update as jest.Mock).mockImplementation((_id, data) => {
         capturedToken = data.resetToken;
         return Promise.resolve({ ...mockUser, ...data });
       });
@@ -294,7 +294,7 @@ describe('AuthService', () => {
       (userRepository.findByEmail as jest.Mock).mockResolvedValue(mockUser);
 
       let capturedExpiry: Date;
-      (userRepository.update as jest.Mock).mockImplementation((id, data) => {
+      (userRepository.update as jest.Mock).mockImplementation((_id, data) => {
         capturedExpiry = data.resetTokenExpiry;
         return Promise.resolve({ ...mockUser, ...data });
       });
@@ -350,7 +350,7 @@ describe('AuthService', () => {
       (userRepository.findByEmail as jest.Mock).mockResolvedValue(mockUser);
 
       let capturedExpiry: Date;
-      (userRepository.update as jest.Mock).mockImplementation((id, data) => {
+      (userRepository.update as jest.Mock).mockImplementation((_id, data) => {
         capturedExpiry = data.resetTokenExpiry;
         return Promise.resolve({ ...mockUser, ...data });
       });

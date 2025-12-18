@@ -7,7 +7,6 @@ import { ForgotPasswordDto } from '@/application/dtos/auth/forgot-password.dto';
 import { ResetPasswordDto } from '@/application/dtos/auth/reset-password.dto';
 import { ValidateTokenDto } from '@/application/dtos/auth/validate-token.dto';
 import { createUser } from '../../../factories/user.factory';
-import { Request } from 'express';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 
 describe('AuthController', () => {
@@ -88,21 +87,14 @@ describe('AuthController', () => {
         email: 'user@example.com',
       };
 
-      const mockRequest = {
-        protocol: 'https',
-        get: jest.fn().mockReturnValue('app.example.com'),
-      } as unknown as Request;
-
       mockAuthService.forgotPassword.mockResolvedValue(undefined);
 
       const result = await controller.forgotPassword(
         forgotPasswordDto,
-        mockRequest,
       );
 
       expect(authService.forgotPassword).toHaveBeenCalledWith(
         forgotPasswordDto.email,
-        mockRequest,
       );
       
       expect(result).toEqual({
@@ -115,13 +107,12 @@ describe('AuthController', () => {
       const forgotPasswordDto: ForgotPasswordDto = {
         email: 'nonexistent@example.com',
       };
-      const mockRequest = {} as Request;
       const error = new EntityNotFoundException('Usuário não encontrado.');
       
       mockAuthService.forgotPassword.mockRejectedValue(error);
 
       await expect(
-        controller.forgotPassword(forgotPasswordDto, mockRequest),
+        controller.forgotPassword(forgotPasswordDto),
       ).rejects.toThrow(EntityNotFoundException);
     });
   });

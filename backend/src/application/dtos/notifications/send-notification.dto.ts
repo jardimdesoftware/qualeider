@@ -17,12 +17,12 @@ export class SendNotificationDto {
   @IsEnum(NotificationType, {
     message: 'O tipo deve ser individual ou collective',
   })
-  type: NotificationType;
+  type!: NotificationType;
 
   @ApiProperty({ example: 1 })
   @IsNotEmpty()
   @IsInt()
-  associationId: number;
+  associationId!: number;
 
   @ApiProperty({
     example: [1, 2, 3],
@@ -39,13 +39,13 @@ export class SendNotificationDto {
   @IsNotEmpty()
   @IsString()
   @MinLength(3)
-  subject: string;
+  subject!: string;
 
   @ApiProperty({ example: 'Lembre-se de registrar a coleta...' })
   @IsNotEmpty()
   @IsString()
   @MinLength(10)
-  message: string;
+  message!: string;
 
   @ApiProperty({ required: false, example: 'default-template' })
   @IsOptional()

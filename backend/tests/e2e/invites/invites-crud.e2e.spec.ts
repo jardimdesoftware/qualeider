@@ -7,7 +7,6 @@ describe('E2E: Convites - Operações CRUD', () => {
   let testApp: TestApp;
   let authHelper: AuthHelper;
   let adminToken: string;
-  let commonToken: string;
   let commonUser: any;
   let associationId: number;
 
@@ -25,7 +24,6 @@ describe('E2E: Convites - Operações CRUD', () => {
     const common = await authHelper.createUserAndLogin(
       UserFactory.buildProducer(),
     );
-    commonToken = common.token;
     commonUser = common.user;
 
     const prisma = testApp.getPrismaService();

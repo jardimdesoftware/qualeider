@@ -1,5 +1,5 @@
 import { setupE2ETests, teardownE2ETests } from '../setup';
-import { TestApp, AuthHelper } from '../helpers';
+import { TestApp } from '../helpers';
 import { UserFactory } from '../factories';
 import { HttpStatus } from '@nestjs/common';
 
@@ -8,7 +8,6 @@ const randomIP = () =>
 
 describe('E2E: Rate Limiting (Throttling)', () => {
   let testApp: TestApp;
-  let authHelper: AuthHelper;
 
   const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -16,7 +15,6 @@ describe('E2E: Rate Limiting (Throttling)', () => {
     await setupE2ETests();
     testApp = new TestApp();
     await testApp.setup();
-    authHelper = new AuthHelper(testApp);
   });
 
   afterAll(async () => {

@@ -8,7 +8,6 @@ import { UpdatePartialUserDto } from '@/application/dtos/users/update-partial-us
 import { createUser } from '../../../factories/user.factory';
 import { BusinessException } from '@/common/exceptions/business.exception';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
-import { Status } from '@/domain/enums/enums';
 
 describe('UsersController', () => {
   let controller: UsersController;

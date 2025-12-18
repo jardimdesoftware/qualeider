@@ -5,10 +5,10 @@ export class ValidateTokenDto {
   @ApiProperty({ example: 'user@example.com' })
   @IsNotEmpty()
   @IsEmail()
-  email: string;
+  email!: string;
 
   @ApiProperty({ example: 'token-string-uuid' })
   @IsNotEmpty()
   @IsString()
-  token: string;
+  token!: string;
 }

@@ -12,7 +12,7 @@ import { NotificationsPresentationModule } from './modules/notifications.module'
 import { MailModule } from '@/mail/mail.module';
 import { WinstonModule } from 'nest-winston';
 import { winstonConfig } from '@/common/logger/logger.config';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { throttlerConfig } from '@/common/throttler/throttler.config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';

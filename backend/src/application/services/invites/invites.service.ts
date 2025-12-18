@@ -1,4 +1,4 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InviteCreatedEvent } from '@/events/invite-created.event';
 import { InviteAcceptedEvent } from '@/events/invite-accepted.event';
@@ -15,7 +15,6 @@ import { InviteDomainService } from '@/domain/services/invite.domain-service';
 
 @Injectable()
 export class InvitesService {
-  private readonly logger = new Logger(InvitesService.name);
 
   constructor(
     @Inject(IInviteRepository)

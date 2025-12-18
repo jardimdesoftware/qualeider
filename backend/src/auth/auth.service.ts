@@ -115,7 +115,7 @@ export class AuthService {
     };
   }
 
-  async forgotPassword(email: string, request?: any) {
+  async forgotPassword(email: string) {
     const normalizedEmail = email.toLowerCase();
 
     const user = await this.userRepository.findByEmail(normalizedEmail);

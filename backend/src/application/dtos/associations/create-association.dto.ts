@@ -6,9 +6,6 @@ import {
   Length,
   Matches,
   IsOptional,
-  IsInt,
-  Min,
-  IsDateString,
   IsEnum,
 } from 'class-validator';
 import { Transform } from 'class-transformer';

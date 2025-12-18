@@ -6,12 +6,12 @@ export interface EmailPayload {
 }
 
 export class FailedEmail {
-  id: string;
-  payload: EmailPayload;
-  errorReason: string;
-  retryCount: number;
-  createdAt: Date;
-  updatedAt: Date;
+  id!: string;
+  payload!: EmailPayload;
+  errorReason!: string;
+  retryCount!: number;
+  createdAt!: Date;
+  updatedAt!: Date;
 
   constructor(props?: Partial<FailedEmail>) {
     if (props) Object.assign(this, props);
