@@ -124,7 +124,7 @@ export class PrismaUserRepository implements IUserRepository {
       if (data.status) updateData.status = data.status as unknown as PrismaStatus;
 
       const updated = await this.prisma.user.update({
-        where: { id },
+        where: { id, status: PrismaStatus.Active },
         data: updateData,
       });
       
@@ -140,7 +140,7 @@ export class PrismaUserRepository implements IUserRepository {
   async softDelete(id: ID): Promise<UserEntity> {
     try {
       const deleted = await this.prisma.user.update({
-        where: { id },
+        where: { id, status: PrismaStatus.Active },
         data: { status: PrismaStatus.Inactive },
       });
       return UserMapper.toDomain(deleted);

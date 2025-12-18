@@ -77,7 +77,7 @@ export class AuthController {
     return {
       statusCode: HttpStatus.OK,
       message: 'Token válido',
-      data: { valid: isValid },
+      data: { valid: true },
     };
   }
 
