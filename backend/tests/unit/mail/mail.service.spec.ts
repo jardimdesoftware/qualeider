@@ -76,8 +76,8 @@ describe('MailService', () => {
       );
 
       const callArgs = mockMailerService.sendMail.mock.calls[0][0];
-      expect(callArgs.context.metadata).toEqual(metadata);
-      expect(callArgs.context.expiryDateStr).toBeTruthy();
+      expect(callArgs.context!.metadata).toEqual(metadata);
+      expect(callArgs.context!.expiryDateStr).toBeTruthy();
     });
 
     it('deve formatar expiryDate corretamente em pt-BR', async () => {
@@ -92,8 +92,8 @@ describe('MailService', () => {
       );
 
       const callArgs = mockMailerService.sendMail.mock.calls[0][0];
-      expect(callArgs.context.expiryDateStr).toContain('novembro');
-      expect(callArgs.context.expiryDateStr).toContain('2025');
+      expect(callArgs.context!.expiryDateStr).toContain('novembro');
+      expect(callArgs.context!.expiryDateStr).toContain('2025');
     });
 
     it('deve incluir location, device, browser e ipAddress no contexto', async () => {
@@ -113,10 +113,10 @@ describe('MailService', () => {
       );
 
       const callArgs = mockMailerService.sendMail.mock.calls[0][0];
-      expect(callArgs.context.metadata.location).toBe('Rio de Janeiro');
-      expect(callArgs.context.metadata.device).toBe('macOS');
-      expect(callArgs.context.metadata.browser).toBe('Safari');
-      expect(callArgs.context.metadata.ipAddress).toBe('10.0.0.1');
+      expect(callArgs.context!.metadata.location).toBe('Rio de Janeiro');
+      expect(callArgs.context!.metadata.device).toBe('macOS');
+      expect(callArgs.context!.metadata.browser).toBe('Safari');
+      expect(callArgs.context!.metadata.ipAddress).toBe('10.0.0.1');
     });
 
     it('deve usar template reset-password', async () => {
@@ -174,8 +174,8 @@ describe('MailService', () => {
       );
 
       const callArgs = mockMailerService.sendMail.mock.calls[0][0];
-      expect(callArgs.context.metadata).toBeUndefined();
-      expect(callArgs.context.expiryDateStr).toBeNull();
+      expect(callArgs.context!.metadata).toBeUndefined();
+      expect(callArgs.context!.expiryDateStr).toBeNull();
     });
   });
 
@@ -228,8 +228,8 @@ describe('MailService', () => {
       );
 
       const callArgs = mockMailerService.sendMail.mock.calls[0][0];
-      expect(callArgs.context.acceptUrl).toBe(defaultParams.acceptUrl);
-      expect(callArgs.context.declineUrl).toBe(defaultParams.declineUrl);
+      expect(callArgs.context!.acceptUrl).toBe(defaultParams.acceptUrl);
+      expect(callArgs.context!.declineUrl).toBe(defaultParams.declineUrl);
     });
 
     it('deve formatar data de expiração em pt-BR', async () => {
@@ -246,8 +246,8 @@ describe('MailService', () => {
       );
 
       const callArgs = mockMailerService.sendMail.mock.calls[0][0];
-      expect(callArgs.context.expiresAt).toContain('dezembro');
-      expect(callArgs.context.expiresAt).toContain('2025');
+      expect(callArgs.context!.expiresAt).toContain('dezembro');
+      expect(callArgs.context!.expiresAt).toContain('2025');
     });
 
     it('deve incluir customMessage quando fornecido', async () => {
@@ -264,7 +264,7 @@ describe('MailService', () => {
       );
 
       const callArgs = mockMailerService.sendMail.mock.calls[0][0];
-      expect(callArgs.context.customMessage).toBe(customMessage);
+      expect(callArgs.context!.customMessage).toBe(customMessage);
     });
 
     it('deve incluir customMessage null quando não fornecido', async () => {
@@ -279,7 +279,7 @@ describe('MailService', () => {
       );
 
       const callArgs = mockMailerService.sendMail.mock.calls[0][0];
-      expect(callArgs.context.customMessage).toBeNull();
+      expect(callArgs.context!.customMessage).toBeNull();
     });
 
     it('deve incluir associationName no subject', async () => {
@@ -403,7 +403,7 @@ describe('MailService', () => {
       );
 
       const callArgs = mockMailerService.sendMail.mock.calls[0][0];
-      expect(callArgs.context.userProfileUrl).toBe(
+      expect(callArgs.context!.userProfileUrl).toBe(
         'https://custom.domain.com/association/members/42',
       );
     });
@@ -419,7 +419,7 @@ describe('MailService', () => {
       );
 
       const callArgs = mockMailerService.sendMail.mock.calls[0][0];
-      expect(callArgs.context.userProfileUrl).toBe(
+      expect(callArgs.context!.userProfileUrl).toBe(
         'http://localhost:3000/association/members/42',
       );
     });
@@ -433,7 +433,7 @@ describe('MailService', () => {
       );
 
       const callArgs = mockMailerService.sendMail.mock.calls[0][0];
-      expect(callArgs.context.userProfileUrl).toContain('/members/123');
+      expect(callArgs.context!.userProfileUrl).toContain('/members/123');
     });
 
     it('deve usar template invite-accepted', async () => {
@@ -581,7 +581,7 @@ describe('MailService', () => {
       );
 
       const callArgs = mockMailerService.sendMail.mock.calls[0][0];
-      expect(callArgs.context.associationName).toBe('Cooperativa ABC');
+      expect(callArgs.context!.associationName).toBe('Cooperativa ABC');
     });
   });
 
@@ -631,7 +631,7 @@ describe('MailService', () => {
       );
 
       const callArgs = mockMailerService.sendMail.mock.calls[0][0];
-      expect(callArgs.context.metadata).toEqual(metadata);
+      expect(callArgs.context!.metadata).toEqual(metadata);
     });
 
     it('deve incluir associationName, senderName, sentAt, category no metadata', async () => {
@@ -651,12 +651,12 @@ describe('MailService', () => {
       );
 
       const callArgs = mockMailerService.sendMail.mock.calls[0][0];
-      expect(callArgs.context.metadata.associationName).toBe(
+      expect(callArgs.context!.metadata.associationName).toBe(
         'Cooperativa do Sul',
       );
-      expect(callArgs.context.metadata.senderName).toBe('Gerente Regional');
-      expect(callArgs.context.metadata.sentAt).toBe('2025-11-15 14:00');
-      expect(callArgs.context.metadata.category).toBe('info');
+      expect(callArgs.context!.metadata.senderName).toBe('Gerente Regional');
+      expect(callArgs.context!.metadata.sentAt).toBe('2025-11-15 14:00');
+      expect(callArgs.context!.metadata.category).toBe('info');
     });
 
     it('deve usar template notification', async () => {
@@ -698,7 +698,7 @@ describe('MailService', () => {
       );
 
       const callArgs = mockMailerService.sendMail.mock.calls[0][0];
-      expect(callArgs.context.metadata).toBeUndefined();
+      expect(callArgs.context!.metadata).toBeUndefined();
     });
 
     it('deve logar sucesso', async () => {

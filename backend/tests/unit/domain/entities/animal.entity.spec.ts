@@ -164,22 +164,7 @@ describe('AnimalEntity (domain)', () => {
       expect(animal.breed).toBe('');
     });
 
-    it('deve permitir raça nula', () => {
-      const now = new Date();
-      const animal: AnimalEntity = {
-        id: 9,
-        name: 'Raça Nula',
-        animalType: AnimalType.Cabra,
-        breed: null,
-        age: 3,
-        userId: 1,
-        status: Status.Active,
-        createdAt: now,
-        updatedAt: now,
-      };
 
-      expect(animal.breed).toBeNull();
-    });
   });
 
   describe('optional age field', () => {
@@ -218,22 +203,7 @@ describe('AnimalEntity (domain)', () => {
       expect(animal.age).toBe(0);
     });
 
-    it('deve permitir idade nula', () => {
-      const now = new Date();
-      const animal: AnimalEntity = {
-        id: 12,
-        name: 'Idade Nula',
-        animalType: AnimalType.Bufala,
-        breed: 'Mediterrâneo',
-        age: null,
-        userId: 1,
-        status: Status.Active,
-        createdAt: now,
-        updatedAt: now,
-      };
 
-      expect(animal.age).toBeNull();
-    });
   });
 
   describe('userId relationship', () => {

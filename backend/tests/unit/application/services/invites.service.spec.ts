@@ -391,7 +391,7 @@ describe('InvitesService', () => {
       const result = await service.getInviteByToken('valid-token');
 
       expect(result).toHaveProperty('isExpired', false);
-      expect(result.association.name).toBe('Test');
+      expect(result.association!.name).toBe('Test');
     });
 
     it('deve lançar EntityNotFoundException quando convite não for encontrado', async () => {
@@ -452,7 +452,7 @@ describe('InvitesService', () => {
         { includeAssociation: true },
       );
       expect(result).toHaveLength(2);
-      expect(result[0].association.name).toBe('Association A');
+      expect(result[0].association!.name).toBe('Association A');
     });
 
     it('deve retornar array vazio quando usuário não tiver convites pendentes', async () => {
@@ -509,7 +509,7 @@ describe('InvitesService', () => {
         { includeUser: true },
       );
       expect(result).toHaveLength(2);
-      expect(result[0].user.name).toBe('John Doe');
+      expect(result[0].user!.name).toBe('John Doe');
     });
 
     it('deve filtrar convites por status quando informado', async () => {

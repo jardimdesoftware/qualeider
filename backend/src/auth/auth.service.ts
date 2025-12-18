@@ -174,6 +174,10 @@ export class AuthService {
 
     const user = await this.userRepository.findByEmail(email);
 
+    if (!user) {
+      throw new EntityNotFoundException('Usuário não encontrado.');
+    }
+
     const hashedPassword = await this.hashService.hash(
       newPassword,
       BCRYPT_ROUNDS_RESET_PASSWORD,

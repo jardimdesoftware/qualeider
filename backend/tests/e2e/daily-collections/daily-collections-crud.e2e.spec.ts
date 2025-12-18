@@ -25,7 +25,7 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
 
     const user = await authHelper.createUserAndLogin(userData);
     userToken = user.token;
-    userId = user.user.id;
+    userId = user!.user!.id!;
 
     // Create animals for testing
     const animalsService = testApp.getApp().get(AnimalsService);

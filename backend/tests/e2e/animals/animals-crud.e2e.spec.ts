@@ -22,7 +22,7 @@ describe('E2E: Animais - Operações CRUD', () => {
 
     const user = await authHelper.createUserAndLogin(userData);
     userToken = user.token;
-    userId = user.user.id;
+    userId = user!.user!.id!;
   });
 
   afterAll(async () => {

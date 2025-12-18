@@ -70,7 +70,7 @@ describe('DailyCollectionsService', () => {
       const mockCollection = createDailyCollection({
         ...createDto,
         id: 1,
-        items: createDto.items.map((item, index) => ({
+        items: createDto.items!.map((item, index) => ({
           ...item,
           id: index + 1,
           dailyCollectionId: 1,
