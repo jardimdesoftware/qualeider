@@ -17,7 +17,7 @@ export class CreateInviteDto {
     example: 5,
   })
   @IsInt()
-  userId: number;
+  userId!: number;
 
   @ApiPropertyOptional({
     description: 'Mensagem personalizada da associação (opcional)',

@@ -17,6 +17,8 @@ import {
   RESET_TOKEN_MAX_VALUE,
   RESET_TOKEN_EXPIRY_MINUTES,
 } from '@/common/constants/security.constants';
+import { UserEntity } from '@/domain/entities/user.entity';
+import { AssociationEntity } from '@/domain/entities/association.entity';
 
 @Injectable()
 export class AuthService {
@@ -30,10 +32,14 @@ export class AuthService {
     @Inject(IHashService) private hashService: IHashService,
   ) {}
 
-  async validateUser(email: string, password: string): Promise<any> {
+  async validateUser(
+    email: string,
+    password: string,
+  ): Promise<Omit<UserEntity, 'password'> | null> {
     const user = await this.userRepository.findByEmail(email);
 
     if (user && (await this.hashService.compare(password, user.password))) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...result } = user;
       return result;
     }
@@ -41,10 +47,17 @@ export class AuthService {
     return null;
   }
 
-  async validateAssociation(email: string, password: string): Promise<any> {
+  async validateAssociation(
+    email: string,
+    password: string,
+  ): Promise<Omit<AssociationEntity, 'password'> | null> {
     const association = await this.associationRepository.findByEmail(email);
 
-    if (association && (await this.hashService.compare(password, association.password))) {
+    if (
+      association &&
+      (await this.hashService.compare(password, association.password))
+    ) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...result } = association;
       return result;
     }
@@ -54,13 +67,22 @@ export class AuthService {
 
   async executeLogin(loginDto: { email: string; password: string }) {
     // Try User login first
-    let entity = await this.validateUser(loginDto.email, loginDto.password);
+    let entity:
+      | Omit<UserEntity, 'password'>
+      | Omit<AssociationEntity, 'password'>
+      | null = await this.validateUser(loginDto.email, loginDto.password);
     let entityType: 'user' | 'association' = 'user';
 
     // If not a user, try Association login
     if (!entity) {
-      entity = await this.validateAssociation(loginDto.email, loginDto.password);
-      entityType = 'association';
+      const association = await this.validateAssociation(
+        loginDto.email,
+        loginDto.password,
+      );
+      if (association) {
+        entity = association;
+        entityType = 'association';
+      }
     }
 
     if (!entity) {
@@ -93,7 +115,7 @@ export class AuthService {
     };
   }
 
-  async forgotPassword(email: string, request?: any) {
+  async forgotPassword(email: string) {
     const normalizedEmail = email.toLowerCase();
 
     const user = await this.userRepository.findByEmail(normalizedEmail);
@@ -136,7 +158,7 @@ export class AuthService {
     }
   }
 
-  async validateResetToken(email: string, token: string): Promise<boolean> {
+  async validateResetToken(email: string, token: string): Promise<UserEntity> {
     const user = await this.userRepository.findByEmail(email);
 
     if (!user) {
@@ -150,7 +172,7 @@ export class AuthService {
     if (user.resetTokenExpiry && user.resetTokenExpiry < new Date()) {
       throw new UnauthorizedException(
         'Token expirado. Solicite um novo código.',
-      );  
+      );
     }
 
     const newExpiry = new Date();
@@ -162,7 +184,7 @@ export class AuthService {
 
     this.logger.log(`Token validado para ${email}, validade estendida`);
 
-    return true;
+    return user;
   }
 
   async resetPassword(
@@ -170,9 +192,7 @@ export class AuthService {
     token: string,
     newPassword: string,
   ): Promise<boolean> {
-    await this.validateResetToken(email, token);
-
-    const user = await this.userRepository.findByEmail(email);
+    const user = await this.validateResetToken(email, token);
 
     const hashedPassword = await this.hashService.hash(
       newPassword,

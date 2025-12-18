@@ -199,7 +199,7 @@ describe('DailyCollectionsController', () => {
 
   describe('findAllByUserId', () => {
     it('deve retornar formulários do usuário (mesmo vazio)', async () => {
-      const items = [];
+      const items: any[] = [];
       mockService.findAll.mockResolvedValue(items);
 
       const result = await controller.findAllByUserId(1);

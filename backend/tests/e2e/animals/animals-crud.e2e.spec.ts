@@ -6,7 +6,6 @@ import { UserFactory, AnimalFactory } from '../factories';
 describe('E2E: Animais - Operações CRUD', () => {
   let testApp: TestApp;
   let authHelper: AuthHelper;
-  let userToken: string;
   let userId: number;
 
   beforeAll(async () => {
@@ -21,8 +20,7 @@ describe('E2E: Animais - Operações CRUD', () => {
     });
 
     const user = await authHelper.createUserAndLogin(userData);
-    userToken = user.token;
-    userId = user.user.id;
+    userId = user!.user!.id!;
   });
 
   afterAll(async () => {

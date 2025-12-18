@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { IUserRepository } from '@/domain/repositories/user.repository';
-import { ID, Status } from '@/domain/enums/enums';
+import { ID } from '@/domain/enums/enums';
 import { UserEntity } from '@/domain/entities/user.entity';
 import { UserCriteria } from '@/domain/criteria/user.criteria';
 import { handlePrismaError, PrismaErrorCode } from '@/common/utils/prisma-error-handler';
@@ -124,7 +124,7 @@ export class PrismaUserRepository implements IUserRepository {
       if (data.status) updateData.status = data.status as unknown as PrismaStatus;
 
       const updated = await this.prisma.user.update({
-        where: { id },
+        where: { id, status: PrismaStatus.Active },
         data: updateData,
       });
       
@@ -140,7 +140,7 @@ export class PrismaUserRepository implements IUserRepository {
   async softDelete(id: ID): Promise<UserEntity> {
     try {
       const deleted = await this.prisma.user.update({
-        where: { id },
+        where: { id, status: PrismaStatus.Active },
         data: { status: PrismaStatus.Inactive },
       });
       return UserMapper.toDomain(deleted);

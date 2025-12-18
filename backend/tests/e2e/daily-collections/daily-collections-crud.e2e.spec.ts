@@ -7,7 +7,6 @@ import { AnimalsService } from '@/application/services/animals/animals.service';
 describe('E2E: Coletas Diárias - Operações CRUD', () => {
   let testApp: TestApp;
   let authHelper: AuthHelper;
-  let userToken: string;
   let userId: number;
   let animal1Id: number;
   let animal2Id: number;
@@ -24,8 +23,7 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
     });
 
     const user = await authHelper.createUserAndLogin(userData);
-    userToken = user.token;
-    userId = user.user.id;
+    userId = user!.user!.id!;
 
     // Create animals for testing
     const animalsService = testApp.getApp().get(AnimalsService);

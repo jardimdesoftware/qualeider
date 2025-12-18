@@ -97,7 +97,7 @@ describe('AuthService', () => {
         'hashedPassword',
       );
       expect(result).not.toHaveProperty('password');
-      expect(result.email).toBe('test@example.com');
+      expect(result!.email).toBe('test@example.com');
     });
 
     it('deve retornar null quando usuário não for encontrado', async () => {
@@ -127,7 +127,7 @@ describe('AuthService', () => {
       const mockUser = { id: 1, email: 'test@example.com' };
       const mockToken = { access_token: 'jwt-token' };
 
-      jest.spyOn(service, 'validateUser').mockResolvedValue(mockUser);
+      jest.spyOn(service, 'validateUser').mockResolvedValue(mockUser as any);
       jest.spyOn(service, 'loginEntity').mockResolvedValue(mockToken);
 
       const result = await service.executeLogin(loginDto);
@@ -256,7 +256,7 @@ describe('AuthService', () => {
       (userRepository.findByEmail as jest.Mock).mockResolvedValue(mockUser);
 
       let capturedToken: string = '';
-      (userRepository.update as jest.Mock).mockImplementation((id, data) => {
+      (userRepository.update as jest.Mock).mockImplementation((_id, data) => {
         capturedToken = data.resetToken;
         return Promise.resolve({ ...mockUser, ...data });
       });
@@ -294,7 +294,7 @@ describe('AuthService', () => {
       (userRepository.findByEmail as jest.Mock).mockResolvedValue(mockUser);
 
       let capturedExpiry: Date;
-      (userRepository.update as jest.Mock).mockImplementation((id, data) => {
+      (userRepository.update as jest.Mock).mockImplementation((_id, data) => {
         capturedExpiry = data.resetTokenExpiry;
         return Promise.resolve({ ...mockUser, ...data });
       });
@@ -310,7 +310,7 @@ describe('AuthService', () => {
   });
 
   describe('validateResetToken', () => {
-    it('deve retornar true para token válido', async () => {
+    it('deve retornar usuário para token válido', async () => {
       const futureDate = new Date();
       futureDate.setMinutes(futureDate.getMinutes() + 10);
 
@@ -328,7 +328,7 @@ describe('AuthService', () => {
         '123456',
       );
 
-      expect(result).toBe(true);
+      expect(result).toEqual(mockUser);
       expect(userRepository.update).toHaveBeenCalledWith(
         mockUser.id,
         {
@@ -350,7 +350,7 @@ describe('AuthService', () => {
       (userRepository.findByEmail as jest.Mock).mockResolvedValue(mockUser);
 
       let capturedExpiry: Date;
-      (userRepository.update as jest.Mock).mockImplementation((id, data) => {
+      (userRepository.update as jest.Mock).mockImplementation((_id, data) => {
         capturedExpiry = data.resetTokenExpiry;
         return Promise.resolve({ ...mockUser, ...data });
       });

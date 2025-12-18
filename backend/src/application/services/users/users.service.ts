@@ -41,7 +41,6 @@ export class UsersService {
   }
 
   async remove(id: number) {
-    await this.validateUserExists(id);    
     const deactivated = await this.userRepository.softDelete(id);
     this.logger.log(`Usuário removido (soft delete): ID ${id}`);
     return this.removePassword(deactivated);
@@ -72,15 +71,12 @@ export class UsersService {
     return user !== null;
   }
 
-  private async validateUserExists(id: number): Promise<void> {
-    await this.findOne(id);
-  }
+
 
   private async performUpdate(
     id: number,
     data: UpdateUserDto | UpdatePartialUserDto,
   ) {
-    await this.validateUserExists(id);
 
     const dataToUpdate = await this.prepareUpdateData(data);
 

@@ -258,7 +258,9 @@ describe('UsersService', () => {
 
     it('deve lançar EntityNotFoundException quando usuário não for encontrado', async () => {
       const updateDto: UpdateUserDto = { name: 'New Name' };
-      (userRepository.findById as jest.Mock).mockResolvedValue(null);
+      // O Service não chama mais findById, ele confia que p repository lança erro se não achar
+      const error = new EntityNotFoundException('Usuário não encontrado');
+      (userRepository.partialUpdate as jest.Mock).mockRejectedValue(error);
 
       await expect(service.update(999, updateDto)).rejects.toThrow(
         EntityNotFoundException,
@@ -362,7 +364,9 @@ describe('UsersService', () => {
     });
 
     it('deve lançar EntityNotFoundException quando usuário não for encontrado', async () => {
-      (userRepository.findById as jest.Mock).mockResolvedValue(null);
+      const error = new EntityNotFoundException('Usuário não encontrado');
+      (userRepository.softDelete as jest.Mock).mockRejectedValue(error);
+
       await expect(service.remove(999)).rejects.toThrow(
         EntityNotFoundException,
       );

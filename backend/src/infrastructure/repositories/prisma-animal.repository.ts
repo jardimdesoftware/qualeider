@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { IAnimalRepository, AnimalFindOneOptions } from '@/domain/repositories/animal.repository';
-import { ID, Status } from '@/domain/enums/enums';
+import { ID } from '@/domain/enums/enums';
 import { AnimalEntity } from '@/domain/entities/animal.entity';
 import { AnimalCriteria } from '@/domain/criteria/animal.criteria';
 import { handlePrismaError, PrismaErrorCode } from '@/common/utils/prisma-error-handler';

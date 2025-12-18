@@ -8,7 +8,6 @@ describe('E2E: Users - CRUD Operations', () => {
   let testApp: TestApp;
   let authHelper: AuthHelper;
   let adminToken: string;
-  let userToken: string;
 
   beforeAll(async () => {
     await setupE2ETests();
@@ -27,8 +26,7 @@ describe('E2E: Users - CRUD Operations', () => {
       email: 'user@example.com',
       password: 'User@1234',
     });
-    const user = await authHelper.createUserAndLogin(userData);
-    userToken = user.token;
+    await authHelper.createUserAndLogin(userData);
   });
 
   afterAll(async () => {

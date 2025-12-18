@@ -10,12 +10,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     private usersService: UsersService,
     private associationsService: AssociationsService,
-    private configService: ConfigService,
+    configService: ConfigService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET'),
+      secretOrKey: configService.get<string>('JWT_SECRET')!,
     });
   }
 
@@ -32,7 +32,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('Usuário ou Associação não encontrada.');
     }
 
-    // Attach userType to the entity object so we can check it in Guards/Controllers if needed
     return { ...entity, userType: payload.userType };
   }
 }

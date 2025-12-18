@@ -15,5 +15,5 @@ export class RespondInviteDto {
   @IsEnum(InviteAction, {
     message: 'Resposta deve ser "Accept" ou "Decline"',
   })
-  response: InviteAction;
+  response!: InviteAction;
 }

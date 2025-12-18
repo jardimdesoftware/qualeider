@@ -153,7 +153,7 @@ describe('E2E: Associações - Operações CRUD', () => {
 
     beforeAll(async () => {
       const association = AssociationFactory.build();
-      existingEmail = association.email;
+      existingEmail = association.email!;
 
       await testApp.request().post('/associations').send(association);
     });
@@ -199,7 +199,7 @@ describe('E2E: Associações - Operações CRUD', () => {
 
     beforeAll(async () => {
       const association = AssociationFactory.build();
-      existingCnpj = association.cnpj;
+      existingCnpj = association.cnpj!;
 
       await testApp.request().post('/associations').send(association);
     });

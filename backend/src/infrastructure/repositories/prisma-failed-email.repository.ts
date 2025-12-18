@@ -16,7 +16,7 @@ export class PrismaFailedEmailRepository implements IFailedEmailRepository {
   }): Promise<FailedEmail> {
     const created = await this.prisma.failedEmail.create({
       data: {
-        payload: data.payload as unknown as Prisma.JsonValue,
+        payload: (data.payload as any) ?? Prisma.JsonNull,
         errorReason: data.errorReason,
         retryCount: data.retryCount,
       },

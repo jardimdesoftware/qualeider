@@ -12,6 +12,7 @@ import {
   NotFoundException,
   Patch,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { JwtAuthGuard } from '@/application/guards/jwt-auth.guard';
 import { Throttle } from '@nestjs/throttler';
 import { THROTTLE_TTL } from '@/common/throttler/throttler.config';
@@ -80,11 +81,11 @@ export class AssociationsController {
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiResponse({ status: 200, description: 'Lista de associados retornada com sucesso.' })
   async getAssociates(
-    @Req() req,
+    @Req() req: Request,
     @Query('page') page = 1,
     @Query('limit') limit = 10,
   ) {
-    const associationId = req.user.id; 
+    const associationId = (req as any).user.id; 
     return this.associationsService.findAssociates(associationId, {
       page: Number(page),
       limit: Number(limit),
@@ -103,8 +104,8 @@ export class AssociationsController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Convidar/Vincular produtor à associação' })
   @ApiResponse({ status: 200, description: 'Produtor vinculado com sucesso.' })
-  async inviteProducer(@Body() body: { userId: number }, @Req() req) {
-    const associationId = req.user.id;
+  async inviteProducer(@Body() body: { userId: number }, @Req() req: Request) {
+    const associationId = (req as any).user.id;
     await this.associationsService.linkProducer(body.userId, associationId);
     return { message: 'Produtor vinculado com sucesso.' };
   }
@@ -113,8 +114,8 @@ export class AssociationsController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Obter estatísticas do rebanho regional' })
   @ApiResponse({ status: 200, description: 'Estatísticas retornadas com sucesso.' })
-  async getHerdStats(@Req() req) {
-    const associationId = req.user.id;
+  async getHerdStats(@Req() req: Request) {
+    const associationId = (req as any).user.id;
     return this.associationsService.getHerdStats(associationId);
   }
 
@@ -124,8 +125,8 @@ export class AssociationsController {
   @ApiQuery({ name: 'startDate', required: false, type: String, description: 'Data de início (ISO)' })
   @ApiQuery({ name: 'endDate', required: false, type: String, description: 'Data de fim (ISO)' })
   @ApiResponse({ status: 200, description: 'Ranking retornado com sucesso.' })
-  async getProducerRanking(@Req() req, @Query('startDate') startDate?: string, @Query('endDate') endDate?: string) {
-    const associationId = req.user.id;
+  async getProducerRanking(@Req() req: Request, @Query('startDate') startDate?: string, @Query('endDate') endDate?: string) {
+    const associationId = (req as any).user.id;
     const start = startDate ? new Date(startDate) : undefined;
     const end = endDate ? new Date(endDate) : undefined;
     return this.associationsService.getProducerRanking(associationId, start, end);
@@ -136,8 +137,8 @@ export class AssociationsController {
   @ApiOperation({ summary: 'Obter relatório mensal agregado' })
   @ApiResponse({ status: 200, description: 'Relatório mensal retornado com sucesso.' })
   @ApiResponse({ status: 400, description: 'Parâmetros inválidos ou faltando.' })
-  async getMonthlyReport(@Req() req, @Query() dto: GetMonthlyReportDto) {
-    const associationId = req.user.id;
+  async getMonthlyReport(@Req() req: Request, @Query() dto: GetMonthlyReportDto) {
+    const associationId = (req as any).user.id;
     return this.associationsService.getMonthlyReport(associationId, dto.year, dto.month);
   }
 

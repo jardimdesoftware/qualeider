@@ -16,7 +16,7 @@ export const createTestingModule = async (
  * Helper para criar um mock de repositório com métodos padrão
  * Útil para mockar IUserRepository, IAnimalRepository, etc.
  */
-export const mockRepository = <T>() => ({
+export const mockRepository = () => ({
   create: jest.fn(),
   findAllActive: jest.fn(),
   findById: jest.fn(),
@@ -96,7 +96,7 @@ export const expectCalledWithPartial = <T>(
   const matchingCall = calls.find((call) => {
     const arg = call[0];
     return Object.keys(partialArgs).every(
-      (key) => arg[key] === partialArgs[key],
+      (key) => arg[key as keyof T] === partialArgs[key as keyof T],
     );
   });
 
