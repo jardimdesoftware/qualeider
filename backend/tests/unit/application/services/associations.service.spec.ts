@@ -285,7 +285,18 @@ describe('AssociationsService', () => {
 
       const result = await service.findById(1);
 
-      expect(result).toEqual(mockAssociation);
+      expect(result).toEqual({
+        id: mockAssociation.id,
+        name: mockAssociation.name,
+        tradeName: mockAssociation.tradeName,
+        cnpj: mockAssociation.cnpj,
+        email: mockAssociation.email,
+        city: mockAssociation.city,
+        state: mockAssociation.state,
+        foundationDate: mockAssociation.foundationDate,
+        createdAt: mockAssociation.createdAt,
+        updatedAt: mockAssociation.updatedAt,
+      });
       expect(associationRepository.findById).toHaveBeenCalledWith(1);
     });
   });
