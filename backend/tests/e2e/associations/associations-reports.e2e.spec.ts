@@ -11,11 +11,22 @@ describe('E2E: Associations - Relatórios', () => {
   let producer1Id: number;
   let producer2Id: number;
 
+  // Variáveis para garantir consistência de data entre o setup e os testes
+  let globalToday: Date;
+  let globalYesterday: Date;
+
   beforeAll(async () => {
     await setupE2ETests();
     testApp = new TestApp();
     await testApp.setup();
     authHelper = new AuthHelper(testApp);
+
+    // FIX: Estabelecer datas fixas no meio do dia para evitar problemas de Timezone/Borda
+    globalToday = new Date();
+    globalToday.setHours(12, 0, 0, 0);
+    
+    globalYesterday = new Date(globalToday);
+    globalYesterday.setDate(globalYesterday.getDate() - 1);
 
     // Criar associação e fazer login
     const association = AssociationFactory.build();
@@ -35,76 +46,115 @@ describe('E2E: Associations - Relatórios', () => {
         password: association.password,
       });
 
-    associationToken = loginResponse.body.access_token;
+    associationToken = loginResponse.body.data.access_token;
 
-    // Criar 2 produtores vinculados à associação
+    // Criar Produtor 1 e pegar TOKEN
     const producer1Data = UserFactory.build({ associationId });
     const producer1Response = await testApp
       .request()
       .post('/users')
-      .send(producer1Data);
+      .send(producer1Data)
+      .expect(HttpStatus.CREATED);
+    
+    if (!producer1Response.body.data || !producer1Response.body.data.id) {
+      throw new Error(`Failed to create producer1. Response: ${JSON.stringify(producer1Response.body)}`);
+    }
     producer1Id = producer1Response.body.data.id;
 
+    // FIX: Login Produtor 1 (Necessário para criar coletas!)
+    const p1Login = await testApp
+      .request()
+      .post('/auth/login')
+      .send({ email: producer1Data.email, password: producer1Data.password })
+      .expect(HttpStatus.OK);
+    const p1Token = p1Login.body.data.access_token;
+
+    // Criar Produtor 2 e pegar TOKEN
     const producer2Data = UserFactory.build({ associationId });
     const producer2Response = await testApp
       .request()
       .post('/users')
-      .send(producer2Data);
+      .send(producer2Data)
+      .expect(HttpStatus.CREATED);
+    
+    if (!producer2Response.body.data || !producer2Response.body.data.id) {
+      throw new Error(`Failed to create producer2. Response: ${JSON.stringify(producer2Response.body)}`);
+    }
     producer2Id = producer2Response.body.data.id;
 
-    // Criar animais para os produtores
+    // FIX: Login Produtor 2
+    const p2Login = await testApp
+      .request()
+      .post('/auth/login')
+      .send({ email: producer2Data.email, password: producer2Data.password })
+      .expect(HttpStatus.OK);
+    const p2Token = p2Login.body.data.access_token;
+
+    // FIX: Criar animais COM AUTH
     await testApp
       .request()
       .post('/animals')
-      .send(AnimalFactory.build({ userId: producer1Id }));
+      .set('Authorization', `Bearer ${p1Token}`)
+      .send(AnimalFactory.build({ userId: producer1Id }))
+      .expect(HttpStatus.CREATED);
     
     await testApp
       .request()
       .post('/animals')
-      .send(AnimalFactory.build({ userId: producer2Id }));
+      .set('Authorization', `Bearer ${p2Token}`)
+      .send(AnimalFactory.build({ userId: producer2Id }))
+      .expect(HttpStatus.CREATED);
 
-    // Criar coletas diárias para os produtores
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
+    // FIX: Criar coletas diárias COM AUTH
     // Produtor 1: 100L hoje, 80L ontem
     await testApp
       .request()
       .post('/daily-collections')
+      .set('Authorization', `Bearer ${p1Token}`)
       .send(DailyCollectionFactory.build({ 
-        userId: producer1Id, 
+        userId: producer1Id,
         quantity: 100,
-        collectionDate: today.toISOString()
-      }));
+        collectionDate: globalToday.toISOString(),
+        items: [] 
+      }))
+      .expect(HttpStatus.CREATED);
 
     await testApp
       .request()
       .post('/daily-collections')
+      .set('Authorization', `Bearer ${p1Token}`)
       .send(DailyCollectionFactory.build({ 
         userId: producer1Id, 
         quantity: 80,
-        collectionDate: yesterday.toISOString()
-      }));
+        collectionDate: globalYesterday.toISOString(),
+        items: [] 
+      }))
+      .expect(HttpStatus.CREATED);
 
     // Produtor 2: 50L hoje, 60L ontem
     await testApp
       .request()
       .post('/daily-collections')
+      .set('Authorization', `Bearer ${p2Token}`)
       .send(DailyCollectionFactory.build({ 
         userId: producer2Id, 
         quantity: 50,
-        collectionDate: today.toISOString()
-      }));
+        collectionDate: globalToday.toISOString(),
+        items: [] 
+      }))
+      .expect(HttpStatus.CREATED);
 
     await testApp
       .request()
       .post('/daily-collections')
+      .set('Authorization', `Bearer ${p2Token}`)
       .send(DailyCollectionFactory.build({ 
         userId: producer2Id, 
         quantity: 60,
-        collectionDate: yesterday.toISOString()
-      }));
+        collectionDate: globalYesterday.toISOString(),
+        items: [] 
+      }))
+      .expect(HttpStatus.CREATED);
   });
 
   afterAll(async () => {
@@ -138,10 +188,13 @@ describe('E2E: Associations - Relatórios', () => {
     });
 
     it('deve filtrar ranking por data de início', async () => {
-      const today = new Date();
+      // FIX: Usar o INÍCIO do dia para o filtro
+      const startOfToday = new Date(globalToday);
+      startOfToday.setHours(0, 0, 0, 0);
+
       const response = await testApp
         .request()
-        .get(`/associations/reports/producer-ranking?startDate=${today.toISOString()}`)
+        .get(`/associations/reports/producer-ranking?startDate=${startOfToday.toISOString()}`)
         .set('Authorization', `Bearer ${associationToken}`)
         .expect(HttpStatus.OK);
 
@@ -175,7 +228,7 @@ describe('E2E: Associations - Relatórios', () => {
           password: newAssociation.password,
         });
 
-      const newToken = loginResponse.body.access_token;
+      const newToken = loginResponse.body.data.access_token;
 
       const response = await testApp
         .request()
@@ -190,9 +243,8 @@ describe('E2E: Associations - Relatórios', () => {
 
   describe('GET /associations/reports/monthly', () => {
     it('deve retornar relatório mensal agregado', async () => {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = now.getMonth() + 1;
+      const year = globalToday.getFullYear();
+      const month = globalToday.getMonth() + 1;
 
       const response = await testApp
         .request()
@@ -275,10 +327,12 @@ describe('E2E: Associations - Relatórios', () => {
       expect(rankingResponse.body.length).toBeGreaterThan(0);
 
       // Buscar relatório mensal
-      const now = new Date();
+      const year = globalToday.getFullYear();
+      const month = globalToday.getMonth() + 1;
+      
       const monthlyResponse = await testApp
         .request()
-        .get(`/associations/reports/monthly?year=${now.getFullYear()}&month=${now.getMonth() + 1}`)
+        .get(`/associations/reports/monthly?year=${year}&month=${month}`)
         .set('Authorization', `Bearer ${associationToken}`)
         .expect(HttpStatus.OK);
 

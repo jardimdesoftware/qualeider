@@ -86,4 +86,12 @@ export class CreateUserDto {
   @IsNotEmpty({ message: 'A cidade não pode ser vazia.' })
   @IsString()
   city!: string;
+
+  @ApiProperty({
+    description: 'ID da organização (associação) do usuário',
+    example: 1,
+    required: false,
+  })
+  @IsOptional()
+  associationId?: number;
 }

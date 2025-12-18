@@ -34,7 +34,9 @@ export class AssociationsService {
   }
 
   async findById(id: number) {
-    return this.associationRepository.findById(id);
+    const association = await this.associationRepository.findById(id);
+    if (!association) return null;
+    return this.removePassword(association);
   }
 
   async create(createAssociationDto: CreateAssociationDto) {

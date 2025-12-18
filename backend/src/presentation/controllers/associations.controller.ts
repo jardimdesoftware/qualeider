@@ -18,6 +18,7 @@ import { THROTTLE_TTL } from '@/common/throttler/throttler.config';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { AssociationsService } from '@/application/services/associations/associations.service';
 import { CreateAssociationDto } from '@/application/dtos/associations/create-association.dto';
+import { GetMonthlyReportDto } from '@/application/dtos/associations/get-monthly-report.dto';
 import { BusinessException } from '@/common/exceptions/business.exception';
 
 @ApiTags('associations')
@@ -133,12 +134,11 @@ export class AssociationsController {
   @Get('reports/monthly')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Obter relatório mensal agregado' })
-  @ApiQuery({ name: 'year', required: true, type: Number, description: 'Ano' })
-  @ApiQuery({ name: 'month', required: true, type: Number, description: 'Mês (1-12)' })
   @ApiResponse({ status: 200, description: 'Relatório mensal retornado com sucesso.' })
-  async getMonthlyReport(@Req() req, @Query('year') year: number, @Query('month') month: number) {
+  @ApiResponse({ status: 400, description: 'Parâmetros inválidos ou faltando.' })
+  async getMonthlyReport(@Req() req, @Query() dto: GetMonthlyReportDto) {
     const associationId = req.user.id;
-    return this.associationsService.getMonthlyReport(associationId, Number(year), Number(month));
+    return this.associationsService.getMonthlyReport(associationId, dto.year, dto.month);
   }
 
   @Get(':id')
