@@ -6,6 +6,7 @@ import { reportService } from "@/services/reportService";
 import { ProducerRanking, MonthlyReport } from "@/interfaces/report";
 import ReportFilters from "@/components/reports/ReportFilters";
 import ProducerRankingTable from "@/components/reports/ProducerRankingTable";
+import ReportExportButton from "@/components/reports/ReportExportButton";
 import { MetricCard } from "@/components/ui";
 import { BarChart3, Users, Milk, TrendingUp, Cat, Calendar } from "lucide-react";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
@@ -68,21 +69,34 @@ export default function ReportsPage() {
   return (
     <>
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-slate-200 px-6 md:px-8 py-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl md:text-3xl font-black text-[#1e3a29]">
-            Relatórios e Análises
-          </h2>
-          <p className="text-slate-500">
-            Acompanhe o desempenho e estatísticas da associação
-          </p>
-        </div>
-        <div className="flex items-center gap-4 bg-[#fdfbf7] px-4 py-2 rounded-lg border border-slate-200">
-          <div className="text-right hidden md:block">
-            <p className="text-xs text-slate-400 font-bold uppercase">Data de Hoje</p>
-            <p className="text-[#1e3a29] font-bold">{currentDate}</p>
+      <header className="bg-white shadow-sm border-b border-slate-200 px-6 md:px-8 py-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-2xl md:text-3xl font-black text-[#1e3a29]">
+              Relatórios e Análises
+            </h2>
+            <p className="text-slate-500">
+              Acompanhe o desempenho e estatísticas da associação
+            </p>
           </div>
-          <Calendar className="w-8 h-8 text-[#d97706]" />
+          
+          <div className="flex items-center gap-4">
+            {/* Botão de Exportação */}
+            <ReportExportButton 
+              ranking={ranking}
+              monthlyReport={monthlyReport}
+              associationName="Associação Regional"
+            />
+            
+            {/* Data */}
+            <div className="flex items-center gap-4 bg-[#fdfbf7] px-4 py-2 rounded-lg border border-slate-200">
+              <div className="text-right hidden md:block">
+                <p className="text-xs text-slate-400 font-bold uppercase">Data de Hoje</p>
+                <p className="text-[#1e3a29] font-bold">{currentDate}</p>
+              </div>
+              <Calendar className="w-8 h-8 text-[#d97706]" />
+            </div>
+          </div>
         </div>
       </header>
 
