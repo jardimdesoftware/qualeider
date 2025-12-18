@@ -73,7 +73,7 @@ export class PrismaExceptionFilter implements ExceptionFilter {
   }
 
   private getErrorName(status: number): string {
-    const errorNames = {
+    const errorNames: Record<number, string> = {
       [HttpStatus.NOT_FOUND]: 'Not Found',
       [HttpStatus.CONFLICT]: 'Conflict',
       [HttpStatus.BAD_REQUEST]: 'Bad Request',

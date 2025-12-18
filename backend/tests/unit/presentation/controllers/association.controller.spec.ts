@@ -145,11 +145,11 @@ describe('AssociationsController', () => {
   });
   describe('getAssociates', () => {
     it('deve retornar lista de associados', async () => {
-      const mockResult = { data: [], total: 0 };
+      const mockResult = { data: [] as any[], total: 0 };
       mockAssociationsService.findAssociates.mockResolvedValue(mockResult);
       const req = { user: { id: 1 } };
 
-      const result = await controller.getAssociates(req, 1, 10);
+      const result = await controller.getAssociates(req as any, 1, 10);
 
       expect(associationsService.findAssociates).toHaveBeenCalledWith(1, { page: 1, limit: 10 });
       expect(result).toEqual(mockResult);
@@ -158,7 +158,7 @@ describe('AssociationsController', () => {
 
   describe('getAvailableProducers', () => {
     it('deve retornar produtores disponíveis', async () => {
-      const mockResult = [];
+      const mockResult: any[] = [];
       mockAssociationsService.getAvailableProducers.mockResolvedValue(mockResult);
 
       const result = await controller.getAvailableProducers();
@@ -174,7 +174,7 @@ describe('AssociationsController', () => {
       const req = { user: { id: 1 } };
       mockAssociationsService.linkProducer.mockResolvedValue(undefined);
 
-      const result = await controller.inviteProducer(mockBody, req);
+      const result = await controller.inviteProducer(mockBody, req as any);
 
       expect(associationsService.linkProducer).toHaveBeenCalledWith(2, 1);
       expect(result).toEqual({ message: 'Produtor vinculado com sucesso.' });
@@ -187,7 +187,7 @@ describe('AssociationsController', () => {
       const req = { user: { id: 1 } };
       mockAssociationsService.getHerdStats.mockResolvedValue(mockStats);
 
-      const result = await controller.getHerdStats(req);
+      const result = await controller.getHerdStats(req as any);
 
       expect(associationsService.getHerdStats).toHaveBeenCalledWith(1);
       expect(result).toEqual(mockStats);

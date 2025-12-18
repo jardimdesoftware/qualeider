@@ -342,7 +342,7 @@ describe('AssociationsService', () => {
 
   describe('getAvailableProducers', () => {
     it('deve retornar produtores disponíveis', async () => {
-      const mockProducers = [];
+      const mockProducers: any[] = [];
       (associationRepository as any).findAvailableProducers = jest.fn().mockResolvedValue(mockProducers);
 
       const result = await service.getAvailableProducers();

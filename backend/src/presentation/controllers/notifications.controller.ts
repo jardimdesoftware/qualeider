@@ -48,8 +48,8 @@ export class NotificationsController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Obter notificações do usuário logado' })
   @ApiResponse({ status: 200, description: 'Lista de notificações retornada.' })
-  async getMyNotifications(@Req() req) {
-    const userId = req.user.id;
+  async getMyNotifications(@Req() req: Request) {
+    const userId = (req as any).user.id;
     return this.notificationsService.getUserNotifications(userId);
   }
 
