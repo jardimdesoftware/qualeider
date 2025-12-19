@@ -1,36 +1,169 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# QuaLeiDer - Frontend Client
 
-## Getting Started
+> Cliente web moderno para gestão da produção leiteira e associações rurais.
 
-First, run the development server:
+[![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![Radix UI](https://img.shields.io/badge/Radix%20UI-161618?style=for-the-badge&logo=radix-ui&logoColor=white)](https://www.radix-ui.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Índice
+
+- [Sobre](#-sobre)
+- [Arquitetura e Fluxo](#-arquitetura-e-fluxo)
+- [Começo Rápido](#-começo-rápido)
+- [Funcionalidades](#-funcionalidades)
+- [Tecnologias](#%EF%B8%8F-tecnologias)
+- [Configuração Detalhada](#%EF%B8%8F-configuração-detalhada)
+- [Estrutura do Projeto](#%EF%B8%8F-estrutura-do-projeto)
+- [Contribuição](#-contribuição)
+
+## 📌 Sobre
+
+A interface web do **QuaLeiDer** foi projetada para ser intuitiva para produtores rurais e administradores de associações. Ela consome a API REST do backend para fornecer dashboards em tempo real, gestão de formulários complexos e visualização de dados.
+
+## 🏗️ Arquitetura e Fluxo
+
+O frontend segue uma arquitetura baseada em features com componentes modulares e serviços tipados.
+
+```mermaid
+graph TD
+    subgraph "Interface (UI)"
+        Pages[Next.js Pages / App Router]
+        Components[Shadcn UI + Custom Components]
+        Hooks[Custom Hooks]
+        Forms[React Hook Form]
+    end
+
+    subgraph "Data Layer"
+        Services[API Services / Axios]
+        Schemas[Zod Schemas]
+        Constants[Config Constants]
+    end
+
+    subgraph "External"
+        Backend[Backend API]
+    end
+
+    Pages -->|Usa| Components
+    Pages -->|Manipula| Forms
+    Forms -->|Valida com| Schemas
+    Pages -->|Chama| Hooks
+    Hooks -->|Consome| Services
+    Services -->|Requisita| Backend
+
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🚀 Começo Rápido
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Para rodar o frontend em modo de desenvolvimento:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+# 1. Entre na pasta
+cd frontend
 
-## Learn More
+# 2. Instale dependências
+npm install
 
-To learn more about Next.js, take a look at the following resources:
+# 3. Configure variáveis (Use defaults)
+cp .env.example .env.local
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# 4. Inicie
+npm run dev
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
 
-## Deploy on Vercel
+Acesse: `http://localhost:3001`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+> **Nota**: Certifique-se que o Backend esteja rodando em `localhost:8080`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## ✨ Funcionalidades
+
+| Componente UI | Status | Descrição |
+| --- | --- | --- |
+| **Painel do Produtor** | ✅ | Visão geral de coletas recentes e estatísticas rápidas |
+| **Formulário de Coletas** | ✅ | Entrada de dados com validação em tempo real e wizards |
+| **Gestão de Animais** | ✅ | Cartões interativos para visualizar e editar rebanho |
+| **Portal da Associação** | ✅ | Tabelas avançadas para gestão de membros e convites |
+| **Sistema de Convites** | ✅ | Interface para gerenciar tokens de novos membros |
+| **Gráficos** | 🚧 | Visualização visual da evolução da produção (Recharts) |
+| **Responsividade** | ✅ | Totalmente adaptado para Mobile e Desktop |
+
+## 🛠️ Tecnologias
+
+* **Framework**: [Next.js 15](https://nextjs.org/) (App Router)
+* **Core**: React 19, TypeScript
+* **Estilo**: Tailwind CSS + `tailwindcss-animate`
+* **Componentes**: Radix UI (base para Shadcn/ui), Lucide Icons
+* **Estado/Dados**: React Hooks, Axios, SWR (em breve)
+* **Formulários**: React Hook Form + Zod (Validação Schema-first)
+* **Utilitários**: `date-fns` (datas), `clsx` (classes condicionais)
+
+## ⚙️ Configuração Detalhada
+
+### Variáveis de Ambiente (`.env.local`)
+
+| Variável | Descrição | Padrão |
+| --- | --- | --- |
+| `NEXT_PUBLIC_API_URL` | Endpoint base da API REST | `http://localhost:8080` |
+
+### Scripts Disponíveis
+
+```bash
+npm run dev      # Servidor de desenvolvimento
+npm run build    # Build de produção
+npm run start    # Servidor de produção
+npm run lint     # Checagem de código (ESLint)
+
+```
+
+## 📂 Estrutura do Projeto
+
+```plaintext
+frontend/
+├── src/
+│   ├── app/                # Rotas (App Router)
+│   │   ├── (auth)/         # Rotas públicas (Login/Register)
+│   │   ├── (dashboard)/    # Rotas protegidas (App principal)
+│   │   ├── layout.tsx      # Layout base
+│   │   └── page.tsx        # Landing page
+│   │
+│   ├── components/         # Biblioteca de componentes UI
+│   │   ├── ui/             # Componentes base (Buttons, Inpus, Cards)
+│   │   └── ...             # Componentes compostos
+│   │
+│   ├── services/           # Integração API (Pattern Facade)
+│   │   ├── authService.ts
+│   │   ├── animalService.ts
+│   │   └── ...
+│   │
+│   ├── schemas/            # Schemas de validação Zod
+│   ├── hooks/              # Hooks customizados (useAuth, etc)
+│   ├── lib/                # Configurações globais (axios instance)
+│   └── interfaces/         # Tipagem TypeScript
+│
+└── public/                 # Assets estáticos
+
+```
+
+## ⚠️ Resolução de Problemas
+
+**Erro: Conexão recusada ao logar**
+Verifique se o backend está rodando e se `NEXT_PUBLIC_API_URL` está apontando para a porta correta (padrão 8080).
+
+**Erro: Hydration Mismatch**
+Geralmente ocorre por extensões de browser ou datas mal formatadas. Tente limpar o cache ou verificar se o servidor e cliente estão no mesmo fuso horário.
+
+## 🤝 Contribuição
+
+1. Fork o projeto
+2. Crie uma branch (`git checkout -b feature/AmazingFeature`)
+3. Commit (`git commit -m 'Add some AmazingFeature'`)
+4. Push (`git push origin feature/AmazingFeature`)
+5. Abra um Pull Request
+
+---
+
+**Desenvolvido como parte do IFPE.**
+⭐ Se gostar, deixe sua estrela no repositório!

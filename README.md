@@ -9,11 +9,13 @@ Este repositório é um monorepo com:
 
 ## Stack principal
 
-- Backend: Node.js 20, NestJS 10, Prisma 6, PostgreSQL 14
-- Auth: JWT (bearer), bcrypt para hash de senha
-- Docs: Swagger em /api
-- Frontend: Next 15, React 19, Tailwind
-- Infra local: Docker (PostgreSQL via docker-compose)
+- **Backend**: Node.js 20, NestJS 10, Prisma 6, PostgreSQL 14
+  - Auth: JWT (bearer), bcrypt para hash de senha
+  - Docs: Swagger em `/api`
+- **Frontend**: Next.js 15, React 19, Tailwind CSS, Shadcn/ui-like components
+  - Charts: Recharts
+  - Forms: React Hook Form + Zod
+- **Infra local**: Docker (PostgreSQL via docker-compose)
 
 ![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=next.js&logoColor=white) ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB) ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=for-the-badge&logo=tailwind-css&logoColor=white) ![NestJS](https://img.shields.io/badge/NestJS-E0234E?style=for-the-badge&logo=nestjs&logoColor=white) ![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=for-the-badge&logo=prisma&logoColor=white) ![PostgreSQL](https://img.shields.io/badge/postgresql-4169e1?style=for-the-badge&logo=postgresql&logoColor=white) ![JWT](https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=JSON%20web%20tokens&logoColor=white) ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
@@ -27,6 +29,43 @@ O backend segue um estilo de Clean Architecture por camadas:
 - presentation: controllers NestJS e bootstrap da aplicação
 
 Swagger: <http://localhost:8080/api>
+
+## 🚀 Como rodar o projeto
+
+### 1. Banco de dados (Docker)
+Na raiz do projeto (onde está o `docker-compose.yml`):
+```bash
+docker-compose up -d
+
+```
+
+### 2. Backend
+
+Em um terminal, acesse a pasta `backend/`:
+
+```bash
+cd backend
+npm install
+npx prisma migrate dev  # Aplica as migrations
+npm run start:dev
+
+```
+
+O backend rodará em `http://localhost:8080`.
+
+### 3. Frontend
+
+Em outro terminal, acesse a pasta `frontend/`:
+
+```bash
+cd frontend
+npm install
+cp .env.example .env.local  # Configura variáveis de ambiente
+npm run dev
+
+```
+
+O frontend rodará em `http://localhost:3001`.
 
 ## Estrutura de pastas
 
@@ -44,5 +83,9 @@ backend/           # API NestJS + Prisma
 
 frontend/          # App Next.js
   src/
+    app/           # Rotas / Pages
+    components/    # Componentes UI
+    services/      # Integração com API
   public/
+
 ```
