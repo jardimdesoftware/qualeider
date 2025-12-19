@@ -3,8 +3,10 @@ import {
   IsInt,
   IsNotEmpty,
   IsOptional,
+  IsPositive,
   IsString,
   Min,
+  Max,
 } from 'class-validator';
 import { AnimalType } from '@/domain/enums/enums';
 import { ApiProperty } from '@nestjs/swagger';
@@ -30,11 +32,13 @@ export class CreateAnimalDto {
   breed!: string;
 
   @ApiProperty({ description: 'Idade do animal', example: 10 })
-  @IsInt()
-  @Min(1)
+  @IsInt({ message: 'Idade deve ser um número inteiro' })
+  @Min(0, { message: 'Idade não pode ser negativa' })
+  @Max(30, { message: 'Idade não pode exceder 30 anos' })
   age!: number;
 
   @ApiProperty({ description: 'Id do usuário dono do animal', example: 2 })
-  @IsInt()
+  @IsInt({ message: 'userId deve ser um número inteiro' })
+  @IsPositive({ message: 'userId deve ser positivo' })
   userId!: number;
 }
