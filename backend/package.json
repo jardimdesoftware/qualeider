@@ -26,8 +26,7 @@
     "test:all": "npm run test:unit && npm run test:e2e",
     "test:all:cov": "npm run test:unit:cov && npm run test:e2e:cov",
     "test:ci": "npm run test:all -- --coverage --ci",
-    "prepare": "cd .. && husky backend/.husky",
-    "seed": "echo 'No seed script found, skipping...'"
+    "prepare": "cd .. && husky backend/.husky"
   },
   "dependencies": {
     "@nestjs-modules/mailer": "^2.0.2",

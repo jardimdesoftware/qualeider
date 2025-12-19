@@ -12,26 +12,31 @@ import { join } from 'path';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        const user = configService.get<string>('GMAIL_USER');
-        const pass = configService.get<string>('GMAIL_PASS');
+        const host = configService.get<string>('SMTP_HOST');
+        const port = configService.get<number>('SMTP_PORT', 587);
+        const user = configService.get<string>('SMTP_USER');
+        const pass = configService.get<string>('SMTP_PASSWORD');
+        const from = configService.get<string>('SMTP_FROM') || user;
 
-        if (!user || !pass) {
-          Logger.error(
-            'GMAIL_USER or GMAIL_PASS not found in environment variables. Email sending will fail!',
+        if (!host || !user || !pass) {
+          Logger.warn(
+            'SMTP configuration incomplete. Email sending will fail!',
             'MailModule',
           );
         }
 
         return {
           transport: {
-            service: 'Gmail',
+            host,
+            port,
+            secure: false,
             auth: {
               user,
               pass,
             },
           },
           defaults: {
-            from: `"Equipe de Suporte - QualeiDer" <${user}>`,
+            from: `"Equipe de Suporte - QualeiDer" <${from}>`,
           },
           template: {
             dir: join(process.cwd(), 'src', 'templates'),
