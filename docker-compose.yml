@@ -24,6 +24,7 @@ services:
     restart: on-failure
     depends_on:
       - postgres
+    command: sh -c "npx prisma migrate deploy && npm run start:prod"
     environment:
       DATABASE_URL: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-qualeider}?schema=public"
       JWT_SECRET: ${JWT_SECRET:-secret}
