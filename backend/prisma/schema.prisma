@@ -56,20 +56,20 @@ model Association {
   landlinePhone         String          
   mobilePhone           String?          
   website               String?          
-  zipCode               String           
+  zipCode               String?          
   state                 String           
   city                  String           
-  street                String           
-  number                String           
+  street                String?          
+  number                String?          
   complement            String?          
-  neighborhood          String           
+  neighborhood          String?          
   foundationDate        DateTime?        
   numberOfMembers       Int?             
   coverageArea          CoverageArea           
-  presidentName         String           
-  presidentCpf          String           
-  presidentEmail        String           
-  presidentPhone        String           
+  presidentName         String?          
+  presidentCpf          String?          
+  presidentEmail        String?          
+  presidentPhone        String?          
   status                Status           @default(Active)
   users                 User[]
   notifications         Notification[]
