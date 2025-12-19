@@ -71,7 +71,7 @@ function EditAnimalContent() {
     if (!animalId) return;
     
     try {
-      await animalService.update(animalId, data);
+      await animalService.update(Number(animalId), data);
 
       setModalState({
         isOpen: true,

@@ -59,7 +59,7 @@ export default function SettingsPage() {
       // Populate form
       Object.keys(data).forEach((key) => {
         if (key in settingsSchema.shape) {
-          setValue(key as any, data[key]);
+          setValue(key as any, data[key as keyof typeof data]);
         }
       });
     } catch (err) {

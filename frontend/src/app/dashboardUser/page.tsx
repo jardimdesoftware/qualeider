@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/layout";
 import { apiBase } from "@/services/baseApi";
-import { MetricCard, EmptyState } from "@/components/ui";
+import { MetricCard, EmptyState, ErrorModal } from "@/components/ui";
 import { Activity, Milk, Cat, Ruler, Wheat, Droplet, BarChart3, Calendar } from "lucide-react";
 import { Animal } from "@/interfaces/animal";
 import { DailyCollection } from "@/interfaces/daily-collection";
@@ -25,6 +25,14 @@ export default function DashboardUser() {
   const [dataLoading, setDataLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [invites, setInvites] = useState<any[]>([]);
+  
+  // Modal states
+  const [modalState, setModalState] = useState({
+      isOpen: false,
+      title: "",
+      message: "",
+      type: "success" as "success" | "error" | "info"
+  });
 
   useEffect(() => {
     if (!userId) return;
@@ -75,14 +83,30 @@ export default function DashboardUser() {
       try {
           const result = await inviteService.respondToInvite(token, response);
           if (response === 'Accept') {
-              alert(result.message);
-              window.location.reload(); // Reload to update association context
+              setModalState({
+                  isOpen: true,
+                  title: "Bem-vindo!",
+                  message: result.message || "Você agora faz parte da associação.",
+                  type: "success"
+              });
           } else {
               setInvites(prev => prev.filter(i => i.token !== token));
           }
       } catch (err: any) {
           console.error("Erro ao responder convite", err);
-          alert("Erro ao processar resposta: " + (err.response?.data?.message || err.message));
+          setModalState({
+              isOpen: true,
+              title: "Erro",
+              message: "Erro ao processar resposta: " + (err.response?.data?.message || err.message),
+              type: "error"
+          });
+      }
+  };
+
+  const handleCloseModal = () => {
+      setModalState(prev => ({ ...prev, isOpen: false }));
+      if (modalState.type === 'success') {
+          window.location.reload();
       }
   };
 
@@ -334,6 +358,14 @@ export default function DashboardUser() {
           </section>
         </div>
       </div>
+      
+      <ErrorModal
+        isOpen={modalState.isOpen}
+        onClose={handleCloseModal}
+        title={modalState.title}
+        message={modalState.message}
+        type={modalState.type}
+      />
     </div>
   );
 }
