@@ -20,5 +20,9 @@ export interface IDailyCollectionRepository {
     id: ID,
     data: Partial<DailyCollectionEntity>,
   ): Promise<DailyCollectionEntity>;
+  updateItems(
+    collectionId: ID,
+    items: Omit<DailyCollectionItem, 'id' | 'dailyCollectionId'>[],
+  ): Promise<void>;
   delete(id: ID): Promise<void>;
 }

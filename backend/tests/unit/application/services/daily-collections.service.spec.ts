@@ -25,6 +25,7 @@ describe('DailyCollectionsService', () => {
             findAll: jest.fn(),
             findById: jest.fn(),
             update: jest.fn(),
+            updateItems: jest.fn(),
             delete: jest.fn(),
             findAllByUserId: jest.fn(),
           },
@@ -180,16 +181,20 @@ describe('DailyCollectionsService', () => {
       const mockExistingCollection = createDailyCollection({ id: 1, quantity: 50 });
       const mockUpdatedCollection = createDailyCollection({
         id: 1,
-        ...(updateDto as any),
+        quantity: 55.0,
+        numAnimals: 12,
       });
 
-      dailyCollectionRepository.findById.mockResolvedValue(mockExistingCollection);
+      dailyCollectionRepository.findById
+        .mockResolvedValueOnce(mockExistingCollection)
+        .mockResolvedValueOnce(mockUpdatedCollection);
       dailyCollectionRepository.update.mockResolvedValue(mockUpdatedCollection);
 
       const result = await service.update(1, updateDto as any);
 
-      expect(result).toEqual(mockUpdatedCollection);
+      expect(dailyCollectionRepository.findById).toHaveBeenCalledTimes(2);
       expect(dailyCollectionRepository.update).toHaveBeenCalledWith(1, updateDto);
+      expect(result).toEqual(mockUpdatedCollection);
     });
 
     it('deve permitir atualizar apenas alguns campos', async () => {
@@ -202,13 +207,93 @@ describe('DailyCollectionsService', () => {
         technicalAssistance: true,
       });
 
-      dailyCollectionRepository.findById.mockResolvedValue(mockExistingCollection);
+      dailyCollectionRepository.findById
+        .mockResolvedValueOnce(mockExistingCollection)
+        .mockResolvedValueOnce(mockUpdatedCollection);
       dailyCollectionRepository.update.mockResolvedValue(mockUpdatedCollection);
 
       const result = await service.update(1, updateDto as any);
 
-      expect(result).toEqual(mockUpdatedCollection);
+      expect(dailyCollectionRepository.findById).toHaveBeenCalledTimes(2);
       expect(dailyCollectionRepository.update).toHaveBeenCalledWith(1, updateDto);
+      expect(result).toEqual(mockUpdatedCollection);
+    });
+
+    it('deve atualizar coleta diária e seus items quando items forem fornecidos', async () => {
+      const updateDto: UpdateDailyCollectionDto = {
+        quantity: 60.0,
+        numAnimals: 2,
+        items: [
+          { animalId: 1, quantity: 30.0 },
+          { animalId: 2, quantity: 30.0 },
+        ],
+      } as any;
+
+      const mockExistingCollection = createDailyCollection({ id: 1, quantity: 50 });
+      const mockUpdatedCollection = createDailyCollection({
+        id: 1,
+        quantity: 60.0,
+        numAnimals: 2,
+        items: [
+          { id: 1, dailyCollectionId: 1, animalId: 1, quantity: 30.0 },
+          { id: 2, dailyCollectionId: 1, animalId: 2, quantity: 30.0 },
+        ],
+      });
+
+      dailyCollectionRepository.findById
+        .mockResolvedValueOnce(mockExistingCollection)
+        .mockResolvedValueOnce(mockUpdatedCollection);
+      dailyCollectionRepository.update.mockResolvedValue(mockUpdatedCollection);
+      dailyCollectionRepository.updateItems.mockResolvedValue(undefined);
+
+      const result = await service.update(1, updateDto);
+
+      expect(dailyCollectionRepository.findById).toHaveBeenCalledTimes(2);
+      expect(dailyCollectionRepository.findById).toHaveBeenNthCalledWith(1, 1);
+      expect(dailyCollectionRepository.findById).toHaveBeenNthCalledWith(2, 1);
+      expect(dailyCollectionRepository.update).toHaveBeenCalledWith(1, {
+        quantity: 60.0,
+        numAnimals: 2,
+      });
+      expect(dailyCollectionRepository.updateItems).toHaveBeenCalledWith(1, updateDto.items);
+      expect(result).toEqual(mockUpdatedCollection);
+      expect(result).toBeDefined();
+      expect(result?.items).toHaveLength(2);
+    });
+
+    it('não deve chamar updateItems quando items não forem fornecidos', async () => {
+      const updateDto: Partial<UpdateDailyCollectionDto> = {
+        quantity: 55.0,
+      };
+      const mockExistingCollection = createDailyCollection({ id: 1 });
+      const mockUpdatedCollection = createDailyCollection({ id: 1, quantity: 55.0 });
+
+      dailyCollectionRepository.findById
+        .mockResolvedValueOnce(mockExistingCollection)
+        .mockResolvedValueOnce(mockUpdatedCollection);
+      dailyCollectionRepository.update.mockResolvedValue(mockUpdatedCollection);
+
+      await service.update(1, updateDto as any);
+
+      expect(dailyCollectionRepository.updateItems).not.toHaveBeenCalled();
+    });
+
+    it('não deve chamar updateItems quando items for array vazio', async () => {
+      const updateDto: Partial<UpdateDailyCollectionDto> = {
+        quantity: 55.0,
+        items: [],
+      };
+      const mockExistingCollection = createDailyCollection({ id: 1 });
+      const mockUpdatedCollection = createDailyCollection({ id: 1, quantity: 55.0 });
+
+      dailyCollectionRepository.findById
+        .mockResolvedValueOnce(mockExistingCollection)
+        .mockResolvedValueOnce(mockUpdatedCollection);
+      dailyCollectionRepository.update.mockResolvedValue(mockUpdatedCollection);
+
+      await service.update(1, updateDto as any);
+
+      expect(dailyCollectionRepository.updateItems).not.toHaveBeenCalled();
     });
 
     it('deve lançar NotFoundException ao tentar atualizar coleta inexistente', async () => {

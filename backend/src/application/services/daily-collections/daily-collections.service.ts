@@ -44,9 +44,17 @@ export class DailyCollectionsService {
   }
 
   async update(id: number, updateDailyCollectionDto: UpdateDailyCollectionDto) {
-    await this.findOne(id); 
-    const { items, ...data } = updateDailyCollectionDto;
-    return this.dailyCollectionRepository.update(id, data);
+    await this.findOne(id);
+    
+    const { items, ...collectionData } = updateDailyCollectionDto;
+    
+    await this.dailyCollectionRepository.update(id, collectionData);
+    
+    if (items && items.length > 0) {
+      await this.dailyCollectionRepository.updateItems(id, items);
+    }
+    
+    return this.dailyCollectionRepository.findById(id);
   }
 
   async remove(id: number) {
