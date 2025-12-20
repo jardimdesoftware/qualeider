@@ -8,11 +8,15 @@ import { MilkingPlace } from '@/domain/enums/enums';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 import { IDailyCollectionRepository, IDailyCollectionRepository as IDailyCollectionRepositorySymbol } from '@/domain/repositories/daily-collection.repository';
 import { IUserRepository, IUserRepository as IUserRepositorySymbol } from '@/domain/repositories/user.repository';
+import { IAnimalRepository, IAnimalRepository as IAnimalRepositorySymbol } from '@/domain/repositories/animal.repository';
+import { BusinessException } from '@/common/exceptions/business.exception';
+import { createAnimal } from '../../../factories/animal.factory';
 
 describe('DailyCollectionsService', () => {
   let service: DailyCollectionsService;
   let dailyCollectionRepository: jest.Mocked<IDailyCollectionRepository>;
   let userRepository: jest.Mocked<IUserRepository>;
+  let animalRepository: jest.Mocked<IAnimalRepository>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -31,6 +35,12 @@ describe('DailyCollectionsService', () => {
           },
         },
         {
+          provide: IAnimalRepositorySymbol,
+          useValue: {
+            findById: jest.fn(),
+          },
+        },
+        {
           provide: IUserRepositorySymbol,
           useValue: {
             findById: jest.fn(),
@@ -42,6 +52,7 @@ describe('DailyCollectionsService', () => {
     service = module.get<DailyCollectionsService>(DailyCollectionsService);
     dailyCollectionRepository = module.get(IDailyCollectionRepositorySymbol);
     userRepository = module.get(IUserRepositorySymbol);
+    animalRepository = module.get(IAnimalRepositorySymbol);
   });
 
   afterEach(() => {
@@ -49,43 +60,37 @@ describe('DailyCollectionsService', () => {
   });
 
   describe('create', () => {
+    const createDailyCollectionDto: CreateDailyCollectionDto = {
+      quantity: 50.5,
+      userId: 1,
+      numAnimals: 10,
+      numOrdens: 2,
+      rationProvided: true,
+      numLactation: 3,
+      milkingPlace: MilkingPlace.Curral,
+      technicalAssistance: false,
+      collectionDate: new Date(),
+      items: [
+        { animalId: 10, quantity: 25.25 },
+        { animalId: 11, quantity: 25.25 }
+      ],
+    };
+
     it('deve criar uma coleta diária com sucesso', async () => {
       const userId = 1;
       const mockUser = createUser({ id: userId });
-      const createDto: CreateDailyCollectionDto = {
-        quantity: 50.5,
-        userId,
-        numAnimals: 10,
-        numOrdens: 2,
-        rationProvided: true,
-        numLactation: 3,
-        milkingPlace: MilkingPlace.Curral,
-        technicalAssistance: false,
-        collectionDate: new Date(),
-        items: [
-          { animalId: 10, quantity: 25.25 },
-          { animalId: 11, quantity: 25.25 }
-        ],
-      };
-      
-      const mockCollection = createDailyCollection({
-        ...createDto,
-        id: 1,
-        items: createDto.items!.map((item, index) => ({
-          ...item,
-          id: index + 1,
-          dailyCollectionId: 1,
-        })),
-      });
+      const mockDailyCollection = createDailyCollection({ id: 1, userId });
+      const mockAnimal = createAnimal({ id: 10, userId });
 
       userRepository.findById.mockResolvedValue(mockUser);
-      dailyCollectionRepository.create.mockResolvedValue(mockCollection);
+      animalRepository.findById.mockResolvedValue(mockAnimal);
+      dailyCollectionRepository.create.mockResolvedValue(mockDailyCollection);
 
-      const result = await service.create(createDto);
+      const result = await service.create(createDailyCollectionDto);
 
-      expect(result).toEqual(mockCollection);
+      expect(result).toEqual(mockDailyCollection);
       expect(userRepository.findById).toHaveBeenCalledWith(userId);
-      expect(dailyCollectionRepository.create).toHaveBeenCalledWith(createDto as any);
+      expect(dailyCollectionRepository.create).toHaveBeenCalledWith(createDailyCollectionDto);
     });
 
     it('deve lançar NotFoundException se usuário não existe', async () => {
@@ -110,6 +115,114 @@ describe('DailyCollectionsService', () => {
       await expect(service.create(createDto)).rejects.toThrow(
         'Usuário com ID 999 não encontrado.',
       );
+      expect(dailyCollectionRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('deve lançar BusinessException se data de coleta for futura', async () => {
+      const userId = 1;
+      const mockUser = createUser({ id: userId });
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 1);
+
+      const createDto: CreateDailyCollectionDto = {
+        quantity: 50.0,
+        userId,
+        numAnimals: 10,
+        numOrdens: 2,
+        rationProvided: true,
+        numLactation: 3,
+        milkingPlace: MilkingPlace.Curral,
+        technicalAssistance: false,
+        collectionDate: futureDate,
+        items: [],
+      };
+
+      userRepository.findById.mockResolvedValue(mockUser);
+
+      await expect(service.create(createDto)).rejects.toThrow(BusinessException);
+      await expect(service.create(createDto)).rejects.toThrow('Data de coleta não pode ser futura');
+      expect(dailyCollectionRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('deve lançar BusinessException se soma dos items não bater com quantity', async () => {
+      const userId = 1;
+      const mockUser = createUser({ id: userId });
+
+      const createDto: CreateDailyCollectionDto = {
+        quantity: 100.0,
+        userId,
+        numAnimals: 2,
+        numOrdens: 1,
+        rationProvided: false,
+        numLactation: 1,
+        milkingPlace: MilkingPlace.Aberto,
+        technicalAssistance: false,
+        collectionDate: new Date(),
+        items: [
+          { animalId: 1, quantity: 30.0 },
+          { animalId: 2, quantity: 25.0 },
+        ],
+      };
+
+      userRepository.findById.mockResolvedValue(mockUser);
+
+      await expect(service.create(createDto)).rejects.toThrow(BusinessException);
+      await expect(service.create(createDto)).rejects.toThrow(/Soma dos items.*não corresponde/);
+      expect(dailyCollectionRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('deve lançar EntityNotFoundException se animal não existe', async () => {
+      const userId = 1;
+      const mockUser = createUser({ id: userId });
+
+      const createDto: CreateDailyCollectionDto = {
+        quantity: 50.0,
+        userId,
+        numAnimals: 2,
+        numOrdens: 1,
+        rationProvided: false,
+        numLactation: 1,
+        milkingPlace: MilkingPlace.Aberto,
+        technicalAssistance: false,
+        collectionDate: new Date(),
+        items: [
+          { animalId: 999, quantity: 50.0 },
+        ],
+      };
+
+      userRepository.findById.mockResolvedValue(mockUser);
+      animalRepository.findById.mockResolvedValue(null);
+
+      await expect(service.create(createDto)).rejects.toThrow(EntityNotFoundException);
+      await expect(service.create(createDto)).rejects.toThrow('Animal com ID 999 não encontrado');
+      expect(dailyCollectionRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('deve lançar BusinessException se animal não pertence ao usuário', async () => {
+      const userId = 1;
+      const mockUser = createUser({ id: userId });
+      const mockAnimal = createAnimal({ id: 10, userId: 999 });
+
+      const createDto: CreateDailyCollectionDto = {
+        quantity: 50.0,
+        userId,
+        numAnimals: 1,
+        numOrdens: 1,
+        rationProvided: false,
+        numLactation: 1,
+        milkingPlace: MilkingPlace.Aberto,
+        technicalAssistance: false,
+        collectionDate: new Date(),
+        items: [
+          { animalId: 10, quantity: 50.0 },
+        ],
+      };
+
+      userRepository.findById.mockResolvedValue(mockUser);
+      animalRepository.findById.mockResolvedValue(mockAnimal);
+
+      await expect(service.create(createDto)).rejects.toThrow(BusinessException);
+      await expect(service.create(createDto)).rejects.toThrow('Animal com ID 10 não pertence ao usuário');
       expect(dailyCollectionRepository.create).not.toHaveBeenCalled();
     });
   });

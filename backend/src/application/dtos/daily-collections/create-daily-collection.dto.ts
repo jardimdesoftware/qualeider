@@ -10,7 +10,6 @@ import {
   IsArray,
   Min,
   Max,
-  ArrayMinSize,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -75,7 +74,6 @@ export class CreateDailyCollectionDto {
   })
   @IsOptional()
   @IsArray({ message: 'items deve ser um array' })
-  @ArrayMinSize(1, { message: 'Deve incluir pelo menos um item quando fornecido' })
   @ValidateNested({ each: true })
   @Type(() => CreateDailyCollectionItemDto)
   items?: CreateDailyCollectionItemDto[];

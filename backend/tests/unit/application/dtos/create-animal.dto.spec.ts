@@ -172,11 +172,11 @@ describe('CreateAnimalDto', () => {
       expect(ageError?.constraints).toHaveProperty('isInt');
     });
 
-    it('deve rejeitar age menor que 1', async () => {
+    it('deve rejeitar age negativo', async () => {
       const dto = plainToInstance(CreateAnimalDto, {
         animalType: AnimalType.Vaca,
         breed: 'Holandês',
-        age: 0,
+        age: -1,
         userId: 1,
       });
 

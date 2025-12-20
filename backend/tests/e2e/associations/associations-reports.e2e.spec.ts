@@ -9,6 +9,8 @@ describe('E2E: Associations - Relatórios', () => {
   let associationId: number;
   let producer1Id: number;
   let producer2Id: number;
+  let animal1Id: number;
+  let animal2Id: number;
 
   // Variáveis para garantir consistência de data entre o setup e os testes
   let globalToday: Date;
@@ -88,22 +90,24 @@ describe('E2E: Associations - Relatórios', () => {
       .expect(HttpStatus.OK);
     const p2Token = p2Login.body.data.access_token;
 
-    // FIX: Criar animais COM AUTH
-    await testApp
+    // FIX: Criar animais COM AUTH e armazenar IDs
+    const animal1Response = await testApp
       .request()
       .post('/animals')
       .set('Authorization', `Bearer ${p1Token}`)
       .send(AnimalFactory.build({ userId: producer1Id }))
       .expect(HttpStatus.CREATED);
+    animal1Id = animal1Response.body.data.id;
     
-    await testApp
+    const animal2Response = await testApp
       .request()
       .post('/animals')
       .set('Authorization', `Bearer ${p2Token}`)
       .send(AnimalFactory.build({ userId: producer2Id }))
       .expect(HttpStatus.CREATED);
+    animal2Id = animal2Response.body.data.id;
 
-    // FIX: Criar coletas diárias COM AUTH
+    // FIX: Criar coletas diárias COM AUTH e items que correspondem às quantidades
     // Produtor 1: 100L hoje, 80L ontem
     await testApp
       .request()
@@ -112,8 +116,8 @@ describe('E2E: Associations - Relatórios', () => {
       .send(DailyCollectionFactory.build({ 
         userId: producer1Id,
         quantity: 100,
-        collectionDate: globalToday.toISOString(),
-        items: [] 
+        items: [{ animalId: animal1Id, quantity: 100 }],
+        collectionDate: globalToday.toISOString().split('T')[0],
       }))
       .expect(HttpStatus.CREATED);
 
@@ -124,8 +128,8 @@ describe('E2E: Associations - Relatórios', () => {
       .send(DailyCollectionFactory.build({ 
         userId: producer1Id, 
         quantity: 80,
-        collectionDate: globalYesterday.toISOString(),
-        items: [] 
+        items: [{ animalId: animal1Id, quantity: 80 }],
+        collectionDate: globalYesterday.toISOString().split('T')[0],
       }))
       .expect(HttpStatus.CREATED);
 
@@ -137,8 +141,8 @@ describe('E2E: Associations - Relatórios', () => {
       .send(DailyCollectionFactory.build({ 
         userId: producer2Id, 
         quantity: 50,
-        collectionDate: globalToday.toISOString(),
-        items: [] 
+        items: [{ animalId: animal2Id, quantity: 50 }],
+        collectionDate: globalToday.toISOString().split('T')[0],
       }))
       .expect(HttpStatus.CREATED);
 
@@ -149,8 +153,8 @@ describe('E2E: Associations - Relatórios', () => {
       .send(DailyCollectionFactory.build({ 
         userId: producer2Id, 
         quantity: 60,
-        collectionDate: globalYesterday.toISOString(),
-        items: [] 
+        items: [{ animalId: animal2Id, quantity: 60 }],
+        collectionDate: globalYesterday.toISOString().split('T')[0],
       }))
       .expect(HttpStatus.CREATED);
   });
@@ -186,13 +190,13 @@ describe('E2E: Associations - Relatórios', () => {
     });
 
     it('deve filtrar ranking por data de início', async () => {
-      // FIX: Usar o INÍCIO do dia para o filtro
+      // FIX: Usar o INÍCIO do dia para o filtro (formato YYYY-MM-DD)
       const startOfToday = new Date(globalToday);
       startOfToday.setHours(0, 0, 0, 0);
 
       const response = await testApp
         .request()
-        .get(`/associations/reports/producer-ranking?startDate=${startOfToday.toISOString()}`)
+        .get(`/associations/reports/producer-ranking?startDate=${startOfToday.toISOString().split('T')[0]}`)
         .set('Authorization', `Bearer ${associationToken}`)
         .expect(HttpStatus.OK);
 

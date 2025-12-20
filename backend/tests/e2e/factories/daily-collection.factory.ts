@@ -27,6 +27,8 @@ export class DailyCollectionFactory {
   ): DailyCollectionFactoryData {
     this.counter++;
 
+    const defaultCollectionDate = (overrides as any).collectionDate || new Date().toISOString().split('T')[0];
+
     return {
       quantity: 25.5,
       numAnimals: 5,
@@ -39,8 +41,8 @@ export class DailyCollectionFactory {
         { animalId: 10, quantity: 12.75 },
         { animalId: 11, quantity: 12.75 }
       ],
+      collectionDate: defaultCollectionDate,
       ...overrides,
-      collectionDate: (overrides as any).collectionDate || new Date().toISOString().split('T')[0],
     };
   }
 
