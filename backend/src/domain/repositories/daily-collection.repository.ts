@@ -25,4 +25,5 @@ export interface IDailyCollectionRepository {
     items: Omit<DailyCollectionItem, 'id' | 'dailyCollectionId'>[],
   ): Promise<void>;
   delete(id: ID): Promise<void>;
+  countItemsByAnimalId(animalId: ID): Promise<number>;
 }

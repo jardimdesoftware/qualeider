@@ -163,4 +163,10 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
       });
     }
   }
+
+  async countItemsByAnimalId(animalId: ID): Promise<number> {
+    return this.prisma.dailyCollectionItem.count({
+      where: { animalId },
+    });
+  }
 }

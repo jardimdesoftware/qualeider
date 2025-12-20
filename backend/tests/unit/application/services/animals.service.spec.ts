@@ -10,7 +10,6 @@ import { IAnimalRepository, IAnimalRepository as IAnimalRepositorySymbol } from 
 import { IUserRepository, IUserRepository as IUserRepositorySymbol } from '@/domain/repositories/user.repository';
 import { IDailyCollectionRepository, IDailyCollectionRepository as IDailyCollectionRepositorySymbol } from '@/domain/repositories/daily-collection.repository';
 import { BusinessException } from '@/common/exceptions/business.exception';
-import { createDailyCollection } from '../../../factories/daily-collection.factory';
 
 describe('AnimalsService', () => {
   let service: AnimalsService;
@@ -43,6 +42,7 @@ describe('AnimalsService', () => {
           provide: IDailyCollectionRepositorySymbol,
           useValue: {
             findAll: jest.fn(),
+            countItemsByAnimalId: jest.fn(),
           },
         },
       ],
@@ -211,7 +211,7 @@ describe('AnimalsService', () => {
       const mockAnimal = createAnimal({ id: 1, status: Status.Active });
       
       animalRepository.findById.mockResolvedValue(mockAnimal);
-      dailyCollectionRepository.findAll.mockResolvedValue([]);
+      dailyCollectionRepository.countItemsByAnimalId.mockResolvedValue(0);
       animalRepository.softDelete.mockResolvedValue(mockAnimal);
 
       await service.remove(1);
@@ -229,16 +229,9 @@ describe('AnimalsService', () => {
 
     it('deve lançar BusinessException ao tentar remover animal com histórico de coletas', async () => {
       const mockAnimal = createAnimal({ id: 1, userId: 1, name: 'Mimosa' });
-      const mockCollection = createDailyCollection({
-        id: 1,
-        userId: 1,
-        items: [
-          { id: 1, dailyCollectionId: 1, animalId: 1, quantity: 25.0 },
-        ],
-      });
 
       animalRepository.findById.mockResolvedValue(mockAnimal);
-      dailyCollectionRepository.findAll.mockResolvedValue([mockCollection]);
+      dailyCollectionRepository.countItemsByAnimalId.mockResolvedValue(1);
 
       await expect(service.remove(1)).rejects.toThrow(BusinessException);
       await expect(service.remove(1)).rejects.toThrow(
@@ -251,13 +244,13 @@ describe('AnimalsService', () => {
       const mockAnimal = createAnimal({ id: 1, status: Status.Active });
 
       animalRepository.findById.mockResolvedValue(mockAnimal);
-      dailyCollectionRepository.findAll.mockResolvedValue([]);
+      dailyCollectionRepository.countItemsByAnimalId.mockResolvedValue(0);
       animalRepository.softDelete.mockResolvedValue(mockAnimal);
 
       await service.remove(1);
 
       expect(animalRepository.findById).toHaveBeenCalledWith(1);
-      expect(dailyCollectionRepository.findAll).toHaveBeenCalled();
+      expect(dailyCollectionRepository.countItemsByAnimalId).toHaveBeenCalledWith(1);
       expect(animalRepository.softDelete).toHaveBeenCalledWith(1);
     });
   });
