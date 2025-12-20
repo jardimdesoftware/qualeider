@@ -6,7 +6,10 @@ import {
   IsInt,
   IsNumber,
   IsOptional,
+  IsPositive,
+  IsArray,
   Min,
+  Max,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -22,15 +25,20 @@ export class CreateDailyCollectionDto {
   quantity!: number;
 
   @ApiProperty({ description: 'Id do usuário', example: 2 })
-  @IsInt()
+  @IsInt({ message: 'userId deve ser um número inteiro' })
+  @IsPositive({ message: 'userId deve ser positivo' })
   userId!: number;
 
   @ApiProperty({ description: 'Número de animais ordenados', example: 5 })
-  @IsInt()
+  @IsInt({ message: 'numAnimals deve ser um número inteiro' })
+  @Min(1, { message: 'Deve ordenar pelo menos 1 animal' })
+  @Max(9999, { message: 'Número de animais inválido' })
   numAnimals!: number;
 
   @ApiProperty({ description: 'Número de ordenhas realizadas', example: 2 })
-  @IsInt()
+  @IsInt({ message: 'numOrdens deve ser um número inteiro' })
+  @Min(1, { message: 'Deve ter pelo menos 1 ordenha' })
+  @Max(10, { message: 'Número de ordenhas não pode exceder 10' })
   numOrdens!: number;
 
   @ApiProperty({ description: 'Utilizou ração', example: true })
@@ -38,7 +46,9 @@ export class CreateDailyCollectionDto {
   rationProvided!: boolean;
 
   @ApiProperty({ description: 'Número de lactações por animal', example: 2 })
-  @IsInt()
+  @IsInt({ message: 'numLactation deve ser um número inteiro' })
+  @Min(0, { message: 'numLactation não pode ser negativo' })
+  @Max(15, { message: 'Número de lactações inválido' })
   numLactation!: number;
 
   @ApiProperty({
@@ -63,6 +73,7 @@ export class CreateDailyCollectionDto {
     type: () => [CreateDailyCollectionItemDto],
   })
   @IsOptional()
+  @IsArray({ message: 'items deve ser um array' })
   @ValidateNested({ each: true })
   @Type(() => CreateDailyCollectionItemDto)
   items?: CreateDailyCollectionItemDto[];
@@ -70,11 +81,13 @@ export class CreateDailyCollectionDto {
 
 export class CreateDailyCollectionItemDto {
   @ApiProperty({ description: 'ID do animal', example: 10 })
-  @IsInt()
+  @IsInt({ message: 'animalId deve ser um número inteiro' })
+  @IsPositive({ message: 'animalId deve ser positivo' })
   animalId!: number;
 
   @ApiProperty({ description: 'Quantidade de leite produzida', example: 12.5 })
-  @IsNumber()
-  @Min(0)
+  @IsNumber({}, { message: 'quantity deve ser um número' })
+  @Min(0.01, { message: 'Quantidade deve ser maior que zero' })
+  @Max(1000, { message: 'Quantidade não pode exceder 1000 litros por animal' })
   quantity!: number;
 }

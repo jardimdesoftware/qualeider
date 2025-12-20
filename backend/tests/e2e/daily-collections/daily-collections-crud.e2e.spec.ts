@@ -45,6 +45,7 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
   const buildCollectionWithValidItems = (overrides: any = {}) => {
     return DailyCollectionFactory.build({
       userId,
+      quantity: 30, // Default items sum to 30 (15 + 15)
       items: [
         { animalId: animal1Id, quantity: 15 },
         { animalId: animal2Id, quantity: 15 }
@@ -95,8 +96,12 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
       const response = await testApp
         .request()
         .post('/daily-collections')
-        .send(collectionData)
-        .expect(201);
+        .send(collectionData);
+      
+      if (response.status === 400) {
+        console.error('❌ ERRO DE VALIDAÇÃO:', JSON.stringify(response.body, null, 2));
+      }
+      expect(response.status).toBe(201);
 
       expect(response.body.data.technicalAssistance).toBe(true);
       expect(response.body.data.rationProvided).toBe(true);
@@ -239,6 +244,10 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
       const collectionData = buildCollectionWithValidItems({
         userId,
         quantity: 20,
+        items: [
+          { animalId: animal1Id, quantity: 10 },
+          { animalId: animal2Id, quantity: 10 }
+        ],
       });
       const created = await testApp
         .request()

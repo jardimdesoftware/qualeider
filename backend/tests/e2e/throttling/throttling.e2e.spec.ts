@@ -143,6 +143,9 @@ describe('E2E: Rate Limiting (Throttling)', () => {
           .post('/users')
           .set('X-Forwarded-For', fakeIP)
           .send(userData);
+        
+        // Add small delay to ensure rate limiter tracks each request
+        await wait(50);
       }
 
       // 6ª requisição deve ser bloqueada

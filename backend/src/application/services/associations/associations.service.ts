@@ -57,12 +57,6 @@ export class AssociationsService {
     const entityData = {
       ...rest,
       landlinePhone: rest.landlinePhone || phone,
-      zipCode: rest.zipCode || '00000000',
-      street: rest.street || 'Não informado',
-      number: rest.number || 'S/N',
-      neighborhood: rest.neighborhood || 'Não informado',
-      presidentName: rest.presidentName || 'Não informado', 
-      presidentCpf: rest.presidentCpf || '00000000000',
       presidentEmail: rest.presidentEmail || createAssociationDto.email,
       presidentPhone: rest.presidentPhone || phone,
       foundationDate: rest.foundationDate ? new Date(rest.foundationDate) : null,
