@@ -104,144 +104,146 @@ export class PrismaAssociationRepository implements IAssociationRepository {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(today.getDate() - 7);
 
-    // 1. Total Animals
-    const totalAnimals = await this.prisma.animal.count({
-      where: {
-        user: { associationId },
-        status: 'Active',
-      },
-    });
-
-    // 2. Production (Total for today - simplified sum of latest collection per user)
-    // A more accurate way would be to sum collections where date is today.
-    // Let's summing collections from TODAY.
     const startOfToday = new Date(today.setHours(0,0,0,0));
     const endOfToday = new Date(today.setHours(23,59,59,999));
-
-    const todaysCollections = await this.prisma.dailyCollection.aggregate({
-      _sum: { quantity: true },
-      where: {
-        user: { associationId },
-        collectionDate: {
-            gte: startOfToday,
-            lte: endOfToday
-        }
-      }
-    });
-
-    // 3. Average Production (Total Prod / Users with Production? OR Total Prod / Total Cows?)
-    // "Média por Vaca" implies Total Prod / Total Cows.
-    // We need count of Cows (not all animals).
-    const totalCows = await this.prisma.animal.count({
-        where: {
-            user: { associationId },
-            animalType: 'Vaca',
-            status: 'Active'
-        }
-    });
-
-    const avgProduction = totalCows > 0 ? (todaysCollections._sum.quantity || 0) / totalCows : 0;
-
-    // 4. Breakdown (Mocking some logic based on age as Schema doesn't have heuristic status)
-    // Assumption: < 1 year = Calf (Bezerra), 1-2 year = Heifer (Novilha), > 2 = Cow.
-    // Lactating vs Dry requires checking DailyCollection link or custom status, hard to infer purely from 'Animal'.
-    // We will approximate: 
-    // Lactating = Cows belonging to users who produced milk recently? 
-    // OR just use a ratio for visual proof if data is missing.
-    // Let's use simple logic:
-    const heifers = await this.prisma.animal.count({
-        where: { user: { associationId }, age: { gte: 1, lt: 2 }, status: 'Active' }
-    });
-    const calves = await this.prisma.animal.count({
-        where: { user: { associationId }, age: { lt: 1 }, status: 'Active' }
-    });
-    
-    // For Lactating/Dry, we assume all "Cows" (> 2 years) are split.
-    // This is a simplification.
-    const adultCows = await this.prisma.animal.count({
-         where: { user: { associationId }, age: { gte: 2 }, status: 'Active' }
-    });
-    const lactatingCows = Math.floor(adultCows * 0.7); // 70% assumed lactating
-    const dryCows = adultCows - lactatingCows;
-
-
-    // 5. Breed Distribution
-    const breeds = await this.prisma.animal.groupBy({
-        by: ['breed'],
-        where: { user: { associationId }, status: 'Active' },
-        _count: { breed: true }
-    });
-    const breedDistribution = breeds.map(b => ({ name: b.breed, value: b._count.breed }));
-
-    // 6. Production History (Last 7 days)
-    const history = await this.prisma.dailyCollection.groupBy({
-        by: ['collectionDate'],
-        where: {
-            user: { associationId },
-            collectionDate: { gte: sevenDaysAgo }
-        },
-        _sum: { quantity: true },
-        orderBy: { collectionDate: 'asc' }
-    });
-    
-    // Format history
-    const productionHistory = history.map(h => ({
-        date: new Date(h.collectionDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
-        quantity: h._sum.quantity || 0
-    }));
-
-
-    // 7. Extended Metrics
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
-    // Average Animal Age
-    const ageAgg = await this.prisma.animal.aggregate({
+    // Executar todas as queries em paralelo para reduzir latência
+    const [
+      // Query 1: Contagem de animais por categoria (age ranges) em uma única query
+      animalStats,
+      // Query 2: Total de vacas ativas
+      totalCows,
+      // Query 3: Produção de hoje
+      todaysCollections,
+      // Query 4: Distribuição de raças
+      breeds,
+      // Query 5: Histórico de produção (7 dias)
+      history,
+      // Query 6: Idade média
+      ageAgg,
+      // Query 7: Stats do mês (produção + ração)
+      monthStats,
+    ] = await Promise.all([
+      // 1. Usar groupBy para contar animais por faixas etárias em uma query
+      this.prisma.$queryRaw<Array<{category: string; count: bigint}>>`
+        SELECT 
+          CASE 
+            WHEN age < 1 THEN 'calves'
+            WHEN age >= 1 AND age < 2 THEN 'heifers'
+            ELSE 'adult'
+          END as category,
+          COUNT(*)::int as count
+        FROM "Animal"
+        WHERE "userId" IN (
+          SELECT id FROM "User" WHERE "associationId" = ${associationId}
+        )
+        AND status = 'Active'
+        GROUP BY category
+      `,
+      // 2. Total de vacas
+      this.prisma.animal.count({
+        where: {
+          user: { associationId },
+          animalType: 'Vaca',
+          status: 'Active'
+        }
+      }),
+      // 3. Produção de hoje
+      this.prisma.dailyCollection.aggregate({
+        _sum: { quantity: true },
+        where: {
+          user: { associationId },
+          collectionDate: {
+            gte: startOfToday,
+            lte: endOfToday
+          }
+        }
+      }),
+      // 4. Distribuição de raças
+      this.prisma.animal.groupBy({
+        by: ['breed'],
+        where: { user: { associationId }, status: 'Active' },
+        _count: { breed: true }
+      }),
+      // 5. Histórico de produção (7 dias)
+      this.prisma.dailyCollection.groupBy({
+        by: ['collectionDate'],
+        where: {
+          user: { associationId },
+          collectionDate: { gte: sevenDaysAgo }
+        },
+        _sum: { quantity: true },
+        orderBy: { collectionDate: 'asc' }
+      }),
+      // 6. Idade média
+      this.prisma.animal.aggregate({
         _avg: { age: true },
         where: { user: { associationId }, status: 'Active' }
-    });
-    const averageAnimalAge = ageAgg._avg.age || 0;
-
-    // Ration Provided Percentage (This Month)
-    const totalCollectionsMonth = await this.prisma.dailyCollection.count({
-        where: { user: { associationId }, collectionDate: { gte: startOfMonth, lte: endOfMonth } }
-    });
-    const rationCollectionsMonth = await this.prisma.dailyCollection.count({
-        where: { 
-            user: { associationId }, 
-            rationProvided: true, 
-            collectionDate: { gte: startOfMonth, lte: endOfMonth } 
-        }
-    });
-    const rationProvidedPercentage = totalCollectionsMonth > 0 ? (rationCollectionsMonth / totalCollectionsMonth) * 100 : 0;
-
-    // Milking and Lactation Stats (This Month)
-    const monthStats = await this.prisma.dailyCollection.aggregate({
+      }),
+      // 7. Stats do mês (combinar múltiplas agregações em uma query)
+      this.prisma.dailyCollection.aggregate({
         _sum: { numOrdens: true },
         _avg: { numLactation: true },
-        where: { 
-            user: { associationId }, 
-            collectionDate: { gte: startOfMonth, lte: endOfMonth } 
+        _count: {
+          _all: true,
+          rationProvided: true, // conta onde rationProvided = true
+        },
+        where: {
+          user: { associationId },
+          collectionDate: { gte: startOfMonth, lte: endOfMonth }
         }
-    });
-    const totalMilkingThisMonth = monthStats._sum.numOrdens || 0;
-    const averageLactationsThisMonth = monthStats._avg.numLactation || 0;
+      }),
+    ]);
 
+    // Processar resultados do groupBy de animais
+    const animalStatsMap = new Map(
+      animalStats.map(s => [s.category, Number(s.count)])
+    );
+    
+    const totalAnimals = Array.from(animalStatsMap.values()).reduce((sum, count) => sum + count, 0);
+    const calves = animalStatsMap.get('calves') || 0;
+    const heifers = animalStatsMap.get('heifers') || 0;
+    const adultCows = animalStatsMap.get('adult') || 0;
+
+    // Calcular vacas em lactação (70% das adultas - simplificação)
+    const lactatingCows = Math.floor(adultCows * 0.7);
+    const dryCows = adultCows - lactatingCows;
+
+    // Calcular média de produção
+    const avgProduction = totalCows > 0 ? (todaysCollections._sum.quantity || 0) / totalCows : 0;
+
+    // Formatar distribuição de raças
+    const breedDistribution = breeds.map(b => ({ name: b.breed, value: b._count.breed }));
+
+    // Formatar histórico
+    const productionHistory = history.map(h => ({
+      date: new Date(h.collectionDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+      quantity: h._sum.quantity || 0
+    }));
+
+    // Calcular % de ração fornecida
+    const totalCollectionsMonth = monthStats._count._all;
+    const rationCollectionsMonth = monthStats._count.rationProvided;
+    const rationProvidedPercentage = totalCollectionsMonth > 0 
+      ? (rationCollectionsMonth / totalCollectionsMonth) * 100 
+      : 0;
 
     return {
-        totalAnimals,
-        totalMilkDay: todaysCollections._sum.quantity || 0,
-        avgProduction,
-        heifers,
-        calves,
-        lactatingCows,
-        dryCows,
-        breedDistribution,
-        productionHistory,
-        averageAnimalAge,
-        rationProvidedPercentage,
-        totalMilkingThisMonth,
-        averageLactationsThisMonth
+      totalAnimals,
+      totalMilkDay: todaysCollections._sum.quantity || 0,
+      avgProduction,
+      heifers,
+      calves,
+      lactatingCows,
+      dryCows,
+      breedDistribution,
+      productionHistory,
+      averageAnimalAge: ageAgg._avg.age || 0,
+      rationProvidedPercentage,
+      totalMilkingThisMonth: monthStats._sum.numOrdens || 0,
+      averageLactationsThisMonth: monthStats._avg.numLactation || 0
     };
   }
 
@@ -252,30 +254,45 @@ export class PrismaAssociationRepository implements IAssociationRepository {
       start.setDate(end.getDate() - 30);
     }
 
+    const daysDiff = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+
+    // Query 1: Agregação de produção por usuário usando groupBy do Prisma
+    const productionByUser = await this.prisma.dailyCollection.groupBy({
+      by: ['userId'],
+      where: {
+        user: { associationId },
+        collectionDate: {
+          gte: start,
+          lte: end,
+        },
+      },
+      _sum: {
+        quantity: true,
+      },
+    });
+
+    // Query 2: Pegar dados básicos dos produtores + count de animais
     const producers = await this.prisma.user.findMany({
       where: { associationId },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        city: true,
+        state: true,
         _count: {
           select: { animals: true },
-        },
-        dailyCollections: {
-          where: {
-            collectionDate: {
-              gte: start,
-              lte: end,
-            },
-          },
         },
       },
     });
 
-    const producersWithMetrics = producers.map(producer => {
-      const totalProduction = producer.dailyCollections.reduce(
-        (sum, collection) => sum + (collection.quantity || 0),
-        0
-      );
+    // Mapear produção por userId para acesso O(1)
+    const productionMap = new Map(
+      productionByUser.map(p => [p.userId, p._sum.quantity || 0])
+    );
 
-      const daysDiff = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+    // Combinar dados e calcular métricas
+    const producersWithMetrics = producers.map(producer => {
+      const totalProduction = productionMap.get(producer.id) || 0;
       const avgProductionPerDay = totalProduction / daysDiff;
 
       return {
@@ -289,6 +306,7 @@ export class PrismaAssociationRepository implements IAssociationRepository {
       };
     });
 
+    // Ordenar e adicionar ranking
     const ranked = producersWithMetrics
       .sort((a, b) => b.totalProduction - a.totalProduction)
       .map((producer, index) => ({
