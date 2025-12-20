@@ -38,6 +38,7 @@ describe('DailyCollectionsService', () => {
           provide: IAnimalRepositorySymbol,
           useValue: {
             findById: jest.fn(),
+            findByIds: jest.fn(),
           },
         },
         {
@@ -80,10 +81,13 @@ describe('DailyCollectionsService', () => {
       const userId = 1;
       const mockUser = createUser({ id: userId });
       const mockDailyCollection = createDailyCollection({ id: 1, userId });
-      const mockAnimal = createAnimal({ id: 10, userId });
+      const mockAnimals = [
+        createAnimal({ id: 10, userId }),
+        createAnimal({ id: 11, userId }),
+      ];
 
       userRepository.findById.mockResolvedValue(mockUser);
-      animalRepository.findById.mockResolvedValue(mockAnimal);
+      animalRepository.findByIds.mockResolvedValue(mockAnimals);
       dailyCollectionRepository.create.mockResolvedValue(mockDailyCollection);
 
       const result = await service.create(createDailyCollectionDto);
@@ -191,10 +195,10 @@ describe('DailyCollectionsService', () => {
       };
 
       userRepository.findById.mockResolvedValue(mockUser);
-      animalRepository.findById.mockResolvedValue(null);
+      animalRepository.findByIds.mockResolvedValue([]);
 
       await expect(service.create(createDto)).rejects.toThrow(EntityNotFoundException);
-      await expect(service.create(createDto)).rejects.toThrow('Animal com ID 999 não encontrado');
+      await expect(service.create(createDto)).rejects.toThrow('Um ou mais animais não foram encontrados');
       expect(dailyCollectionRepository.create).not.toHaveBeenCalled();
     });
 
@@ -219,7 +223,7 @@ describe('DailyCollectionsService', () => {
       };
 
       userRepository.findById.mockResolvedValue(mockUser);
-      animalRepository.findById.mockResolvedValue(mockAnimal);
+      animalRepository.findByIds.mockResolvedValue([mockAnimal]);
 
       await expect(service.create(createDto)).rejects.toThrow(BusinessException);
       await expect(service.create(createDto)).rejects.toThrow('Animal com ID 10 não pertence ao usuário');

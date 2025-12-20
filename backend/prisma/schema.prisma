@@ -103,6 +103,8 @@ model User {
   dailyCollections      DailyCollection[]
   invites               Invite[]
   receivedNotifications NotificationRecipient[]
+  @@index([city, state, status])
+  @@index([associationId, status])
 }
 
 model Animal {
@@ -148,6 +150,7 @@ model DailyCollectionItem {
 
   @@index([dailyCollectionId])
   @@index([animalId])
+  @@index([dailyCollectionId, animalId])
 }
 
 enum InviteStatus {
@@ -208,6 +211,7 @@ model NotificationRecipient {
   @@unique([notificationId, userId])
   @@index([userId])
   @@index([read])
+  @@index([userId, read, createdAt])
 }
 
 model FailedEmail {

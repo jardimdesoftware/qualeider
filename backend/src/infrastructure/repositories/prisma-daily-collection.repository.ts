@@ -154,13 +154,8 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
 
   async delete(id: ID): Promise<void> {
     try {
-      await this.prisma.$transaction(async (prisma) => {
-        await prisma.dailyCollectionItem.deleteMany({
-          where: { dailyCollectionId: id },
-        });
-        await prisma.dailyCollection.delete({
-          where: { id },
-        });
+      await this.prisma.dailyCollection.delete({
+        where: { id },
       });
     } catch (error) {
       handlePrismaError(error, {

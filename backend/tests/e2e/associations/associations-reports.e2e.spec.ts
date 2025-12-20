@@ -160,7 +160,7 @@ describe('E2E: Associations - Relatórios', () => {
   });
 
   afterAll(async () => {
-    await testApp.close();
+    if (testApp) await testApp.close();
     await teardownE2ETests();
   });
 

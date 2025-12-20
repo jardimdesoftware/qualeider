@@ -17,7 +17,7 @@ describe('E2E: Auth - Forgot/Reset Password', () => {
   });
 
   afterAll(async () => {
-    await testApp.close();
+    if (testApp) await testApp.close();
     await teardownE2ETests();
   });
 

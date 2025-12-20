@@ -38,7 +38,7 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
   });
 
   afterAll(async () => {
-    await testApp.close();
+    if (testApp) await testApp.close();
     await teardownE2ETests();
   });
 

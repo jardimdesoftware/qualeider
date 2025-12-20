@@ -30,7 +30,7 @@ describe('E2E: Users - CRUD Operations', () => {
   });
 
   afterAll(async () => {
-    await testApp.close();
+    if (testApp) await testApp.close();
     await teardownE2ETests();
   });
 

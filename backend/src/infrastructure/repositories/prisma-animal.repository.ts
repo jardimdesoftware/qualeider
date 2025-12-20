@@ -85,6 +85,21 @@ export class PrismaAnimalRepository implements IAnimalRepository {
     return AnimalMapper.toDomain(rawAnimal);
   }
 
+  async findByIds(ids: ID[], options?: AnimalFindOneOptions): Promise<AnimalEntity[]> {
+    const include: Prisma.AnimalInclude = {};
+    
+    if (options?.includeUser) {
+      include.user = true;
+    }
+
+    const animals = await this.prisma.animal.findMany({
+      where: { id: { in: ids } },
+      include: Object.keys(include).length > 0 ? include : undefined,
+    });
+
+    return animals.map(AnimalMapper.toDomain);
+  }
+
   async update(id: ID, data: Partial<AnimalEntity>): Promise<AnimalEntity> {
     try {
       const updated = await this.prisma.animal.update({
