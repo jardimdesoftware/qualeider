@@ -8,6 +8,7 @@ import { AnimalCriteria } from '@/domain/criteria/animal.criteria';
 import { handlePrismaError, PrismaErrorCode } from '@/common/utils/prisma-error-handler';
 import { AnimalMapper } from '@/infrastructure/mappers/animal.mapper';
 import { Status as PrismaStatus } from '@prisma/client';
+import { PaginatedResult, normalizePaginationParams, createPaginatedResult } from '@/domain/common/pagination.interface';
 
 @Injectable()
 export class PrismaAnimalRepository implements IAnimalRepository {
@@ -35,7 +36,7 @@ export class PrismaAnimalRepository implements IAnimalRepository {
     }
   }
 
-  async findAll(criteria: AnimalCriteria = {}): Promise<AnimalEntity[]> {
+  async findAll(criteria: AnimalCriteria = {}): Promise<PaginatedResult<AnimalEntity>> {
     const where: Prisma.AnimalWhereInput = {};
 
     where.status = criteria.status !== undefined ? (criteria.status as PrismaStatus) : PrismaStatus.Active;
@@ -59,13 +60,24 @@ export class PrismaAnimalRepository implements IAnimalRepository {
       include.user = true;
     }
 
-    const animals = await this.prisma.animal.findMany({
-      where,
-      include: Object.keys(include).length > 0 ? include : undefined,
-      orderBy: { createdAt: 'desc' },
-    });
+    // Normalizar parâmetros de paginação
+    const { page, limit, skip } = normalizePaginationParams(criteria);
 
-    return animals.map(AnimalMapper.toDomain);
+    // Executar count e query em paralelo
+    const [total, animals] = await Promise.all([
+      this.prisma.animal.count({ where }),
+      this.prisma.animal.findMany({
+        where,
+        include: Object.keys(include).length > 0 ? include : undefined,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+    ]);
+
+    const data = animals.map(AnimalMapper.toDomain);
+
+    return createPaginatedResult(data, total, page, limit);
   }
 
   async findById(id: ID, options?: AnimalFindOneOptions): Promise<AnimalEntity | null> {

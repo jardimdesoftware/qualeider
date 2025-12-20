@@ -44,14 +44,16 @@ export class NotificationsService {
 
   private async getTargetUsers(event: NotificationEvent) {
     if (event.type === 'Individual') {
-      return this.userRepository.findAll({
+      const result = await this.userRepository.findAll({
         ids: event.userIds,
         associationId: event.associationId,
       });
+      return result.data;
     } else {
-      return this.userRepository.findAll({
+      const result = await this.userRepository.findAll({
         associationId: event.associationId,
       });
+      return result.data;
     }
   }
 

@@ -109,11 +109,21 @@ describe('AnimalsService', () => {
         createAnimal({ id: 2, name: 'Animal 2' }),
       ];
 
-      animalRepository.findAll.mockResolvedValue(mockAnimals);
+      const paginatedResult = {
+        data: mockAnimals,
+        total: 2,
+        page: 1,
+        limit: 50,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      };
+
+      animalRepository.findAll.mockResolvedValue(paginatedResult);
 
       const result = await service.findAll();
 
-      expect(result).toEqual(mockAnimals);
+      expect(result).toEqual(paginatedResult);
       expect(animalRepository.findAll).toHaveBeenCalled();
     });
 
@@ -121,20 +131,40 @@ describe('AnimalsService', () => {
       const associationId = 10;
       const mockAnimals = [createAnimal({ id: 1 })];
 
-      animalRepository.findAll.mockResolvedValue(mockAnimals);
+      const paginatedResult = {
+        data: mockAnimals,
+        total: 1,
+        page: 1,
+        limit: 50,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      };
+
+      animalRepository.findAll.mockResolvedValue(paginatedResult);
 
       const result = await service.findAll({ associationId });
 
-      expect(result).toEqual(mockAnimals);
+      expect(result).toEqual(paginatedResult);
       expect(animalRepository.findAll).toHaveBeenCalledWith({ associationId });
     });
 
     it('deve retornar array vazio quando não há animais', async () => {
-      animalRepository.findAll.mockResolvedValue([]);
+      const paginatedResult = {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 50,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      };
+
+      animalRepository.findAll.mockResolvedValue(paginatedResult);
 
       const result = await service.findAll();
 
-      expect(result).toEqual([]);
+      expect(result).toEqual(paginatedResult);
     });
   });
 
@@ -263,21 +293,41 @@ describe('AnimalsService', () => {
         createAnimal({ id: 2, userId, name: 'Animal 2' }),
       ];
 
-      animalRepository.findAll.mockResolvedValue(mockAnimals);
+      const paginatedResult = {
+        data: mockAnimals,
+        total: 2,
+        page: 1,
+        limit: 50,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      };
+
+      animalRepository.findAll.mockResolvedValue(paginatedResult);
 
       // The service doesn't have findAllByUserId anymore, so we test findAll with criteria
       const result = await service.findAll({ userId });
 
-      expect(result).toEqual(mockAnimals);
+      expect(result).toEqual(paginatedResult);
       expect(animalRepository.findAll).toHaveBeenCalledWith({ userId });
     });
 
     it('deve retonar uma lista vazia se usuário não tem animais', async () => {
-      animalRepository.findAll.mockResolvedValue([]);
+      const paginatedResult = {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 50,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      };
+
+      animalRepository.findAll.mockResolvedValue(paginatedResult);
 
       const result = await service.findAll({ userId: 999 });
 
-      expect(result).toEqual([]);
+      expect(result).toEqual(paginatedResult);
       expect(animalRepository.findAll).toHaveBeenCalledWith({ userId: 999 });
     });
   });

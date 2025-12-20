@@ -12,6 +12,7 @@ import {
   UserType as PrismaUserType, 
   Status as PrismaStatus 
 } from '@prisma/client';
+import { PaginatedResult, normalizePaginationParams, createPaginatedResult } from '@/domain/common/pagination.interface';
 
 @Injectable()
 export class PrismaUserRepository implements IUserRepository {
@@ -48,7 +49,7 @@ export class PrismaUserRepository implements IUserRepository {
 
   async findAll(
     criteria: UserCriteria = {},
-  ): Promise<Array<Omit<UserEntity, 'password'>>> {
+  ): Promise<PaginatedResult<Omit<UserEntity, 'password'>>> {
     const where: Prisma.UserWhereInput = {};
 
     where.status = criteria.status !== undefined 
@@ -65,13 +66,24 @@ export class PrismaUserRepository implements IUserRepository {
     if (criteria.includeAnimals) include.animals = true;
     if (criteria.includeAssociation) include.association = true;
 
-    const rawUsers = await this.prisma.user.findMany({
-      where,
-      include: Object.keys(include).length > 0 ? include : undefined,
-      orderBy: { createdAt: 'desc' },
-    });
+    // Normalizar parâmetros de paginação
+    const { page, limit, skip } = normalizePaginationParams(criteria);
 
-    return rawUsers.map((u) => UserMapper.toDomain(u));
+    // Executar count e query em paralelo
+    const [total, rawUsers] = await Promise.all([
+      this.prisma.user.count({ where }),
+      this.prisma.user.findMany({
+        where,
+        include: Object.keys(include).length > 0 ? include : undefined,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+    ]);
+
+    const data = rawUsers.map((u) => UserMapper.toDomain(u));
+
+    return createPaginatedResult(data, total, page, limit);
   }
 
   async findById(

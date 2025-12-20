@@ -7,6 +7,7 @@ import { DailyCollectionEntity, DailyCollectionItem } from '@/domain/entities/da
 import { DailyCollectionCriteria } from '@/domain/criteria/daily-collection.criteria';
 import { handlePrismaError, PrismaErrorCode } from '@/common/utils/prisma-error-handler';
 import { DailyCollectionMapper } from '@/infrastructure/mappers/daily-collection.mapper';
+import { PaginatedResult, normalizePaginationParams, createPaginatedResult } from '@/domain/common/pagination.interface';
 
 @Injectable()
 export class PrismaDailyCollectionRepository implements IDailyCollectionRepository {
@@ -42,7 +43,7 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
     }
   }
 
-  async findAll(criteria: DailyCollectionCriteria = {}): Promise<DailyCollectionEntity[]> {
+  async findAll(criteria: DailyCollectionCriteria = {}): Promise<PaginatedResult<DailyCollectionEntity>> {
     const where: Prisma.DailyCollectionWhereInput = {};
 
     if (criteria.userId) {
@@ -71,13 +72,24 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
       include.user = true;
     }
 
-    const list = await this.prisma.dailyCollection.findMany({
-      where,
-      include: Object.keys(include).length > 0 ? include : undefined,
-      orderBy: { collectionDate: 'desc' },
-    });
+    // Normalizar parâmetros de paginação
+    const { page, limit, skip } = normalizePaginationParams(criteria);
 
-    return list.map(DailyCollectionMapper.toDomain);
+    // Executar count e query em paralelo
+    const [total, list] = await Promise.all([
+      this.prisma.dailyCollection.count({ where }),
+      this.prisma.dailyCollection.findMany({
+        where,
+        include: Object.keys(include).length > 0 ? include : undefined,
+        orderBy: { collectionDate: 'desc' },
+        skip,
+        take: limit,
+      }),
+    ]);
+
+    const data = list.map(DailyCollectionMapper.toDomain);
+
+    return createPaginatedResult(data, total, page, limit);
   }
 
   async findById(id: ID, options?: DailyCollectionFindOneOptions): Promise<DailyCollectionEntity | null> {

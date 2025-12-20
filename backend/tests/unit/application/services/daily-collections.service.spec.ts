@@ -238,11 +238,21 @@ describe('DailyCollectionsService', () => {
         createDailyCollection({ id: 2, quantity: 60 }),
       ];
 
-      dailyCollectionRepository.findAll.mockResolvedValue(mockCollections);
+      const paginatedResult = {
+        data: mockCollections,
+        total: 2,
+        page: 1,
+        limit: 50,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      };
+
+      dailyCollectionRepository.findAll.mockResolvedValue(paginatedResult);
 
       const result = await service.findAll();
 
-      expect(result).toEqual(mockCollections);
+      expect(result).toEqual(paginatedResult);
       expect(dailyCollectionRepository.findAll).toHaveBeenCalled();
     });
 
@@ -250,20 +260,40 @@ describe('DailyCollectionsService', () => {
       const associationId = 10;
       const mockCollections = [createDailyCollection({ id: 1 })];
 
-      dailyCollectionRepository.findAll.mockResolvedValue(mockCollections);
+      const paginatedResult = {
+        data: mockCollections,
+        total: 1,
+        page: 1,
+        limit: 50,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      };
+
+      dailyCollectionRepository.findAll.mockResolvedValue(paginatedResult);
 
       const result = await service.findAll({ associationId });
 
-      expect(result).toEqual(mockCollections);
+      expect(result).toEqual(paginatedResult);
       expect(dailyCollectionRepository.findAll).toHaveBeenCalledWith({ associationId });
     });
 
     it('deve retornar array vazio quando não há coletas', async () => {
-      dailyCollectionRepository.findAll.mockResolvedValue([]);
+      const paginatedResult = {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 50,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      };
+
+      dailyCollectionRepository.findAll.mockResolvedValue(paginatedResult);
 
       const result = await service.findAll();
 
-      expect(result).toEqual([]);
+      expect(result).toEqual(paginatedResult);
     });
   });
 
@@ -452,20 +482,40 @@ describe('DailyCollectionsService', () => {
         createDailyCollection({ id: 2, userId, quantity: 50 }),
       ];
 
-      dailyCollectionRepository.findAll.mockResolvedValue(mockCollections);
+      const paginatedResult = {
+        data: mockCollections,
+        total: 2,
+        page: 1,
+        limit: 50,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      };
+
+      dailyCollectionRepository.findAll.mockResolvedValue(paginatedResult);
 
       const result = await service.findAll({ userId });
 
-      expect(result).toEqual(mockCollections);
+      expect(result).toEqual(paginatedResult);
       expect(dailyCollectionRepository.findAll).toHaveBeenCalledWith({ userId });
     });
 
     it('deve retornar array vazio se usuário não tem coletas', async () => {
-      dailyCollectionRepository.findAll.mockResolvedValue([]);
+      const paginatedResult = {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 50,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      };
+
+      dailyCollectionRepository.findAll.mockResolvedValue(paginatedResult);
 
       const result = await service.findAll({ userId: 999 });
 
-      expect(result).toEqual([]); 
+      expect(result).toEqual(paginatedResult); 
       expect(dailyCollectionRepository.findAll).toHaveBeenCalledWith({ userId: 999 });
     });
   });
