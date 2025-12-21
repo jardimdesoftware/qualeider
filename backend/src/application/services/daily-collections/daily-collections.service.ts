@@ -118,6 +118,6 @@ export class DailyCollectionsService {
 
   async remove(id: number) {
     await this.findOne(id);
-    await this.dailyCollectionRepository.delete(id);
+    return this.dailyCollectionRepository.softDelete(id);
   }
 }

@@ -9,8 +9,9 @@ export interface DailyCollectionFindOneOptions {
   includeUser?: boolean;
 }
 
-export type CreateDailyCollectionData = Omit<DailyCollectionEntity, 'id' | 'createdAt' | 'updatedAt' | 'items'> & {
+export type CreateDailyCollectionData = Omit<DailyCollectionEntity, 'id' | 'createdAt' | 'updatedAt' | 'items' | 'status'> & {
   items?: Omit<DailyCollectionItem, 'id' | 'dailyCollectionId'>[];
+  status?: string;
 };
 
 export interface IDailyCollectionRepository {
@@ -25,6 +26,6 @@ export interface IDailyCollectionRepository {
     collectionId: ID,
     items: Omit<DailyCollectionItem, 'id' | 'dailyCollectionId'>[],
   ): Promise<void>;
-  delete(id: ID): Promise<void>;
+  softDelete(id: ID): Promise<DailyCollectionEntity>;
   countItemsByAnimalId(animalId: ID): Promise<number>;
 }

@@ -133,9 +133,13 @@ model DailyCollection {
   numLactation          Int              
   milkingPlace          MilkingPlace     
   technicalAssistance   Boolean          
+  status                Status           @default(Active)
   items                 DailyCollectionItem[]
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
+  
+  @@index([userId, status])
+  @@index([collectionDate])
 }
 
 model DailyCollectionItem {

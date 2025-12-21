@@ -30,7 +30,7 @@ describe('DailyCollectionsService', () => {
             findById: jest.fn(),
             update: jest.fn(),
             updateItems: jest.fn(),
-            delete: jest.fn(),
+            softDelete: jest.fn(),
             findAllByUserId: jest.fn(),
           },
         },
@@ -454,23 +454,24 @@ describe('DailyCollectionsService', () => {
   });
 
   describe('remove', () => {
-    it('deve deletar (hard delete) uma coleta diária', async () => {
+    it('deve deletar (soft delete) uma coleta diária', async () => {
       const mockCollection = createDailyCollection({ id: 1 });
       
       dailyCollectionRepository.findById.mockResolvedValue(mockCollection);
-      dailyCollectionRepository.delete.mockResolvedValue(undefined);
+      dailyCollectionRepository.softDelete.mockResolvedValue(mockCollection);
 
-      await service.remove(1);
+      const result = await service.remove(1);
 
       expect(dailyCollectionRepository.findById).toHaveBeenCalledWith(1);
-      expect(dailyCollectionRepository.delete).toHaveBeenCalledWith(1);
+      expect(dailyCollectionRepository.softDelete).toHaveBeenCalledWith(1);
+      expect(result).toEqual(mockCollection);
     });
 
     it('deve lançar NotFoundException ao tentar remover coleta inexistente', async () => {
         dailyCollectionRepository.findById.mockResolvedValue(null);
 
         await expect(service.remove(999)).rejects.toThrow(EntityNotFoundException);
-        expect(dailyCollectionRepository.delete).not.toHaveBeenCalled();
+        expect(dailyCollectionRepository.softDelete).not.toHaveBeenCalled();
     });
   });
 

@@ -1,5 +1,5 @@
 import { DailyCollectionEntity } from '@/domain/entities/daily-collection.entity';
-import { MilkingPlace } from '@/domain/enums/enums';
+import { MilkingPlace, Status } from '@/domain/enums/enums';
 
 describe('DailyCollectionEntity (domain)', () => {
   it('deve capturar dados de coleta', () => {
@@ -17,6 +17,7 @@ describe('DailyCollectionEntity (domain)', () => {
       technicalAssistance: false,
       createdAt: now,
       updatedAt: now,
+      status: Status.Active,
     };
 
     expect(d.quantity).toBeGreaterThan(0);
@@ -39,6 +40,7 @@ describe('DailyCollectionEntity (domain)', () => {
         technicalAssistance: false,
         createdAt: now,
         updatedAt: now,
+        status: Status.Active,
       };
 
       expect(collection.quantity).toBe(50.75);
@@ -60,6 +62,7 @@ describe('DailyCollectionEntity (domain)', () => {
         technicalAssistance: false,
         createdAt: now,
         updatedAt: now,
+        status: Status.Active,
       };
 
       expect(collection.quantity).toBeCloseTo(15.123456, 6);
@@ -80,6 +83,7 @@ describe('DailyCollectionEntity (domain)', () => {
         technicalAssistance: false,
         createdAt: now,
         updatedAt: now,
+        status: Status.Active,
       };
 
       expect(collection.quantity).toBe(0);
@@ -102,6 +106,7 @@ describe('DailyCollectionEntity (domain)', () => {
         technicalAssistance: true,
         createdAt: now,
         updatedAt: now,
+        status: Status.Active,
       };
 
       expect(collection.numAnimals).toBe(25);
@@ -123,6 +128,7 @@ describe('DailyCollectionEntity (domain)', () => {
         technicalAssistance: false,
         createdAt: now,
         updatedAt: now,
+        status: Status.Active,
       };
 
       expect(collection.numAnimals).toBe(1);
@@ -145,6 +151,7 @@ describe('DailyCollectionEntity (domain)', () => {
         technicalAssistance: true,
         createdAt: now,
         updatedAt: now,
+        status: Status.Active,
       };
 
       expect(collection.numOrdens).toBe(3);
@@ -165,6 +172,7 @@ describe('DailyCollectionEntity (domain)', () => {
         technicalAssistance: false,
         createdAt: now,
         updatedAt: now,
+        status: Status.Active,
       };
 
       expect(twoMilkings.numOrdens).toBe(2);
@@ -189,6 +197,7 @@ describe('DailyCollectionEntity (domain)', () => {
         technicalAssistance: true,
         createdAt: now,
         updatedAt: now,
+        status: Status.Active,
       };
 
       expect(collection.numLactation).toBe(4);
@@ -210,6 +219,7 @@ describe('DailyCollectionEntity (domain)', () => {
         technicalAssistance: false,
         createdAt: now,
         updatedAt: now,
+        status: Status.Active,
       };
 
       expect(collection.numLactation).toBe(1);
@@ -232,6 +242,7 @@ describe('DailyCollectionEntity (domain)', () => {
         technicalAssistance: false,
         createdAt: now,
         updatedAt: now,
+        status: Status.Active,
       };
 
       expect(withRation.rationProvided).toBe(true);
@@ -253,6 +264,7 @@ describe('DailyCollectionEntity (domain)', () => {
         technicalAssistance: true,
         createdAt: now,
         updatedAt: now,
+        status: Status.Active,
       };
 
       expect(withAssistance.technicalAssistance).toBe(true);
@@ -273,6 +285,7 @@ describe('DailyCollectionEntity (domain)', () => {
         technicalAssistance: false,
         createdAt: now,
         updatedAt: now,
+        status: Status.Active,
       };
 
       expect(minimal.rationProvided).toBe(false);
@@ -296,6 +309,7 @@ describe('DailyCollectionEntity (domain)', () => {
         technicalAssistance: false,
         createdAt: now,
         updatedAt: now,
+        status: Status.Active,
       };
 
       expect(collection.milkingPlace).toBe(MilkingPlace.Aberto);
@@ -316,6 +330,7 @@ describe('DailyCollectionEntity (domain)', () => {
         technicalAssistance: true,
         createdAt: now,
         updatedAt: now,
+        status: Status.Active,
       };
 
       expect(collection.milkingPlace).toBe(MilkingPlace.Curral);
@@ -336,6 +351,7 @@ describe('DailyCollectionEntity (domain)', () => {
         technicalAssistance: true,
         createdAt: now,
         updatedAt: now,
+        status: Status.Active,
       };
 
       expect(collection.milkingPlace).toBe(MilkingPlace.Ambos);
@@ -358,6 +374,7 @@ describe('DailyCollectionEntity (domain)', () => {
         technicalAssistance: false,
         createdAt: now,
         updatedAt: now,
+        status: Status.Active,
       };
 
       expect(collection.userId).toBe(99);
@@ -383,6 +400,7 @@ describe('DailyCollectionEntity (domain)', () => {
         technicalAssistance: true,
         createdAt: now,
         updatedAt: now,
+        status: Status.Active,
       };
 
       expect(collection.collectionDate).toBeInstanceOf(Date);
@@ -406,6 +424,7 @@ describe('DailyCollectionEntity (domain)', () => {
         technicalAssistance: false,
         createdAt: now,
         updatedAt: now,
+        status: Status.Active,
       };
 
       expect(collection.collectionDate.getTime()).toBeLessThan(now.getTime());
@@ -428,6 +447,7 @@ describe('DailyCollectionEntity (domain)', () => {
         technicalAssistance: false,
         createdAt: now,
         updatedAt: now,
+        status: Status.Active,
       };
 
       expect(collection.createdAt).toBeInstanceOf(Date);
@@ -453,6 +473,7 @@ describe('DailyCollectionEntity (domain)', () => {
         technicalAssistance: true,
         createdAt: createdDate,
         updatedAt: updatedDate,
+        status: Status.Active,
       };
 
       expect(collection.updatedAt.getTime()).toBeGreaterThan(

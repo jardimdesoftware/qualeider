@@ -46,6 +46,9 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
   async findAll(criteria: DailyCollectionCriteria = {}): Promise<PaginatedResult<DailyCollectionEntity>> {
     const where: Prisma.DailyCollectionWhereInput = {};
 
+    // Filtrar apenas registros ativos por padrão
+    where.status = 'Active' as any;
+
     if (criteria.userId) {
       where.userId = criteria.userId;
     }
@@ -169,6 +172,25 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
       await this.prisma.dailyCollection.delete({
         where: { id },
       });
+    } catch (error) {
+      handlePrismaError(error, {
+        [PrismaErrorCode.RECORD_NOT_FOUND]: `Coleta diária com ID ${id} não encontrada para remoção.`,
+      });
+    }
+  }
+
+  async softDelete(id: ID): Promise<DailyCollectionEntity> {
+    try {
+      const deleted = await this.prisma.dailyCollection.update({
+        where: { id },
+        data: { status: 'Inactive' as any },
+        include: {
+          items: {
+            include: { animal: true },
+          },
+        },
+      });
+      return DailyCollectionMapper.toDomain(deleted);
     } catch (error) {
       handlePrismaError(error, {
         [PrismaErrorCode.RECORD_NOT_FOUND]: `Coleta diária com ID ${id} não encontrada para remoção.`,
