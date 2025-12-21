@@ -181,8 +181,10 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
         .get('/daily-collections')
         .expect(200);
 
-      expect(Array.isArray(response.body)).toBe(true);
-      expect(response.body.length).toBeGreaterThan(0);
+      expect(response.body).toHaveProperty('data');
+      expect(response.body).toHaveProperty('total');
+      expect(Array.isArray(response.body.data)).toBe(true);
+      expect(response.body.data.length).toBeGreaterThan(0);
     });
 
     it('deve filtrar coletas por userId', async () => {
@@ -191,9 +193,11 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
         .get(`/daily-collections?userId=${userId}`)
         .expect(200);
 
-      expect(Array.isArray(response.body)).toBe(true);
-      if (response.body.length > 0) {
-        expect(response.body).toEqual(
+      expect(response.body).toHaveProperty('data');
+      expect(response.body).toHaveProperty('total');
+      expect(Array.isArray(response.body.data)).toBe(true);
+      if (response.body.data.length > 0) {
+        expect(response.body.data).toEqual(
           expect.arrayContaining([expect.objectContaining({ userId })]),
         );
       }
@@ -210,7 +214,8 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
         )
         .expect(200);
 
-      expect(Array.isArray(response.body)).toBe(true);
+      expect(response.body).toHaveProperty('data');
+      expect(Array.isArray(response.body.data)).toBe(true);
     });
   });
 
@@ -312,10 +317,13 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
         'Coleta excluída com sucesso',
       );
 
-      await testApp
+      const deletedResponse = await testApp
         .request()
         .get(`/daily-collections/${collectionId}`)
-        .expect(404);
+        .expect(200);
+      
+      // Soft delete: registro existe mas está Inactive
+      expect(deletedResponse.body.status).toBe('Inactive');
     });
 
     it('deve retornar 404 ao deletar ID inexistente', async () => {

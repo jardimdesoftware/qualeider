@@ -152,18 +152,37 @@ describe('UsersService', () => {
         createUser({ id: 1, status: Status.Active }),
         createUser({ id: 2, status: Status.Active }),
       ];
+      const mockPaginatedResult = {
+        data: mockUsers,
+        total: 2,
+        page: 1,
+        limit: 50,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      };
 
-      (userRepository.findAll as jest.Mock).mockResolvedValue(mockUsers);
+      (userRepository.findAll as jest.Mock).mockResolvedValue(mockPaginatedResult);
 
       const result = await service.findAll();
 
       expect(userRepository.findAll).toHaveBeenCalled();
-      expect(result).toHaveLength(2);
+      expect(result.data).toHaveLength(2);
+      expect(result.total).toBe(2);
     });
 
     it('deve filtrar usuários por associationId quando informado', async () => {
       const mockUsers = [createUser({ id: 1, associationId: 10 })];
-      (userRepository.findAll as jest.Mock).mockResolvedValue(mockUsers);
+      const mockPaginatedResult = {
+        data: mockUsers,
+        total: 1,
+        page: 1,
+        limit: 50,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      };
+      (userRepository.findAll as jest.Mock).mockResolvedValue(mockPaginatedResult);
 
       await service.findAll({ associationId: 10 });
 

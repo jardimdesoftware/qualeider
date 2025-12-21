@@ -113,8 +113,10 @@ describe('E2E: Animais - Operações CRUD', () => {
     it('deve listar todos os animais (Array direto)', async () => {
       const response = await testApp.request().get('/animals').expect(200);
 
-      expect(Array.isArray(response.body)).toBe(true);
-      expect(response.body.length).toBeGreaterThan(0);
+      expect(response.body).toHaveProperty('data');
+      expect(response.body).toHaveProperty('total');
+      expect(Array.isArray(response.body.data)).toBe(true);
+      expect(response.body.data.length).toBeGreaterThan(0);
     });
 
     it('deve filtrar animais por userId', async () => {
@@ -123,9 +125,10 @@ describe('E2E: Animais - Operações CRUD', () => {
         .get(`/animals?userId=${userId}`)
         .expect(200);
 
-      expect(Array.isArray(response.body)).toBe(true);
-      if (response.body.length > 0) {
-        expect(response.body).toEqual(
+      expect(response.body).toHaveProperty('data');
+      expect(Array.isArray(response.body.data)).toBe(true);
+      if (response.body.data.length > 0) {
+        expect(response.body.data).toEqual(
           expect.arrayContaining([expect.objectContaining({ userId })]),
         );
       }
@@ -137,9 +140,10 @@ describe('E2E: Animais - Operações CRUD', () => {
         .get(`/animals?animalType=${AnimalType.Vaca}`)
         .expect(200);
 
-      expect(Array.isArray(response.body)).toBe(true);
-      if (response.body.length > 0) {
-        expect(response.body).toEqual(
+      expect(response.body).toHaveProperty('data');
+      expect(Array.isArray(response.body.data)).toBe(true);
+      if (response.body.data.length > 0) {
+        expect(response.body.data).toEqual(
           expect.arrayContaining([
             expect.objectContaining({ animalType: AnimalType.Vaca }),
           ]),
