@@ -16,6 +16,8 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { throttlerConfig } from '@/common/throttler/throttler.config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
+import { CacheModule } from '@nestjs/cache-manager';
+import { cacheConfig } from '@/common/cache/cache.config';
 import * as path from 'path';
 import { APP_GUARD } from '@nestjs/core';
 import { AppThrottlerGuard } from '@/guards/app-throttler-guards';
@@ -34,6 +36,7 @@ import { AppThrottlerGuard } from '@/guards/app-throttler-guards';
     }),
     WinstonModule.forRoot(winstonConfig),
     ThrottlerModule.forRoot(throttlerConfig),
+    CacheModule.register(cacheConfig),
     EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),
     PrismaModule,

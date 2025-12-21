@@ -1,4 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { IAssociationRepository } from '@/domain/repositories/association.repository';
 import { AssociationEntity } from '@/domain/entities/association.entity';
@@ -9,7 +11,10 @@ import { Status as PrismaStatus } from '@prisma/client';
 
 @Injectable()
 export class PrismaAssociationRepository implements IAssociationRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+  ) {}
 
   async create(
     data: Omit<AssociationEntity, 'id' | 'createdAt' | 'updatedAt' | 'status'>,
@@ -100,6 +105,22 @@ export class PrismaAssociationRepository implements IAssociationRepository {
   }
 
   async getHerdStats(associationId: number): Promise<any> {
+    const cacheKey = `herd_stats:${associationId}`;
+    
+    // Tenta buscar do cache
+    const cached = await this.cacheManager.get(cacheKey);
+    if (cached) return cached;
+    
+    // Se não tiver no cache, calcula
+    const stats = await this.calculateHerdStats(associationId);
+    
+    // Salva no cache (TTL 5 minutos = 300 segundos)
+    await this.cacheManager.set(cacheKey, stats, 300);
+    
+    return stats;
+  }
+
+  private async calculateHerdStats(associationId: number): Promise<any> {
     const today = new Date();
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(today.getDate() - 7);
@@ -248,6 +269,25 @@ export class PrismaAssociationRepository implements IAssociationRepository {
   }
 
   async getProducerRanking(associationId: number, startDate?: Date, endDate?: Date): Promise<any[]> {
+    // Criar cache key baseado nos parâmetros
+    const start = startDate?.toISOString() || 'default';
+    const end = endDate?.toISOString() || 'default';
+    const cacheKey = `producer_ranking:${associationId}:${start}:${end}`;
+    
+    // Tenta buscar do cache
+    const cached = await this.cacheManager.get(cacheKey);
+    if (cached) return cached as any[];
+    
+    // Se não tiver no cache, calcula
+    const ranking = await this.calculateProducerRanking(associationId, startDate, endDate);
+    
+    // Salva no cache (TTL 10 minutos = 600 segundos para rankings)
+    await this.cacheManager.set(cacheKey, ranking, 600);
+    
+    return ranking;
+  }
+
+  private async calculateProducerRanking(associationId: number, startDate?: Date, endDate?: Date): Promise<any[]> {
     const end = endDate || new Date();
     const start = startDate || new Date();
     if (!startDate) {
@@ -318,6 +358,22 @@ export class PrismaAssociationRepository implements IAssociationRepository {
   }
 
   async getMonthlyReport(associationId: number, year: number, month: number): Promise<any> {
+    const cacheKey = `monthly_report:${associationId}:${year}:${month}`;
+    
+    // Tenta buscar do cache
+    const cached = await this.cacheManager.get(cacheKey);
+    if (cached) return cached;
+    
+    // Se não tiver no cache, calcula
+    const report = await this.calculateMonthlyReport(associationId, year, month);
+    
+    // Salva no cache (TTL 30 minutos = 1800 segundos para relatórios mensais)
+    await this.cacheManager.set(cacheKey, report, 1800);
+    
+    return report;
+  }
+
+  private async calculateMonthlyReport(associationId: number, year: number, month: number): Promise<any> {
     const startOfMonth = new Date(year, month - 1, 1);
     const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
 
