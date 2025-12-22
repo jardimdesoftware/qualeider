@@ -25,8 +25,7 @@ export const cacheConfig: CacheModuleOptions = {
   
   // Configuração dinâmica: Redis se disponível, senão in-memory
   ...(process.env.REDIS_HOST ? {
-    // @ts-ignore - cache-manager-redis-store v2 não tem tipos perfeitos
-    store: require('cache-manager-redis-store'),
+    store: require('cache-manager-redis-yet'),
     host: process.env.REDIS_HOST || 'localhost',
     port: parseInt(process.env.REDIS_PORT || '6379'),
     password: process.env.REDIS_PASSWORD,
