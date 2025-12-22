@@ -14,9 +14,12 @@ describe('E2E: Associações - Operações CRUD', () => {
     await testApp.setup();
     authHelper = new AuthHelper(testApp);
 
-    const adminUser = await authHelper.createUserAndLogin();
+    const adminUser = await authHelper.createUserAndLogin({
+      email: 'admin@associations.test.com',
+      password: 'Admin@1234'
+    });
     adminToken = adminUser.token;
-  });
+  }, 30000);
 
   afterAll(async () => {
     if (testApp) await testApp.close();
@@ -30,6 +33,7 @@ describe('E2E: Associações - Operações CRUD', () => {
       const response = await testApp
         .request()
         .post('/associations')
+        .set('Authorization', `Bearer ${adminToken}`)
         .send(associationData)
         .expect(HttpStatus.CREATED);
 
@@ -53,6 +57,7 @@ describe('E2E: Associações - Operações CRUD', () => {
       const response = await testApp
         .request()
         .post('/associations')
+        .set('Authorization', `Bearer ${adminToken}`)
         .send(associationData)
         .expect(HttpStatus.CREATED);
 
@@ -67,6 +72,7 @@ describe('E2E: Associações - Operações CRUD', () => {
       const response = await testApp
         .request()
         .post('/associations')
+        .set('Authorization', `Bearer ${adminToken}`)
         .send(associationData)
         .expect(HttpStatus.CREATED);
 
@@ -83,6 +89,7 @@ describe('E2E: Associações - Operações CRUD', () => {
       await testApp
         .request()
         .post('/associations')
+        .set('Authorization', `Bearer ${adminToken}`)
         .send(invalidData)
         .expect(HttpStatus.BAD_REQUEST);
     });
@@ -95,6 +102,7 @@ describe('E2E: Associações - Operações CRUD', () => {
       await testApp
         .request()
         .post('/associations')
+        .set('Authorization', `Bearer ${adminToken}`)
         .send(associationData)
         .expect(HttpStatus.BAD_REQUEST);
     });
@@ -107,6 +115,7 @@ describe('E2E: Associações - Operações CRUD', () => {
       await testApp
         .request()
         .post('/associations')
+        .set('Authorization', `Bearer ${adminToken}`)
         .send(associationData)
         .expect(HttpStatus.BAD_REQUEST);
     });
@@ -117,12 +126,14 @@ describe('E2E: Associações - Operações CRUD', () => {
       await testApp
         .request()
         .post('/associations')
+        .set('Authorization', `Bearer ${adminToken}`)
         .send(associationData)
         .expect(HttpStatus.CREATED);
 
       await testApp
         .request()
         .post('/associations')
+        .set('Authorization', `Bearer ${adminToken}`)
         .send(associationData)
         .expect(HttpStatus.BAD_REQUEST);
     });
@@ -133,6 +144,7 @@ describe('E2E: Associações - Operações CRUD', () => {
       await testApp
         .request()
         .post('/associations')
+        .set('Authorization', `Bearer ${adminToken}`)
         .send(firstAssociation)
         .expect(HttpStatus.CREATED);
 
@@ -143,6 +155,7 @@ describe('E2E: Associações - Operações CRUD', () => {
       await testApp
         .request()
         .post('/associations')
+        .set('Authorization', `Bearer ${adminToken}`)
         .send(duplicateEmail)
         .expect(HttpStatus.BAD_REQUEST);
     });
@@ -155,8 +168,8 @@ describe('E2E: Associações - Operações CRUD', () => {
       const association = AssociationFactory.build();
       existingEmail = association.email!;
 
-      await testApp.request().post('/associations').send(association);
-    });
+      await testApp.request().post('/associations').set('Authorization', `Bearer ${adminToken}`).send(association);
+    }, 30000);
 
     it('deve retornar true se o email existir', async () => {
       const response = await testApp
@@ -165,7 +178,7 @@ describe('E2E: Associações - Operações CRUD', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(HttpStatus.OK);
 
-      expect(response.body).toEqual({ exists: true });
+      expect(response.body.data.exists).toEqual(true);
     });
 
     it('deve retornar false se o email não existir', async () => {
@@ -175,7 +188,7 @@ describe('E2E: Associações - Operações CRUD', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(HttpStatus.OK);
 
-      expect(response.body).toEqual({ exists: false });
+      expect(response.body.data.exists).toEqual(false);
     });
 
     it('deve retornar 400 se o parâmetro email estiver faltando', async () => {
@@ -201,8 +214,8 @@ describe('E2E: Associações - Operações CRUD', () => {
       const association = AssociationFactory.build();
       existingCnpj = association.cnpj!;
 
-      await testApp.request().post('/associations').send(association);
-    });
+      await testApp.request().post('/associations').set('Authorization', `Bearer ${adminToken}`).send(association);
+    }, 30000);
 
     it('deve retornar true se o CNPJ existir', async () => {
       const response = await testApp
@@ -211,7 +224,7 @@ describe('E2E: Associações - Operações CRUD', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(HttpStatus.OK);
 
-      expect(response.body).toEqual({ exists: true });
+      expect(response.body.data.exists).toEqual(true);
     });
 
     it('deve retornar false se o CNPJ não existir', async () => {
@@ -223,7 +236,7 @@ describe('E2E: Associações - Operações CRUD', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(HttpStatus.OK);
 
-      expect(response.body).toEqual({ exists: false });
+      expect(response.body.data.exists).toEqual(false);
     });
 
     it('deve retornar 400 se o parâmetro CNPJ estiver faltando', async () => {
@@ -252,7 +265,7 @@ describe('E2E: Associações - Operações CRUD', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(HttpStatus.OK);
 
-      expect(emailCheck.body.exists).toBe(false);
+      expect(emailCheck.body.data.exists).toBe(false);
 
       const cnpjCheck = await testApp
         .request()
@@ -260,11 +273,12 @@ describe('E2E: Associações - Operações CRUD', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(HttpStatus.OK);
 
-      expect(cnpjCheck.body.exists).toBe(false);
+      expect(cnpjCheck.body.data.exists).toBe(false);
 
       const createResponse = await testApp
         .request()
         .post('/associations')
+        .set('Authorization', `Bearer ${adminToken}`)
         .send(associationData)
         .expect(HttpStatus.CREATED);
 
@@ -280,7 +294,7 @@ describe('E2E: Associações - Operações CRUD', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(HttpStatus.OK);
 
-      expect(emailCheckAfter.body.exists).toBe(true);
+      expect(emailCheckAfter.body.data.exists).toBe(true);
 
       const cnpjCheckAfter = await testApp
         .request()
@@ -288,7 +302,7 @@ describe('E2E: Associações - Operações CRUD', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(HttpStatus.OK);
 
-      expect(cnpjCheckAfter.body.exists).toBe(true);
+      expect(cnpjCheckAfter.body.data.exists).toBe(true);
     });
   });
 });

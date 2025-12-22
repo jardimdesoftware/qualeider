@@ -151,10 +151,10 @@ describe('E2E: Users - CRUD Operations', () => {
         .set(authHelper.authHeader(adminToken))
         .expect(HttpStatus.OK);
 
-      expect(response.body).toHaveProperty('id', userId);
-      expect(response.body).toHaveProperty('email', 'findone@example.com');
-      expect(response.body).toHaveProperty('name', 'Find One User');
-      expect(response.body).not.toHaveProperty('password');
+      expect(response.body.data).toHaveProperty('id', userId);
+      expect(response.body.data).toHaveProperty('email', 'findone@example.com');
+      expect(response.body.data).toHaveProperty('name', 'Find One User');
+      expect(response.body.data).not.toHaveProperty('password');
     });
 
     it('deve retornar 404 com ID inexistente', async () => {
@@ -314,8 +314,8 @@ describe('E2E: Users - CRUD Operations', () => {
         .set(authHelper.authHeader(adminToken))
         .expect(HttpStatus.OK);
 
-      expect(found.body).toHaveProperty('email', 'fullcrud@example.com');
-      expect(found.body).toHaveProperty('name', 'Full CRUD User');
+      expect(found.body.data).toHaveProperty('email', 'fullcrud@example.com');
+      expect(found.body.data).toHaveProperty('name', 'Full CRUD User');
 
       const updated = await testApp
         .request()
