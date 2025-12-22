@@ -46,7 +46,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
   private getMessage(exceptionResponse: string | object): string | string[] {
     if (typeof exceptionResponse === 'object' && 'message' in exceptionResponse) {
-      return (exceptionResponse as any).message;
+      return exceptionResponse.message as string | string[];
     }
     return exceptionResponse as string;
   }

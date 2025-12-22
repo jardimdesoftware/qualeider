@@ -1,5 +1,6 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { IAssociationRepository } from '@/domain/repositories/association.repository';
+import { AssociationEntity } from '@/domain/entities/association.entity';
 import { CreateAssociationDto } from '@/application/dtos/associations/create-association.dto';
 import { IHashService } from '@/application/ports/hash.service';
 import { BCRYPT_ROUNDS_USER_CREATION } from '@/common/constants/security.constants';
@@ -17,8 +18,8 @@ export class AssociationsService {
 
   private removePassword<T>(entity: T): Omit<T, 'password'> {
     if (entity && typeof entity === 'object' && 'password' in entity) {
-      const { password, ...rest } = entity as any;
-      return rest;
+      const { password, ...rest } = entity as T & { password?: unknown };
+      return rest as Omit<T, 'password'>;
     }
     return entity as Omit<T, 'password'>;
   }
@@ -70,7 +71,7 @@ export class AssociationsService {
     const association = await this.associationRepository.create({
       ...entityData,
       password: hashedPassword,
-    } as any);
+    } as Omit<AssociationEntity, 'id' | 'createdAt' | 'updatedAt'>);
 
     this.logger.log(
       `Associação criada: ${association.name} (ID: ${association.id})`,
@@ -96,17 +97,17 @@ export class AssociationsService {
   }
 
   async update(id: number, data: Partial<CreateAssociationDto>) {
-      const { password, ...updateData } = data as any;
+      const { password, ...updateData } = data;
       
       // If password update is needed, hash it.
       if (password) {
-         updateData.password = await this.hashService.hash(
+         (updateData as Record<string, unknown>).password = await this.hashService.hash(
           password,
           BCRYPT_ROUNDS_USER_CREATION,
         );
       }
 
-      const updated = await this.associationRepository.update(id, updateData);
+      const updated = await this.associationRepository.update(id, updateData as Partial<AssociationEntity>);
       return this.removePassword(updated);
   }
 
