@@ -1,5 +1,4 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { HttpStatus } from '@nestjs/common';
 import { InvitesController } from '@/presentation/controllers/invites.controller';
 import { InvitesService } from '@/application/services/invites/invites.service';
 import { CreateInviteDto } from '@/application/dtos/invites/create-invite.dto';
@@ -59,11 +58,7 @@ describe('InvitesController', () => {
         associationId,
         createDto,
       );
-      expect(result).toEqual({
-        statusCode: HttpStatus.CREATED,
-        message: 'Convite enviado com sucesso',
-        data: createdInvite,
-      });
+      expect(result).toEqual(createdInvite);
     });
 
     it('deve propagar EntityNotFoundException quando usuário não existe', async () => {
@@ -157,11 +152,7 @@ describe('InvitesController', () => {
         associationId,
         inviteId,
       );
-      expect(result).toEqual({
-        statusCode: HttpStatus.OK,
-        message: 'Convite cancelado com sucesso',
-        data: serviceResponse,
-      });
+      expect(result).toEqual(serviceResponse);
     });
 
     it('deve propagar EntityNotFoundException quando convite não existe', async () => {
@@ -215,11 +206,7 @@ describe('InvitesController', () => {
         token,
         InviteAction.ACCEPT,
       );
-      expect(result).toEqual({
-        statusCode: HttpStatus.OK,
-        message: 'Resposta registrada com sucesso',
-        data: serviceResponse,
-      });
+      expect(result).toEqual(serviceResponse);
     });
 
     it('deve propagar BusinessException quando convite já foi respondido', async () => {

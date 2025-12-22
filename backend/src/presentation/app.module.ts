@@ -19,8 +19,10 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { CacheModule } from '@nestjs/cache-manager';
 import { cacheConfig } from '@/common/cache/cache.config';
 import * as path from 'path';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { AppThrottlerGuard } from '@/guards/app-throttler-guards';
+import { ResponseFormatInterceptor } from '@/common/interceptors/response-format.interceptor';
+
 
 @Module({
   imports: [
@@ -55,6 +57,10 @@ import { AppThrottlerGuard } from '@/guards/app-throttler-guards';
     {
       provide: APP_GUARD,
       useClass: AppThrottlerGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ResponseFormatInterceptor,
     },
   ],
 })

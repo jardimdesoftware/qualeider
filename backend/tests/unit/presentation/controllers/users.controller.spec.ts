@@ -1,5 +1,4 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { HttpStatus } from '@nestjs/common';
 import { UsersController } from '@/presentation/controllers/users.controller';
 import { UsersService } from '@/application/services/users/users.service';
 import { CreateUserDto } from '@/application/dtos/users/create-user.dto';
@@ -53,11 +52,7 @@ describe('UsersController', () => {
       const result = await controller.create(createDto);
 
       expect(usersService.create).toHaveBeenCalledWith(createDto);
-      expect(result).toEqual({
-        statusCode: HttpStatus.CREATED,
-        message: 'Usuário criado com sucesso',
-        data: createdUser,
-      });
+      expect(result).toEqual(createdUser);
     });
 
     it('deve propagar erro de negócio (ex: email duplicado)', async () => {
@@ -149,11 +144,7 @@ describe('UsersController', () => {
       const result = await controller.update(1, updateDto);
 
       expect(usersService.update).toHaveBeenCalledWith(1, updateDto);
-      expect(result).toEqual({
-        statusCode: HttpStatus.OK,
-        message: 'Usuário atualizado com sucesso',
-        data: updatedUser,
-      });
+      expect(result).toEqual(updatedUser);
     });
 
     it('deve propagar EntityNotFoundException quando usuário não existe', async () => {
@@ -174,11 +165,7 @@ describe('UsersController', () => {
       const result = await controller.partialUpdate(1, updateDto);
 
       expect(usersService.partialUpdate).toHaveBeenCalledWith(1, updateDto);
-      expect(result).toEqual({
-        statusCode: HttpStatus.OK,
-        message: 'Usuário atualizado com sucesso',
-        data: updatedUser,
-      });
+      expect(result).toEqual(updatedUser);
     });
   });
 
@@ -190,11 +177,7 @@ describe('UsersController', () => {
       const result = await controller.remove(1);
 
       expect(usersService.remove).toHaveBeenCalledWith(1);
-      expect(result).toEqual({
-        statusCode: HttpStatus.OK,
-        message: 'Usuário excluído com sucesso',
-        data: deleted,
-      });
+      expect(result).toEqual(deleted);
     });
 
     it('deve propagar EntityNotFoundException', async () => {

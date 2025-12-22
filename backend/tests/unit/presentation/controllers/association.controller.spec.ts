@@ -1,5 +1,4 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { HttpStatus } from '@nestjs/common';
 import { AssociationsController } from '@/presentation/controllers/associations.controller';
 import { AssociationsService } from '@/application/services/associations/associations.service';
 import { CreateAssociationDto } from '@/application/dtos/associations/create-association.dto';
@@ -62,11 +61,7 @@ describe('AssociationsController', () => {
       const result = await controller.create(createDto);
 
       expect(associationsService.create).toHaveBeenCalledWith(createDto);
-      expect(result).toEqual({
-        statusCode: HttpStatus.CREATED,
-        message: 'Associação criada com sucesso',
-        data: mockAssociation,
-      });
+      expect(result).toEqual(mockAssociation);
     });
 
     it('deve propagar BusinessException se o service falhar (ex: duplicidade)', async () => {

@@ -17,7 +17,8 @@ import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/
 import { InvitesService } from '@/application/services/invites/invites.service';
 import { CreateInviteDto } from '@/application/dtos/invites/create-invite.dto';
 import { RespondInviteDto } from '@/application/dtos/invites/respond-invite.dto';
-import { InviteStatus } from '@/domain/enums/enums'; 
+import { InviteStatus } from '@/domain/enums/enums';
+import { ResponseMessage } from '@/common/decorators/response-message.decorator';
 
 @Controller('invites')
 @ApiTags('Invites')
@@ -34,17 +35,12 @@ export class InvitesController {
   })
   @ApiResponse({ status: 404, description: 'Usuário ou associação não encontrados' })
   @ApiResponse({ status: 409, description: 'Usuário já vinculado ou convite pendente existe' })
+  @ResponseMessage('Convite enviado com sucesso')
   async createInvite(
     @Param('associationId', ParseIntPipe) associationId: number,
     @Body() dto: CreateInviteDto,
   ) {
-    const result = await this.invitesService.createInvite(associationId, dto);
-
-    return {
-      statusCode: HttpStatus.CREATED,
-      message: 'Convite enviado com sucesso',
-      data: result,
-    };
+    return this.invitesService.createInvite(associationId, dto);
   }
 
   @Get('user/:userId/pending')
@@ -83,17 +79,12 @@ export class InvitesController {
     description: 'Convite cancelado com sucesso',
   })
   @ApiResponse({ status: 404, description: 'Convite não encontrado ou já foi respondido' })
+  @ResponseMessage('Convite cancelado com sucesso')
   async cancelInvite(
     @Param('associationId', ParseIntPipe) associationId: number,
     @Param('inviteId', ParseIntPipe) inviteId: number,
   ) {
-    const result = await this.invitesService.cancelInvite(associationId, inviteId);
-
-    return {
-      statusCode: HttpStatus.OK,
-      message: 'Convite cancelado com sucesso',
-      data: result,
-    };
+    return this.invitesService.cancelInvite(associationId, inviteId);
   }
 
   @Get('token/:token')
@@ -118,16 +109,11 @@ export class InvitesController {
   })
   @ApiResponse({ status: 404, description: 'Convite não encontrado' })
   @ApiResponse({ status: 400, description: 'Convite já respondido ou expirado' })
+  @ResponseMessage('Resposta registrada com sucesso')
   async respondToInvite(
     @Param('token') token: string,
     @Body() dto: RespondInviteDto,
   ) {
-    const result = await this.invitesService.respondToInvite(token, dto.response);
-
-    return {
-      statusCode: HttpStatus.OK,
-      message: 'Resposta registrada com sucesso',
-      data: result,
-    };
+    return this.invitesService.respondToInvite(token, dto.response);
   }
 }

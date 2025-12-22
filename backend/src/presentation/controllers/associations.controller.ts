@@ -20,6 +20,7 @@ import { AssociationsService } from '@/application/services/associations/associa
 import { CreateAssociationDto } from '@/application/dtos/associations/create-association.dto';
 import { GetMonthlyReportDto } from '@/application/dtos/associations/get-monthly-report.dto';
 import { BusinessException } from '@/common/exceptions/business.exception';
+import { ResponseMessage } from '@/common/decorators/response-message.decorator';
 
 @ApiTags('associations')
 @Controller('associations')
@@ -36,14 +37,9 @@ export class AssociationsController {
   })
   @ApiResponse({ status: 400, description: 'Dados inválidos.' })
   @ApiResponse({ status: 409, description: 'Email ou CNPJ já cadastrado.' })
+  @ResponseMessage('Associação criada com sucesso')
   async create(@Body() createAssociationDto: CreateAssociationDto) {
-    const result = await this.associationsService.create(createAssociationDto);
-    
-    return {
-      statusCode: HttpStatus.CREATED,
-      message: 'Associação criada com sucesso',
-      data: result,
-    };
+    return this.associationsService.create(createAssociationDto);
   }
 
   @Get('check-email')

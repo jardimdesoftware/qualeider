@@ -1,5 +1,4 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { HttpStatus } from '@nestjs/common';
 import { DailyCollectionsController } from '@/presentation/controllers/daily-collections.controller';
 import { DailyCollectionsService } from '@/application/services/daily-collections/daily-collections.service';
 import { CreateDailyCollectionDto } from '@/application/dtos/daily-collections/create-daily-collection.dto';
@@ -41,7 +40,7 @@ describe('DailyCollectionsController', () => {
   });
 
   describe('create', () => {
-    it('deve criar coleta com sucesso e retornar wrapper', async () => {
+    it('deve criar coleta com sucesso e retornar o resultado direto', async () => {
       const dto: CreateDailyCollectionDto = {
         quantity: 10,
         userId: 1,
@@ -59,11 +58,7 @@ describe('DailyCollectionsController', () => {
       const result = await controller.create(dto);
 
       expect(service.create).toHaveBeenCalledWith(dto);
-      expect(result).toEqual({
-        statusCode: HttpStatus.CREATED,
-        message: 'Coleta criada com sucesso',
-        data: created,
-      });
+      expect(result).toEqual(created);
     });
 
     it('deve propagar EntityNotFoundException quando usuário não existe', async () => {
@@ -144,7 +139,7 @@ describe('DailyCollectionsController', () => {
   });
 
   describe('update', () => {
-    it('deve atualizar formulário com sucesso e retornar wrapper', async () => {
+    it('deve atualizar formulário com sucesso e retornar o resultado direto', async () => {
       const updateDto: UpdateDailyCollectionDto = { quantity: 12 } as any;
       const updated = createDailyCollection({ id: 1, quantity: 12 });
 
@@ -153,11 +148,7 @@ describe('DailyCollectionsController', () => {
       const result = await controller.update(1, updateDto);
 
       expect(service.update).toHaveBeenCalledWith(1, updateDto);
-      expect(result).toEqual({
-        statusCode: HttpStatus.OK,
-        message: 'Coleta atualizada com sucesso',
-        data: updated,
-      });
+      expect(result).toEqual(updated);
     });
 
     it('deve propagar EntityNotFoundException quando formulário não existe', async () => {
@@ -180,11 +171,7 @@ describe('DailyCollectionsController', () => {
       const result = await controller.remove(1);
 
       expect(service.remove).toHaveBeenCalledWith(1);
-      expect(result).toEqual({
-        statusCode: HttpStatus.OK,
-        message: 'Coleta excluída com sucesso',
-        data: deleted,
-      });
+      expect(result).toEqual(deleted);
     });
 
     it('deve propagar EntityNotFoundException', async () => {

@@ -6,7 +6,6 @@ import {
   Param,
   Put,
   Delete,
-  HttpStatus,
   ParseIntPipe,
   ValidationPipe,
   UsePipes,
@@ -24,6 +23,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { AnimalCriteria } from '@/domain/criteria/animal.criteria';
+import { ResponseMessage } from '@/common/decorators/response-message.decorator';
 
 @ApiTags('Animais')
 @Controller('animals')
@@ -37,13 +37,9 @@ export class AnimalsController {
   @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
   @Post()
   @UsePipes(new ValidationPipe({ transform: true }))
+  @ResponseMessage('Animal criado com sucesso')
   async create(@Body() createAnimalDto: CreateAnimalDto) {
-    const result = await this.animalsService.create(createAnimalDto);
-    return {
-      statusCode: HttpStatus.CREATED,
-      message: 'Animal criado com sucesso',
-      data: result,
-    };
+    return this.animalsService.create(createAnimalDto);
   }
 
   @ApiOperation({ summary: 'Listar todos os animais' })
@@ -75,16 +71,12 @@ export class AnimalsController {
   @ApiResponse({ status: 404, description: 'Animal não encontrado' })
   @Put(':id')
   @UsePipes(new ValidationPipe({ transform: true }))
+  @ResponseMessage('Animal atualizado com sucesso')
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateAnimalDto: UpdateAnimalDto,
   ) {
-    const result = await this.animalsService.update(id, updateAnimalDto);
-    return {
-      statusCode: HttpStatus.OK,
-      message: 'Animal atualizado com sucesso',
-      data: result,
-    };
+    return this.animalsService.update(id, updateAnimalDto);
   }
 
   @ApiOperation({ summary: 'Excluir (desativar) um animal' })
