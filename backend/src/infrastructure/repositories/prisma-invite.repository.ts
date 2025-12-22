@@ -46,7 +46,7 @@ export class PrismaInviteRepository implements IInviteRepository {
 
     if (criteria.userId) where.userId = criteria.userId;
     if (criteria.associationId) where.associationId = criteria.associationId;
-    if (criteria.status) where.status = criteria.status as any;
+    if (criteria.status) where.status = criteria.status;
     if (criteria.token) where.token = criteria.token;
     
     if (criteria.expiresAfter) {
@@ -107,7 +107,7 @@ export class PrismaInviteRepository implements IInviteRepository {
       const updated = await this.prisma.invite.update({
         where: { id },
         data: {
-          status: data.status as any,
+          status: data.status,
           respondedAt: data.respondedAt,
         },
         include: {
@@ -133,7 +133,7 @@ export class PrismaInviteRepository implements IInviteRepository {
           },
         },
         data: {
-          status: InviteStatus.EXPIRED as any,
+          status: InviteStatus.EXPIRED,
         },
       });
       return result.count;

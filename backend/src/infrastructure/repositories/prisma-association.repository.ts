@@ -7,7 +7,7 @@ import { AssociationEntity } from '@/domain/entities/association.entity';
 import { handlePrismaError, isPrismaError, PrismaErrorCode } from '@/common/utils/prisma-error-handler';
 import { BusinessException } from '@/common/exceptions/business.exception';
 import { AssociationMapper } from '@/infrastructure/mappers/association.mapper';
-import { Status as PrismaStatus } from '@prisma/client';
+import { Status as PrismaStatus, Prisma } from '@prisma/client';
 
 @Injectable()
 export class PrismaAssociationRepository implements IAssociationRepository {
@@ -277,7 +277,7 @@ export class PrismaAssociationRepository implements IAssociationRepository {
     
     // Tenta buscar do cache
     const cached = await this.cacheManager.get(cacheKey);
-    if (cached) return cached as any[];
+    if (cached) return cached as Array<{userId: number; name: string; totalQuantity: number;}>;
     
     // Se não tiver no cache, calcula
     const ranking = await this.calculateProducerRanking(associationId, startDate, endDate);
@@ -458,10 +458,10 @@ export class PrismaAssociationRepository implements IAssociationRepository {
   }
 
   async update(id: number, data: Partial<AssociationEntity>): Promise<AssociationEntity> {
-    const { ...updateData } = data;
+    const updateData: Prisma.AssociationUpdateInput = { ...data };
 
     if (data.foundationDate) {
-        (updateData as any).foundationDate = new Date(data.foundationDate);
+        updateData.foundationDate = new Date(data.foundationDate);
     }
 
     try {
