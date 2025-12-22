@@ -1,4 +1,5 @@
-import { Body, Controller, Post, HttpStatus, HttpCode, Get, UseGuards, Req, Param } from '@nestjs/common';
+import { Body, Controller, Post, HttpStatus, HttpCode, Get, UseGuards, Param } from '@nestjs/common';
+import { GetUser } from '@/common/decorators/get-user.decorator';
 import { JwtAuthGuard } from '@/application/guards/jwt-auth.guard';
 import { Throttle } from '@nestjs/throttler';
 import { THROTTLE_TTL } from '@/common/throttler/throttler.config';
@@ -48,8 +49,7 @@ export class NotificationsController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Obter notificações do usuário logado' })
   @ApiResponse({ status: 200, description: 'Lista de notificações retornada.' })
-  async getMyNotifications(@Req() req: Request) {
-    const userId = (req as any).user.id;
+  async getMyNotifications(@GetUser('id') userId: number) {
     return this.notificationsService.getUserNotifications(userId);
   }
 
