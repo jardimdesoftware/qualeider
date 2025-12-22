@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { MilkingPlace, Prisma } from '@prisma/client';
+import { MilkingPlace, Prisma, Status } from '@prisma/client';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { IDailyCollectionRepository, DailyCollectionFindOneOptions, CreateDailyCollectionData } from '@/domain/repositories/daily-collection.repository';
 import { ID } from '@/domain/enums/enums';
@@ -47,7 +47,7 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
     const where: Prisma.DailyCollectionWhereInput = {};
 
     // Filtrar apenas registros ativos por padrão
-    where.status = 'Active' as any;
+    where.status = Status.Active;
 
     if (criteria.userId) {
       where.userId = criteria.userId;
@@ -183,7 +183,7 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
     try {
       const deleted = await this.prisma.dailyCollection.update({
         where: { id },
-        data: { status: 'Inactive' as any },
+        data: { status: Status.Inactive },
         include: {
           items: {
             include: { animal: true },

@@ -27,6 +27,7 @@ export class PrismaAssociationRepository implements IAssociationRepository {
           status: PrismaStatus.Active, 
         },
       });
+      await this.invalidateAssociationCaches(created.id);
       return AssociationMapper.toDomain(created);
     } catch (error) {
       if (isPrismaError(error) && error.code === PrismaErrorCode.UNIQUE_CONSTRAINT_VIOLATION) {
@@ -453,6 +454,7 @@ export class PrismaAssociationRepository implements IAssociationRepository {
           where: { id: userId },
           data: { associationId }
       });
+      await this.invalidateAssociationCaches(associationId);
   }
 
   async update(id: number, data: Partial<AssociationEntity>): Promise<AssociationEntity> {
@@ -467,6 +469,7 @@ export class PrismaAssociationRepository implements IAssociationRepository {
             where: { id },
             data: updateData,
         });
+        await this.invalidateAssociationCaches(id);
         return AssociationMapper.toDomain(updated);
     } catch (error) {
          if (isPrismaError(error) && error.code === PrismaErrorCode.UNIQUE_CONSTRAINT_VIOLATION) {
@@ -480,6 +483,32 @@ export class PrismaAssociationRepository implements IAssociationRepository {
             }
           }
         handlePrismaError(error);
+    }
+  }
+
+  /**
+   * Invalida todos os caches relacionados a uma associação
+   * Deve ser chamado após operações de criação, atualização ou vinculação de produtores
+   */
+  private async invalidateAssociationCaches(associationId: number): Promise<void> {
+    try {
+      // Invalida cache de estatísticas do rebanho
+      await this.cacheManager.del(`herd_stats:${associationId}`);
+      
+      // Invalida caches de rankings de produtores (pattern matching)
+      // Como não podemos fazer pattern delete facilmente, invalidamos os mais comuns
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      await this.cacheManager.del(`producer_ranking:${associationId}:default:default`);
+      await this.cacheManager.del(`producer_ranking:${associationId}:${thirtyDaysAgo.toISOString()}:${now.toISOString()}`);
+      
+      // Invalida caches de relatórios mensais do mês atual
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1;
+      await this.cacheManager.del(`monthly_report:${associationId}:${currentYear}:${currentMonth}`);
+    } catch (error) {
+      // Log do erro mas não interrompe o fluxo principal
+      console.error('Erro ao invalidar caches:', error);
     }
   }
 }
