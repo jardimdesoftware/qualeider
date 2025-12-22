@@ -6,6 +6,7 @@ import { MockMailService } from '../../mocks/mail.mock';
 import request = require('supertest');
 import { HttpExceptionFilter } from '@/common/filters/http-exception.filter';
 import { PrismaExceptionFilter } from '@/common/filters/prisma-exception.filter';
+import { useContainer } from 'class-validator';
 
 export class TestApp {
   private app!: INestApplication;
@@ -25,6 +26,9 @@ export class TestApp {
       .compile();
 
     this.app = this.moduleRef.createNestApplication();
+
+    // Configura class-validator para usar o container do Nest (necessário para validadores customizados)
+    useContainer(this.app.select(AppModule), { fallbackOnErrors: true });
 
     this.app.useGlobalFilters(
       new HttpExceptionFilter(),

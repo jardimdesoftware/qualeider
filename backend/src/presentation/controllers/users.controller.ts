@@ -8,12 +8,10 @@ import {
   Patch,
   Delete,
   Query,
-  UseGuards,
   ParseIntPipe,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { THROTTLE_TTL } from '@/common/throttler/throttler.config';
-import { JwtAuthGuard } from '@/application/guards/jwt-auth.guard';
 import {
   ApiTags,
   ApiOperation,
@@ -30,6 +28,7 @@ import { FindUsersDto } from '@/application/dtos/users/find-users.dto';
 import { BusinessException } from '@/common/exceptions/business.exception';
 import { UserCriteria } from '@/domain/criteria/user.criteria';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
+import { Public } from '@/common/decorators/public.decorator';
 
 @ApiTags('Users')
 @Controller('users')
@@ -37,21 +36,22 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Throttle({ default: { limit: 5, ttl: THROTTLE_TTL.LONG } }) 
+  @Post()
+  @Public()
   @ApiOperation({ summary: 'Criar um usuário' })
-  @ApiBearerAuth()
   @ApiResponse({ status: 201, description: 'Usuário criado com sucesso' })
   @ApiResponse({ status: 400, description: 'Dados inválidos' })
   @ApiResponse({ status: 409, description: 'Email já cadastrado' })
-  @Post()
   @ResponseMessage('Usuário criado com sucesso')
   async create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
 
+  @Get('check-email')
+  @Public()
   @ApiOperation({ summary: 'Verificar se email já está cadastrado' })
   @ApiQuery({ name: 'email', required: true })
   @ApiResponse({ status: 200, description: 'Retorna se o email existe' })
-  @Get('check-email')
   async checkEmail(@Query('email') email: string) {
     if (!email) {
       throw new BusinessException('Email é obrigatório');
@@ -61,14 +61,13 @@ export class UsersController {
     return { exists: !!user };
   }
 
+  @Get()
   @ApiOperation({ summary: 'Listar todos os usuários' })
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
   @ApiResponse({
     status: 200,
     description: 'Lista de usuários obtida com sucesso',
   })
-  @Get()
   async findAll(@Query() query: FindUsersDto) {
     const criteria: UserCriteria = {
       associationId: query.associationId,
@@ -80,7 +79,6 @@ export class UsersController {
   }
 
   @ApiOperation({ summary: 'Buscar um usuário pelo ID' })
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiParam({ name: 'id', description: 'ID do usuário', type: Number })
   @ApiResponse({ status: 200, description: 'Usuário encontrado' })
@@ -92,7 +90,6 @@ export class UsersController {
 
   @ApiOperation({ summary: 'Atualizar todos os dados de um usuário pelo ID' })
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
   @ApiParam({ name: 'id', description: 'ID do usuário', type: Number })
   @ApiResponse({ status: 200, description: 'Usuário atualizado com sucesso' })
   @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
@@ -107,7 +104,6 @@ export class UsersController {
 
   @ApiOperation({ summary: 'Atualizar alguns dados de um usuário pelo ID' })
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
   @ApiParam({ name: 'id', description: 'ID do usuário', type: Number })
   @ApiResponse({ status: 200, description: 'Usuário atualizado com sucesso' })
   @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
@@ -122,7 +118,6 @@ export class UsersController {
 
   @ApiOperation({ summary: 'Excluir um usuário pelo ID' })
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
   @ApiParam({ name: 'id', description: 'ID do usuário', type: Number })
   @ApiResponse({ status: 200, description: 'Usuário excluído com sucesso' })
   @ApiResponse({ status: 404, description: 'Usuário não encontrado' })

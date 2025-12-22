@@ -21,6 +21,7 @@ import { cacheConfig } from '@/common/cache/cache.config';
 import * as path from 'path';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { AppThrottlerGuard } from '@/guards/app-throttler-guards';
+import { JwtAuthGuard } from '@/application/guards/jwt-auth.guard';
 import { ResponseFormatInterceptor } from '@/common/interceptors/response-format.interceptor';
 
 
@@ -57,6 +58,10 @@ import { ResponseFormatInterceptor } from '@/common/interceptors/response-format
     {
       provide: APP_GUARD,
       useClass: AppThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
     },
     {
       provide: APP_INTERCEPTOR,

@@ -19,6 +19,7 @@ import { CreateInviteDto } from '@/application/dtos/invites/create-invite.dto';
 import { RespondInviteDto } from '@/application/dtos/invites/respond-invite.dto';
 import { InviteStatus } from '@/domain/enums/enums';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
+import { Public } from '@/common/decorators/public.decorator';
 
 @Controller('invites')
 @ApiTags('Invites')
@@ -88,6 +89,7 @@ export class InvitesController {
   }
 
   @Get('token/:token')
+  @Public()
   @ApiOperation({ summary: 'Buscar detalhes do convite pelo token' })
   @ApiParam({ name: 'token', description: 'Token único do convite' })
   @ApiResponse({
@@ -100,6 +102,7 @@ export class InvitesController {
   }
 
   @Patch('token/:token/respond')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Usuário aceita ou recusa convite' })
   @ApiParam({ name: 'token', description: 'Token único do convite' })

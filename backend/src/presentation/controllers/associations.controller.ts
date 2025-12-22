@@ -6,13 +6,11 @@ import {
   HttpStatus,
   Get,
   Query,
-  UseGuards,
   Param,
   NotFoundException,
   Patch,
 } from '@nestjs/common';
 import { GetUser } from '@/common/decorators/get-user.decorator';
-import { JwtAuthGuard } from '@/application/guards/jwt-auth.guard';
 import { Throttle } from '@nestjs/throttler';
 import { THROTTLE_TTL } from '@/common/throttler/throttler.config';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
@@ -21,6 +19,7 @@ import { CreateAssociationDto } from '@/application/dtos/associations/create-ass
 import { GetMonthlyReportDto } from '@/application/dtos/associations/get-monthly-report.dto';
 import { BusinessException } from '@/common/exceptions/business.exception';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
+import { Public } from '@/common/decorators/public.decorator';
 
 @ApiTags('associations')
 @Controller('associations')
@@ -29,6 +28,7 @@ export class AssociationsController {
 
   @Throttle({ default: { limit: 5, ttl: THROTTLE_TTL.LONG } })
   @Post()
+  @Public()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Criar uma nova associação' })
   @ApiResponse({
@@ -43,6 +43,7 @@ export class AssociationsController {
   }
 
   @Get('check-email')
+  @Public()
   @ApiOperation({ summary: 'Verificar se o email já está cadastrado' })
   @ApiQuery({ name: 'email', required: true })
   @ApiResponse({ status: 200, description: 'Retorna se o email existe.' })
@@ -56,6 +57,7 @@ export class AssociationsController {
   }
 
   @Get('check-cnpj')
+  @Public()
   @ApiOperation({ summary: 'Verificar se o CNPJ já está cadastrado' })
   @ApiQuery({ name: 'cnpj', required: true })
   @ApiResponse({ status: 200, description: 'Retorna se o CNPJ existe.' })
@@ -70,7 +72,6 @@ export class AssociationsController {
 
 
   @Get('metrics/associates')
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Obter lista resumida de associados paginada' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
@@ -87,7 +88,6 @@ export class AssociationsController {
   }
 
   @Get('available-producers')
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Listar produtores sem associação' })
   @ApiResponse({ status: 200, description: 'Lista de produtores retornada.' })
   async getAvailableProducers() {
@@ -95,7 +95,6 @@ export class AssociationsController {
   }
 
   @Post('invite')
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Convidar/Vincular produtor à associação' })
   @ApiResponse({ status: 200, description: 'Produtor vinculado com sucesso.' })
   async inviteProducer(@Body() body: { userId: number }, @GetUser('id') associationId: number) {
@@ -104,7 +103,6 @@ export class AssociationsController {
   }
 
   @Get('metrics/herd')
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Obter estatísticas do rebanho regional' })
   @ApiResponse({ status: 200, description: 'Estatísticas retornadas com sucesso.' })
   async getHerdStats(@GetUser('id') associationId: number) {
@@ -112,7 +110,6 @@ export class AssociationsController {
   }
 
   @Get('reports/producer-ranking')
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Obter ranking de produtores por produção' })
   @ApiQuery({ name: 'startDate', required: false, type: String, description: 'Data de início (ISO)' })
   @ApiQuery({ name: 'endDate', required: false, type: String, description: 'Data de fim (ISO)' })
@@ -124,7 +121,6 @@ export class AssociationsController {
   }
 
   @Get('reports/monthly')
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Obter relatório mensal agregado' })
   @ApiResponse({ status: 200, description: 'Relatório mensal retornado com sucesso.' })
   @ApiResponse({ status: 400, description: 'Parâmetros inválidos ou faltando.' })
@@ -144,7 +140,6 @@ export class AssociationsController {
     return association;
   }
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Atualizar dados da associação' })
   @ApiResponse({ status: 200, description: 'Associação atualizada com sucesso.' })
   async update(@Param('id') id: string, @Body() body: any) {

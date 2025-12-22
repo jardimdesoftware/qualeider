@@ -14,6 +14,7 @@ import { ResetPasswordDto } from '@/application/dtos/auth/reset-password.dto';
 import { ValidateTokenDto } from '@/application/dtos/auth/validate-token.dto';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
+import { Public } from '@/common/decorators/public.decorator';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -23,6 +24,7 @@ export class AuthController {
   // [BR-004] Rate Limiting Login
   @Throttle({ default: { limit: 3, ttl: THROTTLE_TTL.SHORT } })
   @Post('login')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Realizar login' })
   @ApiBody({ type: LoginDto })
@@ -38,6 +40,7 @@ export class AuthController {
 
   @Throttle({ default: { limit: 3, ttl: THROTTLE_TTL.LONG } }) // 3 tentativas por 5min (300s prod, 2s test)
   @Post('forgot-password')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Solicitar redefinição de senha' })
   @ApiBody({ type: ForgotPasswordDto })
@@ -53,6 +56,7 @@ export class AuthController {
 
   @Throttle({ default: { limit: 5, ttl: THROTTLE_TTL.SHORT } }) // 5 tentativas por minuto (60s prod, 2s test) 
   @Post('validate-reset-token')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Validar token de redefinição de senha' })
   @ApiBody({ type: ValidateTokenDto })
@@ -66,6 +70,7 @@ export class AuthController {
 
   @Throttle({ default: { limit: 3, ttl: THROTTLE_TTL.LONG } }) // 3 tentativas por 5min (300s prod, 2s test)
   @Post('reset-password')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Redefinir senha' })
   @ApiBody({ type: ResetPasswordDto })

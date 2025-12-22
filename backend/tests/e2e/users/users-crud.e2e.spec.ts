@@ -151,9 +151,9 @@ describe('E2E: Users - CRUD Operations', () => {
         .set(authHelper.authHeader(adminToken))
         .expect(HttpStatus.OK);
 
-      expect(response.body.id).toBe(userId);
-      expect(response.body.email).toBe('findone@example.com');
-      expect(response.body.name).toBe('Find One User');
+      expect(response.body).toHaveProperty('id', userId);
+      expect(response.body).toHaveProperty('email', 'findone@example.com');
+      expect(response.body).toHaveProperty('name', 'Find One User');
       expect(response.body).not.toHaveProperty('password');
     });
 
@@ -314,8 +314,8 @@ describe('E2E: Users - CRUD Operations', () => {
         .set(authHelper.authHeader(adminToken))
         .expect(HttpStatus.OK);
 
-      expect(found.body.email).toBe('fullcrud@example.com');
-      expect(found.body.name).toBe('Full CRUD User');
+      expect(found.body).toHaveProperty('email', 'fullcrud@example.com');
+      expect(found.body).toHaveProperty('name', 'Full CRUD User');
 
       const updated = await testApp
         .request()

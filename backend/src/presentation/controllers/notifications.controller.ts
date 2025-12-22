@@ -1,6 +1,5 @@
-import { Body, Controller, Post, HttpCode, HttpStatus, Get, UseGuards, Param } from '@nestjs/common';
+import { Body, Controller, Post, HttpCode, HttpStatus, Get, Param } from '@nestjs/common';
 import { GetUser } from '@/common/decorators/get-user.decorator';
-import { JwtAuthGuard } from '@/application/guards/jwt-auth.guard';
 import { Throttle } from '@nestjs/throttler';
 import { THROTTLE_TTL } from '@/common/throttler/throttler.config';
 import { ApiOperation, ApiTags, ApiResponse, ApiBody } from '@nestjs/swagger';
@@ -44,7 +43,7 @@ export class NotificationsController {
   }
 
   @Get('user/me')
-  @UseGuards(JwtAuthGuard)
+
   @ApiOperation({ summary: 'Obter notificações do usuário logado' })
   @ApiBody({ type: GetUser })
   @ApiResponse({ status: 200, description: 'Lista de notificações retornada.' })
@@ -54,7 +53,7 @@ export class NotificationsController {
   }
 
   @Post('read/:id')
-  @UseGuards(JwtAuthGuard)
+
   @ApiOperation({ summary: 'Marcar notificação como lida' })
   @ApiResponse({ status: 200, description: 'Notificação marcada como lida.' })
   async markAsRead(@Param('id') id: string) {

@@ -72,12 +72,27 @@ export class ResponseFormatInterceptor implements NestInterceptor {
   }
 
   private isAlreadyFormatted(data: any): data is StandardResponse {
-    return (
+    // Já tem o formato padrão com statusCode e message
+    if (
       data &&
       typeof data === 'object' &&
       'statusCode' in data &&
       'message' in data
-    );
+    ) {
+      return true;
+    }
+
+    // É uma resposta paginada (não deve ser envelopada)
+    if (
+      data &&
+      typeof data === 'object' &&
+      'data' in data &&
+      'total' in data
+    ) {
+      return true;
+    }
+
+    return false;
   }
 
   private getDefaultMessage(statusCode: number): string {
