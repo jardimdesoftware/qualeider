@@ -15,7 +15,7 @@ describe('E2E: Auth - Login', () => {
   });
 
   afterAll(async () => {
-    await testApp.close();
+    if (testApp) await testApp.close();
     await teardownE2ETests();
   });
 

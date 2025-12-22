@@ -67,16 +67,16 @@ export class DailyCollectionsService {
   private async validateAnimalsOwnership(userId: number, items: Array<{ animalId: number }>) {
     const animalIds = items.map(item => item.animalId);
     
-    for (const animalId of animalIds) {
-      const animal = await this.animalRepository.findById(animalId);
-      
-      if (!animal) {
-        throw new EntityNotFoundException(`Animal com ID ${animalId} não encontrado`);
-      }
-      
+    const animals = await this.animalRepository.findByIds(animalIds);
+    
+    if (animals.length !== animalIds.length) {
+      throw new EntityNotFoundException('Um ou mais animais não foram encontrados');
+    }
+    
+    for (const animal of animals) {
       if (animal.userId !== userId) {
         throw new BusinessException(
-          `Animal com ID ${animalId} não pertence ao usuário`,
+          `Animal com ID ${animal.id} não pertence ao usuário`,
         );
       }
     }
@@ -118,6 +118,6 @@ export class DailyCollectionsService {
 
   async remove(id: number) {
     await this.findOne(id);
-    await this.dailyCollectionRepository.delete(id);
+    return this.dailyCollectionRepository.softDelete(id);
   }
 }

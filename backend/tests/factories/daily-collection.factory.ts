@@ -1,5 +1,5 @@
 import { DailyCollectionEntity } from '@/domain/entities/daily-collection.entity';
-import { MilkingPlace } from '@/domain/enums/enums';
+import { MilkingPlace, Status } from '@/domain/enums/enums';
 
 /**
  * Factory para criar entidades DailyCollection com dados válidos para testes
@@ -30,6 +30,7 @@ export class DailyCollectionFactory {
       numLactation: 2,
       milkingPlace: MilkingPlace.Curral,
       technicalAssistance: false,
+      status: Status.Active,
       createdAt: timestamp,
       updatedAt: timestamp,
       items: [

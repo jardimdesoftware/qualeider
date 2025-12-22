@@ -1,4 +1,4 @@
-import { ID, MilkingPlace } from '@/domain/enums/enums';
+import { ID, MilkingPlace, Status } from '@/domain/enums/enums';
 
 export class DailyCollectionEntity {
   constructor(props?: Partial<DailyCollectionEntity>) {
@@ -14,6 +14,7 @@ export class DailyCollectionEntity {
   numLactation!: number;
   milkingPlace!: MilkingPlace;
   technicalAssistance!: boolean;
+  status!: Status;
   createdAt!: Date;
   updatedAt!: Date;
   items?: DailyCollectionItem[];

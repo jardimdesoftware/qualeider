@@ -52,8 +52,11 @@ export class UsersService {
   }
 
   async findAll(criteria?: UserCriteria) {
-    const users = await this.userRepository.findAll(criteria);
-    return users.map((user) => this.removePassword(user));
+    const result = await this.userRepository.findAll(criteria);
+    return {
+      ...result,
+      data: result.data.map(user => this.removePassword(user))
+    };
   }
 
   async findOne(id: number) {
@@ -70,8 +73,6 @@ export class UsersService {
     const user = await this.userRepository.findById(id);
     return user !== null;
   }
-
-
 
   private async performUpdate(
     id: number,

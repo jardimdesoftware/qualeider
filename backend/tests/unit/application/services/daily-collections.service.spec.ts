@@ -30,7 +30,7 @@ describe('DailyCollectionsService', () => {
             findById: jest.fn(),
             update: jest.fn(),
             updateItems: jest.fn(),
-            delete: jest.fn(),
+            softDelete: jest.fn(),
             findAllByUserId: jest.fn(),
           },
         },
@@ -38,6 +38,7 @@ describe('DailyCollectionsService', () => {
           provide: IAnimalRepositorySymbol,
           useValue: {
             findById: jest.fn(),
+            findByIds: jest.fn(),
           },
         },
         {
@@ -80,10 +81,13 @@ describe('DailyCollectionsService', () => {
       const userId = 1;
       const mockUser = createUser({ id: userId });
       const mockDailyCollection = createDailyCollection({ id: 1, userId });
-      const mockAnimal = createAnimal({ id: 10, userId });
+      const mockAnimals = [
+        createAnimal({ id: 10, userId }),
+        createAnimal({ id: 11, userId }),
+      ];
 
       userRepository.findById.mockResolvedValue(mockUser);
-      animalRepository.findById.mockResolvedValue(mockAnimal);
+      animalRepository.findByIds.mockResolvedValue(mockAnimals);
       dailyCollectionRepository.create.mockResolvedValue(mockDailyCollection);
 
       const result = await service.create(createDailyCollectionDto);
@@ -191,10 +195,10 @@ describe('DailyCollectionsService', () => {
       };
 
       userRepository.findById.mockResolvedValue(mockUser);
-      animalRepository.findById.mockResolvedValue(null);
+      animalRepository.findByIds.mockResolvedValue([]);
 
       await expect(service.create(createDto)).rejects.toThrow(EntityNotFoundException);
-      await expect(service.create(createDto)).rejects.toThrow('Animal com ID 999 não encontrado');
+      await expect(service.create(createDto)).rejects.toThrow('Um ou mais animais não foram encontrados');
       expect(dailyCollectionRepository.create).not.toHaveBeenCalled();
     });
 
@@ -219,7 +223,7 @@ describe('DailyCollectionsService', () => {
       };
 
       userRepository.findById.mockResolvedValue(mockUser);
-      animalRepository.findById.mockResolvedValue(mockAnimal);
+      animalRepository.findByIds.mockResolvedValue([mockAnimal]);
 
       await expect(service.create(createDto)).rejects.toThrow(BusinessException);
       await expect(service.create(createDto)).rejects.toThrow('Animal com ID 10 não pertence ao usuário');
@@ -234,11 +238,21 @@ describe('DailyCollectionsService', () => {
         createDailyCollection({ id: 2, quantity: 60 }),
       ];
 
-      dailyCollectionRepository.findAll.mockResolvedValue(mockCollections);
+      const paginatedResult = {
+        data: mockCollections,
+        total: 2,
+        page: 1,
+        limit: 50,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      };
+
+      dailyCollectionRepository.findAll.mockResolvedValue(paginatedResult);
 
       const result = await service.findAll();
 
-      expect(result).toEqual(mockCollections);
+      expect(result).toEqual(paginatedResult);
       expect(dailyCollectionRepository.findAll).toHaveBeenCalled();
     });
 
@@ -246,20 +260,40 @@ describe('DailyCollectionsService', () => {
       const associationId = 10;
       const mockCollections = [createDailyCollection({ id: 1 })];
 
-      dailyCollectionRepository.findAll.mockResolvedValue(mockCollections);
+      const paginatedResult = {
+        data: mockCollections,
+        total: 1,
+        page: 1,
+        limit: 50,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      };
+
+      dailyCollectionRepository.findAll.mockResolvedValue(paginatedResult);
 
       const result = await service.findAll({ associationId });
 
-      expect(result).toEqual(mockCollections);
+      expect(result).toEqual(paginatedResult);
       expect(dailyCollectionRepository.findAll).toHaveBeenCalledWith({ associationId });
     });
 
     it('deve retornar array vazio quando não há coletas', async () => {
-      dailyCollectionRepository.findAll.mockResolvedValue([]);
+      const paginatedResult = {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 50,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      };
+
+      dailyCollectionRepository.findAll.mockResolvedValue(paginatedResult);
 
       const result = await service.findAll();
 
-      expect(result).toEqual([]);
+      expect(result).toEqual(paginatedResult);
     });
   });
 
@@ -420,23 +454,24 @@ describe('DailyCollectionsService', () => {
   });
 
   describe('remove', () => {
-    it('deve deletar (hard delete) uma coleta diária', async () => {
+    it('deve deletar (soft delete) uma coleta diária', async () => {
       const mockCollection = createDailyCollection({ id: 1 });
       
       dailyCollectionRepository.findById.mockResolvedValue(mockCollection);
-      dailyCollectionRepository.delete.mockResolvedValue(undefined);
+      dailyCollectionRepository.softDelete.mockResolvedValue(mockCollection);
 
-      await service.remove(1);
+      const result = await service.remove(1);
 
       expect(dailyCollectionRepository.findById).toHaveBeenCalledWith(1);
-      expect(dailyCollectionRepository.delete).toHaveBeenCalledWith(1);
+      expect(dailyCollectionRepository.softDelete).toHaveBeenCalledWith(1);
+      expect(result).toEqual(mockCollection);
     });
 
     it('deve lançar NotFoundException ao tentar remover coleta inexistente', async () => {
         dailyCollectionRepository.findById.mockResolvedValue(null);
 
         await expect(service.remove(999)).rejects.toThrow(EntityNotFoundException);
-        expect(dailyCollectionRepository.delete).not.toHaveBeenCalled();
+        expect(dailyCollectionRepository.softDelete).not.toHaveBeenCalled();
     });
   });
 
@@ -448,20 +483,40 @@ describe('DailyCollectionsService', () => {
         createDailyCollection({ id: 2, userId, quantity: 50 }),
       ];
 
-      dailyCollectionRepository.findAll.mockResolvedValue(mockCollections);
+      const paginatedResult = {
+        data: mockCollections,
+        total: 2,
+        page: 1,
+        limit: 50,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      };
+
+      dailyCollectionRepository.findAll.mockResolvedValue(paginatedResult);
 
       const result = await service.findAll({ userId });
 
-      expect(result).toEqual(mockCollections);
+      expect(result).toEqual(paginatedResult);
       expect(dailyCollectionRepository.findAll).toHaveBeenCalledWith({ userId });
     });
 
     it('deve retornar array vazio se usuário não tem coletas', async () => {
-      dailyCollectionRepository.findAll.mockResolvedValue([]);
+      const paginatedResult = {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 50,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      };
+
+      dailyCollectionRepository.findAll.mockResolvedValue(paginatedResult);
 
       const result = await service.findAll({ userId: 999 });
 
-      expect(result).toEqual([]); 
+      expect(result).toEqual(paginatedResult); 
       expect(dailyCollectionRepository.findAll).toHaveBeenCalledWith({ userId: 999 });
     });
   });

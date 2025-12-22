@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { MilkingPlace, Prisma } from '@prisma/client';
+import { MilkingPlace, Prisma, Status } from '@prisma/client';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { IDailyCollectionRepository, DailyCollectionFindOneOptions, CreateDailyCollectionData } from '@/domain/repositories/daily-collection.repository';
 import { ID } from '@/domain/enums/enums';
@@ -7,6 +7,7 @@ import { DailyCollectionEntity, DailyCollectionItem } from '@/domain/entities/da
 import { DailyCollectionCriteria } from '@/domain/criteria/daily-collection.criteria';
 import { handlePrismaError, PrismaErrorCode } from '@/common/utils/prisma-error-handler';
 import { DailyCollectionMapper } from '@/infrastructure/mappers/daily-collection.mapper';
+import { PaginatedResult, normalizePaginationParams, createPaginatedResult } from '@/domain/common/pagination.interface';
 
 @Injectable()
 export class PrismaDailyCollectionRepository implements IDailyCollectionRepository {
@@ -42,8 +43,11 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
     }
   }
 
-  async findAll(criteria: DailyCollectionCriteria = {}): Promise<DailyCollectionEntity[]> {
+  async findAll(criteria: DailyCollectionCriteria = {}): Promise<PaginatedResult<DailyCollectionEntity>> {
     const where: Prisma.DailyCollectionWhereInput = {};
+
+    // Filtrar apenas registros ativos por padrão
+    where.status = Status.Active;
 
     if (criteria.userId) {
       where.userId = criteria.userId;
@@ -71,13 +75,24 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
       include.user = true;
     }
 
-    const list = await this.prisma.dailyCollection.findMany({
-      where,
-      include: Object.keys(include).length > 0 ? include : undefined,
-      orderBy: { collectionDate: 'desc' },
-    });
+    // Normalizar parâmetros de paginação
+    const { page, limit, skip } = normalizePaginationParams(criteria);
 
-    return list.map(DailyCollectionMapper.toDomain);
+    // Executar count e query em paralelo
+    const [total, list] = await Promise.all([
+      this.prisma.dailyCollection.count({ where }),
+      this.prisma.dailyCollection.findMany({
+        where,
+        include: Object.keys(include).length > 0 ? include : undefined,
+        orderBy: { collectionDate: 'desc' },
+        skip,
+        take: limit,
+      }),
+    ]);
+
+    const data = list.map(DailyCollectionMapper.toDomain);
+
+    return createPaginatedResult(data, total, page, limit);
   }
 
   async findById(id: ID, options?: DailyCollectionFindOneOptions): Promise<DailyCollectionEntity | null> {
@@ -154,18 +169,38 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
 
   async delete(id: ID): Promise<void> {
     try {
-      await this.prisma.$transaction(async (prisma) => {
-        await prisma.dailyCollectionItem.deleteMany({
-          where: { dailyCollectionId: id },
-        });
-        await prisma.dailyCollection.delete({
-          where: { id },
-        });
+      await this.prisma.dailyCollection.delete({
+        where: { id },
       });
     } catch (error) {
       handlePrismaError(error, {
         [PrismaErrorCode.RECORD_NOT_FOUND]: `Coleta diária com ID ${id} não encontrada para remoção.`,
       });
     }
+  }
+
+  async softDelete(id: ID): Promise<DailyCollectionEntity> {
+    try {
+      const deleted = await this.prisma.dailyCollection.update({
+        where: { id },
+        data: { status: Status.Inactive },
+        include: {
+          items: {
+            include: { animal: true },
+          },
+        },
+      });
+      return DailyCollectionMapper.toDomain(deleted);
+    } catch (error) {
+      handlePrismaError(error, {
+        [PrismaErrorCode.RECORD_NOT_FOUND]: `Coleta diária com ID ${id} não encontrada para remoção.`,
+      });
+    }
+  }
+
+  async countItemsByAnimalId(animalId: ID): Promise<number> {
+    return this.prisma.dailyCollectionItem.count({
+      where: { animalId },
+    });
   }
 }

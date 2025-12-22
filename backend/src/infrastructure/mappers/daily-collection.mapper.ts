@@ -18,6 +18,7 @@ export class DailyCollectionMapper {
       numLactation: raw.numLactation,
       milkingPlace: raw.milkingPlace as unknown as MilkingPlace,
       technicalAssistance: raw.technicalAssistance,
+      status: raw.status as any,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
       items: raw.items ? raw.items.map(item => ({

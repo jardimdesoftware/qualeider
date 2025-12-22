@@ -103,6 +103,8 @@ model User {
   dailyCollections      DailyCollection[]
   invites               Invite[]
   receivedNotifications NotificationRecipient[]
+  @@index([city, state, status])
+  @@index([associationId, status])
 }
 
 model Animal {
@@ -131,9 +133,13 @@ model DailyCollection {
   numLactation          Int              
   milkingPlace          MilkingPlace     
   technicalAssistance   Boolean          
+  status                Status           @default(Active)
   items                 DailyCollectionItem[]
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
+  
+  @@index([userId, status])
+  @@index([collectionDate])
 }
 
 model DailyCollectionItem {
@@ -148,6 +154,7 @@ model DailyCollectionItem {
 
   @@index([dailyCollectionId])
   @@index([animalId])
+  @@index([dailyCollectionId, animalId])
 }
 
 enum InviteStatus {
@@ -208,6 +215,7 @@ model NotificationRecipient {
   @@unique([notificationId, userId])
   @@index([userId])
   @@index([read])
+  @@index([userId, read, createdAt])
 }
 
 model FailedEmail {

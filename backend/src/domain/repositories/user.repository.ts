@@ -1,6 +1,7 @@
 import { ID } from '@/domain/enums/enums';
 import { UserEntity } from '@/domain/entities/user.entity';
 import { UserCriteria } from '@/domain/criteria/user.criteria';
+import { PaginatedResult } from '@/domain/common/pagination.interface';
 
 export const IUserRepository = Symbol('IUserRepository');
 
@@ -15,7 +16,7 @@ export interface IUserRepository {
       status?: string;
     },
   ): Promise<UserEntity>;
-  findAll(criteria?: UserCriteria): Promise<Array<Omit<UserEntity, 'password'>>>;
+  findAll(criteria?: UserCriteria): Promise<PaginatedResult<Omit<UserEntity, 'password'>>>;
   findById(
     id: ID, 
     options?: UserFindOneOptions

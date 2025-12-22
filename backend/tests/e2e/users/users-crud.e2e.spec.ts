@@ -30,7 +30,7 @@ describe('E2E: Users - CRUD Operations', () => {
   });
 
   afterAll(async () => {
-    await testApp.close();
+    if (testApp) await testApp.close();
     await teardownE2ETests();
   });
 
@@ -106,11 +106,13 @@ describe('E2E: Users - CRUD Operations', () => {
         .set(authHelper.authHeader(adminToken))
         .expect(HttpStatus.OK);
 
-      expect(Array.isArray(response.body)).toBe(true);
-      expect(response.body.length).toBeGreaterThan(0);
-      expect(response.body[0]).toHaveProperty('id');
-      expect(response.body[0]).toHaveProperty('email');
-      expect(response.body[0]).not.toHaveProperty('password');
+      expect(response.body).toHaveProperty('data');
+      expect(response.body).toHaveProperty('total');
+      expect(Array.isArray(response.body.data)).toBe(true);
+      expect(response.body.data.length).toBeGreaterThan(0);
+      expect(response.body.data[0]).toHaveProperty('id');
+      expect(response.body.data[0]).toHaveProperty('email');
+      expect(response.body.data[0]).not.toHaveProperty('password');
     });
 
     it('deve retornar 401 sem token de autenticação', async () => {

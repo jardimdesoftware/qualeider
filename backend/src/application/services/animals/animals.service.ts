@@ -66,10 +66,7 @@ export class AnimalsService {
   }
 
   private async hasCollectionHistory(animalId: number): Promise<boolean> {
-    const collections = await this.dailyCollectionRepository.findAll();
-    
-    return collections.some(collection => 
-      collection.items?.some(item => item.animalId === animalId)
-    );
+    const count = await this.dailyCollectionRepository.countItemsByAnimalId(animalId);
+    return count > 0;
   }
 }

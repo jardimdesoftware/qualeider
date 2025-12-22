@@ -85,7 +85,15 @@ describe('NotificationsService', () => {
         message: 'Você recebeu um novo convite',
       };
 
-      userRepository.findAll.mockResolvedValue([user1, user2]);
+      userRepository.findAll.mockResolvedValue({
+        data: [user1, user2],
+        total: 2,
+        page: 1,
+        limit: 50,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      });
 
       await service.notifyProducers(event);
 
@@ -136,7 +144,15 @@ describe('NotificationsService', () => {
         message: 'Reunião amanhã às 10h',
       };
 
-      userRepository.findAll.mockResolvedValue([user1, user2, user3]);
+      userRepository.findAll.mockResolvedValue({
+        data: [user1, user2, user3],
+        total: 3,
+        page: 1,
+        limit: 50,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      });
 
       await service.notifyProducers(event);
 
@@ -156,7 +172,15 @@ describe('NotificationsService', () => {
         message: 'Teste',
       };
 
-      userRepository.findAll.mockResolvedValue([]);
+      userRepository.findAll.mockResolvedValue({
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 50,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      });
 
       await service.notifyProducers(event);
 
@@ -172,7 +196,15 @@ describe('NotificationsService', () => {
         message: 'Mensagem de teste',
       };
 
-      userRepository.findAll.mockResolvedValue([]);
+      userRepository.findAll.mockResolvedValue({
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 50,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      });
 
       await service.notifyProducers(event);
 
@@ -197,7 +229,15 @@ describe('NotificationsService', () => {
         message: 'Conteúdo da notificação',
       };
 
-      userRepository.findAll.mockResolvedValue([user]);
+      userRepository.findAll.mockResolvedValue({
+        data: [user],
+        total: 1,
+        page: 1,
+        limit: 50,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      });
 
       await service.notifyProducers(event);
 
