@@ -1,4 +1,4 @@
-import { setupE2ETests, teardownE2ETests } from '../setup';
+import { setupE2ETests, teardownE2ETests, E2E_TIMEOUT } from '../setup';
 import { TestApp, AuthHelper } from '../helpers';
 import { InviteFactory, UserFactory } from '../factories';
 import { HttpStatus } from '@nestjs/common';
@@ -49,7 +49,7 @@ describe('E2E: Convites - Operações CRUD', () => {
       },
     });
     associationId = association.id;
-  });
+  }, E2E_TIMEOUT);
 
   afterAll(async () => {
     if (testApp) await testApp.close();

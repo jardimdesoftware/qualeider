@@ -1,4 +1,4 @@
-import { setupE2ETests, teardownE2ETests } from '../setup';
+import { setupE2ETests, teardownE2ETests, E2E_TIMEOUT } from '../setup';
 import { TestApp, AuthHelper } from '../helpers';
 import { AnimalType } from '@/domain/enums/enums';
 import { UserFactory, AnimalFactory } from '../factories';
@@ -24,7 +24,7 @@ describe('E2E: Animais - Operações CRUD', () => {
     const loginResult = await authHelper.createUserAndLogin(userData);
     userId = loginResult.user.id!;
     userToken = loginResult.token; 
-  });
+  }, E2E_TIMEOUT);
 
   afterAll(async () => {
     if (testApp) await testApp.close();

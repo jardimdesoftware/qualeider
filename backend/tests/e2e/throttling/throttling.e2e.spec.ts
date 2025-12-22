@@ -1,4 +1,4 @@
-import { setupE2ETests, teardownE2ETests } from '../setup';
+import { setupE2ETests, teardownE2ETests, E2E_TIMEOUT } from '../setup';
 import { TestApp } from '../helpers';
 import { UserFactory } from '../factories';
 import { HttpStatus } from '@nestjs/common';
@@ -15,7 +15,7 @@ describe('E2E: Rate Limiting (Throttling)', () => {
     await setupE2ETests();
     testApp = new TestApp();
     await testApp.setup();
-  });
+  }, E2E_TIMEOUT);
 
   afterAll(async () => {
     if (testApp) {

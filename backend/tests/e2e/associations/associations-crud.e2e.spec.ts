@@ -1,4 +1,4 @@
-import { setupE2ETests, teardownE2ETests } from '../setup';
+import { setupE2ETests, teardownE2ETests, E2E_TIMEOUT } from '../setup';
 import { TestApp, AuthHelper } from '../helpers';
 import { AssociationFactory } from '../factories';
 import { HttpStatus } from '@nestjs/common';
@@ -19,7 +19,7 @@ describe('E2E: Associações - Operações CRUD', () => {
       password: 'Admin@1234'
     });
     adminToken = adminUser.token;
-  }, 30000);
+  }, E2E_TIMEOUT);
 
   afterAll(async () => {
     if (testApp) await testApp.close();
@@ -169,7 +169,7 @@ describe('E2E: Associações - Operações CRUD', () => {
       existingEmail = association.email!;
 
       await testApp.request().post('/associations').set('Authorization', `Bearer ${adminToken}`).send(association);
-    }, 30000);
+    }, E2E_TIMEOUT);
 
     it('deve retornar true se o email existir', async () => {
       const response = await testApp
@@ -215,7 +215,7 @@ describe('E2E: Associações - Operações CRUD', () => {
       existingCnpj = association.cnpj!;
 
       await testApp.request().post('/associations').set('Authorization', `Bearer ${adminToken}`).send(association);
-    }, 30000);
+    }, E2E_TIMEOUT);
 
     it('deve retornar true se o CNPJ existir', async () => {
       const response = await testApp

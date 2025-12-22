@@ -1,4 +1,4 @@
-import { setupE2ETests, teardownE2ETests } from '../setup';
+import { setupE2ETests, teardownE2ETests, E2E_TIMEOUT } from '../setup';
 import { TestApp, AuthHelper } from '../helpers';
 import { UserFactory } from '../factories';
 import { HttpStatus } from '@nestjs/common';
@@ -12,7 +12,7 @@ describe('E2E: Auth - Login', () => {
     testApp = new TestApp();
     await testApp.setup();
     authHelper = new AuthHelper(testApp);
-  });
+  }, E2E_TIMEOUT);
 
   afterAll(async () => {
     if (testApp) await testApp.close();

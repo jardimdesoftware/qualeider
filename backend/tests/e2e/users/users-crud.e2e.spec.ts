@@ -1,4 +1,4 @@
-import { setupE2ETests, teardownE2ETests } from '../setup';
+import { setupE2ETests, teardownE2ETests, E2E_TIMEOUT } from '../setup';
 import { TestApp, AuthHelper } from '../helpers';
 import { UserCategory } from '@/domain/enums/enums';
 import { UserFactory } from '../factories';
@@ -27,7 +27,7 @@ describe('E2E: Users - CRUD Operations', () => {
       password: 'User@1234',
     });
     await authHelper.createUserAndLogin(userData);
-  });
+  }, E2E_TIMEOUT);
 
   afterAll(async () => {
     if (testApp) await testApp.close();

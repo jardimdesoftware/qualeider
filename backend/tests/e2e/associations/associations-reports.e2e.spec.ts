@@ -1,4 +1,4 @@
-import { setupE2ETests, teardownE2ETests } from '../setup';
+import { setupE2ETests, teardownE2ETests, E2E_TIMEOUT } from '../setup';
 import { TestApp } from '../helpers';
 import { AssociationFactory, UserFactory, AnimalFactory, DailyCollectionFactory } from '../factories';
 import { HttpStatus } from '@nestjs/common';
@@ -145,7 +145,7 @@ describe('E2E: Associations - Relatórios', () => {
         collectionDate: globalYesterday.toISOString().split('T')[0],
       }))
       .expect(HttpStatus.CREATED);
-  });
+  }, E2E_TIMEOUT);
 
   afterAll(async () => {
     if (testApp) await testApp.close();

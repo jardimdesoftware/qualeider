@@ -1,4 +1,4 @@
-import { setupE2ETests, teardownE2ETests } from '../setup';
+import { setupE2ETests, teardownE2ETests, E2E_TIMEOUT } from '../setup';
 import { TestApp, AuthHelper } from '../helpers';
 import { MilkingPlace } from '@/domain/enums/enums';
 import { UserFactory, DailyCollectionFactory, AnimalFactory } from '../factories';
@@ -36,7 +36,7 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
     
     animal1Id = animal1.id;
     animal2Id = animal2.id;
-  });
+  }, E2E_TIMEOUT);
 
   afterAll(async () => {
     if (testApp) await testApp.close();

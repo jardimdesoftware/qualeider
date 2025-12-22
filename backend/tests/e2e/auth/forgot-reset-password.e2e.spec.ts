@@ -1,4 +1,4 @@
-import { setupE2ETests, teardownE2ETests } from '../setup';
+import { setupE2ETests, teardownE2ETests, E2E_TIMEOUT } from '../setup';
 import { TestApp, AuthHelper } from '../helpers';
 import { UserFactory } from '../factories';
 import { HttpStatus } from '@nestjs/common';
@@ -14,7 +14,7 @@ describe('E2E: Auth - Forgot/Reset Password', () => {
     testApp = new TestApp();
     await testApp.setup();
     authHelper = new AuthHelper(testApp);
-  });
+  }, E2E_TIMEOUT);
 
   afterAll(async () => {
     if (testApp) await testApp.close();
@@ -29,7 +29,7 @@ describe('E2E: Auth - Forgot/Reset Password', () => {
       });
       await authHelper.createTestUser(userData);
       userEmail = userData.email!;
-    });
+    }, E2E_TIMEOUT);
 
     it('deve enviar email de recuperação com email válido', async () => {
       const response = await testApp
@@ -98,7 +98,7 @@ describe('E2E: Auth - Forgot/Reset Password', () => {
           },
         });
       }
-    });
+    }, E2E_TIMEOUT);
 
     it('deve validar token válido', async () => {
       const response = await testApp
