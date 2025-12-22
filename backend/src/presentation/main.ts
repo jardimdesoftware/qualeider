@@ -8,6 +8,7 @@ import helmet from 'helmet';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { HttpExceptionFilter } from '@/common/filters/http-exception.filter';
 import { PrismaExceptionFilter } from '@/common/filters/prisma-exception.filter';
+import { useContainer } from 'class-validator';
 
 /**
  * Configura as opções de CORS baseadas nas variáveis de ambiente.
@@ -98,6 +99,9 @@ async function logAppStatus(
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   const configService = app.get(ConfigService);
+
+  // Habilitar injeção de dependências em validadores customizados do class-validator
+  useContainer(app.select(AppModule), { fallbackOnErrors: true });
 
   // Configurar Helmet para segurança HTTP
   app.use(

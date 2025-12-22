@@ -3,6 +3,7 @@ import {
   IsNotEmpty,
   IsString,
   MinLength,
+  MaxLength,
   Length,
   Matches,
   IsOptional,
@@ -11,6 +12,8 @@ import {
 import { Transform } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import { CoverageArea } from '@/domain/enums/enums';
+import { IsAssociationEmailUnique } from '@/common/decorators/is-association-email-unique.decorator';
+import { IsCnpjUnique } from '@/common/decorators/is-cnpj-unique.decorator';
 
 export class CreateAssociationDto {
   @ApiProperty({
@@ -44,6 +47,10 @@ export class CreateAssociationDto {
   @IsString({ message: 'O CNPJ deve ser uma string.' })
   @Length(14, 14, { message: 'O CNPJ deve ter 14 caracteres.' })
   @Matches(/^\d{14}$/, { message: 'O CNPJ deve conter apenas números.' })
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.replace(/\D/g, '') : value,
+  ) // Remove non-digits
+  @IsCnpjUnique({ message: 'Este CNPJ já está cadastrado no sistema.' })
   cnpj!: string;
 
   @ApiProperty({
@@ -60,8 +67,17 @@ export class CreateAssociationDto {
     example: 'contato@associacao.org.br',
   })
   @IsNotEmpty({ message: 'O email não pode ser vazio.' })
-  @IsEmail({}, { message: 'O email fornecido não é válido.' })
-  @Transform(({ value }) => value?.toLowerCase().trim())
+  @IsEmail(
+    { allow_display_name: false, require_tld: true },
+    { message: 'O email fornecido não é válido.' },
+  )
+  @MaxLength(254, { message: 'O email deve ter no máximo 254 caracteres.' })
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.toLowerCase().trim() : value,
+  )
+  @IsAssociationEmailUnique({
+    message: 'Este e-mail já está cadastrado no sistema.',
+  })
   email!: string;
 
   @ApiProperty({ description: 'Senha da Associação', example: 'Senha@123' })

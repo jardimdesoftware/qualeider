@@ -1,8 +1,18 @@
 import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
 import { CreateAssociationDto } from '@/application/dtos/associations/create-association.dto';
+import { IsCnpjUniqueConstraint } from '@/common/decorators/is-cnpj-unique.decorator';
+import { IsAssociationEmailUniqueConstraint } from '@/common/decorators/is-association-email-unique.decorator';
 
 describe('CreateAssociationDto', () => {
+  beforeAll(() => {
+    jest.spyOn(IsCnpjUniqueConstraint.prototype, 'validate').mockResolvedValue(true);
+    jest.spyOn(IsAssociationEmailUniqueConstraint.prototype, 'validate').mockResolvedValue(true);
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
   it('valida um DTO válido', async () => {
     const dto = plainToInstance(CreateAssociationDto, {
       name: 'Associação Teste',

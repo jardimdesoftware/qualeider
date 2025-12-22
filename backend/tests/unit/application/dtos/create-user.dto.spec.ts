@@ -2,8 +2,18 @@ import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
 import { CreateUserDto } from '@/application/dtos/users/create-user.dto';
 import { UserCategory, UserType } from '@/domain/enums/enums';
+import { IsEmailUniqueConstraint } from '@/common/decorators/is-email-unique.decorator';
 
 describe('CreateUserDto', () => {
+  beforeAll(() => {
+    // Mockar o método validate do IsEmailUniqueConstraint para sempre retornar true (email disponível)
+    jest.spyOn(IsEmailUniqueConstraint.prototype, 'validate').mockResolvedValue(true);
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('name validation', () => {
     it('deve rejeitar nome vazio', async () => {
       const dto = plainToInstance(CreateUserDto, {

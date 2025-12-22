@@ -5,12 +5,14 @@ import {
   IsOptional,
   IsString,
   MinLength,
+  MaxLength,
   Length,
   Matches,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { UserCategory, UserType } from '@/domain/enums/enums';
 import { ApiProperty } from '@nestjs/swagger';
+import { IsEmailUnique } from '@/common/decorators/is-email-unique.decorator';
 
 export class CreateUserDto {
   @ApiProperty({ description: 'Nome do usuário', example: 'Silva Santos' })
@@ -24,8 +26,15 @@ export class CreateUserDto {
     example: 'silva.santos@example.com',
   })
   @IsNotEmpty({ message: 'O email não pode ser vazio.' })
-  @IsEmail({}, { message: 'O email fornecido não é válido.' })
-  @Transform(({ value }) => value?.toLowerCase().trim())
+  @IsEmail(
+    { allow_display_name: false, require_tld: true },
+    { message: 'O email fornecido não é válido.' },
+  )
+  @MaxLength(254, { message: 'O email deve ter no máximo 254 caracteres.' }) // RFC 5321
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.toLowerCase().trim() : value,
+  )
+  @IsEmailUnique({ message: 'Este e-mail já está cadastrado no sistema.' })
   email!: string;
 
   @ApiProperty({ description: 'Senha do usuário', example: 'Leite@123' })
