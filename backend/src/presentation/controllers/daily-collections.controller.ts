@@ -66,6 +66,8 @@ export class DailyCollectionsController {
     return this.dailyCollectionsService.findAll(criteria);
   }
 
+  @Get(':id')
+  @ResponseMessage('Coleta encontrada')
   @ApiOperation({ summary: 'Buscar um formulário pelo ID' })
   @ApiParam({ name: 'id', description: 'ID do formulário', type: Number })
   @ApiResponse({
@@ -73,7 +75,6 @@ export class DailyCollectionsController {
     description: 'Formulário encontrado com sucesso',
   })
   @ApiResponse({ status: 404, description: 'Formulário não encontrado' })
-  @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return this.dailyCollectionsService.findOne(id);
   }

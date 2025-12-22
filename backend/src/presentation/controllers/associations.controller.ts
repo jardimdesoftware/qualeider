@@ -129,6 +129,7 @@ export class AssociationsController {
   }
 
   @Get(':id')
+  @ResponseMessage('Associação encontrada')
   @ApiOperation({ summary: 'Buscar associação por ID' })
   @ApiResponse({ status: 200, description: 'Associação encontrada.' })
   @ApiResponse({ status: 404, description: 'Associação não encontrada.' })

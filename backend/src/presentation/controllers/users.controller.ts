@@ -78,12 +78,13 @@ export class UsersController {
     return this.usersService.findAll(criteria);
   }
 
+  @Get(':id')
+  @ResponseMessage('Usuário encontrado')
   @ApiOperation({ summary: 'Buscar um usuário pelo ID' })
   @ApiBearerAuth()
   @ApiParam({ name: 'id', description: 'ID do usuário', type: Number })
   @ApiResponse({ status: 200, description: 'Usuário encontrado' })
   @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
-  @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.findOne(id);
   }

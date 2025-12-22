@@ -55,11 +55,12 @@ export class AnimalsController {
     return this.animalsService.findAll(criteria);
   }
 
+  @Get(':id')
+  @ResponseMessage('Animal encontrado')
   @ApiOperation({ summary: 'Buscar um animal pelo ID' })
   @ApiParam({ name: 'id', description: 'ID do animal', type: Number })
   @ApiResponse({ status: 200, description: 'Animal encontrado com sucesso' })
   @ApiResponse({ status: 404, description: 'Animal não encontrado' })
-  @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return this.animalsService.findOne(id);
   }
