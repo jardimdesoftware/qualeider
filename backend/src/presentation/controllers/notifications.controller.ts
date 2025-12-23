@@ -1,12 +1,13 @@
-import { Body, Controller, Post, HttpStatus, HttpCode, Get, UseGuards, Req, Param } from '@nestjs/common';
-import { JwtAuthGuard } from '@/application/guards/jwt-auth.guard';
+import { Body, Controller, Post, HttpCode, HttpStatus, Get, Param } from '@nestjs/common';
+import { GetUser } from '@/common/decorators/get-user.decorator';
 import { Throttle } from '@nestjs/throttler';
 import { THROTTLE_TTL } from '@/common/throttler/throttler.config';
-import { ApiOperation, ApiTags, ApiResponse } from '@nestjs/swagger';
+import { ApiOperation, ApiTags, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { NotificationsService } from '@/application/services/notifications/notifications.service';
 import { SendNotificationDto } from '@/application/dtos/notifications/send-notification.dto';
 import { NotificationEvent } from '@/events/notification.events';
 import { NotificationType } from '@/domain/enums/enums';
+import { ResponseMessage } from '@/common/decorators/response-message.decorator';
 
 @Controller('notifications')
 @ApiTags('Notifications')
@@ -17,12 +18,14 @@ export class NotificationsController {
   @Post('send')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Envia notificação para produtores' })
+  @ApiBody({ type: SendNotificationDto })
   @ApiResponse({
     status: 201,
     description: 'Notificação enviada com sucesso',
   })
   @ApiResponse({ status: 400, description: 'Dados inválidos ou erro de negócio' })
   @ApiResponse({ status: 404, description: 'Associação ou usuários não encontrados' })
+  @ResponseMessage('Notificação enviada com sucesso')
   async sendNotification(@Body() dto: SendNotificationDto) {
     const event = new NotificationEvent(
       dto.type,
@@ -36,27 +39,25 @@ export class NotificationsController {
     await this.notificationsService.notifyProducers(event);
 
     const count = dto.type === NotificationType.INDIVIDUAL ? dto.userIds?.length : 'todos';
-
-    return {
-      statusCode: HttpStatus.CREATED,
-      message: 'Notificação enviada com sucesso',
-      data: { count },
-    };
+    return { count };
   }
 
   @Get('user/me')
-  @UseGuards(JwtAuthGuard)
+
   @ApiOperation({ summary: 'Obter notificações do usuário logado' })
+  @ApiBody({ type: GetUser })
   @ApiResponse({ status: 200, description: 'Lista de notificações retornada.' })
-  async getMyNotifications(@Req() req: Request) {
-    const userId = (req as any).user.id;
+  @ApiResponse({ status: 401, description: 'Usuário não autenticado.' })
+  @ResponseMessage('Notificações listadas com sucesso')
+  async getMyNotifications(@GetUser('id') userId: number) {
     return this.notificationsService.getUserNotifications(userId);
   }
 
   @Post('read/:id')
-  @UseGuards(JwtAuthGuard)
+
   @ApiOperation({ summary: 'Marcar notificação como lida' })
   @ApiResponse({ status: 200, description: 'Notificação marcada como lida.' })
+  @ResponseMessage('Notificação marcada como lida')
   async markAsRead(@Param('id') id: string) {
     return this.notificationsService.markAsRead(Number(id));
   }

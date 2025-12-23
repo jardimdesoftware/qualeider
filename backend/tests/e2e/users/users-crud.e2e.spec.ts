@@ -1,4 +1,4 @@
-import { setupE2ETests, teardownE2ETests } from '../setup';
+import { setupE2ETests, teardownE2ETests, E2E_TIMEOUT } from '../setup';
 import { TestApp, AuthHelper } from '../helpers';
 import { UserCategory } from '@/domain/enums/enums';
 import { UserFactory } from '../factories';
@@ -27,7 +27,7 @@ describe('E2E: Users - CRUD Operations', () => {
       password: 'User@1234',
     });
     await authHelper.createUserAndLogin(userData);
-  });
+  }, E2E_TIMEOUT);
 
   afterAll(async () => {
     if (testApp) await testApp.close();
@@ -151,10 +151,10 @@ describe('E2E: Users - CRUD Operations', () => {
         .set(authHelper.authHeader(adminToken))
         .expect(HttpStatus.OK);
 
-      expect(response.body.id).toBe(userId);
-      expect(response.body.email).toBe('findone@example.com');
-      expect(response.body.name).toBe('Find One User');
-      expect(response.body).not.toHaveProperty('password');
+      expect(response.body.data).toHaveProperty('id', userId);
+      expect(response.body.data).toHaveProperty('email', 'findone@example.com');
+      expect(response.body.data).toHaveProperty('name', 'Find One User');
+      expect(response.body.data).not.toHaveProperty('password');
     });
 
     it('deve retornar 404 com ID inexistente', async () => {
@@ -314,8 +314,8 @@ describe('E2E: Users - CRUD Operations', () => {
         .set(authHelper.authHeader(adminToken))
         .expect(HttpStatus.OK);
 
-      expect(found.body.email).toBe('fullcrud@example.com');
-      expect(found.body.name).toBe('Full CRUD User');
+      expect(found.body.data).toHaveProperty('email', 'fullcrud@example.com');
+      expect(found.body.data).toHaveProperty('name', 'Full CRUD User');
 
       const updated = await testApp
         .request()

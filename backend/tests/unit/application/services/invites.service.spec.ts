@@ -288,6 +288,28 @@ describe('InvitesService', () => {
       await expect(
         service.respondToInvite('invalid-token', InviteAction.ACCEPT),
       ).rejects.toThrow('Convite não encontrado');
+      await expect(
+        service.respondToInvite('invalid-token', InviteAction.ACCEPT),
+      ).rejects.toThrow('Convite não encontrado');
+    });
+
+    it('deve lançar EntityNotFoundException quando dados do convite estiverem incompletos', async () => {
+      const mockInvite = {
+        id: 1,
+        token: 'valid-token',
+        userId: 2,
+        associationId: 1,
+        association: { id: 1, name: 'Test' },
+      };
+
+      inviteRepository.findByToken.mockResolvedValue(mockInvite as any);
+
+      await expect(
+        service.respondToInvite('valid-token', InviteAction.ACCEPT),
+      ).rejects.toThrow(EntityNotFoundException);
+      await expect(
+        service.respondToInvite('valid-token', InviteAction.ACCEPT),
+      ).rejects.toThrow('Dados do convite incompletos');
     });
 
     it('deve lançar BusinessException quando convite já foi respondido', async () => {

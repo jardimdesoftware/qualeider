@@ -6,10 +6,9 @@ import {
   Param,
   Put,
   Delete,
-  HttpStatus,
+  ParseIntPipe,
   ValidationPipe,
   UsePipes,
-  ParseIntPipe,
   Query,
 } from '@nestjs/common';
 import { DailyCollectionsService } from '@/application/services/daily-collections/daily-collections.service';
@@ -24,6 +23,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { DailyCollectionCriteria } from '@/domain/criteria/daily-collection.criteria';
+import { ResponseMessage } from '@/common/decorators/response-message.decorator';
 
 @ApiTags('Daily Collections')
 @Controller('daily-collections')
@@ -42,15 +42,9 @@ export class DailyCollectionsController {
   @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
   @Post()
   @UsePipes(new ValidationPipe({ transform: true }))
+  @ResponseMessage('Coleta criada com sucesso')
   async create(@Body() createDailyCollectionDto: CreateDailyCollectionDto) {
-    const result = await this.dailyCollectionsService.create(
-      createDailyCollectionDto,
-    );
-    return {
-      statusCode: HttpStatus.CREATED,
-      message: 'Coleta criada com sucesso',
-      data: result,
-    };
+    return this.dailyCollectionsService.create(createDailyCollectionDto);
   }
 
   @ApiOperation({ summary: 'Listar todos os formulários cadastrados' })
@@ -72,6 +66,8 @@ export class DailyCollectionsController {
     return this.dailyCollectionsService.findAll(criteria);
   }
 
+  @Get(':id')
+  @ResponseMessage('Coleta encontrada')
   @ApiOperation({ summary: 'Buscar um formulário pelo ID' })
   @ApiParam({ name: 'id', description: 'ID do formulário', type: Number })
   @ApiResponse({
@@ -79,7 +75,6 @@ export class DailyCollectionsController {
     description: 'Formulário encontrado com sucesso',
   })
   @ApiResponse({ status: 404, description: 'Formulário não encontrado' })
-  @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return this.dailyCollectionsService.findOne(id);
   }
@@ -96,19 +91,12 @@ export class DailyCollectionsController {
   @ApiResponse({ status: 404, description: 'Formulário não encontrado' })
   @Put(':id')
   @UsePipes(new ValidationPipe({ transform: true }))
+  @ResponseMessage('Coleta atualizada com sucesso')
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateDailyCollectionDto: UpdateDailyCollectionDto,
   ) {
-    const result = await this.dailyCollectionsService.update(
-      id,
-      updateDailyCollectionDto,
-    );
-    return {
-      statusCode: HttpStatus.OK,
-      message: 'Coleta atualizada com sucesso',
-      data: result,
-    };
+    return this.dailyCollectionsService.update(id, updateDailyCollectionDto);
   }
 
   @ApiOperation({ summary: 'Excluir formulário pelo ID' })
@@ -117,13 +105,9 @@ export class DailyCollectionsController {
   @ApiResponse({ status: 200, description: 'Formulário excluído com sucesso' })
   @ApiResponse({ status: 404, description: 'Formulário não encontrado' })
   @Delete(':id')
+  @ResponseMessage('Coleta excluída com sucesso')
   async remove(@Param('id', ParseIntPipe) id: number) {
-    const result = await this.dailyCollectionsService.remove(id);
-    return {
-      statusCode: HttpStatus.OK,
-      message: 'Coleta excluída com sucesso',
-      data: result,
-    };
+    return this.dailyCollectionsService.remove(id);
   }
 
   @ApiOperation({
@@ -135,6 +119,7 @@ export class DailyCollectionsController {
     description: 'Formulários encontrados com sucesso',
   })
   @Get('user/:userId')
+  @ResponseMessage('Formulários do usuário listados com sucesso')
   async findAllByUserId(@Param('userId', ParseIntPipe) userId: number) {
     return this.dailyCollectionsService.findAll({ userId });
   }

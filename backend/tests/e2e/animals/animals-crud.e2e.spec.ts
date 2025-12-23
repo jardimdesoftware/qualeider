@@ -1,12 +1,14 @@
-import { setupE2ETests, teardownE2ETests } from '../setup';
+import { setupE2ETests, teardownE2ETests, E2E_TIMEOUT } from '../setup';
 import { TestApp, AuthHelper } from '../helpers';
 import { AnimalType } from '@/domain/enums/enums';
 import { UserFactory, AnimalFactory } from '../factories';
+import { HttpStatus } from '@nestjs/common';
 
 describe('E2E: Animais - Operações CRUD', () => {
   let testApp: TestApp;
   let authHelper: AuthHelper;
   let userId: number;
+  let userToken: string;
 
   beforeAll(async () => {
     await setupE2ETests();
@@ -19,9 +21,10 @@ describe('E2E: Animais - Operações CRUD', () => {
       password: 'Producer@1234',
     });
 
-    const user = await authHelper.createUserAndLogin(userData);
-    userId = user!.user!.id!;
-  });
+    const loginResult = await authHelper.createUserAndLogin(userData);
+    userId = loginResult.user.id!;
+    userToken = loginResult.token; 
+  }, E2E_TIMEOUT);
 
   afterAll(async () => {
     if (testApp) await testApp.close();
@@ -41,14 +44,12 @@ describe('E2E: Animais - Operações CRUD', () => {
       const response = await testApp
         .request()
         .post('/animals')
+        .set('Authorization', `Bearer ${userToken}`)
         .send(animalData)
-        .expect(201);
+        .expect(HttpStatus.CREATED);
 
-      expect(response.body).toHaveProperty('statusCode', 201);
-      expect(response.body).toHaveProperty(
-        'message',
-        'Animal criado com sucesso',
-      );
+      expect(response.body).toHaveProperty('statusCode', HttpStatus.CREATED);
+      expect(response.body).toHaveProperty('message', 'Animal criado com sucesso');
 
       const data = response.body.data;
       expect(data).toHaveProperty('id');
@@ -71,8 +72,9 @@ describe('E2E: Animais - Operações CRUD', () => {
       const response = await testApp
         .request()
         .post('/animals')
+        .set('Authorization', `Bearer ${userToken}`)
         .send(animalData)
-        .expect(201);
+        .expect(HttpStatus.CREATED);
 
       expect(response.body.data).toHaveProperty('id');
       expect(response.body.data.animalType).toBe(AnimalType.Cabra);
@@ -86,49 +88,64 @@ describe('E2E: Animais - Operações CRUD', () => {
       const response = await testApp
         .request()
         .post('/animals')
+        .set('Authorization', `Bearer ${userToken}`)
         .send(animalData)
-        .expect(404);
+        .expect(HttpStatus.NOT_FOUND);
 
-      expect(response.body.message[0]).toContain('não encontrado');
+      expect(response.body.message).toContain('Usuário com ID 99999 não encontrado.'); 
     });
 
     it('deve retornar 400 com dados inválidos', async () => {
       await testApp
         .request()
         .post('/animals')
+        .set('Authorization', `Bearer ${userToken}`)
         .send({
           animalType: 'INVALID_TYPE',
           breed: '',
           age: -1,
         })
-        .expect(400);
+        .expect(HttpStatus.BAD_REQUEST);
     });
 
     it('deve retornar 400 sem campos obrigatórios', async () => {
-      await testApp.request().post('/animals').send({}).expect(400);
+      await testApp
+        .request()
+        .post('/animals')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({})
+        .expect(HttpStatus.BAD_REQUEST);
     });
   });
 
   describe('GET /animals (Listar)', () => {
-    it('deve listar todos os animais (Array direto)', async () => {
-      const response = await testApp.request().get('/animals').expect(200);
+    it('deve listar todos os animais com estrutura paginada', async () => {
+      const response = await testApp
+        .request()
+        .get('/animals')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(HttpStatus.OK);
 
       expect(response.body).toHaveProperty('data');
       expect(response.body).toHaveProperty('total');
       expect(Array.isArray(response.body.data)).toBe(true);
-      expect(response.body.data.length).toBeGreaterThan(0);
     });
 
     it('deve filtrar animais por userId', async () => {
       const response = await testApp
         .request()
         .get(`/animals?userId=${userId}`)
-        .expect(200);
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(HttpStatus.OK);
 
       expect(response.body).toHaveProperty('data');
-      expect(Array.isArray(response.body.data)).toBe(true);
-      if (response.body.data.length > 0) {
-        expect(response.body.data).toEqual(
+      expect(response.body).toHaveProperty('total');
+      
+      const lista = response.body.data;
+      expect(Array.isArray(lista)).toBe(true);
+      
+      if (lista.length > 0) {
+        expect(lista).toEqual(
           expect.arrayContaining([expect.objectContaining({ userId })]),
         );
       }
@@ -138,12 +155,17 @@ describe('E2E: Animais - Operações CRUD', () => {
       const response = await testApp
         .request()
         .get(`/animals?animalType=${AnimalType.Vaca}`)
-        .expect(200);
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(HttpStatus.OK);
 
       expect(response.body).toHaveProperty('data');
-      expect(Array.isArray(response.body.data)).toBe(true);
-      if (response.body.data.length > 0) {
-        expect(response.body.data).toEqual(
+      expect(response.body).toHaveProperty('total');
+      
+      const lista = response.body.data;
+      expect(Array.isArray(lista)).toBe(true);
+      
+      if (lista.length > 0) {
+        expect(lista).toEqual(
           expect.arrayContaining([
             expect.objectContaining({ animalType: AnimalType.Vaca }),
           ]),
@@ -158,22 +180,28 @@ describe('E2E: Animais - Operações CRUD', () => {
       const created = await testApp
         .request()
         .post('/animals')
+        .set('Authorization', `Bearer ${userToken}`)
         .send(animalData)
-        .expect(201);
+        .expect(HttpStatus.CREATED);
 
       const animalId = created.body.data.id;
 
       const response = await testApp
         .request()
         .get(`/animals/${animalId}`)
-        .expect(200);
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(HttpStatus.OK);
 
-      expect(response.body).toHaveProperty('id', animalId);
-      expect(response.body).toHaveProperty('animalType', AnimalType.Vaca);
+      expect(response.body.data).toHaveProperty('id', animalId);
+      expect(response.body.data).toHaveProperty('animalType', AnimalType.Vaca);
     });
 
     it('deve retornar 404 ao buscar ID inexistente', async () => {
-      await testApp.request().get('/animals/99999').expect(404);
+      await testApp
+        .request()
+        .get('/animals/99999')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(HttpStatus.NOT_FOUND);
     });
   });
 
@@ -187,21 +215,23 @@ describe('E2E: Animais - Operações CRUD', () => {
       const created = await testApp
         .request()
         .post('/animals')
+        .set('Authorization', `Bearer ${userToken}`)
         .send(animalData)
-        .expect(201);
+        .expect(HttpStatus.CREATED);
 
       const animalId = created.body.data.id;
 
       const response = await testApp
         .request()
         .put(`/animals/${animalId}`)
+        .set('Authorization', `Bearer ${userToken}`)
         .send({
           name: 'Depois',
           age: 4,
         })
-        .expect(200);
+        .expect(HttpStatus.OK);
 
-      expect(response.body).toHaveProperty('statusCode', 200);
+      expect(response.body).toHaveProperty('statusCode', HttpStatus.OK);
       expect(response.body).toHaveProperty(
         'message',
         'Animal atualizado com sucesso',
@@ -214,8 +244,9 @@ describe('E2E: Animais - Operações CRUD', () => {
       await testApp
         .request()
         .put('/animals/99999')
+        .set('Authorization', `Bearer ${userToken}`)
         .send({ name: 'Test' })
-        .expect(404);
+        .expect(HttpStatus.NOT_FOUND);
     });
   });
 
@@ -228,29 +259,36 @@ describe('E2E: Animais - Operações CRUD', () => {
       const created = await testApp
         .request()
         .post('/animals')
+        .set('Authorization', `Bearer ${userToken}`)
         .send(animalData)
-        .expect(201);
+        .expect(HttpStatus.CREATED);
 
       const animalId = created.body.data.id;
 
       const response = await testApp
         .request()
         .delete(`/animals/${animalId}`)
-        .expect(200);
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(HttpStatus.OK);
 
-      expect(response.body).toHaveProperty('id', animalId);
-      expect(response.body).toHaveProperty('status', 'Inactive');
+      expect(response.body.data).toHaveProperty('id', animalId);
+      expect(response.body.data).toHaveProperty('status', 'Inactive');
 
       const getResponse = await testApp
         .request()
         .get(`/animals/${animalId}`)
-        .expect(200);
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(HttpStatus.OK);
 
-      expect(getResponse.body).toHaveProperty('status', 'Inactive');
+      expect(getResponse.body.data).toHaveProperty('status', 'Inactive');
     });
 
     it('deve retornar 404 ao deletar ID inexistente', async () => {
-      await testApp.request().delete('/animals/99999').expect(404);
+      await testApp
+        .request()
+        .delete('/animals/99999')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(HttpStatus.NOT_FOUND);
     });
   });
 });

@@ -130,7 +130,7 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
           numOrdens: data.numOrdens ?? undefined,
           rationProvided: data.rationProvided ?? undefined,
           numLactation: data.numLactation ?? undefined,
-          milkingPlace: (data.milkingPlace as any) ?? undefined,
+          milkingPlace: data.milkingPlace ?? undefined,
           technicalAssistance: data.technicalAssistance ?? undefined,
         },
       });

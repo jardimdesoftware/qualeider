@@ -81,6 +81,30 @@ describe('UsersService', () => {
       });
       expect(result).not.toHaveProperty('password');
       expect(result.email).toBe('john@example.com');
+      expect(result.email).toBe('john@example.com');
+    });
+
+    it('deve retornar o usuário sem alteração se ele não tiver propriedade password (branch coverage)', async () => {
+      const createDto: CreateUserDto = {
+        name: 'John Doe',
+        email: 'john@example.com',
+        password: 'plain',
+        userCategory: UserCategory.Fisica,
+        city: 'SP',
+        state: 'SP',
+      };
+      
+      (hashService.hash as jest.Mock).mockResolvedValue('hash');
+      
+      // Simula retorno do repositório já sem senha (por algum motivo, ex: projeção)
+      const mockUserNoPass = { id: 1, name: 'John', email: 'john@example.com' };
+      (userRepository.create as jest.Mock).mockResolvedValue(mockUserNoPass);
+
+      const result = await service.create(createDto);
+
+      expect(result).toEqual(mockUserNoPass);
+      // Verifica se passou pelo fluxo do removePassword que retorna a entidade direto
+      expect(result).not.toHaveProperty('password');
     });
 
     it('deve lançar BusinessException quando email já está em uso', async () => {
@@ -405,6 +429,19 @@ describe('UsersService', () => {
       (userRepository.findByEmail as jest.Mock).mockResolvedValue(null);
       const result = await service.findByEmail('nonexistent@example.com');
       expect(result).toBeNull();
+    });
+  });
+  describe('exists', () => {
+    it('deve retornar true se o usuário existir', async () => {
+      (userRepository.findById as jest.Mock).mockResolvedValue({ id: 1 });
+      const result = await service.exists(1);
+      expect(result).toBe(true);
+    });
+
+    it('deve retornar false se o usuário não existir', async () => {
+      (userRepository.findById as jest.Mock).mockResolvedValue(null);
+      const result = await service.exists(999);
+      expect(result).toBe(false);
     });
   });
 });

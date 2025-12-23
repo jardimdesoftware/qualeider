@@ -1,5 +1,4 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { HttpStatus } from '@nestjs/common';
 import { AnimalsController } from '@/presentation/controllers/animals.controller';
 import { AnimalsService } from '@/application/services/animals/animals.service';
 import { CreateAnimalDto } from '@/application/dtos/animals/create-animal.dto';
@@ -39,7 +38,7 @@ describe('AnimalsController', () => {
   });
 
   describe('create', () => {
-    it('deve criar animal com sucesso e retornar wrapper', async () => {
+    it('deve criar animal com sucesso e retornar o resultado direto', async () => {
       const createDto: CreateAnimalDto = {
         name: 'Bessie',
         breed: 'Holstein',
@@ -54,11 +53,7 @@ describe('AnimalsController', () => {
       const result = await controller.create(createDto);
 
       expect(animalsService.create).toHaveBeenCalledWith(createDto);
-      expect(result).toEqual({
-        statusCode: HttpStatus.CREATED,
-        message: 'Animal criado com sucesso',
-        data: created,
-      });
+      expect(result).toEqual(created);
     });
 
     it('deve propagar EntityNotFoundException se o service lançar', async () => {
@@ -129,7 +124,7 @@ describe('AnimalsController', () => {
   });
 
   describe('update', () => {
-    it('deve atualizar animal com sucesso e retornar wrapper', async () => {
+    it('deve atualizar animal com sucesso e retornar o resultado direto', async () => {
       const updateDto: UpdateAnimalDto = { name: 'Bessie Updated' } as UpdateAnimalDto;
       const updated = createAnimal({ id: 1, ...updateDto });
       
@@ -138,11 +133,7 @@ describe('AnimalsController', () => {
       const result = await controller.update(1, updateDto);
 
       expect(animalsService.update).toHaveBeenCalledWith(1, updateDto);
-      expect(result).toEqual({
-        statusCode: HttpStatus.OK,
-        message: 'Animal atualizado com sucesso',
-        data: updated,
-      });
+      expect(result).toEqual(updated);
     });
 
     it('deve propagar erro genérico do service', async () => {

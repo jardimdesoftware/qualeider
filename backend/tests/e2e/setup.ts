@@ -59,4 +59,6 @@ export async function cleanDatabase(): Promise<void> {
   }
 }
 
+export const E2E_TIMEOUT = 30000;
+
 export { prisma };

@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { UnauthorizedException, HttpStatus } from '@nestjs/common';
+import { UnauthorizedException } from '@nestjs/common';
 import { AuthController } from '@/presentation/controllers/auth.controller';
 import { AuthService } from '@/auth/auth.service';
 import { LoginDto } from '@/application/dtos/auth/login.dto';
@@ -54,12 +54,7 @@ describe('AuthController', () => {
       const result = await controller.login(loginDto);
 
       expect(authService.executeLogin).toHaveBeenCalledWith(loginDto);
-      
-      expect(result).toEqual({
-        statusCode: HttpStatus.OK,
-        message: 'Login realizado com sucesso',
-        data: loginResponse,
-      });
+      expect(result).toEqual(loginResponse);
     });
 
     it('deve lançar UnauthorizedException quando as credenciais são inválidas', async () => {
@@ -96,11 +91,7 @@ describe('AuthController', () => {
       expect(authService.forgotPassword).toHaveBeenCalledWith(
         forgotPasswordDto.email,
       );
-      
-      expect(result).toEqual({
-        statusCode: HttpStatus.OK,
-        message: 'Se o e-mail existir, você receberá um link de redefinição.',
-      });
+      expect(result).toBeUndefined();
     });
 
     it('deve propagar erro do service (ex: EntityNotFoundException)', async () => {
@@ -132,12 +123,7 @@ describe('AuthController', () => {
         dto.email,
         dto.token,
       );
-      
-      expect(result).toEqual({
-        statusCode: HttpStatus.OK,
-        message: 'Token válido',
-        data: { valid: true },
-      });
+      expect(result).toEqual({ valid: true });
     });
 
     it('deve propagar erro do service (ex: token inválido)', async () => {
@@ -172,11 +158,7 @@ describe('AuthController', () => {
         resetPasswordDto.token,
         resetPasswordDto.newPassword,
       );
-      
-      expect(result).toEqual({
-        statusCode: HttpStatus.OK,
-        message: 'Senha redefinida com sucesso.',
-      });
+      expect(result).toBeUndefined();
     });
 
     it('deve propagar UnauthorizedException quando token é inválido', async () => {

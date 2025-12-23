@@ -3,7 +3,7 @@ import {
   DailyCollection as PrismaDailyCollection,
   MilkingPlace as PrismaMilkingPlace
 } from '@prisma/client';
-import { MilkingPlace } from '@/domain/enums/enums';
+import { MilkingPlace, Status } from '@/domain/enums/enums';
 
 export class DailyCollectionMapper {
   static toDomain(raw: PrismaDailyCollection & { items?: any[] }): DailyCollectionEntity {
@@ -18,7 +18,7 @@ export class DailyCollectionMapper {
       numLactation: raw.numLactation,
       milkingPlace: raw.milkingPlace as unknown as MilkingPlace,
       technicalAssistance: raw.technicalAssistance,
-      status: raw.status as any,
+      status: raw.status as unknown as Status,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
       items: raw.items ? raw.items.map(item => ({

@@ -21,7 +21,7 @@ export class PrismaAnimalRepository implements IAnimalRepository {
       const created = await this.prisma.animal.create({
         data: {
           name: data.name,
-          animalType: data.animalType as any,
+          animalType: data.animalType,
           breed: data.breed,
           age: data.age,
           userId: data.userId,
@@ -52,7 +52,7 @@ export class PrismaAnimalRepository implements IAnimalRepository {
     }
 
     if (criteria.animalType) {
-      where.animalType = criteria.animalType as any;
+      where.animalType = criteria.animalType;
     }
 
     const include: Prisma.AnimalInclude = {};
@@ -118,7 +118,7 @@ export class PrismaAnimalRepository implements IAnimalRepository {
         where: { id },
         data: {
           name: data.name ?? undefined,
-          animalType: (data.animalType as any) ?? undefined,
+          animalType: data.animalType ?? undefined,
           breed: data.breed ?? undefined,
           age: data.age ?? undefined,
           status: (data.status as unknown as PrismaStatus) ?? undefined,

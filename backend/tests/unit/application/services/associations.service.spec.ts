@@ -22,6 +22,8 @@ describe('AssociationsService', () => {
       findAvailableProducers: jest.fn(),
       linkProducer: jest.fn(),
       update: jest.fn(),
+      getProducerRanking: jest.fn(),
+      getMonthlyReport: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -386,6 +388,52 @@ describe('AssociationsService', () => {
 
         expect(hashService.hash).toHaveBeenCalledWith('newpassword', BCRYPT_ROUNDS_USER_CREATION);
         expect(associationRepository.update).toHaveBeenCalledWith(1, { password: 'hashed' });
+    });
+  });
+
+  describe('getProducerRanking', () => {
+    it('deve retornar o ranking de produtores', async () => {
+      const mockRanking = [
+        { producerName: 'Produtor 1', totalProduction: 1000 },
+        { producerName: 'Produtor 2', totalProduction: 500 },
+      ];
+      (associationRepository as any).getProducerRanking = jest
+        .fn()
+        .mockResolvedValue(mockRanking);
+
+      const startDate = new Date('2023-01-01');
+      const endDate = new Date('2023-01-31');
+
+      const result = await service.getProducerRanking(1, startDate, endDate);
+
+      expect(result).toEqual(mockRanking);
+      expect(associationRepository.getProducerRanking).toHaveBeenCalledWith(
+        1,
+        startDate,
+        endDate,
+      );
+    });
+  });
+
+  describe('getMonthlyReport', () => {
+    it('deve retornar o relatório mensal', async () => {
+      const mockReport = {
+        totalProduction: 5000,
+        averageDailyProduction: 100,
+        producersCount: 10,
+      };
+      (associationRepository as any).getMonthlyReport = jest
+        .fn()
+        .mockResolvedValue(mockReport);
+
+      const result = await service.getMonthlyReport(1, 2023, 10);
+
+      expect(result).toEqual(mockReport);
+      expect(associationRepository.getMonthlyReport).toHaveBeenCalledWith(
+        1,
+        2023,
+        10,
+      );
     });
   });
 });

@@ -13,6 +13,8 @@ import { ForgotPasswordDto } from '@/application/dtos/auth/forgot-password.dto';
 import { ResetPasswordDto } from '@/application/dtos/auth/reset-password.dto';
 import { ValidateTokenDto } from '@/application/dtos/auth/validate-token.dto';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ResponseMessage } from '@/common/decorators/response-message.decorator';
+import { Public } from '@/common/decorators/public.decorator';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -22,77 +24,61 @@ export class AuthController {
   // [BR-004] Rate Limiting Login
   @Throttle({ default: { limit: 3, ttl: THROTTLE_TTL.SHORT } })
   @Post('login')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Realizar login' })
+  @ApiBody({ type: LoginDto })
   @ApiResponse({
     status: 200,
     description: 'Login realizado com sucesso. Retorna um token JWT.',
   })
   @ApiResponse({ status: 401, description: 'Credenciais inválidas.' })
+  @ResponseMessage('Login realizado com sucesso')
   async login(@Body() loginDto: LoginDto) {
-    const result = await this.authService.executeLogin(loginDto);
-
-    return {
-      statusCode: HttpStatus.OK,
-      message: 'Login realizado com sucesso',
-      data: result,
-    };
+    return this.authService.executeLogin(loginDto);
   }
 
   @Throttle({ default: { limit: 3, ttl: THROTTLE_TTL.LONG } }) // 3 tentativas por 5min (300s prod, 2s test)
   @Post('forgot-password')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Solicitar redefinição de senha' })
+  @ApiBody({ type: ForgotPasswordDto })
   @ApiResponse({
     status: 200,
     description: 'E-mail de redefinição de senha enviado com sucesso.',
   })
   @ApiResponse({ status: 404, description: 'Usuário não encontrado.' })
-  async forgotPassword(
-    @Body() forgotPasswordDto: ForgotPasswordDto,
-  ) {
+  @ResponseMessage('Se o e-mail existir, você receberá um link de redefinição.')
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
     await this.authService.forgotPassword(forgotPasswordDto.email);
-
-    return {
-      statusCode: HttpStatus.OK,
-      message: 'Se o e-mail existir, você receberá um link de redefinição.',
-    };
   }
 
   @Throttle({ default: { limit: 5, ttl: THROTTLE_TTL.SHORT } }) // 5 tentativas por minuto (60s prod, 2s test) 
   @Post('validate-reset-token')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Validar token de redefinição de senha' })
+  @ApiBody({ type: ValidateTokenDto })
   @ApiResponse({ status: 200, description: 'Token válido.' })
   @ApiResponse({ status: 401, description: 'Token inválido ou expirado.' })
+  @ResponseMessage('Token válido')
   async validateResetToken(@Body() dto: ValidateTokenDto) {
-    await this.authService.validateResetToken(
-      dto.email,
-      dto.token,
-    );
-
-    return {
-      statusCode: HttpStatus.OK,
-      message: 'Token válido',
-      data: { valid: true },
-    };
+    await this.authService.validateResetToken(dto.email, dto.token);
+    return { valid: true };
   }
 
   @Throttle({ default: { limit: 3, ttl: THROTTLE_TTL.LONG } }) // 3 tentativas por 5min (300s prod, 2s test)
   @Post('reset-password')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Redefinir senha' })
   @ApiBody({ type: ResetPasswordDto })
   @ApiResponse({ status: 200, description: 'Senha redefinida com sucesso.' })
   @ApiResponse({ status: 400, description: 'Token inválido ou expirado.' })
+  @ResponseMessage('Senha redefinida com sucesso.')
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     const { email, token, newPassword } = resetPasswordDto;
-
     await this.authService.resetPassword(email, token, newPassword);
-
-    return {
-      statusCode: HttpStatus.OK,
-      message: 'Senha redefinida com sucesso.',
-    };
   }
 }

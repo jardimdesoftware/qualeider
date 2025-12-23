@@ -442,6 +442,102 @@ describe('CreateDailyCollectionDto', () => {
     });
   });
 
+  describe('items validation', () => {
+    const validDto = {
+      quantity: 20,
+      userId: 1,
+      numAnimals: 5,
+      numOrdens: 2,
+      rationProvided: true,
+      numLactation: 2,
+      milkingPlace: MilkingPlace.Curral,
+      technicalAssistance: false,
+      collectionDate: new Date(),
+    };
+
+    it('deve aceitar items undefined (opcional)', async () => {
+      const dto = plainToInstance(CreateDailyCollectionDto, {
+        ...validDto,
+      });
+
+      const errors = await validate(dto);
+      expect(errors.length).toBe(0);
+    });
+
+    it('deve rejeitar items que não é array', async () => {
+      const dto = plainToInstance(CreateDailyCollectionDto, {
+        ...validDto,
+        items: 'not-an-array' as any,
+      });
+
+      const errors = await validate(dto);
+      const itemsError = errors.find((e) => e.property === 'items');
+      expect(itemsError).toBeDefined();
+      expect(itemsError?.constraints).toHaveProperty('isArray');
+    });
+
+    it('deve validar items aninhados inválidos (quantity negativa)', async () => {
+      const dto = plainToInstance(CreateDailyCollectionDto, {
+        ...validDto,
+        items: [
+          {
+            animalId: 1,
+            quantity: -5,
+          },
+        ],
+      });
+
+      const errors = await validate(dto);
+      const itemsError = errors.find((e) => e.property === 'items');
+      expect(itemsError).toBeDefined();
+      expect(itemsError?.children).toBeDefined();
+      expect(itemsError?.children?.length).toBeGreaterThan(0);
+      
+      const firstItemError = itemsError?.children?.[0];
+      const quantityError = firstItemError?.children?.find(e => e.property === 'quantity');
+      expect(quantityError?.constraints).toHaveProperty('min');
+    });
+
+    it('deve validar items aninhados inválidos (animalId inválido)', async () => {
+        const dto = plainToInstance(CreateDailyCollectionDto, {
+          ...validDto,
+          items: [
+            {
+              animalId: 1.5,
+              quantity: 10,
+            },
+          ],
+        });
+  
+        const errors = await validate(dto);
+        const itemsError = errors.find((e) => e.property === 'items');
+        expect(itemsError).toBeDefined();
+        
+        const firstItemError = itemsError?.children?.[0];
+        const animalIdError = firstItemError?.children?.find(e => e.property === 'animalId');
+        expect(animalIdError?.constraints).toHaveProperty('isInt');
+      });
+
+    it('deve aceitar items válidos', async () => {
+      const dto = plainToInstance(CreateDailyCollectionDto, {
+        ...validDto,
+        items: [
+          {
+            animalId: 1,
+            quantity: 10,
+          },
+          {
+            animalId: 2,
+            quantity: 10,
+          },
+        ],
+      });
+
+      const errors = await validate(dto);
+      expect(errors.length).toBe(0);
+    });
+  });
+
   describe('DTO completo válido', () => {
     it('deve validar DTO completo sem erros', async () => {
       const dto = plainToInstance(CreateDailyCollectionDto, {

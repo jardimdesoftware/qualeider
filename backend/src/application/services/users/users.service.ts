@@ -115,8 +115,8 @@ export class UsersService {
 
   private removePassword<T>(entity: T): Omit<T, 'password'> {
     if (entity && typeof entity === 'object' && 'password' in entity) {
-      const { password, ...rest } = entity as any;
-      return rest;
+      const { password, ...rest } = entity as T & { password?: unknown };
+      return rest as Omit<T, 'password'>;
     }
     return entity as Omit<T, 'password'>;
   }

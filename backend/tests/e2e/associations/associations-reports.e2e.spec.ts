@@ -1,4 +1,4 @@
-import { setupE2ETests, teardownE2ETests } from '../setup';
+import { setupE2ETests, teardownE2ETests, E2E_TIMEOUT } from '../setup';
 import { TestApp } from '../helpers';
 import { AssociationFactory, UserFactory, AnimalFactory, DailyCollectionFactory } from '../factories';
 import { HttpStatus } from '@nestjs/common';
@@ -12,7 +12,6 @@ describe('E2E: Associations - Relatórios', () => {
   let animal1Id: number;
   let animal2Id: number;
 
-  // Variáveis para garantir consistência de data entre o setup e os testes
   let globalToday: Date;
   let globalYesterday: Date;
 
@@ -21,14 +20,12 @@ describe('E2E: Associations - Relatórios', () => {
     testApp = new TestApp();
     await testApp.setup();
 
-    // FIX: Estabelecer datas fixas no meio do dia para evitar problemas de Timezone/Borda
     globalToday = new Date();
     globalToday.setHours(12, 0, 0, 0);
     
     globalYesterday = new Date(globalToday);
     globalYesterday.setDate(globalYesterday.getDate() - 1);
 
-    // Criar associação e fazer login
     const association = AssociationFactory.build();
     const createResponse = await testApp
       .request()
@@ -37,7 +34,6 @@ describe('E2E: Associations - Relatórios', () => {
     
     associationId = createResponse.body.data.id;
 
-    // Login como associação
     const loginResponse = await testApp
       .request()
       .post('/auth/login')
@@ -48,7 +44,6 @@ describe('E2E: Associations - Relatórios', () => {
 
     associationToken = loginResponse.body.data.access_token;
 
-    // Criar Produtor 1 e pegar TOKEN
     const producer1Data = UserFactory.build({ associationId });
     const producer1Response = await testApp
       .request()
@@ -61,7 +56,6 @@ describe('E2E: Associations - Relatórios', () => {
     }
     producer1Id = producer1Response.body.data.id;
 
-    // FIX: Login Produtor 1 (Necessário para criar coletas!)
     const p1Login = await testApp
       .request()
       .post('/auth/login')
@@ -69,7 +63,6 @@ describe('E2E: Associations - Relatórios', () => {
       .expect(HttpStatus.OK);
     const p1Token = p1Login.body.data.access_token;
 
-    // Criar Produtor 2 e pegar TOKEN
     const producer2Data = UserFactory.build({ associationId });
     const producer2Response = await testApp
       .request()
@@ -78,11 +71,10 @@ describe('E2E: Associations - Relatórios', () => {
       .expect(HttpStatus.CREATED);
     
     if (!producer2Response.body.data || !producer2Response.body.data.id) {
-      throw new Error(`Failed to create producer2. Response: ${JSON.stringify(producer2Response.body)}`);
+      throw new Error(`Failed to create producer2. Response: ${JSON.stringify(producer2Response.body.data)}`);
     }
     producer2Id = producer2Response.body.data.id;
 
-    // FIX: Login Produtor 2
     const p2Login = await testApp
       .request()
       .post('/auth/login')
@@ -90,7 +82,6 @@ describe('E2E: Associations - Relatórios', () => {
       .expect(HttpStatus.OK);
     const p2Token = p2Login.body.data.access_token;
 
-    // FIX: Criar animais COM AUTH e armazenar IDs
     const animal1Response = await testApp
       .request()
       .post('/animals')
@@ -107,8 +98,6 @@ describe('E2E: Associations - Relatórios', () => {
       .expect(HttpStatus.CREATED);
     animal2Id = animal2Response.body.data.id;
 
-    // FIX: Criar coletas diárias COM AUTH e items que correspondem às quantidades
-    // Produtor 1: 100L hoje, 80L ontem
     await testApp
       .request()
       .post('/daily-collections')
@@ -133,7 +122,6 @@ describe('E2E: Associations - Relatórios', () => {
       }))
       .expect(HttpStatus.CREATED);
 
-    // Produtor 2: 50L hoje, 60L ontem
     await testApp
       .request()
       .post('/daily-collections')
@@ -157,7 +145,7 @@ describe('E2E: Associations - Relatórios', () => {
         collectionDate: globalYesterday.toISOString().split('T')[0],
       }))
       .expect(HttpStatus.CREATED);
-  });
+  }, E2E_TIMEOUT);
 
   afterAll(async () => {
     if (testApp) await testApp.close();
@@ -172,25 +160,22 @@ describe('E2E: Associations - Relatórios', () => {
         .set('Authorization', `Bearer ${associationToken}`)
         .expect(HttpStatus.OK);
 
-      expect(Array.isArray(response.body)).toBe(true);
-      expect(response.body.length).toBe(2);
+      expect(Array.isArray(response.body.data)).toBe(true);
+      expect(response.body.data.length).toBe(2);
 
-      // Verificar que está ordenado (produtor 1 com 180L total deve ser o primeiro)
-      expect(response.body[0].rank).toBe(1);
-      expect(response.body[0].totalProduction).toBeGreaterThan(response.body[1].totalProduction);
-      expect(response.body[1].rank).toBe(2);
+      expect(response.body.data[0].rank).toBe(1);
+      expect(response.body.data[0].totalProduction).toBeGreaterThan(response.body.data[1].totalProduction);
+      expect(response.body.data[1].rank).toBe(2);
 
-      // Verificar estrutura do DTO
-      expect(response.body[0]).toHaveProperty('id');
-      expect(response.body[0]).toHaveProperty('name');
-      expect(response.body[0]).toHaveProperty('totalProduction');
-      expect(response.body[0]).toHaveProperty('animalsCount');
-      expect(response.body[0]).toHaveProperty('avgProductionPerDay');
-      expect(response.body[0]).toHaveProperty('rank');
+      expect(response.body.data[0]).toHaveProperty('id');
+      expect(response.body.data[0]).toHaveProperty('name');
+      expect(response.body.data[0]).toHaveProperty('totalProduction');
+      expect(response.body.data[0]).toHaveProperty('animalsCount');
+      expect(response.body.data[0]).toHaveProperty('avgProductionPerDay');
+      expect(response.body.data[0]).toHaveProperty('rank');
     });
 
     it('deve filtrar ranking por data de início', async () => {
-      // FIX: Usar o INÍCIO do dia para o filtro (formato YYYY-MM-DD)
       const startOfToday = new Date(globalToday);
       startOfToday.setHours(0, 0, 0, 0);
 
@@ -200,12 +185,10 @@ describe('E2E: Associations - Relatórios', () => {
         .set('Authorization', `Bearer ${associationToken}`)
         .expect(HttpStatus.OK);
 
-      expect(Array.isArray(response.body)).toBe(true);
+      expect(Array.isArray(response.body.data)).toBe(true);
       
-      // Verificar que considerou apenas coletas de hoje
-      const producer1 = response.body.find((p: any) => p.id === producer1Id);
+      const producer1 = response.body.data.find((p: any) => p.id === producer1Id);
       expect(producer1).toBeDefined();
-      // A produção deve ser aproximadamente 100L (apenas hoje)
       expect(producer1.totalProduction).toBeGreaterThanOrEqual(90);
       expect(producer1.totalProduction).toBeLessThanOrEqual(110);
     });
@@ -218,7 +201,6 @@ describe('E2E: Associations - Relatórios', () => {
     });
 
     it('deve retornar array vazio se não houver produtores', async () => {
-      // Criar nova associação sem produtores
       const newAssociation = AssociationFactory.build();
       await testApp.request().post('/associations').send(newAssociation);
 
@@ -238,8 +220,8 @@ describe('E2E: Associations - Relatórios', () => {
         .set('Authorization', `Bearer ${newToken}`)
         .expect(HttpStatus.OK);
 
-      expect(Array.isArray(response.body)).toBe(true);
-      expect(response.body.length).toBe(0);
+      expect(Array.isArray(response.body.data)).toBe(true);
+      expect(response.body.data.length).toBe(0);
     });
   });
 
@@ -254,22 +236,20 @@ describe('E2E: Associations - Relatórios', () => {
         .set('Authorization', `Bearer ${associationToken}`)
         .expect(HttpStatus.OK);
 
-      expect(response.body).toHaveProperty('month');
-      expect(response.body).toHaveProperty('totalProduction');
-      expect(response.body).toHaveProperty('totalProducers');
-      expect(response.body).toHaveProperty('averagePerProducer');
-      expect(response.body).toHaveProperty('totalAnimals');
-      expect(response.body).toHaveProperty('totalCollections');
-      expect(response.body).toHaveProperty('avgPerAnimal');
+      expect(response.body.data).toHaveProperty('month');
+      expect(response.body.data).toHaveProperty('totalProduction');
+      expect(response.body.data).toHaveProperty('totalProducers');
+      expect(response.body.data).toHaveProperty('averagePerProducer');
+      expect(response.body.data).toHaveProperty('totalAnimals');
+      expect(response.body.data).toHaveProperty('totalCollections');
+      expect(response.body.data).toHaveProperty('avgPerAnimal');
 
-      // Verificar valores calculados
-      expect(response.body.totalProducers).toBe(2);
-      expect(response.body.totalAnimals).toBe(2);
-      expect(response.body.totalCollections).toBe(4); // 2 produtores x 2 coletas
+      expect(response.body.data.totalProducers).toBe(2);
+      expect(response.body.data.totalAnimals).toBe(2);
+      expect(response.body.data.totalCollections).toBe(4);
       
-      // Total de produção deve ser 100 + 80 + 50 + 60 = 290
-      expect(response.body.totalProduction).toBeGreaterThanOrEqual(280);
-      expect(response.body.totalProduction).toBeLessThanOrEqual(300);
+      expect(response.body.data.totalProduction).toBeGreaterThanOrEqual(280);
+      expect(response.body.data.totalProduction).toBeLessThanOrEqual(300);
     });
 
     it('deve retornar 400 se parâmetros obrigatórios estiverem faltando', async () => {
@@ -311,24 +291,22 @@ describe('E2E: Associations - Relatórios', () => {
         .set('Authorization', `Bearer ${associationToken}`)
         .expect(HttpStatus.OK);
 
-      expect(response.body.totalProduction).toBe(0);
-      expect(response.body.totalProducers).toBe(0);
-      expect(response.body.totalCollections).toBe(0);
+      expect(response.body.data.totalProduction).toBe(0);
+      expect(response.body.data.totalProducers).toBe(0);
+      expect(response.body.data.totalCollections).toBe(0);
     });
   });
 
   describe('Fluxo Completo de Relatórios', () => {
     it('deve buscar ranking e relatório mensal na mesma sessão', async () => {
-      // Buscar ranking
       const rankingResponse = await testApp
         .request()
         .get('/associations/reports/producer-ranking')
         .set('Authorization', `Bearer ${associationToken}`)
         .expect(HttpStatus.OK);
 
-      expect(rankingResponse.body.length).toBeGreaterThan(0);
+      expect(rankingResponse.body.data.length).toBeGreaterThan(0);
 
-      // Buscar relatório mensal
       const year = globalToday.getFullYear();
       const month = globalToday.getMonth() + 1;
       
@@ -338,14 +316,13 @@ describe('E2E: Associations - Relatórios', () => {
         .set('Authorization', `Bearer ${associationToken}`)
         .expect(HttpStatus.OK);
 
-      expect(monthlyResponse.body.totalProducers).toBeGreaterThan(0);
+      expect(monthlyResponse.body.data.totalProducers).toBeGreaterThan(0);
 
-      // Os números devem ser consistentes
-      const activeProducersInRanking = rankingResponse.body.filter(
+      const activeProducersInRanking = rankingResponse.body.data.filter(
         (p: any) => p.totalProduction > 0
       ).length;
       
-      expect(monthlyResponse.body.totalProducers).toBe(activeProducersInRanking);
+      expect(monthlyResponse.body.data.totalProducers).toBe(activeProducersInRanking);
     });
   });
 });

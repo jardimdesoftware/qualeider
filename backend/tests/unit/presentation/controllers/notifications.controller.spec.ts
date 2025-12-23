@@ -1,5 +1,4 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { HttpStatus } from '@nestjs/common';
 import { NotificationsController } from '@/presentation/controllers/notifications.controller';
 import { NotificationsService } from '@/application/services/notifications/notifications.service';
 import { SendNotificationDto } from '@/application/dtos/notifications/send-notification.dto';
@@ -14,6 +13,8 @@ describe('NotificationsController', () => {
 
   const mockNotificationsService = {
     notifyProducers: jest.fn(),
+    getUserNotifications: jest.fn(),
+    markAsRead: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -51,11 +52,7 @@ describe('NotificationsController', () => {
       expect(service.notifyProducers).toHaveBeenCalledWith(
         expect.any(NotificationEvent),
       );
-      expect(result).toEqual({
-        statusCode: HttpStatus.CREATED,
-        message: 'Notificação enviada com sucesso',
-        data: { count: 2 },
-      });
+      expect(result).toEqual({ count: 2 });
     });
 
     it('deve enviar notificação geral e retornar count "todos"', async () => {
@@ -70,11 +67,7 @@ describe('NotificationsController', () => {
 
       const result = await controller.sendNotification(dto);
 
-      expect(result).toEqual({
-        statusCode: HttpStatus.CREATED,
-        message: 'Notificação enviada com sucesso',
-        data: { count: 'todos' },
-      });
+      expect(result).toEqual({ count: 'todos' });
     });
 
     it('deve propagar EntityNotFoundException', async () => {
@@ -97,6 +90,32 @@ describe('NotificationsController', () => {
       await expect(controller.sendNotification(dto)).rejects.toThrow(
         BusinessException,
       );
+    });
+  });
+
+
+  describe('getMyNotifications', () => {
+    it('deve retornar notificações do usuário', async () => {
+      const userId = 1;
+      const mockNotifications: any[] = [];
+      mockNotificationsService.getUserNotifications.mockResolvedValue(mockNotifications);
+
+      const result = await controller.getMyNotifications(userId);
+
+      expect(service.getUserNotifications).toHaveBeenCalledWith(userId);
+      expect(result).toEqual(mockNotifications);
+    });
+  });
+
+  describe('markAsRead', () => {
+    it('deve marcar notificação como lida', async () => {
+      const id = '1';
+      mockNotificationsService.markAsRead.mockResolvedValue(undefined);
+
+      const result = await controller.markAsRead(id);
+
+      expect(service.markAsRead).toHaveBeenCalledWith(1);
+      expect(result).toBeUndefined();
     });
   });
 });

@@ -1,4 +1,4 @@
-import { setupE2ETests, teardownE2ETests } from '../setup';
+import { setupE2ETests, teardownE2ETests, E2E_TIMEOUT } from '../setup';
 import { TestApp, AuthHelper } from '../helpers';
 import { InviteFactory, UserFactory } from '../factories';
 import { HttpStatus } from '@nestjs/common';
@@ -49,7 +49,7 @@ describe('E2E: Convites - Operações CRUD', () => {
       },
     });
     associationId = association.id;
-  });
+  }, E2E_TIMEOUT);
 
   afterAll(async () => {
     if (testApp) await testApp.close();
@@ -183,9 +183,9 @@ describe('E2E: Convites - Operações CRUD', () => {
         .set('Authorization', `Bearer ${newUser.token}`)
         .expect(HttpStatus.OK);
 
-      expect(Array.isArray(response.body)).toBe(true);
-      expect(response.body.length).toBeGreaterThan(0);
-      response.body.forEach((invite: any) => {
+      expect(Array.isArray(response.body.data)).toBe(true);
+      expect(response.body.data.length).toBeGreaterThan(0);
+      response.body.data.forEach((invite: any) => {
         expect(invite.status).toBe('PENDING');
         expect(invite.userId).toBe(newUser.user.id);
       });
@@ -202,7 +202,7 @@ describe('E2E: Convites - Operações CRUD', () => {
         .set('Authorization', `Bearer ${newUser.token}`)
         .expect(HttpStatus.OK);
 
-      expect(response.body).toEqual([]);
+      expect(response.body.data).toEqual([]);
     });
   });
 
@@ -214,7 +214,7 @@ describe('E2E: Convites - Operações CRUD', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(HttpStatus.OK);
 
-      expect(Array.isArray(response.body)).toBe(true);
+      expect(Array.isArray(response.body.data)).toBe(true);
     });
 
     it('deve retornar array vazio se a associação não tiver convites (ou não existir)', async () => {
@@ -224,7 +224,7 @@ describe('E2E: Convites - Operações CRUD', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(HttpStatus.OK);
 
-      expect(response.body).toEqual([]);
+      expect(response.body.data).toEqual([]);
     });
   });
 

@@ -1,4 +1,4 @@
-import { setupE2ETests, teardownE2ETests } from '../setup';
+import { setupE2ETests, teardownE2ETests, E2E_TIMEOUT } from '../setup';
 import { TestApp, AuthHelper } from '../helpers';
 import { MilkingPlace } from '@/domain/enums/enums';
 import { UserFactory, DailyCollectionFactory, AnimalFactory } from '../factories';
@@ -10,6 +10,7 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
   let userId: number;
   let animal1Id: number;
   let animal2Id: number;
+  let userToken: string;
 
   beforeAll(async () => {
     await setupE2ETests();
@@ -24,8 +25,8 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
 
     const user = await authHelper.createUserAndLogin(userData);
     userId = user!.user!.id!;
+    userToken = user!.token!;
 
-    // Create animals for testing
     const animalsService = testApp.getApp().get(AnimalsService);
     const animal1Data = AnimalFactory.build({ userId }) as any;
     const animal2Data = AnimalFactory.build({ userId }) as any;
@@ -35,7 +36,7 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
     
     animal1Id = animal1.id;
     animal2Id = animal2.id;
-  });
+  }, E2E_TIMEOUT);
 
   afterAll(async () => {
     if (testApp) await testApp.close();
@@ -45,7 +46,7 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
   const buildCollectionWithValidItems = (overrides: any = {}) => {
     return DailyCollectionFactory.build({
       userId,
-      quantity: 30, // Default items sum to 30 (15 + 15)
+      quantity: 30, 
       items: [
         { animalId: animal1Id, quantity: 15 },
         { animalId: animal2Id, quantity: 15 }
@@ -70,6 +71,7 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
       const response = await testApp
         .request()
         .post('/daily-collections')
+        .set('Authorization', `Bearer ${userToken}`)
         .send(collectionData)
         .expect(201);
 
@@ -96,10 +98,11 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
       const response = await testApp
         .request()
         .post('/daily-collections')
+        .set('Authorization', `Bearer ${userToken}`)
         .send(collectionData);
       
       if (response.status === 400) {
-        console.error('❌ ERRO DE VALIDAÇÃO:', JSON.stringify(response.body, null, 2));
+        console.error('ERRO DE VALIDAÇÃO:', JSON.stringify(response.body, null, 2));
       }
       expect(response.status).toBe(201);
 
@@ -116,6 +119,7 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
       const response = await testApp
         .request()
         .post('/daily-collections')
+        .set('Authorization', `Bearer ${userToken}`)
         .send(collectionData)
         .expect(201);
 
@@ -138,6 +142,7 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
         const response = await testApp
           .request()
           .post('/daily-collections')
+          .set('Authorization', `Bearer ${userToken}`)
           .send(collectionData)
           .expect(201);
 
@@ -153,6 +158,7 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
       await testApp
         .request()
         .post('/daily-collections')
+        .set('Authorization', `Bearer ${userToken}`)
         .send(collectionData)
         .expect(404);
     });
@@ -161,6 +167,7 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
       await testApp
         .request()
         .post('/daily-collections')
+        .set('Authorization', `Bearer ${userToken}`)
         .send({
           quantity: -10,
           numAnimals: 'invalid',
@@ -170,7 +177,7 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
     });
 
     it('deve retornar 400 sem campos obrigatórios', async () => {
-      await testApp.request().post('/daily-collections').send({}).expect(400);
+      await testApp.request().post('/daily-collections').set('Authorization', `Bearer ${userToken}`).send({}).expect(400);
     });
   });
 
@@ -179,6 +186,7 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
       const response = await testApp
         .request()
         .get('/daily-collections')
+        .set('Authorization', `Bearer ${userToken}`)
         .expect(200);
 
       expect(response.body).toHaveProperty('data');
@@ -191,6 +199,7 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
       const response = await testApp
         .request()
         .get(`/daily-collections?userId=${userId}`)
+        .set('Authorization', `Bearer ${userToken}`)
         .expect(200);
 
       expect(response.body).toHaveProperty('data');
@@ -212,6 +221,7 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
         .get(
           `/daily-collections?userId=${userId}&startDate=${startDate}&endDate=${endDate}`,
         )
+        .set('Authorization', `Bearer ${userToken}`)
         .expect(200);
 
       expect(response.body).toHaveProperty('data');
@@ -225,6 +235,7 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
       const created = await testApp
         .request()
         .post('/daily-collections')
+        .set('Authorization', `Bearer ${userToken}`)
         .send(collectionData)
         .expect(201);
 
@@ -233,14 +244,15 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
       const response = await testApp
         .request()
         .get(`/daily-collections/${collectionId}`)
+        .set('Authorization', `Bearer ${userToken}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('id', collectionId);
-      expect(response.body).toHaveProperty('userId', userId);
+      expect(response.body.data).toHaveProperty('id', collectionId);
+      expect(response.body.data).toHaveProperty('userId', userId);
     });
 
     it('deve retornar 404 ao buscar ID inexistente', async () => {
-      await testApp.request().get('/daily-collections/99999').expect(404);
+      await testApp.request().get('/daily-collections/99999').set('Authorization', `Bearer ${userToken}`).expect(404);
     });
   });
 
@@ -257,6 +269,7 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
       const created = await testApp
         .request()
         .post('/daily-collections')
+        .set('Authorization', `Bearer ${userToken}`)
         .send(collectionData)
         .expect(201);
 
@@ -265,12 +278,13 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
       const response = await testApp
         .request()
         .put(`/daily-collections/${collectionId}`)
+        .set('Authorization', `Bearer ${userToken}`)
         .send({
           quantity: 35,
           numAnimals: 8,
-          userId, // Important: pass userId to authorization check if needed
+          userId, 
           items: [
-            { animalId: animal1Id, quantity: 35 } // Only 1 animal contributing 35
+            { animalId: animal1Id, quantity: 35 }
           ]
         })
         .expect(200);
@@ -288,6 +302,7 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
       await testApp
         .request()
         .put('/daily-collections/99999')
+        .set('Authorization', `Bearer ${userToken}`)
         .send({ quantity: 30 })
         .expect(404);
     });
@@ -301,6 +316,7 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
       const created = await testApp
         .request()
         .post('/daily-collections')
+        .set('Authorization', `Bearer ${userToken}`)
         .send(collectionData)
         .expect(201);
 
@@ -309,6 +325,7 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
       const response = await testApp
         .request()
         .delete(`/daily-collections/${collectionId}`)
+        .set('Authorization', `Bearer ${userToken}`)
         .expect(200);
 
       expect(response.body).toHaveProperty('statusCode', 200);
@@ -320,14 +337,14 @@ describe('E2E: Coletas Diárias - Operações CRUD', () => {
       const deletedResponse = await testApp
         .request()
         .get(`/daily-collections/${collectionId}`)
+        .set('Authorization', `Bearer ${userToken}`)
         .expect(200);
       
-      // Soft delete: registro existe mas está Inactive
-      expect(deletedResponse.body.status).toBe('Inactive');
+      expect(deletedResponse.body.data.status).toBe('Inactive');
     });
 
     it('deve retornar 404 ao deletar ID inexistente', async () => {
-      await testApp.request().delete('/daily-collections/99999').expect(404);
+      await testApp.request().delete('/daily-collections/99999').set('Authorization', `Bearer ${userToken}`).expect(404);
     });
   });
 });

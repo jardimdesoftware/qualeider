@@ -1,5 +1,4 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { HttpStatus } from '@nestjs/common';
 import { AssociationsController } from '@/presentation/controllers/associations.controller';
 import { AssociationsService } from '@/application/services/associations/associations.service';
 import { CreateAssociationDto } from '@/application/dtos/associations/create-association.dto';
@@ -20,6 +19,8 @@ describe('AssociationsController', () => {
     getHerdStats: jest.fn(),
     findById: jest.fn(),
     update: jest.fn(),
+    getProducerRanking: jest.fn(),
+    getMonthlyReport: jest.fn(),
   };
 
   const mockAssociation = createAssociation();
@@ -62,11 +63,7 @@ describe('AssociationsController', () => {
       const result = await controller.create(createDto);
 
       expect(associationsService.create).toHaveBeenCalledWith(createDto);
-      expect(result).toEqual({
-        statusCode: HttpStatus.CREATED,
-        message: 'Associação criada com sucesso',
-        data: mockAssociation,
-      });
+      expect(result).toEqual(mockAssociation);
     });
 
     it('deve propagar BusinessException se o service falhar (ex: duplicidade)', async () => {
@@ -143,13 +140,67 @@ describe('AssociationsController', () => {
       );
     });
   });
+  describe('getProducerRanking', () => {
+    it('deve retornar ranking de produtores convertendo datas corretamente', async () => {
+      const associationId = 1;
+      const startDateStr = '2023-01-01';
+      const endDateStr = '2023-01-31';
+      const mockResult: any[] = [];
+      
+      mockAssociationsService.getProducerRanking.mockResolvedValue(mockResult);
+
+      const result = await controller.getProducerRanking(associationId, startDateStr, endDateStr);
+
+      expect(associationsService.getProducerRanking).toHaveBeenCalledWith(
+        associationId,
+        new Date(startDateStr),
+        new Date(endDateStr),
+      );
+      expect(result).toEqual(mockResult);
+    });
+
+    it('deve chamar service com datas undefined se não forem fornecidas', async () => {
+      const associationId = 1;
+      const mockResult: any[] = [];
+      
+      mockAssociationsService.getProducerRanking.mockResolvedValue(mockResult);
+
+      await controller.getProducerRanking(associationId, undefined, undefined);
+
+      expect(associationsService.getProducerRanking).toHaveBeenCalledWith(
+        associationId,
+        undefined,
+        undefined,
+      );
+    });
+  });
+
+  describe('getMonthlyReport', () => {
+    it('deve retornar relatório mensal', async () => {
+      const associationId = 1;
+      const dto: any = { year: 2023, month: 10 };
+      const mockResult = {};
+
+      mockAssociationsService.getMonthlyReport.mockResolvedValue(mockResult);
+
+      const result = await controller.getMonthlyReport(associationId, dto);
+
+      expect(associationsService.getMonthlyReport).toHaveBeenCalledWith(
+        associationId,
+        2023,
+        10,
+      );
+      expect(result).toEqual(mockResult);
+    });
+  });
+
   describe('getAssociates', () => {
     it('deve retornar lista de associados', async () => {
       const mockResult = { data: [] as any[], total: 0 };
       mockAssociationsService.findAssociates.mockResolvedValue(mockResult);
-      const req = { user: { id: 1 } };
+      const associationId = 1;
 
-      const result = await controller.getAssociates(req as any, 1, 10);
+      const result = await controller.getAssociates(associationId, 1, 10);
 
       expect(associationsService.findAssociates).toHaveBeenCalledWith(1, { page: 1, limit: 10 });
       expect(result).toEqual(mockResult);
@@ -171,23 +222,22 @@ describe('AssociationsController', () => {
   describe('inviteProducer', () => {
     it('deve convidar produtor', async () => {
       const mockBody = { userId: 2 };
-      const req = { user: { id: 1 } };
+      const associationId = 1;
       mockAssociationsService.linkProducer.mockResolvedValue(undefined);
 
-      const result = await controller.inviteProducer(mockBody, req as any);
-
+      const result = await controller.inviteProducer(mockBody, associationId);
       expect(associationsService.linkProducer).toHaveBeenCalledWith(2, 1);
-      expect(result).toEqual({ message: 'Produtor vinculado com sucesso.' });
+      expect(result).toBeUndefined();
     });
   });
 
   describe('getHerdStats', () => {
     it('deve retornar estatísticas do rebanho', async () => {
       const mockStats = {};
-      const req = { user: { id: 1 } };
+      const associationId = 1;
       mockAssociationsService.getHerdStats.mockResolvedValue(mockStats);
 
-      const result = await controller.getHerdStats(req as any);
+      const result = await controller.getHerdStats(associationId);
 
       expect(associationsService.getHerdStats).toHaveBeenCalledWith(1);
       expect(result).toEqual(mockStats);
