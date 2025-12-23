@@ -123,6 +123,18 @@ describe('CreateUserDto', () => {
       expect(dto.email).toBe('test@example.com');
     });
 
+    it('deve manter email original se não for string', async () => {
+      const dto = plainToInstance(CreateUserDto, {
+        name: 'João Silva',
+        email: 12345 as any,
+        password: 'Senha@123',
+        userCategory: UserCategory.Fisica,
+        state: 'PE',
+        city: 'Recife',
+      });
+      expect(dto.email).toBe(12345);
+    });
+
     it('deve aceitar email válido', async () => {
       const dto = plainToInstance(CreateUserDto, {
         name: 'João Silva',
@@ -390,6 +402,19 @@ describe('CreateUserDto', () => {
       });
 
       expect(dto.state).toBe('PE');
+    });
+
+    it('deve manter estado original se não for string (branch coverage)', async () => {
+      const dto = plainToInstance(CreateUserDto, {
+        name: 'João Silva',
+        email: 'test@example.com',
+        password: 'Senha@123',
+        userCategory: UserCategory.Fisica,
+        state: 123 as any,
+        city: 'Recife',
+      });
+      // O valor original é mantido, mas a validação subsequente falhará
+      expect(dto.state).toBe(123);
     });
 
     it('deve aceitar estado válido', async () => {

@@ -13,6 +13,8 @@ describe('NotificationsController', () => {
 
   const mockNotificationsService = {
     notifyProducers: jest.fn(),
+    getUserNotifications: jest.fn(),
+    markAsRead: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -88,6 +90,32 @@ describe('NotificationsController', () => {
       await expect(controller.sendNotification(dto)).rejects.toThrow(
         BusinessException,
       );
+    });
+  });
+
+
+  describe('getMyNotifications', () => {
+    it('deve retornar notificações do usuário', async () => {
+      const userId = 1;
+      const mockNotifications: any[] = [];
+      mockNotificationsService.getUserNotifications.mockResolvedValue(mockNotifications);
+
+      const result = await controller.getMyNotifications(userId);
+
+      expect(service.getUserNotifications).toHaveBeenCalledWith(userId);
+      expect(result).toEqual(mockNotifications);
+    });
+  });
+
+  describe('markAsRead', () => {
+    it('deve marcar notificação como lida', async () => {
+      const id = '1';
+      mockNotificationsService.markAsRead.mockResolvedValue(undefined);
+
+      const result = await controller.markAsRead(id);
+
+      expect(service.markAsRead).toHaveBeenCalledWith(1);
+      expect(result).toBeUndefined();
     });
   });
 });

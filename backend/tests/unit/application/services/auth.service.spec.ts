@@ -20,6 +20,7 @@ describe('AuthService', () => {
   let userRepository: IUserRepository;
   let mailService: jest.Mocked<MailService>;
   let hashService: jest.Mocked<IHashService>;
+  let associationRepository: IAssociationRepository;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -70,6 +71,7 @@ describe('AuthService', () => {
     userRepository = module.get<IUserRepository>(IUserRepositorySymbol) as any;
     mailService = module.get(MailService);
     hashService = module.get(IHashServiceSymbol) as any;
+    associationRepository = module.get<IAssociationRepository>(IAssociationRepository) as any;
   });
 
   afterEach(() => {
@@ -121,6 +123,64 @@ describe('AuthService', () => {
     });
   });
 
+  describe('validateAssociation', () => {
+    it('deve retornar associação sem senha quando credenciais são válidas', async () => {
+      const mockAssociation = {
+        id: 1,
+        email: 'assoc@example.com',
+        password: 'hashedPassword',
+      };
+
+      (associationRepository.findByEmail as jest.Mock).mockResolvedValue(
+        mockAssociation,
+      );
+      (hashService.compare as jest.Mock).mockResolvedValue(true);
+
+      const result = await service.validateAssociation(
+        'assoc@example.com',
+        'password123',
+      );
+
+      expect(associationRepository.findByEmail).toHaveBeenCalledWith(
+        'assoc@example.com',
+      );
+      expect(hashService.compare).toHaveBeenCalledWith(
+        'password123',
+        'hashedPassword',
+      );
+      expect(result).not.toHaveProperty('password');
+      expect(result!.email).toBe('assoc@example.com');
+    });
+
+    it('deve retornar null quando associação não for encontrada', async () => {
+      (associationRepository.findByEmail as jest.Mock).mockResolvedValue(null);
+
+      const result = await service.validateAssociation(
+        'nonexistent@example.com',
+        'password123',
+      );
+      expect(result).toBeNull();
+    });
+
+    it('deve retornar null quando a senha da associação estiver incorreta', async () => {
+      const mockAssociation = {
+        email: 'assoc@example.com',
+        password: 'hashedPassword',
+      };
+
+      (associationRepository.findByEmail as jest.Mock).mockResolvedValue(
+        mockAssociation,
+      );
+      (hashService.compare as jest.Mock).mockResolvedValue(false);
+
+      const result = await service.validateAssociation(
+        'assoc@example.com',
+        'wrong',
+      );
+      expect(result).toBeNull();
+    });
+  });
+
   describe('executeLogin', () => {
     it('deve realizar login com sucesso quando credenciais são válidas', async () => {
       const loginDto = { email: 'test@example.com', password: 'password123' };
@@ -140,10 +200,30 @@ describe('AuthService', () => {
       expect(result).toEqual(mockToken);
     });
 
-    it('deve lançar UnauthorizedException quando validação falha', async () => {
+
+
+    it('deve realizar login como associação quando login de usuário falha', async () => {
+      const loginDto = { email: 'assoc@example.com', password: 'password123' };
+      const mockAssociation = { id: 1, email: 'assoc@example.com' };
+      const mockToken = { access_token: 'jwt-token-assoc' };
+
+      jest.spyOn(service, 'validateUser').mockResolvedValue(null);
+      jest.spyOn(service, 'validateAssociation').mockResolvedValue(mockAssociation as any);
+      jest.spyOn(service, 'loginEntity').mockResolvedValue(mockToken);
+
+      const result = await service.executeLogin(loginDto);
+
+      expect(service.validateUser).toHaveBeenCalledWith(loginDto.email, loginDto.password);
+      expect(service.validateAssociation).toHaveBeenCalledWith(loginDto.email, loginDto.password);
+      expect(service.loginEntity).toHaveBeenCalledWith(mockAssociation, 'association');
+      expect(result).toEqual(mockToken);
+    });
+
+    it('deve lançar UnauthorizedException quando validação falha para ambos', async () => {
       const loginDto = { email: 'test@example.com', password: 'wrong' };
 
       jest.spyOn(service, 'validateUser').mockResolvedValue(null);
+      jest.spyOn(service, 'validateAssociation').mockResolvedValue(null);
 
       await expect(service.executeLogin(loginDto)).rejects.toThrow(
         UnauthorizedException,

@@ -13,8 +13,7 @@ describe('CreateAssociationDto', () => {
   afterAll(() => {
     jest.restoreAllMocks();
   });
-  it('valida um DTO válido', async () => {
-    const dto = plainToInstance(CreateAssociationDto, {
+  const defaultValidDto = {
       name: 'Associação Teste',
       tradeName: 'AT',
       cnpj: '12345678000190',
@@ -32,10 +31,14 @@ describe('CreateAssociationDto', () => {
       presidentCpf: '12345678900',
       presidentEmail: 'presidente@email.com',
       presidentPhone: '87999999999',
-    });
+  };
+
+  it('valida um DTO válido', async () => {
+    const dto = plainToInstance(CreateAssociationDto, defaultValidDto);
     const errors = await validate(dto);
     expect(errors.length).toBe(0);
   });
+
 
   it('detecta campos obrigatórios ausentes', async () => {
     const dto = plainToInstance(CreateAssociationDto, {});
@@ -124,4 +127,34 @@ describe('CreateAssociationDto', () => {
     const errors = await validate(dto);
     expect(errors.some((e) => e.property === 'password')).toBe(true);
   });
+  it('transforma CNPJ removendo caracteres não numéricos', async () => {
+    const dto = plainToInstance(CreateAssociationDto, {
+      ...defaultValidDto,
+      cnpj: '12.345.678/0001-90',
+    });
+    await validate(dto);
+    expect(dto.cnpj).toBe('12345678000190');
+  });
+
+  it('transforma email para lowercase e trim', async () => {
+    const dto = plainToInstance(CreateAssociationDto, {
+      ...defaultValidDto,
+      email: '  CONTATO@Teste.Com  ',
+    });
+    await validate(dto);
+    expect(dto.email).toBe('contato@teste.com');
+  });
+
+  it('mantém o valor original se transformação receber não-string', async () => {
+    const dto = plainToInstance(CreateAssociationDto, {
+      ...defaultValidDto,
+      cnpj: 12345678000190 as any,
+      email: 123 as any,
+    });
+    
+    await validate(dto);
+    expect(dto.cnpj).toBe(12345678000190);
+    expect(dto.email).toBe(123);
+  });
 });
+

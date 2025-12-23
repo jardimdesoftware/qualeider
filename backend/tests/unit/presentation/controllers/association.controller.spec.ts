@@ -19,6 +19,8 @@ describe('AssociationsController', () => {
     getHerdStats: jest.fn(),
     findById: jest.fn(),
     update: jest.fn(),
+    getProducerRanking: jest.fn(),
+    getMonthlyReport: jest.fn(),
   };
 
   const mockAssociation = createAssociation();
@@ -138,6 +140,60 @@ describe('AssociationsController', () => {
       );
     });
   });
+  describe('getProducerRanking', () => {
+    it('deve retornar ranking de produtores convertendo datas corretamente', async () => {
+      const associationId = 1;
+      const startDateStr = '2023-01-01';
+      const endDateStr = '2023-01-31';
+      const mockResult: any[] = [];
+      
+      mockAssociationsService.getProducerRanking.mockResolvedValue(mockResult);
+
+      const result = await controller.getProducerRanking(associationId, startDateStr, endDateStr);
+
+      expect(associationsService.getProducerRanking).toHaveBeenCalledWith(
+        associationId,
+        new Date(startDateStr),
+        new Date(endDateStr),
+      );
+      expect(result).toEqual(mockResult);
+    });
+
+    it('deve chamar service com datas undefined se não forem fornecidas', async () => {
+      const associationId = 1;
+      const mockResult: any[] = [];
+      
+      mockAssociationsService.getProducerRanking.mockResolvedValue(mockResult);
+
+      await controller.getProducerRanking(associationId, undefined, undefined);
+
+      expect(associationsService.getProducerRanking).toHaveBeenCalledWith(
+        associationId,
+        undefined,
+        undefined,
+      );
+    });
+  });
+
+  describe('getMonthlyReport', () => {
+    it('deve retornar relatório mensal', async () => {
+      const associationId = 1;
+      const dto: any = { year: 2023, month: 10 };
+      const mockResult = {};
+
+      mockAssociationsService.getMonthlyReport.mockResolvedValue(mockResult);
+
+      const result = await controller.getMonthlyReport(associationId, dto);
+
+      expect(associationsService.getMonthlyReport).toHaveBeenCalledWith(
+        associationId,
+        2023,
+        10,
+      );
+      expect(result).toEqual(mockResult);
+    });
+  });
+
   describe('getAssociates', () => {
     it('deve retornar lista de associados', async () => {
       const mockResult = { data: [] as any[], total: 0 };

@@ -88,7 +88,9 @@ export class CreateUserDto {
   @Length(2, 2, {
     message: 'O estado deve ser uma sigla de 2 caracteres (UF).',
   })
-  @Transform(({ value }) => value?.toUpperCase().trim())
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.toUpperCase().trim() : value,
+  )
   state!: string;
 
   @ApiProperty({ description: 'Cidade do usuário', example: 'Belo Jardim' })
