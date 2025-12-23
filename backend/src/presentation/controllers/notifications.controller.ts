@@ -48,6 +48,7 @@ export class NotificationsController {
   @ApiBody({ type: GetUser })
   @ApiResponse({ status: 200, description: 'Lista de notificações retornada.' })
   @ApiResponse({ status: 401, description: 'Usuário não autenticado.' })
+  @ResponseMessage('Notificações listadas com sucesso')
   async getMyNotifications(@GetUser('id') userId: number) {
     return this.notificationsService.getUserNotifications(userId);
   }
@@ -56,6 +57,7 @@ export class NotificationsController {
 
   @ApiOperation({ summary: 'Marcar notificação como lida' })
   @ApiResponse({ status: 200, description: 'Notificação marcada como lida.' })
+  @ResponseMessage('Notificação marcada como lida')
   async markAsRead(@Param('id') id: string) {
     return this.notificationsService.markAsRead(Number(id));
   }

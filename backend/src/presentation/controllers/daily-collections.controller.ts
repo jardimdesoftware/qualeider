@@ -119,6 +119,7 @@ export class DailyCollectionsController {
     description: 'Formulários encontrados com sucesso',
   })
   @Get('user/:userId')
+  @ResponseMessage('Formulários do usuário listados com sucesso')
   async findAllByUserId(@Param('userId', ParseIntPipe) userId: number) {
     return this.dailyCollectionsService.findAll({ userId });
   }

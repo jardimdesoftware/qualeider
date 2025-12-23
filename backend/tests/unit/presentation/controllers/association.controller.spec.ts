@@ -170,9 +170,8 @@ describe('AssociationsController', () => {
       mockAssociationsService.linkProducer.mockResolvedValue(undefined);
 
       const result = await controller.inviteProducer(mockBody, associationId);
-
       expect(associationsService.linkProducer).toHaveBeenCalledWith(2, 1);
-      expect(result).toEqual({ message: 'Produtor vinculado com sucesso.' });
+      expect(result).toBeUndefined();
     });
   });
 

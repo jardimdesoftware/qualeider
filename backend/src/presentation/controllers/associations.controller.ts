@@ -17,6 +17,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { AssociationsService } from '@/application/services/associations/associations.service';
 import { CreateAssociationDto } from '@/application/dtos/associations/create-association.dto';
 import { GetMonthlyReportDto } from '@/application/dtos/associations/get-monthly-report.dto';
+import { UpdateAssociationDto } from '@/application/dtos/associations/update-association.dto';
 import { BusinessException } from '@/common/exceptions/business.exception';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
 import { Public } from '@/common/decorators/public.decorator';
@@ -97,9 +98,9 @@ export class AssociationsController {
   @Post('invite')
   @ApiOperation({ summary: 'Convidar/Vincular produtor à associação' })
   @ApiResponse({ status: 200, description: 'Produtor vinculado com sucesso.' })
+  @ResponseMessage('Produtor vinculado com sucesso')
   async inviteProducer(@Body() body: { userId: number }, @GetUser('id') associationId: number) {
     await this.associationsService.linkProducer(body.userId, associationId);
-    return { message: 'Produtor vinculado com sucesso.' };
   }
 
   @Get('metrics/herd')
@@ -143,7 +144,8 @@ export class AssociationsController {
   @Patch(':id')
   @ApiOperation({ summary: 'Atualizar dados da associação' })
   @ApiResponse({ status: 200, description: 'Associação atualizada com sucesso.' })
-  async update(@Param('id') id: string, @Body() body: any) {
-    return this.associationsService.update(Number(id), body);
+  @ResponseMessage('Associação atualizada com sucesso')
+  async update(@Param('id') id: string, @Body() updateAssociationDto: UpdateAssociationDto) {
+    return this.associationsService.update(Number(id), updateAssociationDto);
   }
 }

@@ -86,6 +86,7 @@ export class AnimalsController {
   @ApiResponse({ status: 200, description: 'Animal excluído com sucesso' })
   @ApiResponse({ status: 404, description: 'Animal não encontrado' })
   @Delete(':id')
+  @ResponseMessage('Animal excluído com sucesso')
   async remove(@Param('id', ParseIntPipe) id: number) {
     return this.animalsService.remove(id);
   }
@@ -94,6 +95,7 @@ export class AnimalsController {
   @ApiParam({ name: 'userId', description: 'ID do usuário', type: Number })
   @ApiResponse({ status: 200, description: 'Lista de animais do usuário' })
   @Get('user/:userId')
+  @ResponseMessage('Animais do usuário listados com sucesso')
   async findAllByUserId(@Param('userId', ParseIntPipe) userId: number) {
     return this.animalsService.findAll({ userId });
   }
