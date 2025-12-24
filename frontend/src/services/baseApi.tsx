@@ -20,9 +20,53 @@ apiBase.interceptors.request.use((config) => {
   return config;
 });
 
-// Interceptor: Tratamento global de erros
+// Interceptor: Extrai dados do envelope padrão do backend e respostas paginadas
 apiBase.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Caso 1: Resposta envelopada { statusCode, message, data }
+    if (
+      response.data &&
+      typeof response.data === 'object' &&
+      'statusCode' in response.data &&
+      'message' in response.data &&
+      'data' in response.data
+    ) {
+      const envelope = {
+        statusCode: response.data.statusCode,
+        message: response.data.message,
+      };
+      
+      return {
+        ...response,
+        data: response.data.data,
+        _envelope: envelope,
+      };
+    }
+    
+    // Caso 2: Resposta paginada { data: [], total: number, ... }
+    if (
+      response.data &&
+      typeof response.data === 'object' &&
+      'data' in response.data &&
+      'total' in response.data &&
+      Array.isArray(response.data.data)
+    ) {
+      const pagination = {
+        total: response.data.total,
+        page: response.data.page,
+        limit: response.data.limit,
+      };
+      
+      return {
+        ...response,
+        data: response.data.data,
+        _pagination: pagination,
+      };
+    }
+    
+    // Caso 3: Resposta simples - retorna como está
+    return response;
+  },
   (error) => {
     if (error.response?.status === 401) {
       console.warn('Token inválido ou expirado');

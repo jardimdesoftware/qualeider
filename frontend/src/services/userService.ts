@@ -21,7 +21,7 @@ export const userService = {
   },
 
   findAll: async (params?: Record<string, unknown>, signal?: AbortSignal): Promise<User[]> => {
-    const { data } = await apiBase.get<User[]>("/users", {
+    const { data } = await apiBase.get("/users", {
       params,
       signal,
     });

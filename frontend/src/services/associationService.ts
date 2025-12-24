@@ -52,7 +52,7 @@ export const associationService = {
   },
 
   getAvailableProducers: async (): Promise<User[]> => {
-    const { data } = await apiBase.get<User[]>("/associations/available-producers");
+    const { data } = await apiBase.get("/associations/available-producers");
     return data;
   },
 

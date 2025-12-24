@@ -22,16 +22,14 @@ interface LoginResponse {
 export const authService = {
   login: async (credentials: LoginCredentials): Promise<LoginResponse> => {
     const { data } = await apiBase.post("/auth/login", credentials);
-    const token = data?.data?.access_token;
+    const token = data?.access_token;
 
     if (!token) {
       throw new Error("Token não fornecido pela API");
     }
 
-    // Salva o token
     localStorage.setItem(STORAGE_KEY, token);
 
-    // Decodifica para saber quem é o usuário
     const payload = jwtDecode<TokenPayload>(token);
 
     return { token, userType: payload.userType, payload };
