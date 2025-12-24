@@ -5,7 +5,9 @@ interface InputFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
   error?: string;
   showPasswordToggle?: boolean;
-  registration?: any; 
+  registration?: any;
+  helperText?: string;
+  helperIcon?: React.ReactNode;
 }
 
 export default function InputField({
@@ -15,6 +17,8 @@ export default function InputField({
   type = "text",
   className = "",
   registration,
+  helperText,
+  helperIcon,
   ...props
 }: InputFieldProps) {
   const [showPassword, setShowPassword] = useState(false);
@@ -51,6 +55,12 @@ export default function InputField({
           </button>
         )}
       </div>
+      {helperText && !error && (
+        <p className="text-gray-500 text-xs mt-1 flex items-start gap-1">
+          {helperIcon || <span className="text-blue-500">ℹ️</span>}
+          <span>{helperText}</span>
+        </p>
+      )}
       {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
     </div>
   );
