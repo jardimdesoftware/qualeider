@@ -1,21 +1,22 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import FormProgressBar, { Step } from "./form-progress-bar";
+import FormProgressBar, { FormStep } from "./form-progress-bar";
 import Button from "./button";
 
-interface MultiStepFormProps {
-  steps: Step[];
+export interface MultiStepFormProps {
+  steps: FormStep[];
   currentStep: number;
   onStepChange: (step: number) => void;
-  onSubmit?: () => void;
+  onSubmit: () => void;
   children: ReactNode;
   isSubmitting?: boolean;
   canGoNext?: boolean;
   canGoBack?: boolean;
-  showProgress?: boolean;
+  hideBackOnFirstStep?: boolean;
+  submitButtonText?: string;
   nextButtonText?: string;
   backButtonText?: string;
-  submitButtonText?: string;
+  showProgress?: boolean;
 }
 
 export default function MultiStepForm({
@@ -27,10 +28,11 @@ export default function MultiStepForm({
   isSubmitting = false,
   canGoNext = true,
   canGoBack = true,
+  hideBackOnFirstStep = true,
+  submitButtonText = "FINALIZAR",
+  nextButtonText = "PRÓXIMO",
+  backButtonText = "VOLTAR",
   showProgress = true,
-  nextButtonText = "Próximo",
-  backButtonText = "Voltar",
-  submitButtonText = "Finalizar",
 }: MultiStepFormProps) {
   const isFirstStep = currentStep === 0;
   const isLastStep = currentStep === steps.length - 1;
@@ -38,20 +40,32 @@ export default function MultiStepForm({
   const handleNext = () => {
     if (!isLastStep && canGoNext) {
       onStepChange(currentStep + 1);
-    } else if (isLastStep && onSubmit) {
-      onSubmit();
+      // Scroll to top when changing steps
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
   const handleBack = () => {
     if (!isFirstStep && canGoBack) {
       onStepChange(currentStep - 1);
+      // Scroll to top when changing steps
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (isLastStep) {
+      onSubmit();
+    } else {
+      handleNext();
     }
   };
 
   return (
     <div className="w-full">
-      {/* Progress Bar */}
+      {/* Progress Indicator */}
       {showProgress && (
         <FormProgressBar
           steps={steps}
@@ -61,53 +75,51 @@ export default function MultiStepForm({
       )}
 
       {/* Form Content */}
-      <div className="mb-6">
-        {children}
-      </div>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Current Step Content */}
+        <div className="min-h-[300px]">
+          {children}
+        </div>
 
-      {/* Navigation Buttons */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        {/* Back Button */}
-        {!isFirstStep && (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleBack}
-            disabled={!canGoBack || isSubmitting}
-            className="order-2 sm:order-1"
-            fullWidth
-          >
-            <ChevronLeft className="w-4 h-4 mr-2" />
-            {backButtonText}
-          </Button>
-        )}
-
-        {/* Next/Submit Button */}
-        <Button
-          type="button"
-          variant="primary"
-          onClick={handleNext}
-          disabled={!canGoNext || isSubmitting}
-          className="order-1 sm:order-2"
-          fullWidth
-        >
-          {isSubmitting ? (
-            "Processando..."
-          ) : isLastStep ? (
-            submitButtonText
-          ) : (
-            <>
-              {nextButtonText}
-              <ChevronRight className="w-4 h-4 ml-2" />
-            </>
+        {/* Navigation Buttons */}
+        <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200">
+          {/* Back Button */}
+          {(!isFirstStep || !hideBackOnFirstStep) && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleBack}
+              disabled={!canGoBack || isSubmitting || isFirstStep}
+              className="order-2 sm:order-1"
+            >
+              <ChevronLeft className="w-4 h-4 mr-1" />
+              {backButtonText}
+            </Button>
           )}
-        </Button>
-      </div>
 
-      {/* Step indicator for screen readers */}
-      <div className="sr-only" role="status" aria-live="polite">
-        Passo {currentStep + 1} de {steps.length}: {steps[currentStep]?.title}
-      </div>
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* Next/Submit Button */}
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={!canGoNext || isSubmitting}
+            className="order-1 sm:order-2"
+          >
+            {isSubmitting ? (
+              <span>PROCESSANDO...</span>
+            ) : isLastStep ? (
+              submitButtonText
+            ) : (
+              <>
+                {nextButtonText}
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </>
+            )}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }
