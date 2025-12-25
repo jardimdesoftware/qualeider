@@ -178,19 +178,19 @@ export default function CreateAssociation() {
     {
       value: "Municipal",
       label: "Municipal",
-      description: "Atende apenas um município",
+      description: "Um município",
       icon: <MapPin size={20} />,
     },
     {
       value: "Regional",
       label: "Regional",
-      description: "Atende uma região com vários municípios",
+      description: "Vários municípios",
       icon: <MapPin size={20} />,
     },
     {
       value: "Estadual",
       label: "Estadual",
-      description: "Atende todo o estado",
+      description: "Todo o estado",
       icon: <MapPin size={20} />,
     },
   ];
@@ -347,8 +347,7 @@ export default function CreateAssociation() {
                   }}
                   options={coverageOptions}
                   error={step3Form.formState.errors.coverageArea?.message}
-                  helperText="Selecione a área de atuação da associação"
-                  columns={3}
+                  columns={1}
                 />
               </div>
             )}

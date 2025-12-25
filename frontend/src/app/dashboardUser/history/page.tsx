@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sidebar } from "@/components/layout";
+import { DashboardLayout } from "@/components/layout";
+import { PageHeader } from "@/components/dashboard";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { collectionService } from "@/services/collectionService";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
@@ -39,20 +40,12 @@ export default function CollectionHistory() {
   if (authLoading || loading) return <DashboardLoading />;
 
   return (
-    <div className="flex flex-col lg:flex-row bg-[#fdfbf7] min-h-screen">
-      <Sidebar />
-      <div className="flex-1 overflow-y-auto">
-        <header className="bg-white shadow-sm border-b border-slate-200 px-6 md:px-8 py-6">
-           <div className="flex items-center gap-3">
-             <FileText className="text-[#1e3a29]" size={28} />
-             <div>
-                <h2 className="text-2xl md:text-3xl font-black text-[#1e3a29]">
-                    Histórico de Coletas
-                </h2>
-                <p className="text-slate-500">Visualize seus envios anteriores</p>
-             </div>
-          </div>
-        </header>
+    <>
+      <DashboardLayout>
+        <PageHeader
+          title="Histórico de Coletas"
+          subtitle="Visualize seus envios anteriores"
+        />
 
         <div className="p-6 md:p-8 max-w-5xl mx-auto">
           <div className="bg-white rounded-xl shadow-md border border-slate-100 overflow-hidden">
@@ -107,13 +100,13 @@ export default function CollectionHistory() {
             </div>
           </div>
         </div>
-      </div>
+      </DashboardLayout>
 
       <CollectionDetailsModal 
         isOpen={!!selectedCollection}
         onClose={() => setSelectedCollection(null)}
         collection={selectedCollection}
       />
-    </div>
+    </>
   );
 }

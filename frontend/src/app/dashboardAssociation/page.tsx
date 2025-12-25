@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { DashboardLayout } from "@/components/layout";
+import { PageHeader } from "@/components/dashboard";
 import { EmptyState, MetricCard } from "@/components/ui";
-import { Activity, Milk, Cat, Ruler, Wheat, Droplet, BarChart3, Calendar } from "lucide-react";
+import { Activity, Milk, Cat, Ruler, Wheat, Droplet, BarChart3 } from "lucide-react";
 import dynamic from "next/dynamic";
 const AnimalDistributionChart = dynamic(() => import("@/components/dashboard/AnimalDistributionChart"), { ssr: false, loading: () => <p className="text-center py-10 text-slate-400">Carregando gráfico...</p> });
 const MilkLast7DaysChart = dynamic(() => import("@/components/dashboard/MilkLast7DaysChart"), { ssr: false, loading: () => <p className="text-center py-10 text-slate-400">Carregando gráfico...</p> });
@@ -51,25 +53,11 @@ export default function DashboardAssociation() {
   }
 
   return (
-    <>
-        {/* Header */}
-        <header className="bg-white shadow-sm border-b border-slate-200 px-6 md:px-8 py-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl md:text-3xl font-black text-[#1e3a29]">
-              Painel de Controle
-            </h2>
-            <p className="text-slate-500">
-              Bem-vindo de volta!
-            </p>
-          </div>
-          <div className="flex items-center gap-4 bg-[#fdfbf7] px-4 py-2 rounded-lg border border-slate-200">
-            <div className="text-right hidden md:block">
-              <p className="text-xs text-slate-400 font-bold uppercase">Data de Hoje</p>
-              <p className="text-[#1e3a29] font-bold">{currentDate}</p>
-            </div>
-            <Calendar className="w-8 h-8 text-[#d97706]" />
-          </div>
-        </header>
+    <DashboardLayout>
+      <PageHeader
+        title="Painel de Controle"
+        subtitle="Bem-vindo de volta!"
+      />
 
         <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8">
           {/* Empty States */}
@@ -172,7 +160,7 @@ export default function DashboardAssociation() {
             <AnimalDistributionChart data={pieChartData} />
             <MilkLast7DaysChart data={lineChartData} />
           </section>
-        </div>
-    </>
+      </div>
+    </DashboardLayout>
   );
 }
