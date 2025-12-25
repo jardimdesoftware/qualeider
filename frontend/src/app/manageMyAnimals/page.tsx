@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Sidebar } from "@/components/layout";
+import { DashboardLayout } from "@/components/layout";
+import { PageHeader } from "@/components/dashboard";
 import { Button, EmptyState, ErrorModal, InputField } from "@/components/ui";
 import { Cat, Plus, Edit, Trash2 } from "lucide-react";
 import { Animal } from "@/interfaces/animal";
@@ -117,20 +118,12 @@ export default function ManageAnimals() {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row bg-[#fdfbf7] min-h-screen">
-      <Sidebar />
-      <div className="flex-1 overflow-y-auto">
-        {/* Header */}
-        <header className="bg-white shadow-sm border-b border-slate-200 px-6 md:px-8 py-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-2xl md:text-3xl font-black text-[#1e3a29]">
-                Meus Animais
-              </h2>
-              <p className="text-slate-500">Gerencie seu rebanho</p>
-            </div>
-          </div>
-        </header>
+    <>
+      <DashboardLayout>
+        <PageHeader
+          title="Meus Animais"
+          subtitle="Gerencie seu rebanho"
+        />
 
         <div className="p-6 md:p-8 max-w-7xl mx-auto">
           {/* Search Bar & Action */}
@@ -256,7 +249,7 @@ export default function ManageAnimals() {
             </>
           )}
         </div>
-      </div>
+      </DashboardLayout>
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
@@ -299,6 +292,6 @@ export default function ManageAnimals() {
         message={modalMessage}
         type="error"
       />
-    </div>
+    </>
   );
 }
