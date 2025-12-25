@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Sidebar } from "@/components/layout";
+import { DashboardLayout } from "@/components/layout";
+import { PageHeader } from "@/components/dashboard";
 import { apiBase } from "@/services/baseApi";
 import { MetricCard, EmptyState, ErrorModal } from "@/components/ui";
-import { Activity, Milk, Cat, Ruler, Wheat, Droplet, BarChart3, Calendar } from "lucide-react";
+import { Activity, Milk, Cat, Ruler, Wheat, Droplet, BarChart3 } from "lucide-react";
 import { Animal } from "@/interfaces/animal";
 import { DailyCollection } from "@/interfaces/daily-collection";
 import dynamic from "next/dynamic";
@@ -199,27 +200,12 @@ export default function DashboardUser() {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row bg-[#fdfbf7] min-h-screen">
-      <Sidebar />
-      <div className="flex-1 overflow-y-auto">
-        {/* Header */}
-        <header className="bg-white shadow-sm border-b border-slate-200 px-6 md:px-8 py-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl md:text-3xl font-black text-[#1e3a29]">
-              Painel de Controle
-            </h2>
-            <p className="text-slate-500">
-              Bem-vindo de volta!
-            </p>
-          </div>
-          <div className="flex items-center gap-4 bg-[#fdfbf7] px-4 py-2 rounded-lg border border-slate-200">
-            <div className="text-right hidden md:block">
-              <p className="text-xs text-slate-400 font-bold uppercase">Data de Hoje</p>
-              <p className="text-[#1e3a29] font-bold">{currentDate}</p>
-            </div>
-            <Calendar className="w-8 h-8 text-[#d97706]" />
-          </div>
-        </header>
+    <>
+      <DashboardLayout>
+        <PageHeader
+          title="Painel de Controle"
+          subtitle="Bem-vindo de volta!"
+        />
 
         <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8">
             
@@ -357,7 +343,7 @@ export default function DashboardUser() {
             <MilkLast7DaysChart data={lineChartData} />
           </section>
         </div>
-      </div>
+    </DashboardLayout>
       
       <ErrorModal
         isOpen={modalState.isOpen}
@@ -366,6 +352,6 @@ export default function DashboardUser() {
         message={modalState.message}
         type={modalState.type}
       />
-    </div>
+    </>
   );
 }

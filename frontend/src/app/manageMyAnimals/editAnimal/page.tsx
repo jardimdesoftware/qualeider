@@ -4,7 +4,8 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Sidebar } from "@/components/layout";
+import { DashboardLayout } from "@/components/layout";
+import { PageHeader } from "@/components/dashboard";
 import { Button, InputField, SelectField, ErrorModal } from "@/components/ui";
 import { BREED_OPTIONS } from "@/constants/animal-breeds";
 import { AnimalType } from "@/interfaces/animal";
@@ -99,15 +100,12 @@ function EditAnimalContent() {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row bg-[#fdfbf7] min-h-screen">
-      <Sidebar />
-      <div className="flex-1 overflow-y-auto">
-        <header className="bg-white shadow-sm border-b border-slate-200 px-6 md:px-8 py-6">
-          <h2 className="text-2xl md:text-3xl font-black text-[#1e3a29]">
-            Editar Animal
-          </h2>
-          <p className="text-slate-500">Atualize as informações do animal</p>
-        </header>
+    <>
+      <DashboardLayout>
+        <PageHeader
+          title="Editar Animal"
+          subtitle="Atualize as informações do animal"
+        />
 
         <div className="p-6 md:p-8 max-w-3xl mx-auto">
           <div className="bg-white rounded-xl shadow-md border border-slate-100 p-6 md:p-8">
@@ -171,7 +169,7 @@ function EditAnimalContent() {
             </form>
           </div>
         </div>
-      </div>
+      </DashboardLayout>
 
       <ErrorModal
         isOpen={modalState.isOpen}
@@ -185,7 +183,7 @@ function EditAnimalContent() {
         message={modalState.message}
         type={modalState.type as any}
       />
-    </div>
+    </>
   );
 }
 

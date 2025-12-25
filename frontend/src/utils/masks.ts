@@ -25,6 +25,19 @@ export function maskCNPJ(value: string): string {
     .replace(/(\d{4})(\d{1,2})$/, "$1-$2");
 }
 
+/**
+ * (00000-000)
+ */
+export function maskCEP(value: string): string {
+  const cleaned = value.replace(/\D/g, "");
+  const limited = cleaned.substring(0, 8);
+  
+  if (limited.length <= 5) {
+    return limited;
+  }
+  return `${limited.slice(0, 5)}-${limited.slice(5, 8)}`;
+}
+
 export function maskPhone(value: string): string {
   const cleaned = value.replace(/\D/g, "");
   const limited = cleaned.substring(0, 11);
@@ -52,6 +65,10 @@ export function isValidCPFFormat(cpf: string): boolean {
 
 export function isValidCNPJFormat(cnpj: string): boolean {
   return /^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/.test(cnpj);
+}
+
+export function isValidCEPFormat(cep: string): boolean {
+  return /^\d{5}-\d{3}$/.test(cep);
 }
 
 export function isValidPhoneFormat(phone: string): boolean {
