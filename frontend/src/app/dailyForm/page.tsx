@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Save } from "lucide-react";
-import { Sidebar } from "@/components/layout";
+import { DashboardLayout } from "@/components/layout";
+import { PageHeader } from "@/components/dashboard";
 import { ErrorModal } from "@/components/ui";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { MilkingPlace } from "@/interfaces/daily-collection";
@@ -141,16 +142,14 @@ export default function DailyForm() {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row bg-[#fdfbf7] min-h-screen">
-      <Sidebar />
+    <DashboardLayout>
+      <PageHeader
+        title="Registrar Coleta Diária"
+        subtitle="Informe os dados da coleta de hoje"
+      />
       <div className="flex-1 overflow-y-auto pb-24 md:pb-0">
         
-        <DailyHeader
-          totalMilk={totals.totalMilk}
-          milkedCows={totals.milkedCows}
-          totalAnimals={animals.length}
-          displayDate={displayDate}
-        />
+        {/* DailyHeader was here, now replaced by PageHeader */}
 
         {/* Animal List */}
         <div className="p-4 space-y-4 max-w-2xl mx-auto">
@@ -194,19 +193,20 @@ export default function DailyForm() {
         errors={errors}
         isSubmitting={isSubmitting}
       />
+    </DashboardLayout>
 
-      <ErrorModal
-        isOpen={modalState.isOpen}
-        onClose={() => {
-          setModalState(prev => ({ ...prev, isOpen: false }));
-          if (modalState.type === "success") {
-            router.push("/dashboardUser");
-          }
-        }}
-        title={modalState.type === "success" ? "Sucesso!" : "Atenção"}
-        message={modalState.message}
-        type={modalState.type}
-      />
-    </div>
+    <ErrorModal
+      isOpen={modalState.isOpen}
+      onClose={() => {
+        setModalState(prev => ({ ...prev, isOpen: false }));
+        if (modalState.type === "success") {
+          router.push("/dashboardUser");
+        }
+      }}
+      title={modalState.type === "success" ? "Sucesso!" : "Atenção"}
+      message={modalState.message}
+      type={modalState.type}
+    />
   );
 }
+```
