@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Save } from "lucide-react";
 import { DashboardLayout } from "@/components/layout";
 import { PageHeader } from "@/components/dashboard";
+import { StickyTotalsBar } from "@/components/dailyForm";
 import { ErrorModal } from "@/components/ui";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { MilkingPlace } from "@/interfaces/daily-collection";
@@ -18,7 +19,6 @@ import { Animal } from "@/interfaces/animal";
 import { getLocalDate, formatDateLongBR } from "@/utils/date";
 import { getFriendlyErrorMessage } from "@/utils/errorMessage";
 import { AnimalCollectionCard } from "./_components/AnimalCollectionCard";
-import { DailyHeader } from "./_components/DailyHeader";
 import { CollectionSummaryModal } from "./_components/CollectionSummaryModal";
 
 export default function DailyForm() {
@@ -142,15 +142,21 @@ export default function DailyForm() {
   }
 
   return (
-    <DashboardLayout>
-      <PageHeader
-        title="Registrar Coleta Diária"
-        subtitle="Informe os dados da coleta de hoje"
-      />
+    <>
+      <DashboardLayout>
+        <PageHeader
+          title="Registrar Coleta Diária"
+          subtitle="Informe os dados da coleta de hoje"
+        />
+        
+        <StickyTotalsBar
+          totalMilk={totals.totalMilk}
+          milkedCows={totals.milkedCows}
+          totalAnimals={animals.length}
+        />
+
       <div className="flex-1 overflow-y-auto pb-24 md:pb-0">
         
-        {/* DailyHeader was here, now replaced by PageHeader */}
-
         {/* Animal List */}
         <div className="p-4 space-y-4 max-w-2xl mx-auto">
           {animals.length === 0 ? (
@@ -207,6 +213,6 @@ export default function DailyForm() {
       message={modalState.message}
       type={modalState.type}
     />
+    </>
   );
 }
-```
