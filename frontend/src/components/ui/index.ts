@@ -14,6 +14,7 @@ export { default as CEPInputField } from "./cep-input-field";
 export { default as RadioCardGroup } from "./radio-card-group";
 export { default as FormProgressBar } from "./form-progress-bar";
 export { default as MultiStepForm } from "./multi-step-form";
+export { default as PasswordStrength } from "./password-strength";
 
 // Export types
 export type { AddressData } from "./cep-input-field";

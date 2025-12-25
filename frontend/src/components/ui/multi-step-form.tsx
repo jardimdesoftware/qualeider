@@ -82,15 +82,14 @@ export default function MultiStepForm({
         </div>
 
         {/* Navigation Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200">
+        <div className="flex flex-row items-center gap-3 pt-4 border-t border-gray-200">
           {/* Back Button */}
           {(!isFirstStep || !hideBackOnFirstStep) && (
             <Button
               type="button"
               variant="outline"
               onClick={handleBack}
-              disabled={!canGoBack || isSubmitting || isFirstStep}
-              className="order-2 sm:order-1"
+              disabled={!canGoBack || isSubmitting}
             >
               <ChevronLeft className="w-4 h-4 mr-1" />
               {backButtonText}
@@ -105,17 +104,17 @@ export default function MultiStepForm({
             type="submit"
             variant="primary"
             disabled={!canGoNext || isSubmitting}
-            className="order-1 sm:order-2"
+            className="whitespace-nowrap w-full sm:w-auto"
           >
             {isSubmitting ? (
               <span>PROCESSANDO...</span>
             ) : isLastStep ? (
               submitButtonText
             ) : (
-              <>
+              <span className="flex items-center gap-1">
                 {nextButtonText}
-                <ChevronRight className="w-4 h-4 ml-1" />
-              </>
+                <ChevronRight className="w-4 h-4" />
+              </span>
             )}
           </Button>
         </div>

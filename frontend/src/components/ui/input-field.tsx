@@ -1,5 +1,5 @@
 import { InputHTMLAttributes, useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, AlertCircle } from "lucide-react";
 
 interface InputFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
@@ -29,6 +29,8 @@ export default function InputField({
       : "password"
     : type;
 
+  const hasIcon = showPasswordToggle || error;
+
   return (
     <div className="space-y-1">
       <label className="text-brand-primary font-medium text-sm">{label}</label>
@@ -39,12 +41,16 @@ export default function InputField({
             focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent
             disabled:bg-gray-100 disabled:cursor-not-allowed
             ${error ? "border-red-500" : ""}
-            ${showPasswordToggle ? "pr-10" : ""}
+            ${hasIcon ? "pr-10" : ""}
             ${className}`}
           {...registration}
           {...props}
         />
-        {showPasswordToggle && (
+        {error ? (
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-red-500">
+            <AlertCircle size={18} />
+          </div>
+        ) : showPasswordToggle ? (
           <button
             type="button"
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
@@ -53,7 +59,7 @@ export default function InputField({
           >
             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
-        )}
+        ) : null}
       </div>
       {helperText && !error && (
         <p className="text-gray-500 text-xs mt-1 flex items-start gap-1">
@@ -61,7 +67,12 @@ export default function InputField({
           <span>{helperText}</span>
         </p>
       )}
-      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+      {error && (
+        <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+          <AlertCircle size={12} />
+          {error}
+        </p>
+      )}
     </div>
   );
 }
