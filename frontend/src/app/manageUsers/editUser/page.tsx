@@ -1,32 +1,27 @@
 "use client";
 
-import { Sidebar } from "@/components/layout";
+import { DashboardLayout } from "@/components/layout";
+import { PageHeader } from "@/components/dashboard";
 import { EmptyState } from "@/components/ui";
 import { UserCog } from "lucide-react";
 
 export default function EditUser() {
   return (
-    <div className="flex flex-col lg:flex-row bg-[#fdfbf7] min-h-screen">
-      <Sidebar />
-      <div className="flex-1 overflow-y-auto">
-        {/* Header */}
-        <header className="bg-white shadow-sm border-b border-slate-200 px-6 md:px-8 py-6">
-          <h2 className="text-2xl md:text-3xl font-black text-[#1e3a29]">
-            Editar Usuário
-          </h2>
-          <p className="text-slate-500">Atualize as informações do produtor</p>
-        </header>
+    <DashboardLayout>
+      <PageHeader
+        title="Editar Usuário"
+        subtitle="Atualize as informações do produtor"
+      />
 
-        <div className="p-6 md:p-8 max-w-7xl mx-auto">
-          <EmptyState
-            icon={<UserCog size={48} className="text-slate-400" />}
-            title="Funcionalidade em desenvolvimento"
-            description="A edição de usuários será implementada em breve."
-            actionHref="/manageUsers"
-            actionLabel="Voltar"
-          />
-        </div>
+      <div className="p-6 md:p-8 max-w-7xl mx-auto">
+        <EmptyState
+          icon={<UserCog size={48} className="text-slate-400" />}
+          title="Funcionalidade em desenvolvimento"
+          description="A edição de usuários será implementada em breve."
+          actionHref="/manageUsers"
+          actionLabel="Voltar"
+        />
       </div>
-    </div>
+    </DashboardLayout>
   );
 }
