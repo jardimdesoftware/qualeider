@@ -33,3 +33,21 @@ export const formatDateLongBR = (date: Date | string): string => {
     year: "numeric",
   });
 };
+
+/**
+ * Format date with time in Brazilian Portuguese format
+ * Example: "25 de dezembro às 14:30"
+ */
+export const formatDateTimeBR = (date: Date | string): string => {
+  const dateObj = typeof date === "string" ? new Date(date) : date;
+  
+  const day = dateObj.toLocaleDateString("pt-BR", { day: "2-digit" });
+  const month = dateObj.toLocaleDateString("pt-BR", { month: "long" });
+  const time = dateObj.toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+
+  return `${day} de ${month} às ${time}`;
+};

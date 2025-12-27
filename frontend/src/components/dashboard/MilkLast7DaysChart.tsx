@@ -11,6 +11,7 @@ import {
 } from "recharts";
 import { EmptyState } from "@/components/ui";
 import { Milk } from "lucide-react";
+import { ICON_SIZES } from "@/constants/ui";
 
 interface LineChartData {
   date: string;
@@ -89,7 +90,7 @@ export default function MilkLast7DaysChart({ data }: MilkLast7DaysChartProps) {
       ) : (
         <div className="flex-1 flex items-center justify-center">
           <EmptyState
-            icon={<Milk size={32} />}
+            icon={<Milk size={ICON_SIZES.LG} />}
             title="Sem dados recentes"
             description="Registre coletas para ver o gráfico."
             actionHref="/dailyForm"

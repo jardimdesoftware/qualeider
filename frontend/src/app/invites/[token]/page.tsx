@@ -5,6 +5,7 @@ import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { inviteService } from "@/services/inviteService";
 import { toast } from "react-hot-toast";
 import { Loader2 } from "lucide-react";
+import { TIMING, STROKE_WIDTH } from "@/constants/ui";
 
 export default function InvitePage() {
   const router = useRouter();
@@ -15,17 +16,14 @@ export default function InvitePage() {
 
   useEffect(() => {
     const processInvite = async () => {
-      // Small delay to ensure UI renders
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, TIMING.DEBOUNCE_SHORT));
 
       const token = params?.token as string;
       const action = searchParams?.get("action");
-
-      // Validate params
       if (!token) {
         setStatus("error");
         setMessage("Token de convite inválido ou ausente.");
-        return;
+        return; 
       }
 
       if (!action || (action !== "accept" && action !== "decline")) {
@@ -46,15 +44,13 @@ export default function InvitePage() {
         setMessage(successMsg);
         toast.success(successMsg);
 
-        // Redirect after short delay
         setTimeout(() => {
           router.push("/dashboardUser?tab=memberships");
-        }, 2000);
+        }, TIMING.DEBOUNCE_SHORT);
       } catch (error: any) {
         console.error("Invite error:", error);
         setStatus("error");
         
-        // Handle specific error messages if available
         const errorMsg = error.response?.data?.message || "Erro ao processar convite. Tente novamente ou contate o suporte.";
         setMessage(errorMsg);
         toast.error(errorMsg);
@@ -87,7 +83,7 @@ export default function InvitePage() {
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth={2}
+                  strokeWidth={STROKE_WIDTH.NORMAL}
                   d="M5 13l4 4L19 7"
                 />
               </svg>
@@ -109,7 +105,7 @@ export default function InvitePage() {
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth={2}
+                  strokeWidth={STROKE_WIDTH.NORMAL}
                   d="M6 18L18 6M6 6l12 12"
                 />
               </svg>

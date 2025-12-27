@@ -6,8 +6,8 @@ import { notificationService } from "@/services/notificationService";
 import { UserNotification } from "@/interfaces/notification";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { Bell, CheckCircle, MailOpen } from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { formatDateTimeBR } from "@/utils/date";
+import { ICON_SIZES } from "@/constants/ui";
 
 export default function UserNotificationsPage() {
   const { userId, isLoading: authLoading } = useAuthGuard("user");
@@ -48,7 +48,7 @@ export default function UserNotificationsPage() {
     <div className="flex-1 overflow-y-auto bg-[#fdfbf7] min-h-screen">
       <header className="bg-white shadow-sm border-b border-slate-200 px-6 md:px-8 py-6">
         <div className="flex items-center gap-3">
-          <Bell className="text-[#1e3a29]" size={28} />
+          <Bell className="text-[#1e3a29]" size={ICON_SIZES.LG} />
           <div>
             <h2 className="text-2xl md:text-3xl font-black text-[#1e3a29]">
               Minhas Notificações
@@ -78,7 +78,7 @@ export default function UserNotificationsPage() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                      {format(new Date(item.createdAt), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
+                      {formatDateTimeBR(item.createdAt)}
                     </span>
                     {!item.read && (
                       <span className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full font-bold">
@@ -100,7 +100,7 @@ export default function UserNotificationsPage() {
                     className="text-green-600 hover:text-green-800 hover:bg-green-50 p-2 rounded-full transition-colors"
                     title="Marcar como lida"
                   >
-                    <CheckCircle size={24} />
+                    <CheckCircle size={ICON_SIZES.MD} />
                   </button>
                 )}
               </div>

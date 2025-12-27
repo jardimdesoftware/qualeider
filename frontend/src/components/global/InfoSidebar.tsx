@@ -1,4 +1,6 @@
+import Link from "next/link";
 import Image from "next/image";
+import { LOGO_SIZES } from "@/constants/ui";
 
 interface InfoItem {
   title: string;
@@ -51,7 +53,7 @@ export default function InfoSidebar({
 
       {/* Logo no canto inferior direito */}
       <div className="mt-auto flex justify-end pt-8">
-        <Image src="/logo_icon.svg" alt="Logo QualeIDer" className="w-20 h-20" width={80} height={80} />
+        <Image src="/logo_icon.svg" alt="Logo QualeIDer" className="w-20 h-20" width={LOGO_SIZES.XL} height={LOGO_SIZES.XL} />
       </div>
     </div>
   );

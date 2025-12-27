@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import { FileDown, Loader2 } from "lucide-react";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import { ProducerRanking, MonthlyReport } from "@/interfaces/report";
 
 interface ReportExportButtonProps {
@@ -19,10 +17,14 @@ export default function ReportExportButton({
 }: ReportExportButtonProps) {
   const [exporting, setExporting] = useState(false);
 
-  const generatePDF = () => {
+  const generatePDF = async () => {
     setExporting(true);
 
     try {
+      const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+        import("jspdf"),
+        import("jspdf-autotable")
+      ]);
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
       let yPosition = 20;

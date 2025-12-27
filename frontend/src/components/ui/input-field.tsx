@@ -1,5 +1,6 @@
 import { InputHTMLAttributes, useState } from "react";
 import { Eye, EyeOff, AlertCircle } from "lucide-react";
+import { ICON_SIZES } from "@/constants/ui";
 
 interface InputFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
@@ -48,7 +49,7 @@ export default function InputField({
         />
         {error ? (
           <div className="absolute right-3 top-1/2 -translate-y-1/2 text-red-500">
-            <AlertCircle size={18} />
+            <AlertCircle size={ICON_SIZES.XS} />
           </div>
         ) : showPasswordToggle ? (
           <button
@@ -57,7 +58,7 @@ export default function InputField({
             onClick={() => setShowPassword(!showPassword)}
             tabIndex={-1}
           >
-            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            {showPassword ? <EyeOff size={ICON_SIZES.XS} /> : <Eye size={ICON_SIZES.XS} />}
           </button>
         ) : null}
       </div>
@@ -69,7 +70,7 @@ export default function InputField({
       )}
       {error && (
         <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
-          <AlertCircle size={12} />
+          <AlertCircle size={ICON_SIZES.XXS} />
           {error}
         </p>
       )}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Loader2, MapPin } from "lucide-react";
+import { TIMING } from "@/constants/ui";
 import { formatCEP, cleanCEP, lookupSimpleAddress, CEPError } from "@/services/cepService";
 
 export interface AddressData {
@@ -74,10 +75,9 @@ export default function CEPInputField({
     // Auto-fetch when CEP is complete (8 digits)
     const cleaned = cleanCEP(formatted);
     if (cleaned.length === 8) {
-      // Debounce by 500ms
       const timer = setTimeout(() => {
         fetchAddress(formatted);
-      }, 500);
+      }, TIMING.DEBOUNCE_LONG);
       return () => clearTimeout(timer);
     }
   };

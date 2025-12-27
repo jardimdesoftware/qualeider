@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/layout";
 import { PageHeader } from "@/components/dashboard";
@@ -10,6 +10,8 @@ import { Animal } from "@/interfaces/animal";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { animalService } from "@/services/animalService";
+import { debounce } from "@/utils/debounce";
+import { BREAKPOINTS, TIMING, ANIMALS_PAGINATION, ICON_SIZES, LOGO_SIZES } from "@/constants/ui";
 
 export default function ManageAnimals() {
   const router = useRouter();
@@ -18,7 +20,7 @@ export default function ManageAnimals() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [animalsPerPage, setAnimalsPerPage] = useState(7);
+  const [animalsPerPage, setAnimalsPerPage] = useState<number>(ANIMALS_PAGINATION.DESKTOP);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -42,10 +44,6 @@ export default function ManageAnimals() {
     }
   };
 
-  useEffect(() => {
-    fetchAnimals();
-  }, []);
-
   const filteredAnimals = animals.filter(
     (animal) =>
       (animal.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -67,20 +65,25 @@ export default function ManageAnimals() {
     setCurrentPage(1);
   }, [searchTerm]);
 
+  const debouncedHandleResize = useMemo(
+    () =>
+      debounce(() => {
+        if (window.innerWidth < BREAKPOINTS.MOBILE_SMALL) {
+          setAnimalsPerPage(ANIMALS_PAGINATION.MOBILE_SMALL);
+        } else if (window.innerWidth > BREAKPOINTS.MOBILE_SMALL && window.innerWidth < BREAKPOINTS.MOBILE) {
+          setAnimalsPerPage(ANIMALS_PAGINATION.MOBILE_LARGE);
+        } else {
+          setAnimalsPerPage(ANIMALS_PAGINATION.DESKTOP);
+        }
+      }, TIMING.DEBOUNCE_SHORT),
+    []
+  );
+
   useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 400) {
-        setAnimalsPerPage(2);
-      } else if (window.innerWidth > 400 && window.innerWidth < 768) {
-        setAnimalsPerPage(4);
-      } else {
-        setAnimalsPerPage(7);
-      }
-    };
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+    debouncedHandleResize();
+    window.addEventListener("resize", debouncedHandleResize);
+    return () => window.removeEventListener("resize", debouncedHandleResize);
+  }, [debouncedHandleResize]);
 
   const confirmDelete = (animalId: number) => {
     setAnimalToDelete(animalId);
@@ -137,7 +140,7 @@ export default function ManageAnimals() {
               />
             </div>
             <Button onClick={handleAddAnimal} variant="primary" className="mb-[2px]">
-              <Plus size={20} className="mr-2" />
+              <Plus size={ICON_SIZES.SM} className="mr-2" />
               Adicionar Animal
             </Button>
           </div>
@@ -145,7 +148,7 @@ export default function ManageAnimals() {
           {/* Empty State */}
           {animals.length === 0 && (
             <EmptyState
-              icon={<Cat size={48} className="text-slate-400" />}
+              icon={<Cat size={LOGO_SIZES.LG} className="text-slate-400" />}
               title="Nenhum animal cadastrado"
               description="Cadastre seu primeiro animal para começar a gerenciar seu rebanho."
               actionHref="/manageMyAnimals/addAnimal"

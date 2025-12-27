@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Home } from "lucide-react"; 
+import { ICON_SIZES } from "@/constants/ui";
 
 export default function NotFound() {
   return (
@@ -17,7 +18,7 @@ export default function NotFound() {
         href="/"
         className="mt-8 flex items-center justify-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
       >
-        <Home className="mr-2" size={20} /> 
+        <Home className="mr-2" size={ICON_SIZES.LG} /> 
         Voltar para a Home
       </Link>
     </div>

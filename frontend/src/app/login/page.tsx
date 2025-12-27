@@ -24,22 +24,19 @@ export default function Login() {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // Setup do React Hook Form
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
-    mode: "onBlur", // Valida quando o usuário sai do campo
+    mode: "onBlur",
   });
 
-  // Função de Login simplificada
   const onSubmit = async (data: LoginData) => {
     try {
       const { userType } = await authService.login(data);
 
-      // Roteamento baseado no tipo (Regra de navegação)
       const routes = {
         association: "/dashboardAssociation",
         user: "/dashboardUser",
