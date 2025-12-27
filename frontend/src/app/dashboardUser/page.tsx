@@ -16,6 +16,7 @@ import { inviteService } from "@/services/inviteService";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { animalService } from "@/services/animalService";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
+import { ICON_SIZES } from "@/constants/ui";
 
 
 export default function DashboardUser() {
@@ -255,7 +256,7 @@ export default function DashboardUser() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
               {!hasAnimals && (
                 <EmptyState
-                  icon={<Cat size={40} />}
+                  icon={<Cat size={ICON_SIZES.XL} />}
                   title="Nenhum animal cadastrado"
                   description="Cadastre seu primeiro animal para ver métricas e gráficos."
                   actionHref="/manageMyAnimals"
@@ -264,7 +265,7 @@ export default function DashboardUser() {
               )}
               {!hasCollections && (
                 <EmptyState
-                  icon={<Milk size={40} />}
+                  icon={<Milk size={ICON_SIZES.XL} />}
                   title="Nenhuma coleta diária registrada"
                   description="Registre sua primeira coleta para visualizar o histórico."
                   actionHref="/dailyForm"
@@ -285,7 +286,7 @@ export default function DashboardUser() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <MetricCard
-                icon={<Cat size={24} />}
+                icon={<Cat size={ICON_SIZES.MD} />}
                 iconColor="text-green-600"
                 iconBgColor="bg-green-50"
                 borderColor="border-[#1e3a29]"
@@ -294,7 +295,7 @@ export default function DashboardUser() {
               />
 
               <MetricCard
-                icon={<Milk size={24} />}
+                icon={<Milk size={ICON_SIZES.MD} />}
                 iconColor="text-blue-600"
                 iconBgColor="bg-blue-50"
                 borderColor="border-[#1e3a29]"
@@ -304,7 +305,7 @@ export default function DashboardUser() {
               />
 
               <MetricCard
-                icon={<Ruler size={24} />}
+                icon={<Ruler size={ICON_SIZES.MD} />}
                 iconColor="text-purple-600"
                 iconBgColor="bg-purple-50"
                 borderColor="border-[#d97706]"
@@ -314,7 +315,7 @@ export default function DashboardUser() {
               />
 
               <MetricCard
-                icon={<Wheat size={24} />}
+                icon={<Wheat size={ICON_SIZES.MD} />}
                 iconColor="text-amber-600"
                 iconBgColor="bg-amber-50"
                 borderColor="border-[#d97706]"
@@ -324,7 +325,7 @@ export default function DashboardUser() {
               />
 
               <MetricCard
-                icon={<Activity size={24} />}
+                icon={<Activity size={ICON_SIZES.MD} />}
                 iconColor="text-green-700"
                 iconBgColor="bg-green-50"
                 borderColor="border-[#1e3a29]"
@@ -334,7 +335,7 @@ export default function DashboardUser() {
               />
 
               <MetricCard
-                icon={<Droplet size={24} />}
+                icon={<Droplet size={ICON_SIZES.MD} />}
                 iconColor="text-red-600"
                 iconBgColor="bg-red-50"
                 borderColor="border-red-500"

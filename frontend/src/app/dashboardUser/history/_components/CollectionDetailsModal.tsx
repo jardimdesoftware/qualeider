@@ -1,7 +1,8 @@
-
 import React, { useEffect } from 'react';
 import { X, Milk } from 'lucide-react';
 import { DailyCollection } from '@/interfaces/daily-collection';
+import { formatDateBR } from "@/utils/date";
+import { ICON_SIZES } from "@/constants/ui";
 
 interface CollectionDetailsModalProps {
   isOpen: boolean;
@@ -32,7 +33,7 @@ export function CollectionDetailsModal({ isOpen, onClose, collection }: Collecti
       >
         <header className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-[#fdfbf7]">
           <div className="flex items-center gap-2">
-            <Milk className="text-[#d97706]" size={24} />
+            <Milk className="text-[#d97706]" size={ICON_SIZES.MD} />
             <div>
             <h3 id="collection-details-title" className="text-lg font-bold text-[#1e3a29]">Detalhes da Coleta</h3>
               <p className="text-sm text-slate-500">
@@ -45,7 +46,7 @@ export function CollectionDetailsModal({ isOpen, onClose, collection }: Collecti
             className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
             aria-label="Fechar modal"
           >
-            <X size={20} />
+            <X size={ICON_SIZES.SM} />
           </button>
         </header>
 

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { LOGO_SIZES } from "@/constants/ui";
 
 interface BrandHeaderProps {
   title: string;
@@ -20,8 +21,8 @@ export default function BrandHeader({
           src={logoSrc}
           alt={`${title} Logo`}
           className="w-24 h-24"
-          width={96}
-          height={96}
+          width={LOGO_SIZES.XXL}
+          height={LOGO_SIZES.XXL}
         />
       </div>
 

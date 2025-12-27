@@ -13,7 +13,15 @@ interface AnimalDistributionChartProps {
   data: PieChartData[];
 }
 
-const COLORS = ["#4E79A7", "#E15759", "#76B7B2", "#59A14F", "#F28E2B"];
+const CHART_COLORS = ["#4E79A7", "#E15759", "#76B7B2", "#59A14F", "#F28E2B"];
+
+const CHART_DIMENSIONS = {
+  WIDTH: 345,
+  HEIGHT: 300,
+  OUTER_RADIUS: 90,
+} as const;
+
+const ICON_SIZE = 32;
 
 export default function AnimalDistributionChart({
   data,
@@ -27,12 +35,12 @@ export default function AnimalDistributionChart({
       </h2>
       {hasAnimals ? (
         <div className="w-full flex justify-center">
-          <PieChart width={345} height={300}>
+          <PieChart width={CHART_DIMENSIONS.WIDTH} height={CHART_DIMENSIONS.HEIGHT}>
             <Pie
               data={data}
               cx="50%"
               cy="50%"
-              outerRadius={90}
+              outerRadius={CHART_DIMENSIONS.OUTER_RADIUS}
               fill="#8884d8"
               dataKey="value"
               label={({ percent }) => `(${(percent * 100).toFixed(0)}%)`}
@@ -40,7 +48,7 @@ export default function AnimalDistributionChart({
               {data.map((entry, index) => (
                 <Cell
                   key={`cell-${index}`}
-                  fill={COLORS[index % COLORS.length]}
+                  fill={CHART_COLORS[index % CHART_COLORS.length]}
                 />
               ))}
             </Pie>
@@ -51,7 +59,7 @@ export default function AnimalDistributionChart({
       ) : (
         <div className="w-full mt-4">
           <EmptyState
-            icon={<Cat size={32} />}
+            icon={<Cat size={ICON_SIZE} />}
             title="Sem dados de animais"
             description="Cadastre animais para ver a distribuição por tipo."
             actionHref="/manageAnimals/create"

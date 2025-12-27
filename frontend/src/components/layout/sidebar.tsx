@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { getUserTypeFromToken, clearAuthToken } from "@/utils/auth";
 import { debounce } from "@/utils/debounce";
+import { BREAKPOINTS, ICON_SIZES, LOGO_SIZES, TIMING } from "@/constants/ui";
 
 export default function Sidebar() {
   const [isMobile, setIsMobile] = useState(false);
@@ -24,8 +25,8 @@ export default function Sidebar() {
   const debouncedCheckScreenSize = useMemo(
     () =>
       debounce(() => {
-        setIsMobile(window.innerWidth < 768);
-      }, 150),
+        setIsMobile(window.innerWidth < BREAKPOINTS.MOBILE);
+      }, TIMING.DEBOUNCE_SHORT),
     []
   );
 
@@ -49,57 +50,22 @@ export default function Sidebar() {
   };
 
   const menuItems =
-    userRole === "association"
+    userRole === "user"
       ? [
-          {
-            name: "Dashboard",
-            link: "/dashboardAssociation",
-            icon: <PieChart size={20} />,
-          },
-          { name: "Usuários", link: "/manageUsers", icon: <Users size={20} /> },
-          { name: "Animais", link: "/manageAnimals", icon: <Milk size={20} /> },
-          {
-            name: "Notificações",
-            link: "/dashboardAssociation/notifications",
-            icon: <Bell size={20} />,
-          },
-          {
-            name: "Configuração",
-            link: "/settings",
-            icon: <Settings size={20} />,
-          },
+          { name: "Início", link: "/dashboardUser", icon: <PieChart size={ICON_SIZES.SM} /> },
+          { name: "Dados diários", link: "/dailyForm", icon: <Milk size={ICON_SIZES.SM} /> },
+          { name: "Meus Animais", link: "/manageMyAnimals", icon: <FileText size={ICON_SIZES.SM} /> },
+          { name: "Notificações", link: "/dashboardUser/notifications", icon: <Bell size={ICON_SIZES.SM} /> },
+          { name: "Usuários", link: "/manageUsers", icon: <Users size={ICON_SIZES.SM} /> },
+          { name: "Configurações", link: "/settings", icon: <Settings size={ICON_SIZES.SM} /> },
         ]
       : [
-          {
-            name: "Dashboard",
-            link: "/dashboardUser",
-            icon: <PieChart size={20} />,
-          },
-          {
-            name: "Animais",
-            link: "/manageMyAnimals",
-            icon: <Milk size={20} />,
-          },
-          {
-            name: "Formulário",
-            link: "/dailyForm",
-            icon: <FileText size={20} />,
-          },
-          {
-            name: "Histórico",
-            link: "/dashboardUser/history",
-            icon: <FileText size={20} />,
-          },
-          {
-            name: "Notificações",
-            link: "/dashboardUser/notifications",
-            icon: <Bell size={20} />,
-          },
-          {
-            name: "Configuração",
-            link: "/settings",
-            icon: <Settings size={20} />,
-          },
+          { name: "Início", link: "/dashboardAssociation", icon: <PieChart size={ICON_SIZES.SM} /> },
+          { name: "Associados", link: "/dashboardAssociation/associates", icon: <Users size={ICON_SIZES.SM} /> },
+          { name: "Rebanho Regional", link: "/dashboardAssociation/herd", icon: <FileText size={ICON_SIZES.SM} /> },
+          { name: "Relatórios", link: "/dashboardAssociation/reports", icon: <FileText size={ICON_SIZES.SM} /> },
+          { name: "Notificações", link: "/dashboardAssociation/notifications", icon: <Bell size={ICON_SIZES.SM} /> },
+          { name: "Configurações", link: "/settings", icon: <Settings size={ICON_SIZES.SM} /> },
         ];
 
   return (
@@ -109,7 +75,7 @@ export default function Sidebar() {
           {/* Barra verde no topo */}
           <div className="fixed top-0 left-0 right-0 bg-green-background p-4 flex justify-between items-center z-40 shadow-md">
             <button onClick={toggleMenu} className="text-white">
-              {menuOpen ? <X size={24} /> : <Menu size={24} />}
+              {menuOpen ? <X size={ICON_SIZES.MD} /> : <Menu size={ICON_SIZES.MD} />}
             </button>
             <h2 className="text-white font-bold text-lg">QualeiDer</h2>
           </div>
@@ -124,7 +90,7 @@ export default function Sidebar() {
               onClick={toggleMenu}
               className="absolute top-4 right-4 text-white"
             >
-              <X size={24} />
+              <X size={ICON_SIZES.MD} />
             </button>
 
             {/* Logo */}
@@ -133,8 +99,8 @@ export default function Sidebar() {
                 src="/logo_icon.svg"
                 alt="Logo"
                 className="w-10 h-10"
-                width={40}
-                height={40}
+                width={LOGO_SIZES.MD}
+                height={LOGO_SIZES.MD}
               />
               <h2 className="text-white font-bold text-lg">QualeiDer</h2>
             </div>
@@ -162,7 +128,7 @@ export default function Sidebar() {
                 onClick={handleLogout}
                 className="flex items-center gap-2 text-white p-3 rounded-lg hover:bg-red-600"
               >
-                <LogOut size={20} />
+                <LogOut size={ICON_SIZES.SM} />
                 Sair
               </button>
             </div>
@@ -177,8 +143,8 @@ export default function Sidebar() {
                 src="/logo_icon.svg"
                 alt="Logo"
                 className="w-10 h-10"
-                width={40}
-                height={40}
+                width={LOGO_SIZES.MD}
+                height={LOGO_SIZES.MD}
               />
               <h2 className="text-white font-bold text-lg">QualeiDer</h2>
             </div>
@@ -207,7 +173,7 @@ export default function Sidebar() {
               onClick={handleLogout}
               className="flex items-center gap-2 text-white p-3 rounded-lg hover:bg-red-600 hover:text-white w-full transition-colors duration-200"
             >
-              <LogOut size={20} />
+              <LogOut size={ICON_SIZES.SM} />
               Sair
             </button>
           </div>
