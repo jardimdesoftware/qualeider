@@ -1,5 +1,5 @@
+import React, { useState } from "react";
 import { Animal, Status } from "@/interfaces/animal";
-import { useState } from "react";
 import { Check, Ban, Milk } from "lucide-react";
 
 interface AnimalCollectionCardProps {
@@ -9,7 +9,7 @@ interface AnimalCollectionCardProps {
   disabled?: boolean;
 }
 
-export function AnimalCollectionCard({
+function AnimalCollectionCard({
   animal,
   value,
   onChange,
@@ -119,7 +119,7 @@ export function AnimalCollectionCard({
                 onBlur={() => setIsFocused(false)}
                 disabled={disabled}
                 autoComplete="off"
-                autoFocus={isFocused} // If we switched from "Edit", try to focus
+                autoFocus={isFocused}
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm pointer-events-none">
                 L
@@ -131,3 +131,5 @@ export function AnimalCollectionCard({
     </div>
   );
 }
+
+export default React.memo(AnimalCollectionCard);

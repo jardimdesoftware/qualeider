@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/layout";
 import { PageHeader } from "@/components/dashboard";
@@ -10,6 +10,7 @@ import { Animal } from "@/interfaces/animal";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { animalService } from "@/services/animalService";
+import { debounce } from "@/utils/debounce";
 
 export default function ManageAnimals() {
   const router = useRouter();
@@ -42,10 +43,6 @@ export default function ManageAnimals() {
     }
   };
 
-  useEffect(() => {
-    fetchAnimals();
-  }, []);
-
   const filteredAnimals = animals.filter(
     (animal) =>
       (animal.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -67,20 +64,25 @@ export default function ManageAnimals() {
     setCurrentPage(1);
   }, [searchTerm]);
 
+  const debouncedHandleResize = useMemo(
+    () =>
+      debounce(() => {
+        if (window.innerWidth < 400) {
+          setAnimalsPerPage(2);
+        } else if (window.innerWidth > 400 && window.innerWidth < 768) {
+          setAnimalsPerPage(4);
+        } else {
+          setAnimalsPerPage(7);
+        }
+      }, 150),
+    []
+  );
+
   useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 400) {
-        setAnimalsPerPage(2);
-      } else if (window.innerWidth > 400 && window.innerWidth < 768) {
-        setAnimalsPerPage(4);
-      } else {
-        setAnimalsPerPage(7);
-      }
-    };
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+    debouncedHandleResize();
+    window.addEventListener("resize", debouncedHandleResize);
+    return () => window.removeEventListener("resize", debouncedHandleResize);
+  }, [debouncedHandleResize]);
 
   const confirmDelete = (animalId: number) => {
     setAnimalToDelete(animalId);

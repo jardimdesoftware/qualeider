@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Users, Cat, Settings, LogOut, Bell, BarChart3 } from "lucide-react";
 import { associationService } from "@/services/associationService";
+import { getUserIdFromToken, clearAuthToken } from "@/utils/auth";
 
 export function AssociationSidebar() {
   const pathname = usePathname();
@@ -13,10 +14,8 @@ export function AssociationSidebar() {
   useEffect(() => {
     const fetchAssociationName = async () => {
       try {
-        const token = localStorage.getItem("authToken");
-        if (token) {
-          const payload = JSON.parse(atob(token.split(".")[1]));
-          const id = payload.sub;
+        const id = getUserIdFromToken();
+        if (id) {
           const association = await associationService.findById(id);
           if (association && association.name) {
             setAssociationName(association.name);
@@ -32,7 +31,7 @@ export function AssociationSidebar() {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("authToken");
+    clearAuthToken();
     window.location.href = "/";
   };
 

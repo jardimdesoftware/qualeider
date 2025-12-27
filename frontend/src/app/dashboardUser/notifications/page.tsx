@@ -6,8 +6,7 @@ import { notificationService } from "@/services/notificationService";
 import { UserNotification } from "@/interfaces/notification";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { Bell, CheckCircle, MailOpen } from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { formatDateTimeBR } from "@/utils/date";
 
 export default function UserNotificationsPage() {
   const { userId, isLoading: authLoading } = useAuthGuard("user");
@@ -78,7 +77,7 @@ export default function UserNotificationsPage() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                      {format(new Date(item.createdAt), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
+                      {formatDateTimeBR(item.createdAt)}
                     </span>
                     {!item.read && (
                       <span className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full font-bold">

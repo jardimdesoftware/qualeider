@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/layout";
 import { PageHeader } from "@/components/dashboard";
@@ -111,80 +111,88 @@ export default function DashboardUser() {
       }
   };
 
-  const totalAnimals = animals.length;
+  const totalAnimals = useMemo(() => animals.length, [animals.length]);
 
-  const totalMilkThisMonth = dailyCollections
-    .filter((collection) => {
+  const thisMonthCollections = useMemo(() => {
+    const today = new Date();
+    return dailyCollections.filter((collection) => {
       const collectionDate = new Date(collection.collectionDate);
-      const today = new Date();
       return (
         collectionDate.getMonth() === today.getMonth() &&
         collectionDate.getFullYear() === today.getFullYear()
       );
-    })
-    .reduce((sum, collection) => sum + collection.quantity, 0);
+    });
+  }, [dailyCollections]);
 
-  const averageAnimalAge =
+  const totalMilkThisMonth = useMemo(() => 
+    thisMonthCollections.reduce((sum, collection) => sum + collection.quantity, 0),
+    [thisMonthCollections]
+  );
+
+  const averageAnimalAge = useMemo(() =>
     animals.length > 0
       ? animals.reduce((sum, animal) => sum + animal.age, 0) / animals.length
-      : 0;
+      : 0,
+    [animals]
+  );
 
-  const rationProvidedPercentage =
+  const rationProvidedPercentage = useMemo(() =>
     dailyCollections.length > 0
       ? (dailyCollections.filter((collection) => collection.rationProvided).length /
           dailyCollections.length) *
         100
-      : 0;
+      : 0,
+    [dailyCollections]
+  );
 
-  const totalMilkingThisMonth = dailyCollections
-    .filter((collection) => {
-      const collectionDate = new Date(collection.collectionDate);
-      const today = new Date();
-      return (
-        collectionDate.getMonth() === today.getMonth() &&
-        collectionDate.getFullYear() === today.getFullYear()
-      );
-    })
-    .reduce((sum, collection) => sum + collection.numOrdens, 0);
+  const totalMilkingThisMonth = useMemo(() =>
+    thisMonthCollections.reduce((sum, collection) => sum + collection.numOrdens, 0),
+    [thisMonthCollections]
+  );
 
-  const averageLactationsThisMonth =
+  const averageLactationsThisMonth = useMemo(() =>
     dailyCollections.length > 0
       ? dailyCollections.reduce((sum, collection) => sum + collection.numLactation, 0) /
         dailyCollections.length
-      : 0;
+      : 0,
+    [dailyCollections]
+  );
 
-  // Dados para gráficos
-  const animalTypeDistribution = animals.reduce((acc, animal) => {
-    acc[animal.animalType] = (acc[animal.animalType] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const pieChartData = Object.entries(animalTypeDistribution).map(([type, count]) => ({
-    name: type,
-    value: count,
-  }));
-
-  const milkByDayLast7Days = dailyCollections
-    .filter((collection) => {
-      const collectionDate = new Date(collection.collectionDate);
-      const today = new Date();
-      const sevenDaysAgo = new Date(today);
-      sevenDaysAgo.setDate(today.getDate() - 7);
-      return collectionDate >= sevenDaysAgo && collectionDate <= today;
-    })
-    .reduce((acc, collection) => {
-      const date = new Date(collection.collectionDate).toLocaleDateString("pt-BR", {
-        day: "2-digit",
-        month: "2-digit",
-      });
-      acc[date] = (acc[date] || 0) + collection.quantity;
+  const pieChartData = useMemo(() => {
+    const animalTypeDistribution = animals.reduce((acc, animal) => {
+      acc[animal.animalType] = (acc[animal.animalType] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
-  const lineChartData = Object.entries(milkByDayLast7Days).map(([date, quantity]) => ({
-    date,
-    quantity,
-  }));
+    return Object.entries(animalTypeDistribution).map(([type, count]) => ({
+      name: type,
+      value: count,
+    }));
+  }, [animals]);
+
+  const lineChartData = useMemo(() => {
+    const milkByDayLast7Days = dailyCollections
+      .filter((collection) => {
+        const collectionDate = new Date(collection.collectionDate);
+        const today = new Date();
+        const sevenDaysAgo = new Date(today);
+        sevenDaysAgo.setDate(today.getDate() - 7);
+        return collectionDate >= sevenDaysAgo && collectionDate <= today;
+      })
+      .reduce((acc, collection) => {
+        const date = new Date(collection.collectionDate).toLocaleDateString("pt-BR", {
+          day: "2-digit",
+          month: "2-digit",
+        });
+        acc[date] = (acc[date] || 0) + collection.quantity;
+        return acc;
+      }, {} as Record<string, number>);
+
+    return Object.entries(milkByDayLast7Days).map(([date, quantity]) => ({
+      date,
+      quantity,
+    }));
+  }, [dailyCollections]);
 
   const hasAnimals = animals.length > 0;
   const hasCollections = dailyCollections.length > 0;

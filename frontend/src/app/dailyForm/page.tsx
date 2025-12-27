@@ -13,17 +13,19 @@ import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { MilkingPlace } from "@/interfaces/daily-collection";
 import { DailyCollectionData, dailyCollectionSchema } from "@/schemas/collection";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
+import { useDailyCollection } from "@/hooks/useDailyCollection";
 import { collectionService } from "@/services/collectionService";
 import { animalService } from "@/services/animalService";
 import { Animal } from "@/interfaces/animal";
 import { getLocalDate, formatDateLongBR } from "@/utils/date";
 import { getFriendlyErrorMessage } from "@/utils/errorMessage";
-import { AnimalCollectionCard } from "./_components/AnimalCollectionCard";
+import AnimalCollectionCard from "./_components/AnimalCollectionCard";
 import { CollectionSummaryModal } from "./_components/CollectionSummaryModal";
 
 export default function DailyForm() {
   const router = useRouter();
   const { userId, isLoading: isAuthLoading } = useAuthGuard("user");
+  const { validateCollectionItems, transformProductionMapToItems } = useDailyCollection();
 
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [productionMap, setProductionMap] = useState<Record<number, string>>({});
@@ -99,18 +101,14 @@ export default function DailyForm() {
     if (!userId) return;
 
     try {
-      const items = Object.entries(productionMap)
-        .map(([animalId, val]) => ({
-          animalId: Number(animalId),
-          quantity: parseFloat(val) || 0,
-        }))
-        .filter((item) => item.quantity > 0);
+      const items = transformProductionMapToItems(productionMap);
+      const validation = validateCollectionItems(items);
 
-      if (items.length === 0) {
+      if (!validation.isValid) {
         setModalState({
           isOpen: true,
           type: "error",
-          message: "Adicione pelo menos um animal com produção para finalizar a coleta.",
+          message: validation.errors[0].message,
         });
         setIsFinalizing(false);
         return;

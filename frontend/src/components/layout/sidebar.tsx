@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import {
   Menu,
@@ -12,6 +12,8 @@ import {
   Settings,
   Bell,
 } from "lucide-react";
+import { getUserTypeFromToken, clearAuthToken } from "@/utils/auth";
+import { debounce } from "@/utils/debounce";
 
 export default function Sidebar() {
   const [isMobile, setIsMobile] = useState(false);
@@ -19,41 +21,30 @@ export default function Sidebar() {
   const [userRole, setUserRole] = useState<"association" | "user">("user");
   const [pathname, setPathname] = useState("");
 
+  const debouncedCheckScreenSize = useMemo(
+    () =>
+      debounce(() => {
+        setIsMobile(window.innerWidth < 768);
+      }, 150),
+    []
+  );
+
   useEffect(() => {
     setPathname(window.location.pathname);
-  }, []);
 
-  const getUserRoleFromToken = () => {
-    const token = localStorage.getItem("authToken");
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split(".")[1]));
-        return payload.userType || "user";
-      } catch (error) {
-        console.error("Erro ao decodificar o token:", error);
-      }
-    }
-    return "user";
-  };
-
-  useEffect(() => {
-    const role = getUserRoleFromToken();
+    const role = getUserTypeFromToken();
     setUserRole(role);
-  }, []);
 
-  useEffect(() => {
-    const checkScreenSize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkScreenSize();
-    window.addEventListener("resize", checkScreenSize);
-    return () => window.removeEventListener("resize", checkScreenSize);
-  }, []);
+    debouncedCheckScreenSize();
+    window.addEventListener("resize", debouncedCheckScreenSize);
+
+    return () => window.removeEventListener("resize", debouncedCheckScreenSize);
+  }, [debouncedCheckScreenSize]);
 
   const toggleMenu = () => setMenuOpen(!menuOpen);
 
   const handleLogout = () => {
-    localStorage.removeItem("authToken");
+    clearAuthToken();
     window.location.href = "/";
   };
 
