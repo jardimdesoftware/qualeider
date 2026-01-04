@@ -1,32 +1,27 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/layout";
 import { PageHeader } from "@/components/dashboard";
-import { apiBase } from "@/services/baseApi";
 import { MetricCard, EmptyState, ErrorModal } from "@/components/ui";
 import { Activity, Milk, Cat, Ruler, Wheat, Droplet, BarChart3 } from "lucide-react";
-import { Animal } from "@/interfaces/animal";
-import { DailyCollection } from "@/interfaces/daily-collection";
 import dynamic from "next/dynamic";
 const AnimalDistributionChart = dynamic(() => import("@/components/dashboard/AnimalDistributionChart"), { ssr: false, loading: () => <p className="text-center py-10 text-slate-400">Carregando gráfico...</p> });
 const MilkLast7DaysChart = dynamic(() => import("@/components/dashboard/MilkLast7DaysChart"), { ssr: false, loading: () => <p className="text-center py-10 text-slate-400">Carregando gráfico...</p> });
-import { inviteService } from "@/services/inviteService";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
-import { animalService } from "@/services/animalService";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { ICON_SIZES } from "@/constants/ui";
+import { useUserDashboard } from "@/hooks/queries/useDashboard";
+import { useRespondInvite } from "@/hooks/queries/useInvites";
 
 
 export default function DashboardUser() {
   const router = useRouter();
   const { userId, isLoading: isAuthLoading } = useAuthGuard("user");
-  const [animals, setAnimals] = useState<Animal[]>([]);
-  const [dailyCollections, setDailyCollections] = useState<DailyCollection[]>([]);
-  const [dataLoading, setDataLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [invites, setInvites] = useState<any[]>([]);
+  
+  const { animals, collections: dailyCollections, invites, isLoading: dataLoading } = useUserDashboard(userId);
+  const respondInvite = useRespondInvite();
   
   // Modal states
   const [modalState, setModalState] = useState({
@@ -36,54 +31,9 @@ export default function DashboardUser() {
       type: "success" as "success" | "error" | "info"
   });
 
-  useEffect(() => {
-    if (!userId) return;
-
-    const fetchData = async () => {
-      try {
-        const token = localStorage.getItem("authToken"); 
-        const headers = { Authorization: `Bearer ${token}` };
-
-        const [invitesResult, animalsResult, collectionsResult] = await Promise.allSettled([
-             inviteService.getUserPendingInvites(userId),
-             animalService.getByUser(userId),
-             apiBase.get(`/daily-collections/user/${userId}`, { headers }),
-        ]);
-        
-        if (invitesResult.status === "fulfilled") {
-          setInvites(invitesResult.value);
-        } else {
-          console.error("Erro ao buscar convites:", invitesResult.reason);
-        }
-
-        if (animalsResult.status === "fulfilled") {
-          setAnimals(animalsResult.value);
-        } else {
-          console.error("Erro ao buscar animais:", animalsResult.reason);
-          setAnimals([]);
-        }
-
-        if (collectionsResult.status === "fulfilled") {
-          setDailyCollections(collectionsResult.value.data);
-        } else {
-            console.error("Erro ao buscar coletas:", collectionsResult.reason);
-            setDailyCollections([]);
-        }
-
-      } catch (err: any) {
-        console.error("Erro ao carregar dados:", err);
-        setError("Não foi possível carregar os dados do painel.");
-      } finally {
-        setDataLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [userId]);
-
   const handleInviteResponse = async (token: string, response: 'Accept' | 'Decline') => {
       try {
-          const result = await inviteService.respondToInvite(token, response);
+          const result = await respondInvite.mutateAsync({ token, response });
           if (response === 'Accept') {
               setModalState({
                   isOpen: true,
@@ -91,8 +41,6 @@ export default function DashboardUser() {
                   message: result.message || "Você agora faz parte da associação.",
                   type: "success"
               });
-          } else {
-              setInvites(prev => prev.filter(i => i.token !== token));
           }
       } catch (err: any) {
           console.error("Erro ao responder convite", err);
@@ -106,6 +54,7 @@ export default function DashboardUser() {
   };
 
   const handleCloseModal = () => {
+
       setModalState(prev => ({ ...prev, isOpen: false }));
       if (modalState.type === 'success') {
           window.location.reload();

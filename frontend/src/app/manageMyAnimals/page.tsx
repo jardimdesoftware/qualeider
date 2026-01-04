@@ -9,15 +9,17 @@ import { Cat, Plus, Edit, Trash2 } from "lucide-react";
 import { Animal } from "@/interfaces/animal";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
-import { animalService } from "@/services/animalService";
+import { useUserAnimals, useDeleteAnimal } from "@/hooks/queries/useAnimals";
 import { debounce } from "@/utils/debounce";
 import { BREAKPOINTS, TIMING, ANIMALS_PAGINATION, ICON_SIZES, LOGO_SIZES } from "@/constants/ui";
 
 export default function ManageAnimals() {
   const router = useRouter();
   const { userId, isLoading: authLoading } = useAuthGuard("user");
-  const [animals, setAnimals] = useState<Animal[]>([]);
-  const [loading, setLoading] = useState(true);
+  
+  const { data: animals = [], isLoading: loading } = useUserAnimals(userId);
+  const deleteAnimal = useDeleteAnimal();
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [animalsPerPage, setAnimalsPerPage] = useState<number>(ANIMALS_PAGINATION.DESKTOP);
@@ -27,24 +29,8 @@ export default function ManageAnimals() {
   const [modalMessage, setModalMessage] = useState("");
   const [animalToDelete, setAnimalToDelete] = useState<number | null>(null);
 
-  useEffect(() => {
-    if (!userId) return;
-    fetchAnimals();
-  }, [userId]);
-
-  const fetchAnimals = async () => {
-    try {
-      const data = await animalService.getByUser(userId!);
-      setAnimals(data);
-      setLoading(false);
-    } catch (err) {
-      setLoading(false);
-      setAnimals([]);
-      console.error("Erro ao buscar animais:", err);
-    }
-  };
-
   const filteredAnimals = animals.filter(
+
     (animal) =>
       (animal.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       animal.animalType.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -94,10 +80,9 @@ export default function ManageAnimals() {
     if (!animalToDelete) return;
 
     try {
-      await animalService.delete(animalToDelete);
+      await deleteAnimal.mutateAsync(animalToDelete);
       setModalMessage("Animal excluído com sucesso!");
       setShowSuccessModal(true);
-      fetchAnimals();
     } catch (err) {
       console.error("Erro ao excluir o animal:", err);
       setModalMessage("Erro ao excluir o animal. Tente novamente.");

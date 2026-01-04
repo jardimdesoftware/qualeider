@@ -12,8 +12,8 @@ import { AnimalType } from "@/interfaces/animal";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { animalSchema, AnimalData } from "@/schemas/animal";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
-import { animalService } from "@/services/animalService";
 import { getFriendlyErrorMessage } from "@/utils/errorMessage";
+import { useAnimal, useUpdateAnimal } from "@/hooks/queries/useAnimals";
 
 function EditAnimalContent() {
   const router = useRouter();
@@ -21,6 +21,8 @@ function EditAnimalContent() {
   const animalId = searchParams.get("id");
   
   const { isLoading: authLoading } = useAuthGuard("user");
+  const { data: animal, isLoading: loadingAnimal } = useAnimal(animalId ? Number(animalId) : null);
+  const updateAnimal = useUpdateAnimal();
   const [modalState, setModalState] = useState({
     isOpen: false,
     type: "success" as "success" | "error" | "info",
@@ -40,39 +42,22 @@ function EditAnimalContent() {
   });
 
   const selectedAnimalType = watch("animalType");
-
-
-
   useEffect(() => {
-    if (!animalId) return;
-
-    const fetchAnimal = async () => {
-      try {
-        const animal = await animalService.getById(animalId);
-        reset({
-          name: animal.name,
-          animalType: animal.animalType,
-          breed: animal.breed,
-          age: animal.age,
-        });
-      } catch (err) {
-        console.error("Erro ao buscar animal:", err);
-        setModalState({
-          isOpen: true,
-          type: "error",
-          message: "Erro ao carregar dados do animal.",
-        });
-      }
-    };
-
-    fetchAnimal();
-  }, [animalId, reset]);
+    if (animal) {
+      reset({
+        name: animal.name,
+        animalType: animal.animalType,
+        breed: animal.breed,
+        age: animal.age,
+      });
+    }
+  }, [animal, reset]);
 
   const onSubmit = async (data: AnimalData) => {
     if (!animalId) return;
     
     try {
-      await animalService.update(Number(animalId), data);
+      await updateAnimal.mutateAsync({ id: Number(animalId), data });
 
       setModalState({
         isOpen: true,
@@ -95,7 +80,7 @@ function EditAnimalContent() {
       )
     : [];
 
-  if (authLoading) {
+  if (authLoading || loadingAnimal) {
     return <DashboardLoading />;
   }
 

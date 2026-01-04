@@ -14,9 +14,8 @@ import { MilkingPlace } from "@/interfaces/daily-collection";
 import { DailyCollectionData, dailyCollectionSchema } from "@/schemas/collection";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { useDailyCollection } from "@/hooks/useDailyCollection";
-import { collectionService } from "@/services/collectionService";
-import { animalService } from "@/services/animalService";
-import { Animal } from "@/interfaces/animal";
+import { useUserAnimals } from "@/hooks/queries/useAnimals";
+import { useCreateCollection } from "@/hooks/queries/useCollections";
 import { getLocalDate, formatDateLongBR } from "@/utils/date";
 import { getFriendlyErrorMessage } from "@/utils/errorMessage";
 import AnimalCollectionCard from "./_components/AnimalCollectionCard";
@@ -27,9 +26,10 @@ export default function DailyForm() {
   const { userId, isLoading: isAuthLoading } = useAuthGuard("user");
   const { validateCollectionItems, transformProductionMapToItems } = useDailyCollection();
 
-  const [animals, setAnimals] = useState<Animal[]>([]);
+  const { data: animals = [], isLoading: isLoadingAnimals } = useUserAnimals(userId);
+  const createCollection = useCreateCollection();
+  
   const [productionMap, setProductionMap] = useState<Record<number, string>>({});
-  const [isLoadingAnimals, setIsLoadingAnimals] = useState(true);
   const [isFinalizing, setIsFinalizing] = useState(false);
 
   const [modalState, setModalState] = useState({
@@ -58,22 +58,8 @@ export default function DailyForm() {
     },
   });
 
-  useEffect(() => {
-    if (userId) {
-      animalService
-        .getByUser(userId)
-        .then((data) => {
-          setAnimals(data);
-          setIsLoadingAnimals(false);
-        })
-        .catch((err) => {
-          console.error(err);
-          setIsLoadingAnimals(false);
-        });
-    }
-  }, [userId]);
-
   const totals = useMemo(() => {
+
     let totalMilk = 0;
     let milkedCows = 0;
 
@@ -116,7 +102,7 @@ export default function DailyForm() {
 
       const payload = { ...data, items };
 
-      await collectionService.create(payload, userId);
+      await createCollection.mutateAsync({ data: payload, userId });
 
       setModalState({
         isOpen: true,

@@ -1,48 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
-import { notificationService } from "@/services/notificationService";
-import { UserNotification } from "@/interfaces/notification";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { Bell, CheckCircle, MailOpen } from "lucide-react";
 import { formatDateTimeBR } from "@/utils/date";
 import { ICON_SIZES } from "@/constants/ui";
+import { useUserNotifications, useMarkNotificationAsRead } from "@/hooks/queries/useNotifications";
 
 export default function UserNotificationsPage() {
   const { userId, isLoading: authLoading } = useAuthGuard("user");
-  const [notifications, setNotifications] = useState<UserNotification[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (userId) {
-      fetchNotifications();
-    }
-  }, [userId]);
-
-  const fetchNotifications = async () => {
-    try {
-      const data = await notificationService.getUserNotifications();
-      setNotifications(data);
-    } catch (error) {
-      console.error("Erro ao buscar notificações", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: notifications = [], isLoading: loading } = useUserNotifications();
+  const markAsRead = useMarkNotificationAsRead();
 
   const handleMarkAsRead = async (id: number) => {
     try {
-      await notificationService.markAsRead(id);
-      setNotifications(prev => 
-        prev.map(n => n.id === id ? { ...n, read: true, readAt: new Date().toISOString() } : n)
-      );
+      await markAsRead.mutateAsync(id);
     } catch (error) {
       console.error("Erro ao marcar como lida", error);
     }
   };
 
-  if (authLoading || (loading && !notifications.length)) return <DashboardLoading />;
+  if (authLoading || loading) return <DashboardLoading />;
 
   return (
     <div className="flex-1 overflow-y-auto bg-[#fdfbf7] min-h-screen">

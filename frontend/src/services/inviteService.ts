@@ -4,6 +4,7 @@ import { apiBase } from "./baseApi";
 // Types
 export interface Invite {
   id: number;
+  token: string;
   association: {
     id: number;
     name: string;

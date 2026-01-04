@@ -1,41 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { DashboardLayout } from "@/components/layout";
 import { PageHeader } from "@/components/dashboard";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
-import { collectionService } from "@/services/collectionService";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
-import { FileText } from "lucide-react";
 import { CollectionDetailsModal } from "./_components/CollectionDetailsModal";
+import { useUserCollections } from "@/hooks/queries/useCollections";
 
 export default function CollectionHistory() {
   const { userId, isLoading: authLoading } = useAuthGuard("user");
-  const [loading, setLoading] = useState(true);
-  const [collections, setCollections] = useState<any[]>([]);
-
+  const { data: rawCollections = [], isLoading: loading } = useUserCollections(userId);
   const [selectedCollection, setSelectedCollection] = useState<any | null>(null);
-
-  useEffect(() => {
-    if (userId) {
-      fetchCollections();
-    }
-  }, [userId]);
-
-  const fetchCollections = async () => {
-    try {
-      const data = await collectionService.getByUser(userId!);
-      // Sort by date descending
-      const sorted = data.sort((a: any, b: any) => 
-        new Date(b.collectionDate).getTime() - new Date(a.collectionDate).getTime()
-      );
-      setCollections(sorted);
-    } catch (error) {
-      console.error("Erro ao buscar histórico:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const collections = useMemo(() => {
+    return [...rawCollections].sort((a, b) => 
+      new Date(b.collectionDate).getTime() - new Date(a.collectionDate).getTime()
+    );
+  }, [rawCollections]);
 
   if (authLoading || loading) return <DashboardLoading />;
 
