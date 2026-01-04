@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { jwtDecode } from "jwt-decode";
+import { logger } from "@/utils/logger";
 
 interface TokenPayload {
   sub: string | number;
@@ -48,7 +49,7 @@ export function useAuthGuard(requiredType: "user" | "association" = "user") {
       setUserId(uid);
       setIsLoading(false);
     } catch (error) {
-      console.error("Invalid token", error);
+      logger.error("Invalid token in useAuthGuard", error);
       localStorage.removeItem("authToken");
       router.push("/login");
     }

@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { logger } from "@/utils/logger";
 
 /**
  * Custom hook for managing multistep form state
@@ -155,7 +156,7 @@ export function usePersistedFormData<T extends Record<string, any>>(
       const stored = localStorage.getItem(key);
       return stored ? JSON.parse(stored) : initialData;
     } catch (error) {
-      console.error("Error loading persisted form data:", error);
+      logger.error("Error loading persisted form data", error, { storageKey: key });
       return initialData;
     }
   }, [key, initialData]);
@@ -170,7 +171,7 @@ export function usePersistedFormData<T extends Record<string, any>>(
       try {
         localStorage.setItem(key, JSON.stringify(newData));
       } catch (error) {
-        console.error("Error persisting form data:", error);
+        logger.error("Error persisting form data", error, { storageKey: key });
       }
       
       return newData;
@@ -182,7 +183,7 @@ export function usePersistedFormData<T extends Record<string, any>>(
       localStorage.removeItem(key);
       setFormData(initialData);
     } catch (error) {
-      console.error("Error clearing persisted form data:", error);
+      logger.error("Error clearing persisted form data", error, { storageKey: key });
     }
   }, [key, initialData]);
 

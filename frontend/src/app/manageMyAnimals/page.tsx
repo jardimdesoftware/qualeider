@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/layout";
 import { PageHeader } from "@/components/dashboard";
-import { Button, EmptyState, ErrorModal, InputField } from "@/components/ui";
+import { Button, EmptyState, ErrorModal, InputField, ConfirmationModal } from "@/components/ui";
 import { Cat, Plus, Edit, Trash2 } from "lucide-react";
 import { Animal } from "@/interfaces/animal";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
@@ -12,6 +12,7 @@ import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { useUserAnimals, useDeleteAnimal } from "@/hooks/queries/useAnimals";
 import { debounce } from "@/utils/debounce";
 import { BREAKPOINTS, TIMING, ANIMALS_PAGINATION, ICON_SIZES, LOGO_SIZES } from "@/constants/ui";
+import { logger } from "@/utils/logger";
 
 export default function ManageAnimals() {
   const router = useRouter();
@@ -66,9 +67,20 @@ export default function ManageAnimals() {
   );
 
   useEffect(() => {
-    debouncedHandleResize();
-    window.addEventListener("resize", debouncedHandleResize);
-    return () => window.removeEventListener("resize", debouncedHandleResize);
+    let isMounted = true;
+    
+    const handleResize = () => {
+      if (!isMounted) return;
+      debouncedHandleResize();
+    };
+    
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    
+    return () => {
+      isMounted = false;
+      window.removeEventListener("resize", handleResize);
+    };
   }, [debouncedHandleResize]);
 
   const confirmDelete = (animalId: number) => {
@@ -84,7 +96,7 @@ export default function ManageAnimals() {
       setModalMessage("Animal excluído com sucesso!");
       setShowSuccessModal(true);
     } catch (err) {
-      console.error("Erro ao excluir o animal:", err);
+      logger.error("Erro ao excluir animal", err, { animalId: animalToDelete, route: "/manageMyAnimals" });
       setModalMessage("Erro ao excluir o animal. Tente novamente.");
       setShowErrorModal(true);
     } finally {
@@ -240,30 +252,16 @@ export default function ManageAnimals() {
       </DashboardLayout>
 
       {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
-          <div className="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-full">
-            <h2 className="text-xl font-bold text-[#1e3a29] mb-2">
-              Confirmar Exclusão
-            </h2>
-            <p className="text-gray-600 mb-6">
-              Tem certeza que deseja excluir este animal? Esta ação não pode ser desfeita.
-            </p>
-            <div className="flex gap-3">
-              <Button
-                onClick={() => setShowDeleteModal(false)}
-                variant="outline"
-                fullWidth
-              >
-                Cancelar
-              </Button>
-              <Button onClick={handleDeleteAnimal} variant="primary" fullWidth>
-                Excluir
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        title="Confirmar Exclusão"
+        message="Tem certeza que deseja excluir este animal? Esta ação não pode ser desfeita."
+        onConfirm={handleDeleteAnimal}
+        onCancel={() => setShowDeleteModal(false)}
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        variant="primary"
+      />
 
       <ErrorModal
         isOpen={showSuccessModal}

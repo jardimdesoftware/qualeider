@@ -1,4 +1,5 @@
 import { jwtDecode } from "jwt-decode";
+import { logger } from "./logger";
 
 export interface TokenPayload {
   sub: string | number;
@@ -22,7 +23,7 @@ export function decodeToken(token: string): TokenPayload | null {
   try {
     return jwtDecode<TokenPayload>(token);
   } catch (error) {
-    console.error("Failed to decode token:", error);
+    logger.error("Failed to decode token", error);
     return null;
   }
 }

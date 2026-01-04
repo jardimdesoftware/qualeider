@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { ibgeService } from "@/services/ibgeService";
+import { logger } from "@/utils/logger";
 import { Estado, Cidade } from "@/interfaces/location";
 
 /**
@@ -19,7 +20,7 @@ export function useLocation(selectedState?: string) {
         const data = await ibgeService.getStates();
         setEstados(data);
       } catch (error) {
-        console.error("Erro ao buscar estados:", error);
+        logger.error("Erro ao buscar estados", error);
       }
     };
     loadStates();
@@ -38,7 +39,7 @@ export function useLocation(selectedState?: string) {
         const data = await ibgeService.getCities(selectedState);
         setCidades(data);
       } catch (error) {
-        console.error("Erro ao buscar cidades:", error);
+        logger.error("Erro ao buscar cidades", error, { uf: selectedState });
       } finally {
         setIsLoadingCities(false);
       }

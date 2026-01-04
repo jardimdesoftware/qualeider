@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
@@ -12,6 +12,8 @@ import { HERD_BUSINESS_RULES } from '@/common/constants/business.constants';
 
 @Injectable()
 export class PrismaAssociationRepository implements IAssociationRepository {
+  private readonly logger = new Logger(PrismaAssociationRepository.name);
+
   constructor(
     private readonly prisma: PrismaService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
@@ -509,7 +511,7 @@ export class PrismaAssociationRepository implements IAssociationRepository {
       await this.cacheManager.del(`monthly_report:${associationId}:${currentYear}:${currentMonth}`);
     } catch (error) {
       // Log do erro mas não interrompe o fluxo principal
-      console.error('Erro ao invalidar caches:', error);
+      this.logger.error('Erro ao invalidar caches', error);
     }
   }
 }

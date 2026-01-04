@@ -6,6 +6,7 @@ import { Bell, CheckCircle, MailOpen } from "lucide-react";
 import { formatDateTimeBR } from "@/utils/date";
 import { ICON_SIZES } from "@/constants/ui";
 import { useUserNotifications, useMarkNotificationAsRead } from "@/hooks/queries/useNotifications";
+import { logger } from "@/utils/logger";
 
 export default function UserNotificationsPage() {
   const { userId, isLoading: authLoading } = useAuthGuard("user");
@@ -16,7 +17,7 @@ export default function UserNotificationsPage() {
     try {
       await markAsRead.mutateAsync(id);
     } catch (error) {
-      console.error("Erro ao marcar como lida", error);
+      logger.error("Erro ao marcar notificação como lida", error, { notificationId: id });
     }
   };
 

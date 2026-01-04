@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { logger } from '@/utils/logger';
 
 export const STORAGE_KEY = 'authToken';
 
@@ -69,7 +70,7 @@ apiBase.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      console.warn('Token inválido ou expirado');
+      logger.warn('Token inválido ou expirado');
     }
     return Promise.reject(error);
   }
