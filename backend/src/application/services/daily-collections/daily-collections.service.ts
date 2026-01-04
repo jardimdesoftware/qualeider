@@ -7,6 +7,7 @@ import { UpdateDailyCollectionDto } from '@/application/dtos/daily-collections/u
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 import { BusinessException } from '@/common/exceptions/business.exception';
 import { DailyCollectionCriteria } from '@/domain/criteria/daily-collection.criteria';
+import { COLLECTION_BUSINESS_RULES } from '@/common/constants/business.constants';
 
 @Injectable()
 export class DailyCollectionsService {
@@ -57,7 +58,7 @@ export class DailyCollectionsService {
     const sum = items.reduce((acc, item) => acc + item.quantity, 0);
     const diff = Math.abs(sum - totalQuantity);
     
-    if (diff > 0.01) {
+    if (diff > COLLECTION_BUSINESS_RULES.QUANTITY_TOLERANCE) {
       throw new BusinessException(
         `Soma dos items (${sum.toFixed(2)}L) não corresponde à quantidade total (${totalQuantity.toFixed(2)}L)`,
       );

@@ -8,6 +8,7 @@ import { handlePrismaError, isPrismaError, PrismaErrorCode } from '@/common/util
 import { BusinessException } from '@/common/exceptions/business.exception';
 import { AssociationMapper } from '@/infrastructure/mappers/association.mapper';
 import { Status as PrismaStatus, Prisma } from '@prisma/client';
+import { HERD_BUSINESS_RULES } from '@/common/constants/business.constants';
 
 @Injectable()
 export class PrismaAssociationRepository implements IAssociationRepository {
@@ -229,8 +230,8 @@ export class PrismaAssociationRepository implements IAssociationRepository {
     const heifers = animalStatsMap.get('heifers') || 0;
     const adultCows = animalStatsMap.get('adult') || 0;
 
-    // Calcular vacas em lactação (70% das adultas - simplificação)
-    const lactatingCows = Math.floor(adultCows * 0.7);
+    // Calcular vacas em lactação (baseado em percentual estimado)
+    const lactatingCows = Math.floor(adultCows * HERD_BUSINESS_RULES.LACTATING_COWS_PERCENTAGE);
     const dryCows = adultCows - lactatingCows;
 
     // Calcular média de produção
