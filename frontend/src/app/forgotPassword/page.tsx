@@ -15,7 +15,7 @@ import {
 } from "@/components/ui";
 import { PageFooter } from "@/components/layout";
 import { forgotPasswordSchema, ForgotPasswordData } from "@/schemas/auth";
-import { authService } from "@/services/authService";
+import { useForgotPassword } from "@/hooks/queries/useAuth";
 import { getFriendlyErrorMessage } from "@/utils/errorMessage";
 
 export default function ForgotPassword() {
@@ -27,18 +27,24 @@ export default function ForgotPassword() {
     message: "",
   });
 
-  const {
+  const { mutateAsync: sendResetCode, isPending } = useForgotPassword();
+  // ...
+  
+  // ...
+    const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting: isFormSubmitting },
   } = useForm<ForgotPasswordData>({
     resolver: zodResolver(forgotPasswordSchema),
     mode: "onBlur",
   });
 
+  const isSubmitting = isFormSubmitting || isPending;
+
   const onSubmit = async (data: ForgotPasswordData) => {
     try {
-      await authService.sendResetCode(data.email);
+      await sendResetCode(data.email);
 
       setModalState({
         isOpen: true,

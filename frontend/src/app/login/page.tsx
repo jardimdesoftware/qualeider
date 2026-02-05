@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -18,42 +17,32 @@ import { PageFooter } from "@/components/layout";
 import { authService } from "@/services/authService";
 import { loginSchema, LoginData } from "@/schemas/auth";
 import { getFriendlyErrorMessage } from "@/utils/errorMessage";
+import { useLogin } from "@/hooks/queries/useAuth";
 
 export default function Login() {
-  const router = useRouter();
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const { mutate: login, isPending } = useLogin();
 
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting: isFormSubmitting },
   } = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
     mode: "onBlur",
   });
 
-  const onSubmit = async (data: LoginData) => {
-    try {
-      const { userType } = await authService.login(data);
+  const isSubmitting = isPending || isFormSubmitting;
 
-      const routes = {
-        association: "/dashboardAssociation",
-        user: "/dashboardUser",
-      } as const;
-
-      const targetRoute = routes[userType];
-
-      if (targetRoute) {
-        router.push(targetRoute);
-      } else {
-        throw new Error("Tipo de usuário desconhecido");
-      }
-    } catch (err: any) {
-      console.error(err);
-      setErrorMessage(getFriendlyErrorMessage(err));
-      setShowErrorModal(true);
-    }
+  const onSubmit = (data: LoginData) => {
+    login(data, {
+      onError: (err: any) => {
+        console.error(err);
+        setErrorMessage(getFriendlyErrorMessage(err));
+        setShowErrorModal(true);
+      },
+    });
   };
 
   return (

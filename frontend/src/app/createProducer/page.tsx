@@ -32,9 +32,9 @@ import {
   ProducerData,
 } from "@/schemas/registration";
 import { maskCPF, maskPhone } from "@/utils/masks";
-import { useLocation } from "@/hooks/useLocation";
+import { useStates, useCities } from "@/hooks/queries/useLocation";
 import { useMultiStepForm, useFormData } from "@/hooks/useMultiStepForm";
-import { producerService } from "@/services/producerService";
+import { useCreateProducer } from "@/hooks/queries/useAuth";
 import { getFriendlyErrorMessage } from "@/utils/errorMessage";
 
 const formSteps = [
@@ -90,7 +90,8 @@ export default function CreateProducer() {
   });
 
   const selectedState = step2Form.watch("state");
-  const { estados, cidades, isLoadingCities } = useLocation(selectedState);
+  const { data: estados = [] } = useStates();
+  const { data: cidades = [], isLoading: isLoadingCities } = useCities(selectedState);
 
   // Step 3: Categorization
   const step3Form = useForm<ProducerStep3Data>({
@@ -131,6 +132,7 @@ export default function CreateProducer() {
     goToStep(newStep);
   };
 
+
   const handleFinalSubmit = async () => {
     try {
       // Merge all step data
@@ -139,7 +141,7 @@ export default function CreateProducer() {
         ...step3Form.getValues(),
       };
 
-      await producerService.create(finalData);
+      await createProducer(finalData);
 
       setModalState({
         isOpen: true,
@@ -170,9 +172,13 @@ export default function CreateProducer() {
     step2Form.trigger(["state", "city"]);
   };
 
+  const { mutateAsync: createProducer, isPending } = useCreateProducer();
+  // ... (handleFinalSubmit stays same)
+  
+  // ...
   const currentForm = getCurrentForm();
   const canGoNext = currentForm.formState.isValid;
-  const isSubmitting = currentForm.formState.isSubmitting;
+  const isSubmitting = currentForm.formState.isSubmitting || isPending;
 
   // User type options for RadioCardGroup
   const userTypeOptions: RadioCardOption[] = USER_CATEGORIES.map((cat) => ({

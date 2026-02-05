@@ -2,7 +2,7 @@
 
 import { useForm } from "react-hook-form";
 import { InputField, Button } from "@/components/ui";
-import { authService } from "@/services/authService";
+import { useVerifyResetCode } from "@/hooks/queries/useAuth";
 
 interface VerifyCodeStepProps {
   emailParam: string;
@@ -26,6 +26,9 @@ export function VerifyCodeStep({
     },
   });
 
+  const { mutateAsync: verifyCode, isPending } = useVerifyResetCode();
+  const formIsSubmitting = isSubmitting || isPending;
+
   const onVerifyCode = async (data: { email: string; code: string }) => {
     try {
       const emailToSend = emailParam || data.email;
@@ -41,7 +44,7 @@ export function VerifyCodeStep({
         throw new Error("Código inválido. Verifique se digitou os 6 números.");
       }
 
-      await authService.validateResetToken(emailToSend, codeToSend);
+      await verifyCode({ email: emailToSend, code: codeToSend });
 
       onVerifySuccess(codeToSend, emailToSend);
     } catch (err) {
@@ -83,9 +86,9 @@ export function VerifyCodeStep({
         type="submit"
         variant="primary"
         fullWidth
-        disabled={isSubmitting}
+        disabled={formIsSubmitting}
       >
-        {isSubmitting ? "VALIDANDO..." : "VERIFICAR CÓDIGO"}
+        {formIsSubmitting ? "VALIDANDO..." : "VERIFICAR CÓDIGO"}
       </Button>
     </form>
   );

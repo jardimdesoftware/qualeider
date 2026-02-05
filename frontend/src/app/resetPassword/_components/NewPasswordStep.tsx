@@ -3,7 +3,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { InputField, Button } from "@/components/ui";
-import { authService } from "@/services/authService";
+import { useResetPassword } from "@/hooks/queries/useAuth";
 import { resetPasswordSchema, ResetPasswordData } from "@/schemas/auth";
 
 interface NewPasswordStepProps {
@@ -28,13 +28,16 @@ export function NewPasswordStep({
     mode: "onBlur",
   });
 
+  const { mutateAsync: resetPassword, isPending } = useResetPassword();
+  const formIsSubmitting = isSubmitting || isPending;
+
   const onResetPassword = async (data: ResetPasswordData) => {
     try {
       if (!email || !code) {
         throw new Error("Dados de verificação perdidos. Reinicie o processo.");
       }
 
-      await authService.resetPassword(email, code, data.password);
+      await resetPassword({ email, code, password: data.password });
 
       onResetSuccess();
     } catch (err) {
@@ -66,10 +69,10 @@ export function NewPasswordStep({
         type="submit"
         variant="primary"
         fullWidth
-        disabled={isSubmitting}
+        disabled={formIsSubmitting}
         className="mt-6"
       >
-        {isSubmitting ? "SALVAR NOVA SENHA" : "REDEFINIR SENHA"}
+        {formIsSubmitting ? "SALVAR NOVA SENHA" : "REDEFINIR SENHA"}
       </Button>
     </form>
   );
