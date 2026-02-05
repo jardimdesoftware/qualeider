@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notificationService } from '@/services/notificationService';
 import { UserNotification } from '@/interfaces/notification';
+import { STALE_TIMES } from '@/constants/query';
 
 export const NOTIFICATIONS_KEYS = {
   all: ['notifications'] as const,
@@ -11,7 +12,7 @@ export function useUserNotifications() {
   return useQuery({
     queryKey: NOTIFICATIONS_KEYS.user(),
     queryFn: () => notificationService.getUserNotifications(),
-    staleTime: 1000 * 30, 
+    staleTime: STALE_TIMES.SHORT, 
   });
 }
 

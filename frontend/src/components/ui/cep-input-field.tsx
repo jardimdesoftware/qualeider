@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Loader2, MapPin } from "lucide-react";
 import { TIMING } from "@/constants/ui";
 import { formatCEP, cleanCEP, lookupSimpleAddress, CEPError } from "@/services/cepService";
+import { useCep } from "@/hooks/queries/useLocation";
 
 export interface AddressData {
   street: string;
@@ -27,7 +28,7 @@ interface CEPInputFieldProps {
 
 export default function CEPInputField({
   label = "CEP",
-  error,
+  error: propsError,
   helperText,
   onAddressFound,
   onError,
@@ -39,50 +40,63 @@ export default function CEPInputField({
   name,
   id,
 }: CEPInputFieldProps) {
+  /* 
+    Refactored to use React Query's useCep hook.
+    This simplifies state management and adds caching.
+  */
   const [cep, setCep] = useState(value);
-  const [isLoading, setIsLoading] = useState(false);
+  const [shouldFetch, setShouldFetch] = useState(false);
+  
+  // Only enable the query when we have a full CEP and the user has stopped typing (via effect below or just reliance on validity)
+  // Actually useCep checks validity internally, but we might want to control when to start "paying attention" to errors
+  const { data: addressData, isLoading, error } = useCep(cep);
+
   const [localError, setLocalError] = useState<string | null>(null);
 
   useEffect(() => {
     setCep(value);
   }, [value]);
 
-  const fetchAddress = async (cepValue: string) => {
-    const cleaned = cleanCEP(cepValue);
-    if (cleaned.length !== 8) return;
-
-    setIsLoading(true);
-    setLocalError(null);
-
-    try {
-      const address = await lookupSimpleAddress(cepValue);
-      onAddressFound(address);
-    } catch (err) {
-      const cepError = err as CEPError;
-      const errorMsg = cepError.message || "Erro ao buscar CEP. Tente novamente.";
-      setLocalError(errorMsg);
-      onError?.(errorMsg);
-    } finally {
-      setIsLoading(false);
+  // Handle successful data fetch
+  useEffect(() => {
+    if (addressData) {
+      setLocalError(null);
+      onAddressFound({
+        street: addressData.street,
+        neighborhood: addressData.neighborhood,
+        city: addressData.city,
+        state: addressData.state
+      });
     }
-  };
+  }, [addressData, onAddressFound]);
+
+  // Handle errors
+  useEffect(() => {
+    if (error) {
+       const msg = (error as any).message || "Erro ao buscar CEP.";
+       setLocalError(msg);
+       onError?.(msg);
+    } else {
+       // Clear error if loading starts or data resets? 
+       // React Query resets error on new fetch start if configured, but let's be safe
+    }
+  }, [error, onError]);
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatCEP(e.target.value);
     setCep(formatted);
+    // Clear local error while typing
+    if (localError) setLocalError(null);
+    
     onChange?.(formatted);
-
-    // Auto-fetch when CEP is complete (8 digits)
-    const cleaned = cleanCEP(formatted);
-    if (cleaned.length === 8) {
-      const timer = setTimeout(() => {
-        fetchAddress(formatted);
-      }, TIMING.DEBOUNCE_LONG);
-      return () => clearTimeout(timer);
-    }
   };
 
-  const displayError = error || localError;
+  const displayError = error ? localError : (propsError || localError);
+
+  // We need to override the displayError logic slightly because prop error is passed as 'error'
+  // Renaming prop 'error' to 'propsError' in arguments would be cleaner
+
 
   return (
     <div className="space-y-1">

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { animalService } from '@/services/animalService';
 import { Animal, CreateAnimalDto } from '@/interfaces/animal';
+import { STALE_TIMES } from '@/constants/query';
 
 export const ANIMALS_KEYS = {
   all: ['animals'] as const,
@@ -13,7 +14,7 @@ export function useUserAnimals(userId: number | null) {
     queryKey: ANIMALS_KEYS.byUser(userId!),
     queryFn: () => animalService.getByUser(userId!),
     enabled: !!userId,
-    staleTime: 1000 * 60 * 5, // 5 minutos (animais mudam pouco)
+    staleTime: STALE_TIMES.MEDIUM,
   });
 }
 

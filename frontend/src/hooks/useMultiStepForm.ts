@@ -149,19 +149,20 @@ export function usePersistedFormData<T extends Record<string, any>>(
   key: string,
   initialData: T
 ) {
-  const getPersistedData = useCallback((): T => {
-    if (typeof window === "undefined") return initialData;
-    
-    try {
-      const stored = localStorage.getItem(key);
-      return stored ? JSON.parse(stored) : initialData;
-    } catch (error) {
-      logger.error("Error loading persisted form data", error, { storageKey: key });
-      return initialData;
-    }
-  }, [key, initialData]);
+  const [formData, setFormData] = useState<T>(initialData);
 
-  const [formData, setFormData] = useState<T>(getPersistedData);
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem(key);
+        if (stored) {
+          setFormData(JSON.parse(stored));
+        }
+      } catch (error) {
+        logger.error("Error loading persisted form data", error, { storageKey: key });
+      }
+    }
+  }, [key]);
 
   const updateFormData = useCallback((updates: Partial<T>) => {
     setFormData((prev) => {

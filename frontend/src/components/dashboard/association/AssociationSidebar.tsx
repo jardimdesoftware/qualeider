@@ -6,29 +6,23 @@ import { usePathname } from "next/navigation";
 import { LayoutDashboard, Users, Cat, Settings, LogOut, Bell, BarChart3 } from "lucide-react";
 import { associationService } from "@/services/associationService";
 import { getUserIdFromToken, clearAuthToken } from "@/utils/auth";
+import { useAssociation } from "@/hooks/queries/useAssociation";
 
 export function AssociationSidebar() {
   const pathname = usePathname();
-  const [associationName, setAssociationName] = useState("Carregando...");
+  /* 
+     NOTE: We are using a client-side only hook here, but relying on the token 
+     availability. Ideally this ID should come from a context or auth hook.
+  */
+  const [userId, setUserId] = useState<number | null>(null);
 
   useEffect(() => {
-    const fetchAssociationName = async () => {
-      try {
-        const id = getUserIdFromToken();
-        if (id) {
-          const association = await associationService.findById(id);
-          if (association && association.name) {
-            setAssociationName(association.name);
-          }
-        }
-      } catch (error) {
-        console.error("Erro ao buscar nome da associação:", error);
-        setAssociationName("Associação");
-      }
-    };
-
-    fetchAssociationName();
+    // We still need this effect only to get the ID from local storage once on mount
+    const id = getUserIdFromToken();
+    if (id) setUserId(id);
   }, []);
+
+  const { data: association, isLoading } = useAssociation(userId);
 
   const handleLogout = () => {
     clearAuthToken();
@@ -48,7 +42,7 @@ export function AssociationSidebar() {
           />
         </div>
         <h1 className="brand-font font-bold text-xl tracking-wide text-center text-[#1e3a29]">
-          {associationName}
+          {isLoading ? "Carregando..." : (association?.name || "Associação")}
         </h1>
         <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-2 bg-slate-50 px-2 py-1 rounded border border-slate-100">
           Administrador

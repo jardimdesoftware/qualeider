@@ -31,9 +31,9 @@ import {
   AssociationData,
 } from "@/schemas/registration";
 import { maskCNPJ, maskPhone } from "@/utils/masks";
-import { useLocation } from "@/hooks/useLocation";
+import { useStates, useCities } from "@/hooks/queries/useLocation";
 import { useMultiStepForm, useFormData } from "@/hooks/useMultiStepForm";
-import { associationService } from "@/services/associationService";
+import { useCreateAssociation } from "@/hooks/queries/useAuth";
 import { getFriendlyErrorMessage } from "@/utils/errorMessage";
 
 const formSteps = [
@@ -99,7 +99,8 @@ export default function CreateAssociation() {
   });
 
   const selectedState = step3Form.watch("state");
-  const { estados, cidades, isLoadingCities } = useLocation(selectedState);
+  const { data: estados = [] } = useStates();
+  const { data: cidades = [], isLoading: isLoadingCities } = useCities(selectedState);
 
   const getCurrentForm = () => {
     switch (currentStep) {
@@ -130,6 +131,8 @@ export default function CreateAssociation() {
     goToStep(newStep);
   };
 
+  const { mutateAsync: createAssociation, isPending } = useCreateAssociation();
+
   const handleFinalSubmit = async () => {
     try {
       // Merge all step data
@@ -138,7 +141,7 @@ export default function CreateAssociation() {
         ...step3Form.getValues(),
       };
 
-      await associationService.create(finalData);
+      await createAssociation(finalData);
 
       setModalState({
         isOpen: true,
@@ -171,7 +174,7 @@ export default function CreateAssociation() {
 
   const currentForm = getCurrentForm();
   const canGoNext = currentForm.formState.isValid;
-  const isSubmitting = currentForm.formState.isSubmitting;
+  const isSubmitting = currentForm.formState.isSubmitting || isPending;
 
   // Coverage area options for RadioCardGroup
   const coverageOptions: RadioCardOption[] = [

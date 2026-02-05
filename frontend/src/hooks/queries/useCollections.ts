@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiBase } from '@/services/baseApi';
 import { collectionService } from '@/services/collectionService';
 import { DailyCollection } from '@/interfaces/daily-collection';
+import { STALE_TIMES } from '@/constants/query';
 
 export const COLLECTIONS_KEYS = {
   all: ['collections'] as const,
@@ -17,7 +18,7 @@ export function useUserCollections(userId: number | null) {
       return response.data as DailyCollection[];
     },
     enabled: !!userId,
-    staleTime: 1000 * 60, // 1 minuto (coletas mudam frequentemente)
+    staleTime: STALE_TIMES.SHORT,
   });
 }
 

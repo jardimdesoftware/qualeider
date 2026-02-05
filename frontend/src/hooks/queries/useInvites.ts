@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { inviteService } from '@/services/inviteService';
+import { STALE_TIMES } from '@/constants/query';
 
 export const INVITES_KEYS = {
   all: ['invites'] as const,
@@ -11,8 +12,8 @@ export function usePendingInvites(userId: number | null) {
     queryKey: INVITES_KEYS.pending(userId!),
     queryFn: () => inviteService.getUserPendingInvites(userId!),
     enabled: !!userId,
-    refetchInterval: 1000 * 30, // Poll a cada 30 segundos
-    staleTime: 1000 * 20, // 20 segundos
+    refetchInterval: STALE_TIMES.SHORT,
+    staleTime: STALE_TIMES.SHORT,
   });
 }
 
