@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { logger } from '@/utils/logger';
+import { addLoggingInterceptors } from '@/utils/api-logger';
 
 export const STORAGE_KEY = 'authToken';
 
@@ -75,3 +76,6 @@ apiBase.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// Adicionar interceptors de logging
+addLoggingInterceptors(apiBase);

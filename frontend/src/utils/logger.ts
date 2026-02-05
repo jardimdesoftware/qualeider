@@ -1,8 +1,10 @@
 /**
  * Sistema de logging centralizado para produção.
  * Em desenvolvimento: exibe logs no console
- * Em produção: pode ser integrado com Sentry, LogRocket, etc.
+ * Em produção: integra com Sentry e outros serviços
  */
+
+import { captureException, captureMessage, addBreadcrumb } from '@/lib/sentry';
 
 export type LogLevel = 'info' | 'warn' | 'error' | 'debug';
 
@@ -22,9 +24,11 @@ class Logger {
    */
   info(message: string, context?: LogContext): void {
     if (this.isDev) {
-      console.log(`ℹ[INFO] ${message}`, context || '');
+      console.log(`ℹ️ [INFO] ${message}`, context || '');
     }
-    // Em produção: enviar para serviço de analytics
+    
+    // Breadcrumb para rastrear ações do usuário
+    addBreadcrumb(message, 'info', context);
   }
 
   /**
@@ -32,9 +36,15 @@ class Logger {
    */
   warn(message: string, context?: LogContext): void {
     if (this.isDev) {
-      console.warn(`[WARN] ${message}`, context || '');
+      console.warn(`⚠️ [WARN] ${message}`, context || '');
     }
-    // Em produção: enviar para serviço de monitoring
+    
+    // Registrar warning no Sentry
+    if (!this.isDev) {
+      captureMessage(message, 'warning', context);
+    }
+    
+    addBreadcrumb(message, 'warning', context);
   }
 
   /**
@@ -43,10 +53,19 @@ class Logger {
    */
   error(message: string, error?: Error | unknown, context?: LogContext): void {
     if (this.isDev) {
-      console.error(`[ERROR] ${message}`, error, context || '');
+      console.error(`❌ [ERROR] ${message}`, error, context || '');
     }
 
-    // Em produção: enviar para Sentry, LogRocket, etc.
+    // Capturar erro no Sentry com contexto
+    if (!this.isDev && error) {
+      if (error instanceof Error) {
+        captureException(error, { ...context, message });
+      } else {
+        captureMessage(message, 'error', { ...context, error });
+      }
+    }
+    
+    addBreadcrumb(message, 'error', context);
   }
 
   /**
@@ -54,7 +73,36 @@ class Logger {
    */
   debug(message: string, data?: any): void {
     if (this.isDev) {
-      console.debug(`[DEBUG] ${message}`, data || '');
+      console.debug(`🐛 [DEBUG] ${message}`, data || '');
+    }
+  }
+
+  /**
+   * Tracking de performance
+   */
+  time(label: string): void {
+    if (this.isDev) {
+      console.time(label);
+    }
+  }
+
+  timeEnd(label: string, context?: LogContext): void {
+    if (this.isDev) {
+      console.timeEnd(label);
+    }
+    
+    addBreadcrumb(`Performance: ${label}`, 'performance', context);
+  }
+
+  /**
+   * Track user actions para analytics
+   */
+  trackAction(action: string, context?: LogContext): void {
+    this.info(`User action: ${action}`, { ...context, action });
+    
+    // Aqui pode ser integrado com Google Analytics, Amplitude, etc
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      (window as any).gtag('event', action, context);
     }
   }
 }
