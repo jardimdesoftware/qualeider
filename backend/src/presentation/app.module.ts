@@ -25,8 +25,11 @@ import { JwtAuthGuard } from '@/application/guards/jwt-auth.guard';
 import { ResponseFormatInterceptor } from '@/common/interceptors/response-format.interceptor';
 
 
+import { HealthController } from './controllers/health.controller';
+
 @Module({
   imports: [
+    // ... existing imports
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: [
@@ -53,7 +56,7 @@ import { ResponseFormatInterceptor } from '@/common/interceptors/response-format
     NotificationsPresentationModule,
     MailModule,
   ],
-  controllers: [],
+  controllers: [HealthController],
   providers: [
     {
       provide: APP_GUARD,

@@ -13,7 +13,9 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/:path*",
-        destination: "http://backend:3000/api/:path*", // Proxy to backend
+        destination: process.env.NODE_ENV === 'development' 
+          ? "http://localhost:3002/api/:path*" // Local development (Docker mapped port)
+          : "http://backend:3000/api/:path*", // Docker internal
       },
     ];
   },
