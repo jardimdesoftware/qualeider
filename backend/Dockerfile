@@ -17,6 +17,9 @@ FROM node:20-alpine AS production
 
 WORKDIR /usr/appBackend
 
+# Instalar wget para healthcheck
+RUN apk add --no-cache wget
+
 COPY package*.json ./
 COPY prisma ./prisma/
 
