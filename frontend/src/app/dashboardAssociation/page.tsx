@@ -30,16 +30,30 @@ export default function DashboardAssociation() {
     fetchData();
   }, []);
 
+  const [currentDate, setCurrentDate] = useState<string>("");
+
+  useEffect(() => {
+    setCurrentDate(
+      new Date().toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+    );
+  }, []);
+
   const totalAnimals = stats?.totalAnimals || 0;
-  const totalMilkThisMonth = stats?.totalMilkDay || 0; 
-  const pieChartData = stats?.breedDistribution || [];
-  const lineChartData = stats?.productionHistory || [];
-  
-  const currentDate = new Date().toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  const [totalMilkThisMonth, setTotalMilkThisMonth] = useState(0);
+  const [pieChartData, setPieChartData] = useState<any[]>([]);
+  const [lineChartData, setLineChartData] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (stats) {
+      setTotalMilkThisMonth(stats.totalMilkDay || 0);
+      setPieChartData(stats.breedDistribution || []);
+      setLineChartData(stats.productionHistory || []);
+    }
+  }, [stats]);
 
   const hasAnimals = totalAnimals > 0;
   const hasCollections = lineChartData.length > 0;

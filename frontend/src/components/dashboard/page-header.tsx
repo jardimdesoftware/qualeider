@@ -1,4 +1,6 @@
-import { ReactNode } from "react";
+"use client";
+
+import { ReactNode, useState, useEffect } from "react";
 import { Calendar } from "lucide-react";
 
 interface PageHeaderProps {
@@ -14,11 +16,18 @@ export default function PageHeader({
   showDate = true,
   actions,
 }: PageHeaderProps) {
-  const currentDate = new Date().toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  const [currentDate, setCurrentDate] = useState<string>("");
+
+  useEffect(() => {
+    // Only compute date on client side to prevent hydration mismatch
+    setCurrentDate(
+      new Date().toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+    );
+  }, []);
 
   return (
     <header className="bg-white shadow-sm border-b border-slate-200 px-6 md:px-8 py-6">
@@ -39,7 +48,9 @@ export default function PageHeader({
             <div className="flex items-center gap-4 bg-[#fdfbf7] px-4 py-2 rounded-lg border border-slate-200">
               <div className="text-right hidden md:block">
                 <p className="text-xs text-slate-400 font-bold uppercase">Data de Hoje</p>
-                <p className="text-[#1e3a29] font-bold">{currentDate}</p>
+                <p className="text-[#1e3a29] font-bold" suppressHydrationWarning>
+                  {currentDate || "Carregando..."}
+                </p>
               </div>
               <Calendar className="w-8 h-8 text-[#d97706]" />
             </div>

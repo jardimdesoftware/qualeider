@@ -119,7 +119,11 @@ export default function DailyForm() {
     }
   };
 
-  const displayDate = formatDateLongBR(new Date());
+  const [displayDate, setDisplayDate] = useState<string>("");
+
+  useEffect(() => {
+    setDisplayDate(formatDateLongBR(new Date()));
+  }, []);
 
   if (isAuthLoading || isLoadingAnimals) {
     return <DashboardLoading />;

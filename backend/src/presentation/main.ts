@@ -56,7 +56,7 @@ function setupSwagger(app: INestApplication): void {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  SwaggerModule.setup('api-docs', app, document);
 }
 
 /**
@@ -86,7 +86,7 @@ async function logAppStatus(
   };
 
   Logger.log(`Servidor rodando em ${appUrl}`, 'Bootstrap');
-  Logger.log(`Documentação da API disponível em ${appUrl}/api`, 'Bootstrap');
+  Logger.log(`Documentação da API disponível em ${appUrl}/api-docs`, 'Bootstrap');
   Logger.log(
     `CORS habilitado para: ${formatOrigin(corsOptions.origin)}`,
     'Bootstrap',

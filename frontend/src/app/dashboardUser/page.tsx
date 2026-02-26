@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/layout";
 import { PageHeader } from "@/components/dashboard";
@@ -63,21 +63,48 @@ export default function DashboardUser() {
 
   const totalAnimals = useMemo(() => animals.length, [animals.length]);
 
-  const thisMonthCollections = useMemo(() => {
-    const today = new Date();
-    return dailyCollections.filter((collection) => {
-      const collectionDate = new Date(collection.collectionDate);
-      return (
-        collectionDate.getMonth() === today.getMonth() &&
-        collectionDate.getFullYear() === today.getFullYear()
-      );
-    });
-  }, [dailyCollections]);
+  const [thisMonthCollections, setThisMonthCollections] = useState<any[]>([]);
+  const [totalMilkThisMonth, setTotalMilkThisMonth] = useState(0);
+  const [totalMilkingThisMonth, setTotalMilkingThisMonth] = useState(0);
+  const [lineChartData, setLineChartData] = useState<any[]>([]);
 
-  const totalMilkThisMonth = useMemo(() => 
-    thisMonthCollections.reduce((sum, collection) => sum + collection.quantity, 0),
-    [thisMonthCollections]
-  );
+  useEffect(() => {
+    if (dailyCollections.length > 0) {
+      const today = new Date();
+      const filtered = dailyCollections.filter((collection) => {
+        const collectionDate = new Date(collection.collectionDate);
+        return (
+          collectionDate.getMonth() === today.getMonth() &&
+          collectionDate.getFullYear() === today.getFullYear()
+        );
+      });
+      setThisMonthCollections(filtered);
+      setTotalMilkThisMonth(filtered.reduce((sum, collection) => sum + collection.quantity, 0));
+      setTotalMilkingThisMonth(filtered.reduce((sum, collection) => sum + collection.numOrdens, 0));
+
+      const milkByDayLast7Days = dailyCollections
+        .filter((collection: any) => {
+          const collectionDate = new Date(collection.collectionDate);
+          const t = new Date();
+          const sevenDaysAgo = new Date(t);
+          sevenDaysAgo.setDate(t.getDate() - 7);
+          return collectionDate >= sevenDaysAgo && collectionDate <= t;
+        })
+        .reduce((acc: any, collection: any) => {
+          const date = new Date(collection.collectionDate).toLocaleDateString("pt-BR", {
+            day: "2-digit",
+            month: "2-digit",
+          });
+          acc[date] = (acc[date] || 0) + collection.quantity;
+          return acc;
+        }, {} as Record<string, number>);
+
+      setLineChartData(Object.entries(milkByDayLast7Days).map(([date, quantity]) => ({
+        date,
+        quantity,
+      })));
+    }
+  }, [dailyCollections]);
 
   const averageAnimalAge = useMemo(() =>
     animals.length > 0
@@ -93,11 +120,6 @@ export default function DashboardUser() {
         100
       : 0,
     [dailyCollections]
-  );
-
-  const totalMilkingThisMonth = useMemo(() =>
-    thisMonthCollections.reduce((sum, collection) => sum + collection.numOrdens, 0),
-    [thisMonthCollections]
   );
 
   const averageLactationsThisMonth = useMemo(() =>
@@ -120,38 +142,20 @@ export default function DashboardUser() {
     }));
   }, [animals]);
 
-  const lineChartData = useMemo(() => {
-    const milkByDayLast7Days = dailyCollections
-      .filter((collection) => {
-        const collectionDate = new Date(collection.collectionDate);
-        const today = new Date();
-        const sevenDaysAgo = new Date(today);
-        sevenDaysAgo.setDate(today.getDate() - 7);
-        return collectionDate >= sevenDaysAgo && collectionDate <= today;
-      })
-      .reduce((acc, collection) => {
-        const date = new Date(collection.collectionDate).toLocaleDateString("pt-BR", {
-          day: "2-digit",
-          month: "2-digit",
-        });
-        acc[date] = (acc[date] || 0) + collection.quantity;
-        return acc;
-      }, {} as Record<string, number>);
+  const [currentDate, setCurrentDate] = useState<string>("");
 
-    return Object.entries(milkByDayLast7Days).map(([date, quantity]) => ({
-      date,
-      quantity,
-    }));
-  }, [dailyCollections]);
+  useEffect(() => {
+    setCurrentDate(
+      new Date().toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+    );
+  }, []);
 
   const hasAnimals = animals.length > 0;
   const hasCollections = dailyCollections.length > 0;
-
-  const currentDate = new Date().toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
 
   if (isAuthLoading || dataLoading) {
     return <DashboardLoading />;

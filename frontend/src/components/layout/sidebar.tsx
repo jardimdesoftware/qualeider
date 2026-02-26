@@ -19,8 +19,9 @@ import { BREAKPOINTS, ICON_SIZES, LOGO_SIZES, TIMING } from "@/constants/ui";
 export default function Sidebar() {
   const [isMobile, setIsMobile] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [userRole, setUserRole] = useState<"association" | "user">("user");
+  const [userRole, setUserRole] = useState<"association" | "user" | null>(null);
   const [pathname, setPathname] = useState("");
+  const [mounted, setMounted] = useState(false);
 
   const debouncedCheckScreenSize = useMemo(
     () =>
@@ -31,6 +32,7 @@ export default function Sidebar() {
   );
 
   useEffect(() => {
+    setMounted(true);
     setPathname(window.location.pathname);
 
     const role = getUserTypeFromToken();
@@ -67,6 +69,8 @@ export default function Sidebar() {
           { name: "Notificações", link: "/dashboardAssociation/notifications", icon: <Bell size={ICON_SIZES.SM} /> },
           { name: "Configurações", link: "/settings", icon: <Settings size={ICON_SIZES.SM} /> },
         ];
+
+  if (!mounted) return <div className="w-64" />; // Prevent hydration mismatch
 
   return (
     <div>

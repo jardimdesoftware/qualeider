@@ -8,15 +8,27 @@ import ReportFilters from "@/components/reports/ReportFilters";
 import ProducerRankingTable from "@/components/reports/ProducerRankingTable";
 import ReportExportButton from "@/components/reports/ReportExportButton";
 import { MetricCard } from "@/components/ui";
-import { BarChart3, Users, Milk, TrendingUp, Cat, Calendar } from "lucide-react";
+import {
+  BarChart3,
+  Users,
+  Milk,
+  TrendingUp,
+  Cat,
+  Calendar,
+} from "lucide-react";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 
 export default function ReportsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [ranking, setRanking] = useState<ProducerRanking[]>([]);
-  const [monthlyReport, setMonthlyReport] = useState<MonthlyReport | null>(null);
-  const [filterDates, setFilterDates] = useState<{ start: string | null; end: string | null }>({
+  const [monthlyReport, setMonthlyReport] = useState<MonthlyReport | null>(
+    null,
+  );
+  const [filterDates, setFilterDates] = useState<{
+    start: string | null;
+    end: string | null;
+  }>({
     start: null,
     end: null,
   });
@@ -38,29 +50,39 @@ export default function ReportsPage() {
       setMonthlyReport(monthlyData);
     } catch (error) {
       console.error("Erro ao buscar relatórios:", error);
-      
+
       // Verificar se é erro de autenticação
-      if (error instanceof Error && error.message.includes('401')) {
-        router.push('/login');
+      if (error instanceof Error && error.message.includes("401")) {
+        router.push("/login");
       }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFilterChange = (startDate: string | null, endDate: string | null, period: string) => {
+  const handleFilterChange = (
+    startDate: string | null,
+    endDate: string | null,
+    period: string,
+  ) => {
     setFilterDates({ start: startDate, end: endDate });
-    
+
     if (startDate && endDate) {
       fetchReports(startDate, endDate);
     }
   };
 
-  const currentDate = new Date().toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
+  const [currentDate, setCurrentDate] = useState<string>("");
+
+  useEffect(() => {
+    setCurrentDate(
+      new Date().toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      }),
+    );
+  }, []);
 
   if (loading) {
     return <DashboardLoading />;
@@ -79,20 +101,27 @@ export default function ReportsPage() {
               Acompanhe o desempenho e estatísticas da associação
             </p>
           </div>
-          
+
           <div className="flex items-center gap-4">
             {/* Botão de Exportação */}
-            <ReportExportButton 
+            <ReportExportButton
               ranking={ranking}
               monthlyReport={monthlyReport}
               associationName="Associação Regional"
             />
-            
+
             {/* Data */}
             <div className="flex items-center gap-4 bg-[#fdfbf7] px-4 py-2 rounded-lg border border-slate-200">
               <div className="text-right hidden md:block">
-                <p className="text-xs text-slate-400 font-bold uppercase">Data de Hoje</p>
-                <p className="text-[#1e3a29] font-bold">{currentDate}</p>
+                <p className="text-xs text-slate-400 font-bold uppercase">
+                  Data de Hoje
+                </p>
+                <p
+                  className="text-[#1e3a29] font-bold"
+                  suppressHydrationWarning
+                >
+                  {currentDate || "Carregando..."}
+                </p>
               </div>
               <Calendar className="w-8 h-8 text-[#d97706]" />
             </div>
