@@ -30,6 +30,9 @@ WORKDIR /usr/appFrontend
 
 ENV NODE_ENV=production
 
+# Necessário para o healthcheck (docker-compose usa wget)
+RUN apk add --no-cache wget
+
 # Instalar wget para o healthcheck do Docker
 RUN apk add --no-cache wget
 
