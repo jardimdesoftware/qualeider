@@ -18,6 +18,8 @@ import { IAssociationRepository } from '@/domain/repositories/association.reposi
 import { PrismaAssociationRepository } from '@/infrastructure/repositories/prisma-association.repository';
 import { IInviteRepository } from '@/domain/repositories/invite.repository';
 import { PrismaInviteRepository } from '@/infrastructure/repositories/prisma-invite.repository';
+import { IBreedRepository } from '@/domain/repositories/breed.repository';
+import { PrismaBreedRepository } from '@/infrastructure/repositories/prisma-breed.repository';
 
 @Module({
   imports: [
@@ -44,6 +46,7 @@ import { PrismaInviteRepository } from '@/infrastructure/repositories/prisma-inv
     { provide: IFailedEmailRepository, useClass: PrismaFailedEmailRepository },
     { provide: IAssociationRepository, useClass: PrismaAssociationRepository },
     { provide: IInviteRepository, useClass: PrismaInviteRepository },
+    { provide: IBreedRepository, useClass: PrismaBreedRepository },
   ],
   exports: [
     PrismaModule,
@@ -55,6 +58,7 @@ import { PrismaInviteRepository } from '@/infrastructure/repositories/prisma-inv
     IFailedEmailRepository,
     IAssociationRepository,
     IInviteRepository,
+    IBreedRepository,
   ],
 })
 export class InfrastructureModule {}

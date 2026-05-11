@@ -107,6 +107,17 @@ model User {
   @@index([associationId, status])
 }
 
+model Breed {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  animals     Animal[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([name])
+}
+
 model Animal {
   id                    Int              @id @default(autoincrement())
   name                  String?
@@ -114,8 +125,10 @@ model Animal {
   breed                 String
   age                   Int
   userId                Int
+  breedId               Int?
   status                Status           @default(Active)
   user                  User             @relation(fields: [userId], references: [id])
+  breedRelation         Breed?           @relation(fields: [breedId], references: [id])
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
   dailyCollectionItems  DailyCollectionItem[]

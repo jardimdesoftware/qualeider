@@ -11,6 +11,7 @@ import {
   Milk,
   Settings,
   Bell,
+  Dna,
 } from "lucide-react";
 import { getUserTypeFromToken, clearAuthToken } from "@/utils/auth";
 import { debounce } from "@/utils/debounce";
@@ -58,6 +59,7 @@ export default function Sidebar() {
           { name: "Dados diários", link: "/dailyForm", icon: <Milk size={ICON_SIZES.SM} /> },
           { name: "Meus Animais", link: "/manageMyAnimals", icon: <FileText size={ICON_SIZES.SM} /> },
           { name: "Notificações", link: "/dashboardUser/notifications", icon: <Bell size={ICON_SIZES.SM} /> },
+          { name: "Raças", link: "/dashboardUser/breeds", icon: <Dna size={ICON_SIZES.SM} /> },
           { name: "Usuários", link: "/manageUsers", icon: <Users size={ICON_SIZES.SM} /> },
           { name: "Configurações", link: "/settings", icon: <Settings size={ICON_SIZES.SM} /> },
         ]
