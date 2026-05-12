@@ -5,6 +5,7 @@ import { CreateUserDto } from '@/application/dtos/users/create-user.dto';
 import { UpdateUserDto } from '@/application/dtos/users/update-user.dto';
 import { UpdatePartialUserDto } from '@/application/dtos/users/update-partial-user.dto';
 import { createUser } from '../../../factories/user.factory';
+import { UserRole } from '@/domain/enums/enums';
 import { BusinessException } from '@/common/exceptions/business.exception';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 
@@ -51,7 +52,7 @@ describe('UsersController', () => {
 
       const result = await controller.create(createDto);
 
-      expect(usersService.create).toHaveBeenCalledWith(createDto);
+      expect(usersService.create).toHaveBeenCalledWith({ ...createDto, role: UserRole.ADMIN });
       expect(result).toEqual(createdUser);
     });
 

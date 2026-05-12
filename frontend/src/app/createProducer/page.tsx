@@ -210,8 +210,8 @@ export default function CreateProducer() {
 
       <ContentCard className="max-w-2xl">
         <BrandHeader
-          title="Cadastro de Produtor"
-          subtitle="Registre-se como produtor"
+          title="Criar minha conta"
+          subtitle="Cadastro do Administrador da Fazenda"
         />
 
         <div className="p-8 pb-6 max-h-[75vh] overflow-y-auto">
@@ -333,7 +333,7 @@ export default function CreateProducer() {
               <div className="space-y-4">
                 <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
                   <Briefcase className="w-5 h-5 text-brand-primary" />
-                  Perfil de Produção
+                  Perfil da Fazenda
                 </h3>
 
                 <RadioCardGroup

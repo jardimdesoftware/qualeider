@@ -7,6 +7,7 @@ import { UpdatePartialUserDto } from '@/application/dtos/users/update-partial-us
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 import { BCRYPT_ROUNDS_USER_CREATION } from '@/common/constants/security.constants';
 import { UserCriteria } from '@/domain/criteria/user.criteria';
+import { UserRole } from '@/domain/enums/enums';
 
 @Injectable()
 export class UsersService {
@@ -25,6 +26,7 @@ export class UsersService {
     // Repository lança BusinessException se email duplicar (P2002)
     const user = await this.userRepository.create({
       ...rest,
+      role: rest.role ?? UserRole.ADMIN, // garante valor sempre presente
       password: hashedPassword!,
     });
 

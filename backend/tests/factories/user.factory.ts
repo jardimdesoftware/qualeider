@@ -1,5 +1,5 @@
 import { UserEntity } from '@/domain/entities/user.entity';
-import { Status, UserCategory, UserType } from '@/domain/enums/enums';
+import { Status, UserCategory, UserRole, UserType } from '@/domain/enums/enums';
 
 /**
  * Factory para criar entidades User com dados válidos para testes
@@ -21,6 +21,7 @@ export class UserFactory {
       name: `User ${id}`,
       email: `user${id}@example.com`,
       password: '$2a$10$hashedPasswordExample', // bcrypt hash simulado
+      role: UserRole.ADMIN,
       userCategory: UserCategory.Fisica,
       userType: UserType.Pecuarista,
       city: 'Belo Jardim',

@@ -6,7 +6,7 @@ import { CreateUserDto } from '@/application/dtos/users/create-user.dto';
 import { UpdateUserDto } from '@/application/dtos/users/update-user.dto';
 import { UpdatePartialUserDto } from '@/application/dtos/users/update-partial-user.dto';
 import { createUser } from '../../../factories/user.factory';
-import { UserCategory, Status } from '@/domain/enums/enums';
+import { UserCategory, UserRole, Status } from '@/domain/enums/enums';
 import { BCRYPT_ROUNDS_USER_CREATION } from '@/common/constants/security.constants';
 import { BusinessException } from '@/common/exceptions/business.exception';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
@@ -77,6 +77,7 @@ describe('UsersService', () => {
       );
       expect(userRepository.create).toHaveBeenCalledWith({
         ...createDto,
+        role: UserRole.ADMIN, // fallback injetado pelo service quando role não é informado
         password: hashedPassword,
       });
       expect(result).not.toHaveProperty('password');

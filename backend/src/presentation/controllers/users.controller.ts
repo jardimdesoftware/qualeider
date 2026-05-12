@@ -29,21 +29,44 @@ import { BusinessException } from '@/common/exceptions/business.exception';
 import { UserCriteria } from '@/domain/criteria/user.criteria';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
 import { Public } from '@/common/decorators/public.decorator';
+import { UserRole } from '@/domain/enums/enums';
 
 @ApiTags('Users')
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @Throttle({ default: { limit: 5, ttl: THROTTLE_TTL.LONG } }) 
+  /**
+   * Registro público — sempre cria conta com role ADMIN (dono da fazenda).
+   * O campo `role` do body é ignorado por segurança.
+   */
+  @Throttle({ default: { limit: 5, ttl: THROTTLE_TTL.LONG } })
   @Post()
   @Public()
-  @ApiOperation({ summary: 'Criar um usuário' })
+  @ApiOperation({ summary: 'Registro público: cria conta Admin (dono da fazenda)' })
   @ApiResponse({ status: 201, description: 'Usuário criado com sucesso' })
   @ApiResponse({ status: 400, description: 'Dados inválidos' })
   @ApiResponse({ status: 409, description: 'Email já cadastrado' })
   @ResponseMessage('Usuário criado com sucesso')
   async create(@Body() createUserDto: CreateUserDto) {
+    // Garante que o registro público SEMPRE cria um Admin
+    return this.usersService.create({ ...createUserDto, role: UserRole.ADMIN });
+  }
+
+  /**
+   * Criação interna — usado pelo Admin logado para cadastrar funcionários (Vaqueiros).
+   * Requer autenticação JWT. Aceita qualquer role (ADMIN ou VAQUEIRO).
+   */
+  @Throttle({ default: { limit: 20, ttl: THROTTLE_TTL.LONG } })
+  @Post('internal')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Criação interna: Admin cadastra funcionários (Vaqueiros)' })
+  @ApiResponse({ status: 201, description: 'Usuário criado com sucesso' })
+  @ApiResponse({ status: 400, description: 'Dados inválidos' })
+  @ApiResponse({ status: 401, description: 'Não autorizado' })
+  @ApiResponse({ status: 409, description: 'Email já cadastrado' })
+  @ResponseMessage('Usuário criado com sucesso')
+  async createInternal(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
 

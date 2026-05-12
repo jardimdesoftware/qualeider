@@ -32,7 +32,7 @@ export function LandingNavbar() {
           className="bg-[#d97706] hover:bg-[#b45309] text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-md flex items-center gap-2"
         >
           <User className="w-4 h-4" />
-          <span className="hidden sm:inline">Área do Produtor</span>
+          <span className="hidden sm:inline">Entrar</span>
         </Link>
       </div>
     </nav>

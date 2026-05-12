@@ -8,6 +8,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  ADMIN
+  VAQUEIRO
+}
+
 enum UserType {
   Pecuarista
   Cooperativa
@@ -93,8 +98,9 @@ model User {
   document              String?          @unique // CPF ou CNPJ
   city                  String           
   state                 String 
+  role                  UserRole         @default(ADMIN)
   status                Status           @default(Active)
-  resetToken            String?  
+  resetToken            String?
   resetTokenExpiry      DateTime?
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
