@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
@@ -9,8 +11,6 @@ import {
   PieChart,
   LogOut,
   Milk,
-  Settings,
-  Bell,
   Dna,
 } from "lucide-react";
 import { getUserTypeFromToken, clearAuthToken } from "@/utils/auth";
@@ -49,36 +49,29 @@ export default function Sidebar() {
 
   const handleLogout = () => {
     clearAuthToken();
-    window.location.href = "/";
+    window.location.href = "/login";
   };
 
-  const menuItems =
-    userRole === "user"
-      ? [
-          { name: "Início", link: "/dashboardUser", icon: <PieChart size={ICON_SIZES.SM} /> },
-          { name: "Dados diários", link: "/dailyForm", icon: <Milk size={ICON_SIZES.SM} /> },
-          { name: "Meus Animais", link: "/manageMyAnimals", icon: <FileText size={ICON_SIZES.SM} /> },
-          { name: "Notificações", link: "/dashboardUser/notifications", icon: <Bell size={ICON_SIZES.SM} /> },
-          { name: "Raças", link: "/dashboardUser/breeds", icon: <Dna size={ICON_SIZES.SM} /> },
-          { name: "Funcionários", link: "/manageUsers", icon: <Users size={ICON_SIZES.SM} /> },
-          { name: "Configurações", link: "/settings", icon: <Settings size={ICON_SIZES.SM} /> },
-        ]
-      : [
-          { name: "Início", link: "/dashboardAssociation", icon: <PieChart size={ICON_SIZES.SM} /> },
-          { name: "Associados", link: "/dashboardAssociation/associates", icon: <Users size={ICON_SIZES.SM} /> },
-          { name: "Rebanho Regional", link: "/dashboardAssociation/herd", icon: <FileText size={ICON_SIZES.SM} /> },
-          { name: "Relatórios", link: "/dashboardAssociation/reports", icon: <FileText size={ICON_SIZES.SM} /> },
-          { name: "Notificações", link: "/dashboardAssociation/notifications", icon: <Bell size={ICON_SIZES.SM} /> },
-          { name: "Configurações", link: "/settings", icon: <Settings size={ICON_SIZES.SM} /> },
-        ];
+  /**
+   * Menu do usuário logado (ADMIN ou VAQUEIRO).
+   * Notificações e Configurações removidos do fluxo principal.
+   * O menu de Associação está em stand-by — não é exibido.
+   */
+  const menuItems = [
+    { name: "Início", link: "/dashboardUser", icon: <PieChart size={ICON_SIZES.SM} /> },
+    { name: "Dados diários", link: "/dailyForm", icon: <Milk size={ICON_SIZES.SM} /> },
+    { name: "Meus Animais", link: "/manageMyAnimals", icon: <FileText size={ICON_SIZES.SM} /> },
+    { name: "Raças", link: "/dashboardUser/breeds", icon: <Dna size={ICON_SIZES.SM} /> },
+    { name: "Funcionários", link: "/manageUsers", icon: <Users size={ICON_SIZES.SM} /> },
+  ];
 
-  if (!mounted) return <div className="w-64" />; // Prevent hydration mismatch
+  if (!mounted) return <div className="w-64" />;
 
   return (
     <div>
       {isMobile ? (
         <div className="relative">
-          {/* Barra verde no topo */}
+          {/* Barra superior mobile */}
           <div className="fixed top-0 left-0 right-0 bg-green-background p-4 flex justify-between items-center z-40 shadow-md">
             <button onClick={toggleMenu} className="text-white">
               {menuOpen ? <X size={ICON_SIZES.MD} /> : <Menu size={ICON_SIZES.MD} />}
@@ -86,7 +79,7 @@ export default function Sidebar() {
             <h2 className="text-white font-bold text-lg">QualeiDer</h2>
           </div>
 
-          {/* Menu lateral acima da barra verde */}
+          {/* Gaveta lateral mobile */}
           <div
             className={`fixed top-0 left-0 h-screen w-64 bg-green-background shadow-lg p-4 transition-transform duration-300 z-50 ${
               menuOpen ? "translate-x-0" : "-translate-x-full"
@@ -99,7 +92,6 @@ export default function Sidebar() {
               <X size={ICON_SIZES.MD} />
             </button>
 
-            {/* Logo */}
             <div className="flex items-center gap-2 p-4">
               <Image
                 src="/logo_icon.svg"
@@ -128,7 +120,6 @@ export default function Sidebar() {
               ))}
             </nav>
 
-            {/* Botão de sair */}
             <div className="absolute bottom-4 left-4">
               <button
                 onClick={handleLogout}
@@ -143,7 +134,6 @@ export default function Sidebar() {
       ) : (
         <aside className="h-screen w-64 bg-green-background shadow-lg p-4 flex flex-col justify-between">
           <div>
-            {/* Logo */}
             <div className="flex items-center gap-2 p-4">
               <Image
                 src="/logo_icon.svg"
@@ -173,7 +163,6 @@ export default function Sidebar() {
             </nav>
           </div>
 
-          {/* Botão de sair */}
           <div className="p-4">
             <button
               onClick={handleLogout}

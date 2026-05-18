@@ -19,9 +19,7 @@ import {
 } from "@/components/ui";
 import { userService } from "@/services/userService";
 import { UserRole, UserCategory } from "@/interfaces/user";
-import { useStates, useCities } from "@/hooks/queries/useLocation";
 import { getFriendlyErrorMessage } from "@/utils/errorMessage";
-import { maskCPF } from "@/utils/masks";
 
 // ── Schema de validação ──────────────────────────────────────────────────────
 
@@ -37,10 +35,7 @@ const addUserSchema = z
         "A senha deve ter maiúscula, minúscula, número e caractere especial"
       ),
     confirmPassword: z.string(),
-    role: z.nativeEnum(UserRole, { required_error: "Selecione o cargo" }),
-    state: z.string().min(1, "Estado é obrigatório"),
-    city: z.string().min(1, "Cidade é obrigatória"),
-    document: z.string().optional(),
+    role: z.nativeEnum(UserRole, { message: "Selecione o cargo" }),
   })
   .refine((d) => d.password === d.confirmPassword, {
     message: "As senhas não conferem",
@@ -70,21 +65,12 @@ export default function AddUser() {
     register,
     handleSubmit,
     watch,
-    setValue,
     formState: { errors },
   } = useForm<AddUserFormData>({
     resolver: zodResolver(addUserSchema),
     mode: "onBlur",
     defaultValues: { role: UserRole.VAQUEIRO },
   });
-
-  const selectedState = watch("state");
-  const { data: estados = [] } = useStates();
-  const { data: cidades = [], isLoading: isLoadingCities } =
-    useCities(selectedState);
-
-  const estadoOptions = estados.map((e) => ({ value: e.sigla, label: e.nome }));
-  const cidadeOptions = cidades.map((c) => ({ value: c.nome, label: c.nome }));
 
   const { mutate: createUser, isPending } = useMutation({
     mutationFn: (values: AddUserFormData) =>
@@ -94,9 +80,8 @@ export default function AddUser() {
         password: values.password,
         role: values.role,
         userCategory: UserCategory.Fisica,
-        city: values.city,
-        state: values.state,
-        document: values.document || undefined,
+        city: "Belo Jardim",
+        state: "PE",
       }),
     onSuccess: () => {
       setModalState({
@@ -125,7 +110,7 @@ export default function AddUser() {
     <DashboardLayout>
       <PageHeader
         title="Adicionar Funcionário"
-        subtitle="Cadastre um novo membro da equipe da fazenda"
+        subtitle="Cadastre um novo membro da equipe"
       />
 
       <ErrorModal
@@ -191,57 +176,13 @@ export default function AddUser() {
                 <ShieldCheck size={16} className="text-brand-primary" />
                 Cargo / Perfil
               </h3>
-              <div className="space-y-4">
-                <SelectField
-                  label="Cargo na Fazenda"
-                  disabled={isPending}
-                  error={errors.role?.message}
-                  helperText="Define o nível de acesso do funcionário no sistema"
-                  {...register("role")}
-                  options={ROLE_OPTIONS}
-                />
-              </div>
-            </div>
-
-            <hr className="border-gray-100" />
-
-            {/* Seção: Localização */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-4">
-                Localização
-              </h3>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <SelectField
-                    label="Estado"
-                    disabled={isPending}
-                    error={errors.state?.message}
-                    {...register("state")}
-                    options={estadoOptions}
-                    onChange={(e) => {
-                      setValue("state", e.target.value);
-                      setValue("city", "");
-                    }}
-                  />
-                  <SelectField
-                    label="Cidade"
-                    disabled={isPending || !selectedState || isLoadingCities}
-                    error={errors.city?.message}
-                    {...register("city")}
-                    options={cidadeOptions}
-                  />
-                </div>
-                <InputField
-                  label="CPF (opcional)"
-                  disabled={isPending}
-                  error={errors.document?.message}
-                  helperText="Apenas para identificação interna"
-                  {...register("document")}
-                  onChange={(e) =>
-                    setValue("document", maskCPF(e.target.value))
-                  }
-                />
-              </div>
+              <SelectField
+                label="Cargo na Fazenda"
+                disabled={isPending}
+                error={errors.role?.message}
+                {...register("role")}
+                options={ROLE_OPTIONS}
+              />
             </div>
 
             {/* Ações */}
