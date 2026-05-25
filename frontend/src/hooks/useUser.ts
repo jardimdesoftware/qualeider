@@ -5,6 +5,7 @@ import { jwtDecode } from "jwt-decode";
 export interface TokenPayload {
   sub: string | number;
   userType: "user" | "association";
+  role?: "ADMIN" | "VAQUEIRO" | null;
   name?: string;
   email?: string;
   exp?: number;

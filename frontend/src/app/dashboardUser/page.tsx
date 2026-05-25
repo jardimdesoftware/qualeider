@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/dashboard";
 import { MetricCard, EmptyState, ErrorModal } from "@/components/ui";
 import { Activity, Milk, Cat, Ruler, Wheat, Droplet, BarChart3 } from "lucide-react";
 import dynamic from "next/dynamic";
+
 const AnimalDistributionChart = dynamic(() => import("@/components/dashboard/AnimalDistributionChart"), { ssr: false, loading: () => <p className="text-center py-10 text-slate-400">Carregando gráfico...</p> });
 const MilkLast7DaysChart = dynamic(() => import("@/components/dashboard/MilkLast7DaysChart"), { ssr: false, loading: () => <p className="text-center py-10 text-slate-400">Carregando gráfico...</p> });
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
@@ -14,7 +15,6 @@ import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { ICON_SIZES } from "@/constants/ui";
 import { useUserDashboard } from "@/hooks/queries/useDashboard";
 import { useRespondInvite } from "@/hooks/queries/useInvites";
-
 
 export default function DashboardUser() {
   const router = useRouter();
@@ -54,7 +54,6 @@ export default function DashboardUser() {
   };
 
   const handleCloseModal = () => {
-
       setModalState(prev => ({ ...prev, isOpen: false }));
       if (modalState.type === 'success') {
           window.location.reload();
@@ -64,13 +63,24 @@ export default function DashboardUser() {
   const totalAnimals = useMemo(() => animals.length, [animals.length]);
 
   const [thisMonthCollections, setThisMonthCollections] = useState<any[]>([]);
-  const [totalMilkThisMonth, setTotalMilkThisMonth] = useState(0);
-  const [totalMilkingThisMonth, setTotalMilkingThisMonth] = useState(0);
   const [lineChartData, setLineChartData] = useState<any[]>([]);
+  const [currentDate, setCurrentDate] = useState<string>("");
+
+  useEffect(() => {
+    setCurrentDate(
+      new Date().toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+    );
+  }, []);
 
   useEffect(() => {
     if (dailyCollections.length > 0) {
       const today = new Date();
+      
+      // Filtra as coleções do mês atual
       const filtered = dailyCollections.filter((collection) => {
         const collectionDate = new Date(collection.collectionDate);
         return (
@@ -79,9 +89,8 @@ export default function DashboardUser() {
         );
       });
       setThisMonthCollections(filtered);
-      setTotalMilkThisMonth(filtered.reduce((sum, collection) => sum + collection.quantity, 0));
-      setTotalMilkingThisMonth(filtered.reduce((sum, collection) => sum + collection.numOrdens, 0));
 
+      // Dados para o gráfico histórico (últimos 7 dias) permanece usando dailyCollections
       const milkByDayLast7Days = dailyCollections
         .filter((collection: any) => {
           const collectionDate = new Date(collection.collectionDate);
@@ -106,6 +115,16 @@ export default function DashboardUser() {
     }
   }, [dailyCollections]);
 
+  // --- MÉTRICAS REVISADAS (Usando thisMonthCollections ao invés de dailyCollections) ---
+  
+  const totalMilkThisMonth = useMemo(() => 
+    thisMonthCollections.reduce((sum, collection) => sum + collection.quantity, 0)
+  , [thisMonthCollections]);
+
+  const totalMilkingThisMonth = useMemo(() => 
+    thisMonthCollections.reduce((sum, collection) => sum + collection.numOrdens, 0)
+  , [thisMonthCollections]);
+
   const averageAnimalAge = useMemo(() =>
     animals.length > 0
       ? animals.reduce((sum, animal) => sum + animal.age, 0) / animals.length
@@ -114,20 +133,20 @@ export default function DashboardUser() {
   );
 
   const rationProvidedPercentage = useMemo(() =>
-    dailyCollections.length > 0
-      ? (dailyCollections.filter((collection) => collection.rationProvided).length /
-          dailyCollections.length) *
+    thisMonthCollections.length > 0
+      ? (thisMonthCollections.filter((collection) => collection.rationProvided).length /
+          thisMonthCollections.length) *
         100
       : 0,
-    [dailyCollections]
+    [thisMonthCollections]
   );
 
   const averageLactationsThisMonth = useMemo(() =>
-    dailyCollections.length > 0
-      ? dailyCollections.reduce((sum, collection) => sum + collection.numLactation, 0) /
-        dailyCollections.length
+    thisMonthCollections.length > 0
+      ? thisMonthCollections.reduce((sum, collection) => sum + collection.numLactation, 0) /
+        thisMonthCollections.length
       : 0,
-    [dailyCollections]
+    [thisMonthCollections]
   );
 
   const pieChartData = useMemo(() => {
@@ -141,18 +160,6 @@ export default function DashboardUser() {
       value: count,
     }));
   }, [animals]);
-
-  const [currentDate, setCurrentDate] = useState<string>("");
-
-  useEffect(() => {
-    setCurrentDate(
-      new Date().toLocaleDateString("pt-BR", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      })
-    );
-  }, []);
 
   const hasAnimals = animals.length > 0;
   const hasCollections = dailyCollections.length > 0;
@@ -169,7 +176,8 @@ export default function DashboardUser() {
           subtitle="Bem-vindo de volta!"
         />
 
-        <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8">
+        {/* --- CORREÇÃO DE LAYOUT: bg e w-full aplicados no Container --- */}
+        <div className="w-full min-h-screen bg-slate-50 p-4 md:p-6 lg:p-8 space-y-8">
             
           {/* Pending Invites Section */}
           {invites.length > 0 && (
@@ -177,23 +185,23 @@ export default function DashboardUser() {
                 <h3 className="text-lg font-bold text-[#1e3a29] mb-4">Convites Pendentes</h3>
                 <div className="space-y-4">
                     {invites.map((invite) => (
-                        <div key={invite.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200">
+                        <div key={invite.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-slate-50 rounded-lg border border-slate-200">
                             <div>
                                 <p className="font-semibold text-slate-800">
                                     Convite da Associação <span className="text-[#1e3a29]">{invite.association?.name}</span>
                                 </p>
                                 <p className="text-sm text-slate-600">{invite.message || "Gostaríamos que você fizesse parte da nossa associação."}</p>
                             </div>
-                            <div className="flex gap-2">
-                                <button 
+                            <div className="flex gap-2 shrink-0">
+                                <button
                                     onClick={() => handleInviteResponse(invite.token, 'Decline')}
-                                    className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                                    className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
                                 >
                                     Recusar
                                 </button>
-                                <button 
+                                <button
                                     onClick={() => handleInviteResponse(invite.token, 'Accept')}
-                                    className="px-4 py-2 text-sm font-medium text-white bg-[#1e3a29] hover:bg-[#142920] rounded-lg transition-colors shadow-sm"
+                                    className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium text-white bg-[#1e3a29] hover:bg-[#142920] rounded-lg transition-colors shadow-sm"
                                 >
                                     Aceitar
                                 </button>
@@ -237,7 +245,8 @@ export default function DashboardUser() {
               </h3>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* --- CORREÇÃO DE GRID DOS CARDS --- */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
               <MetricCard
                 icon={<Cat size={ICON_SIZES.MD} />}
                 iconColor="text-green-600"
@@ -300,12 +309,17 @@ export default function DashboardUser() {
           </section>
 
           {/* Seção 2: Gráficos */}
-          <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <AnimalDistributionChart data={pieChartData} />
-            <MilkLast7DaysChart data={lineChartData} />
+          {/* --- CORREÇÃO DE ESTILO NOS GRÁFICOS (Grid + min-height wrappers) --- */}
+          <section className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 min-h-[320px] w-full flex justify-center flex-col">
+              <AnimalDistributionChart data={pieChartData} />
+            </div>
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 min-h-[320px] w-full flex justify-center flex-col">
+              <MilkLast7DaysChart data={lineChartData} />
+            </div>
           </section>
         </div>
-    </DashboardLayout>
+      </DashboardLayout>
       
       <ErrorModal
         isOpen={modalState.isOpen}

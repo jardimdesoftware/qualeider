@@ -165,7 +165,7 @@ export default function DailyForm() {
         </div>
 
         {/* Floating Save Button */}
-        <div className="fixed bottom-6 left-0 w-full px-4 z-30 lg:left-64 lg:w-[calc(100%-16rem)] flex justify-center pointer-events-none">
+        <div className="fixed bottom-6 left-0 w-full px-4 z-30 md:left-64 md:w-[calc(100%-16rem)] flex justify-center pointer-events-none">
           <button
             type="button"
             onClick={() => setIsFinalizing(true)}

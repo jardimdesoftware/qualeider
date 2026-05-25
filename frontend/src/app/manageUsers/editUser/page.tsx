@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { getUserRoleFromToken } from "@/utils/auth";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -254,6 +255,15 @@ function EditUserForm() {
 // ── Página principal com Suspense (exigido pelo useSearchParams) ──────────────
 
 export default function EditUser() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const role = getUserRoleFromToken();
+    if (role && role !== "ADMIN") {
+      router.replace("/dashboardUser");
+    }
+  }, [router]);
+
   return (
     <DashboardLayout>
       <PageHeader

@@ -12,4 +12,14 @@ export const collectionService = {
     const { data } = await apiBase.get(`/daily-collections/user/${userId}`);
     return data;
   },
+
+  update: async (id: number, data: Partial<DailyCollectionData>) => {
+    const { data: response } = await apiBase.put(`/daily-collections/${id}`, data);
+    return response;
+  },
+
+  remove: async (id: number) => {
+    const { data: response } = await apiBase.delete(`/daily-collections/${id}`);
+    return response;
+  },
 };

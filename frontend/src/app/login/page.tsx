@@ -59,7 +59,7 @@ export default function Login() {
           subtitle="Controle de sua produção leiteira"
         />
 
-        <div className="p-8 pb-6">
+        <div className="px-6 py-6 md:px-8 md:py-8 pb-6">
           <h2 className="text-brand-primary text-2xl font-bold text-center mb-6">
             Entrar
           </h2>

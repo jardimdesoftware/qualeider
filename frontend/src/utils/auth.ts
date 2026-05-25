@@ -4,6 +4,7 @@ import { logger } from "./logger";
 export interface TokenPayload {
   sub: string | number;
   userType: "user" | "association";
+  role?: "ADMIN" | "VAQUEIRO" | null;
   name?: string;
   email?: string;
 }
@@ -37,6 +38,17 @@ export function getUserTypeFromToken(): "user" | "association" {
 
   const decoded = decodeToken(token);
   return decoded?.userType || "user";
+}
+
+/**
+ * Get user role from stored token (ADMIN | VAQUEIRO)
+ */
+export function getUserRoleFromToken(): "ADMIN" | "VAQUEIRO" | null {
+  const token = getAuthToken();
+  if (!token) return null;
+
+  const decoded = decodeToken(token);
+  return decoded?.role ?? null;
 }
 
 /**

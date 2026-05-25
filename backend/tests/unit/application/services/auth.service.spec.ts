@@ -248,6 +248,7 @@ describe('AuthService', () => {
         sub: 1,
         associationId: 10,
         userType: 'user',
+        role: null,
       });
       expect(result).toEqual({ access_token: 'mock-jwt-token' });
     });
@@ -268,6 +269,7 @@ describe('AuthService', () => {
         sub: 2,
         associationId: null,
         userType: 'user',
+        role: null,
       });
       expect(result.access_token).toBe('mock-jwt-token-2');
     });

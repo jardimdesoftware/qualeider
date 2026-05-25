@@ -24,12 +24,39 @@ export function useUserCollections(userId: number | null) {
 
 export function useCreateCollection() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ data, userId }: { data: any, userId: number }) =>
+    mutationFn: ({ data, userId }: { data: any; userId: number }) =>
       collectionService.create(data, userId),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: COLLECTIONS_KEYS.byUser(variables.userId) });
+    },
+  });
+}
+
+export function useUpdateCollection(userId: number | null) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<any> }) =>
+      collectionService.update(id, data),
+    onSuccess: () => {
+      if (userId) {
+        queryClient.invalidateQueries({ queryKey: COLLECTIONS_KEYS.byUser(userId) });
+      }
+    },
+  });
+}
+
+export function useDeleteCollection(userId: number | null) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => collectionService.remove(id),
+    onSuccess: () => {
+      if (userId) {
+        queryClient.invalidateQueries({ queryKey: COLLECTIONS_KEYS.byUser(userId) });
+      }
     },
   });
 }
