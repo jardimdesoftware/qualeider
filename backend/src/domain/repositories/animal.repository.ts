@@ -18,6 +18,8 @@ export interface IAnimalRepository {
   findAll(criteria?: AnimalCriteria): Promise<PaginatedResult<AnimalEntity>>;
   findById(id: ID, options?: AnimalFindOneOptions): Promise<AnimalEntity | null>;
   findByIds(ids: ID[], options?: AnimalFindOneOptions): Promise<AnimalEntity[]>;
+  findByTagNumber(userId: ID, tagNumber: string): Promise<AnimalEntity | null>;
+  findPendingByParentCode(userId: ID, tagNumber: string): Promise<AnimalEntity[]>;
   update(id: ID, data: Partial<AnimalEntity>): Promise<AnimalEntity>;
   softDelete(id: ID): Promise<AnimalEntity>;
 }

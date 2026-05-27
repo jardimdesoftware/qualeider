@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout";
 import { PageHeader } from "@/components/dashboard";
@@ -10,6 +11,7 @@ import { ICON_SIZES, LOGO_SIZES } from "@/constants/ui";
 import { userService } from "@/services/userService";
 import { User, UserRole, Status } from "@/interfaces/user";
 import { EmptyState } from "@/components/ui";
+import { getUserRoleFromToken } from "@/utils/auth";
 
 const ROLE_LABELS: Record<UserRole, string> = {
   [UserRole.ADMIN]: "Admin",
@@ -24,7 +26,16 @@ const ROLE_BADGE_CLASSES: Record<UserRole, string> = {
 };
 
 export default function ManageUsers() {
+  const router = useRouter();
   const [search, setSearch] = useState("");
+
+  // Protege a rota: só ADMIN pode gerenciar funcionários
+  useEffect(() => {
+    const role = getUserRoleFromToken();
+    if (role && role !== "ADMIN") {
+      router.replace("/dashboardUser");
+    }
+  }, [router]);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["users"],

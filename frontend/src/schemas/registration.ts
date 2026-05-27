@@ -46,12 +46,10 @@ export const producerStep1Schema = z.object({
   path: ["confirmPassword"],
 });
 
-// Step 2: Contato e Localização (CPF, Telefone, CEP, Estado, Cidade)
+// Step 2: Contato (CPF, Telefone) — state/city são fixos: PE / Belo Jardim
 export const producerStep2Schema = z.object({
   cpf: cpfRule,
   phone: phoneRule,
-  state: stateRule,
-  city: cityRule,
 });
 
 // Step 3: Categorização (Tipo de Produtor)

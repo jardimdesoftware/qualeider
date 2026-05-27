@@ -1,282 +1,462 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useMemo } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { DashboardLayout } from "@/components/layout";
 import { PageHeader } from "@/components/dashboard";
-import { Button, EmptyState, ErrorModal, InputField, ConfirmationModal } from "@/components/ui";
-import { Cat, Plus, Edit, Trash2 } from "lucide-react";
-import { Animal } from "@/interfaces/animal";
+import { Button, EmptyState, ErrorModal, ConfirmationModal } from "@/components/ui";
+import InputField from "@/components/ui/input-field";
+import SelectField from "@/components/ui/select-field";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
-import { useUserAnimals, useDeleteAnimal } from "@/hooks/queries/useAnimals";
-import { debounce } from "@/utils/debounce";
-import { BREAKPOINTS, TIMING, ANIMALS_PAGINATION, ICON_SIZES, LOGO_SIZES } from "@/constants/ui";
-import { logger } from "@/utils/logger";
+import { useUserAnimals, useCreateAnimal, useUpdateAnimal, useDeleteAnimal } from "@/hooks/queries/useAnimals";
+import { useBreeds } from "@/hooks/queries/useBreeds";
+import { useAnimalSpecies } from "@/hooks/queries/useAnimalSpecies";
+import { Animal } from "@/interfaces/animal";
+import { animalSchema, AnimalData } from "@/schemas/animal";
+import { Plus, Pencil, Trash2, X, Cat, Search, Hash } from "lucide-react";
 
-export default function ManageAnimals() {
-  const router = useRouter();
-  const { userId, isLoading: authLoading } = useAuthGuard("user");
-  
-  const { data: animals = [], isLoading: loading } = useUserAnimals(userId);
-  const deleteAnimal = useDeleteAnimal();
-  
-  const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [animalsPerPage, setAnimalsPerPage] = useState<number>(ANIMALS_PAGINATION.DESKTOP);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [showErrorModal, setShowErrorModal] = useState(false);
-  const [modalMessage, setModalMessage] = useState("");
-  const [animalToDelete, setAnimalToDelete] = useState<number | null>(null);
+// ─── Utilitário: label de identificação do animal ───────────────────────────
+function animalLabel(a: Animal): string {
+  if (a.tagNumber) return `#${a.tagNumber}${a.name ? ` – ${a.name}` : ""}`;
+  return a.name || `Animal ID ${a.id}`;
+}
 
-  const filteredAnimals = animals.filter(
+// ─── Modal de criação / edição ───────────────────────────────────────────────
+interface AnimalModalProps {
+  isOpen: boolean;
+  editingAnimal: Animal | null;
+  userId: number;
+  animals: Animal[];
+  onClose: () => void;
+  onSuccess: (msg: string) => void;
+  onError: (msg: string) => void;
+}
 
-    (animal) =>
-      (animal.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      animal.animalType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (animal.breed ?? "").toLowerCase().includes(searchTerm.toLowerCase())
-  );
+function AnimalModal({ isOpen, editingAnimal, userId, animals, onClose, onSuccess, onError }: AnimalModalProps) {
+  const isEditing = !!editingAnimal;
+  const createAnimal = useCreateAnimal();
+  const updateAnimal = useUpdateAnimal();
+  const { data: breeds = [], isLoading: loadingBreeds } = useBreeds();
+  const { data: species = [], isLoading: loadingSpecies } = useAnimalSpecies();
 
-  const indexOfLastAnimal = currentPage * animalsPerPage;
-  const indexOfFirstAnimal = indexOfLastAnimal - animalsPerPage;
-  const currentAnimals = filteredAnimals.slice(
-    indexOfFirstAnimal,
-    indexOfLastAnimal
-  );
-  const totalPages = Math.ceil(filteredAnimals.length / animalsPerPage);
+  // Modo de seleção da mãe: "none" | "registered" | "unregistered"
+  const [motherMode, setMotherMode] = useState<"none" | "registered" | "unregistered">(() => {
+    if (editingAnimal?.motherId) return "registered";
+    if (editingAnimal?.motherCode) return "unregistered";
+    return "none";
+  });
 
-  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<AnimalData>({
+    resolver: zodResolver(animalSchema),
+    defaultValues: {
+      tagNumber: editingAnimal?.tagNumber ?? "",
+      name: editingAnimal?.name ?? "",
+      animalSpeciesId: editingAnimal?.animalSpeciesId ?? undefined,
+      breedId: editingAnimal?.breedId ?? undefined,
+      breed: editingAnimal?.breed ?? "",
+      age: editingAnimal?.age ?? 1,
+      motherId: editingAnimal?.motherId ?? undefined,
+      motherCode: editingAnimal?.motherCode ?? "",
+      fatherCode: editingAnimal?.fatherCode ?? "",
+    },
+  });
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm]);
+  const selectedBreedId = watch("breedId");
+  const selectedSpeciesId = watch("animalSpeciesId");
+  const selectedMotherId = watch("motherId");
 
-  const debouncedHandleResize = useMemo(
-    () =>
-      debounce(() => {
-        if (window.innerWidth < BREAKPOINTS.MOBILE_SMALL) {
-          setAnimalsPerPage(ANIMALS_PAGINATION.MOBILE_SMALL);
-        } else if (window.innerWidth > BREAKPOINTS.MOBILE_SMALL && window.innerWidth < BREAKPOINTS.MOBILE) {
-          setAnimalsPerPage(ANIMALS_PAGINATION.MOBILE_LARGE);
-        } else {
-          setAnimalsPerPage(ANIMALS_PAGINATION.DESKTOP);
-        }
-      }, TIMING.DEBOUNCE_SHORT),
-    []
-  );
+  const speciesOptions = species.map((s) => ({ value: String(s.id), label: s.name }));
+  const breedOptions = breeds.map((b) => ({ value: String(b.id), label: b.name }));
 
-  useEffect(() => {
-    let isMounted = true;
-    
-    const handleResize = () => {
-      if (!isMounted) return;
-      debouncedHandleResize();
-    };
-    
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    
-    return () => {
-      isMounted = false;
-      window.removeEventListener("resize", handleResize);
-    };
-  }, [debouncedHandleResize]);
+  // Animais disponíveis para ser mãe (todos do usuário exceto o próprio animal em edição)
+  const motherOptions = animals
+    .filter((a) => a.id !== editingAnimal?.id && a.status === "Active")
+    .map((a) => ({ value: String(a.id), label: animalLabel(a) }));
 
-  const confirmDelete = (animalId: number) => {
-    setAnimalToDelete(animalId);
-    setShowDeleteModal(true);
+  const handleSpeciesChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setValue("animalSpeciesId", Number(e.target.value), { shouldValidate: true });
   };
 
-  const handleDeleteAnimal = async () => {
-    if (!animalToDelete) return;
+  const handleBreedChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const id = Number(e.target.value);
+    setValue("breedId", id, { shouldValidate: true });
+    const found = breeds.find((b) => b.id === id);
+    setValue("breed", found?.name ?? "");
+  };
+
+  const handleMotherModeChange = (mode: "none" | "registered" | "unregistered") => {
+    setMotherMode(mode);
+    if (mode !== "registered") setValue("motherId", undefined);
+    if (mode !== "unregistered") setValue("motherCode", "");
+  };
+
+  const handleMotherSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setValue("motherId", Number(e.target.value) || undefined, { shouldValidate: true });
+  };
+
+  const onSubmit = async (data: AnimalData) => {
+    // Limpa campos conflitantes com o modo selecionado
+    const payload = { ...data };
+    if (motherMode !== "registered") payload.motherId = undefined;
+    if (motherMode !== "unregistered") payload.motherCode = undefined;
 
     try {
-      await deleteAnimal.mutateAsync(animalToDelete);
-      setModalMessage("Animal excluído com sucesso!");
-      setShowSuccessModal(true);
-    } catch (err) {
-      logger.error("Erro ao excluir animal", err, { animalId: animalToDelete, route: "/manageMyAnimals" });
-      setModalMessage("Erro ao excluir o animal. Tente novamente.");
-      setShowErrorModal(true);
-    } finally {
-      setShowDeleteModal(false);
-      setAnimalToDelete(null);
+      if (isEditing) {
+        await updateAnimal.mutateAsync({ id: editingAnimal.id, data: payload });
+        onSuccess("Animal atualizado com sucesso!");
+      } else {
+        await createAnimal.mutateAsync({ data: payload, userId });
+        onSuccess("Animal cadastrado com sucesso!");
+      }
+      onClose();
+    } catch (err: any) {
+      onError(err?.response?.data?.message || "Ocorreu um erro. Tente novamente.");
     }
   };
 
-  const handleAddAnimal = () => {
-    router.push("/manageMyAnimals/addAnimal");
+  const isPending = createAnimal.isPending || updateAnimal.isPending;
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 sticky top-0 bg-white z-10">
+          <h2 className="text-xl font-bold text-[#1e3a29]">
+            {isEditing ? "Editar Animal" : "Novo Animal"}
+          </h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
+            <X size={20} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="px-6 py-5 space-y-4">
+          {/* Número de identificação */}
+          <InputField
+            label="Número de identificação (brinco)"
+            placeholder="Ex: 013, 07, A15..."
+            error={errors.tagNumber?.message}
+            {...register("tagNumber")}
+          />
+
+          <InputField
+            label="Nome do Animal (opcional)"
+            placeholder="Ex: Mimosa, Estrela..."
+            error={errors.name?.message}
+            {...register("name")}
+          />
+
+          <SelectField
+            label="Tipo de Animal *"
+            placeholder={
+              loadingSpecies ? "Carregando tipos..." :
+              speciesOptions.length === 0 ? "Nenhum tipo cadastrado — vá em Tipos de Animal" :
+              "Selecione o tipo"
+            }
+            disabled={loadingSpecies || speciesOptions.length === 0}
+            error={errors.animalSpeciesId?.message}
+            options={speciesOptions}
+            value={selectedSpeciesId ? String(selectedSpeciesId) : ""}
+            onChange={handleSpeciesChange}
+          />
+
+          <SelectField
+            label="Raça *"
+            placeholder={loadingBreeds ? "Carregando raças..." : breedOptions.length === 0 ? "Nenhuma raça cadastrada" : "Selecione uma raça"}
+            disabled={loadingBreeds || breedOptions.length === 0}
+            error={errors.breedId?.message}
+            options={breedOptions}
+            value={selectedBreedId ? String(selectedBreedId) : ""}
+            onChange={handleBreedChange}
+          />
+
+          <InputField
+            label="Idade (anos) *"
+            type="number"
+            min="0"
+            max="30"
+            error={errors.age?.message}
+            {...register("age", { valueAsNumber: true })}
+          />
+
+          {/* ── Parentesco: Mãe ── */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-slate-700">Mãe</label>
+            <div className="flex gap-2">
+              {(["none", "registered", "unregistered"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => handleMotherModeChange(mode)}
+                  className={`flex-1 py-1.5 px-2 text-xs rounded-lg border transition-colors ${
+                    motherMode === mode
+                      ? "bg-[#1e3a29] text-white border-[#1e3a29]"
+                      : "bg-white text-slate-600 border-slate-200 hover:border-slate-400"
+                  }`}
+                >
+                  {mode === "none" && "Não informar"}
+                  {mode === "registered" && "Do rebanho"}
+                  {mode === "unregistered" && "Não cadastrada"}
+                </button>
+              ))}
+            </div>
+
+            {motherMode === "registered" && (
+              <SelectField
+                label=""
+                placeholder={motherOptions.length === 0 ? "Nenhum animal cadastrado" : "Selecione a mãe"}
+                disabled={motherOptions.length === 0}
+                options={motherOptions}
+                value={selectedMotherId ? String(selectedMotherId) : ""}
+                onChange={handleMotherSelect}
+              />
+            )}
+
+            {motherMode === "unregistered" && (
+              <InputField
+                label=""
+                placeholder="Número da mãe (ex: 07)"
+                error={errors.motherCode?.message}
+                {...register("motherCode")}
+              />
+            )}
+          </div>
+
+          {/* ── Parentesco: Pai / Reprodutor ── */}
+          <InputField
+            label="Pai / Reprodutor (opcional)"
+            placeholder="Ex: 03, Touro Nelore, Sêmen ref. 123..."
+            error={errors.fatherCode?.message}
+            {...register("fatherCode")}
+          />
+
+          <div className="flex gap-3 pt-2">
+            <Button type="button" variant="outline" fullWidth onClick={onClose} disabled={isPending}>
+              Cancelar
+            </Button>
+            <Button type="submit" variant="primary" fullWidth loading={isPending}>
+              {isEditing ? "Salvar Alterações" : "Cadastrar"}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Página principal ─────────────────────────────────────────────────────────
+export default function ManageAnimals() {
+  const { userId, isLoading: authLoading } = useAuthGuard("user");
+  const { data: animalsRaw = [], isLoading } = useUserAnimals(userId);
+  const animals = animalsRaw as Animal[];
+  const deleteAnimal = useDeleteAnimal();
+
+  const [modalOpen, setModalOpen]         = useState(false);
+  const [editingAnimal, setEditingAnimal] = useState<Animal | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Animal | null>(null);
+  const [search, setSearch]               = useState("");
+  const [feedback, setFeedback] = useState<{
+    isOpen: boolean; title: string; message: string; type: "success" | "error";
+  }>({ isOpen: false, title: "", message: "", type: "success" });
+
+  const filtered = useMemo(() =>
+    animals.filter((a) =>
+      (a.tagNumber ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (a.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (a.animalSpecies?.name ?? a.animalType ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (a.breed ?? "").toLowerCase().includes(search.toLowerCase())
+    ),
+    [animals, search]
+  );
+
+  const openCreate = () => { setEditingAnimal(null); setModalOpen(true); };
+  const openEdit   = (a: Animal) => { setEditingAnimal(a); setModalOpen(true); };
+  const showFeedback = (title: string, message: string, type: "success" | "error") =>
+    setFeedback({ isOpen: true, title, message, type });
+
+  const handleConfirmDelete = async () => {
+    if (!confirmDelete) return;
+    try {
+      await deleteAnimal.mutateAsync(confirmDelete.id);
+      setConfirmDelete(null);
+      showFeedback("Sucesso!", "Animal excluído com sucesso.", "success");
+    } catch (err: any) {
+      setConfirmDelete(null);
+      showFeedback("Erro", err?.response?.data?.message || "Não foi possível excluir.", "error");
+    }
   };
 
-  const handleEditAnimal = (animal: Animal) => {
-    router.push(`/manageMyAnimals/editAnimal?id=${animal.id}`);
-  };
-
-  if (authLoading || loading) {
-    return <DashboardLoading />;
-  }
+  if (authLoading || isLoading) return <DashboardLoading />;
 
   return (
     <>
       <DashboardLayout>
         <PageHeader
           title="Meus Animais"
-          subtitle="Gerencie seu rebanho"
+          subtitle="Gerencie o rebanho da sua fazenda"
+          actions={
+            <Button variant="primary" onClick={openCreate} className="flex items-center gap-2">
+              <Plus size={16} />
+              Novo Animal
+            </Button>
+          }
         />
 
-        <div className="p-6 md:p-8 max-w-7xl mx-auto">
-          {/* Search Bar & Action */}
-          <div className="mb-6 flex flex-col md:flex-row gap-4 md:items-end justify-between">
-            <div className="flex-1">
-              <InputField
-                label="Buscar animais"
-                placeholder="Digite nome, tipo ou raça..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+        <div className="p-6 md:p-8 max-w-5xl mx-auto">
+          {animals.length > 0 && (
+            <div className="relative mb-6 max-w-sm">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Buscar por número, nome, tipo ou raça..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent"
               />
             </div>
-            <Button onClick={handleAddAnimal} variant="primary" className="mb-[2px]">
-              <Plus size={ICON_SIZES.SM} className="mr-2" />
-              Adicionar Animal
-            </Button>
-          </div>
+          )}
 
-          {/* Empty State */}
-          {animals.length === 0 && (
+          {!isLoading && animals.length === 0 && (
             <EmptyState
-              icon={<Cat size={LOGO_SIZES.LG} className="text-slate-400" />}
+              icon={<Cat size={40} className="text-slate-400" />}
               title="Nenhum animal cadastrado"
-              description="Cadastre seu primeiro animal para começar a gerenciar seu rebanho."
-              actionHref="/manageMyAnimals/addAnimal"
-              actionLabel="+ Cadastrar Animal"
+              description="Cadastre seu primeiro animal para começar a gerenciar o rebanho."
             />
           )}
 
-          {/* Table */}
-          {animals.length > 0 && (
-            <>
-              <div className="bg-white rounded-xl shadow-md overflow-hidden border border-slate-100">
-                <div className="overflow-x-auto">
-                  <table className="min-w-full">
-                    <thead className="bg-[#1e3a29] text-white">
-                      <tr>
-                        <th className="p-4 text-left font-bold">Nome</th>
-                        <th className="p-4 text-left font-bold hidden md:table-cell">
-                          Tipo
-                        </th>
-                        <th className="p-4 text-left font-bold hidden md:table-cell">
-                          Raça
-                        </th>
-                        <th className="p-4 text-left font-bold hidden md:table-cell">
-                          Idade
-                        </th>
-                        <th className="p-4 text-left font-bold">Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {currentAnimals.map((animal) => (
-                        <tr
-                          key={animal.id}
-                          className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
-                        >
-                          <td className="p-4">
-                            <div className="flex flex-col">
-                              <span className="font-semibold text-[#1e3a29]">
-                                {animal.name}
-                              </span>
-                              <span className="text-sm text-slate-500 md:hidden">
-                                {animal.animalType} • {animal.breed} • {animal.age} anos
-                              </span>
-                            </div>
-                          </td>
-                          <td className="p-4 hidden md:table-cell text-slate-700">
-                            {animal.animalType}
-                          </td>
-                          <td className="p-4 hidden md:table-cell text-slate-700">
-                            {animal.breed}
-                          </td>
-                          <td className="p-4 hidden md:table-cell text-slate-700">
-                            {animal.age} anos
-                          </td>
-                          <td className="p-4">
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => handleEditAnimal(animal)}
-                                className="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-50 rounded transition-colors"
-                                title="Editar"
-                              >
-                                <Edit size={18} />
-                              </button>
-                              <button
-                                onClick={() => confirmDelete(animal.id)}
-                                className="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 rounded transition-colors"
-                                title="Excluir"
-                              >
-                                <Trash2 size={18} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+          {!isLoading && animals.length > 0 && filtered.length === 0 && (
+            <div className="text-center py-16 text-slate-400 text-sm">
+              Nenhum resultado para <strong>"{search}"</strong>.
+            </div>
+          )}
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-6">
-                  <Button
-                    onClick={() => paginate(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    variant="outline"
-                  >
-                    Anterior
-                  </Button>
-                  <span className="text-slate-600 px-4">
-                    Página {currentPage} de {totalPages}
-                  </span>
-                  <Button
-                    onClick={() => paginate(currentPage + 1)}
-                    disabled={currentPage >= totalPages}
-                    variant="outline"
-                  >
-                    Próximo
-                  </Button>
-                </div>
-              )}
-            </>
+          {!isLoading && filtered.length > 0 && (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-[#1e3a29] text-white">
+                      <th className="px-4 py-4 text-left font-semibold">Nº</th>
+                      <th className="px-4 py-4 text-left font-semibold">Nome</th>
+                      <th className="px-4 py-4 text-left font-semibold hidden md:table-cell">Tipo</th>
+                      <th className="px-4 py-4 text-left font-semibold hidden md:table-cell">Raça</th>
+                      <th className="px-4 py-4 text-left font-semibold hidden lg:table-cell">Mãe</th>
+                      <th className="px-4 py-4 text-left font-semibold hidden md:table-cell">Idade</th>
+                      <th className="px-4 py-4 text-right font-semibold">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filtered.map((animal, index) => (
+                      <tr key={animal.id} className="hover:bg-slate-50 transition-colors">
+                        {/* Número */}
+                        <td className="px-4 py-4">
+                          {animal.tagNumber ? (
+                            <span className="inline-flex items-center gap-1 font-mono font-semibold text-[#1e3a29] bg-green-50 border border-green-200 rounded px-2 py-0.5 text-xs">
+                              <Hash size={10} />
+                              {animal.tagNumber}
+                            </span>
+                          ) : (
+                            <span className="text-slate-300 text-xs font-mono">{index + 1}</span>
+                          )}
+                        </td>
+                        {/* Nome */}
+                        <td className="px-4 py-4">
+                          <span className="font-semibold text-[#1e3a29]">
+                            {animal.name || <span className="text-slate-400 italic font-normal">Sem nome</span>}
+                          </span>
+                          <span className="block text-xs text-slate-500 mt-0.5 md:hidden">
+                            {animal.animalSpecies?.name ?? animal.animalType ?? "—"} {animal.breed ? `- ${animal.breed}` : ""} - {animal.age}a
+                          </span>
+                        </td>
+                        {/* Tipo */}
+                        <td className="px-4 py-4 text-slate-600 hidden md:table-cell">
+                          {animal.animalSpecies?.name ?? animal.animalType ?? <span className="text-slate-300 italic">—</span>}
+                        </td>
+                        {/* Raça */}
+                        <td className="px-4 py-4 text-slate-600 hidden md:table-cell">
+                          {animal.breed ?? <span className="text-slate-300 italic">sem raça</span>}
+                        </td>
+                        {/* Mãe */}
+                        <td className="px-4 py-4 hidden lg:table-cell">
+                          {animal.mother ? (
+                            <span className="text-slate-600 text-xs">
+                              {animal.mother.tagNumber ? (
+                                <span className="font-mono font-semibold text-[#1e3a29]">#{animal.mother.tagNumber}</span>
+                              ) : (
+                                animal.mother.name || `ID ${animal.mother.id}`
+                              )}
+                            </span>
+                          ) : animal.motherCode ? (
+                            <span className="text-slate-400 text-xs italic">#{animal.motherCode} (pendente)</span>
+                          ) : (
+                            <span className="text-slate-200 text-xs">—</span>
+                          )}
+                        </td>
+                        {/* Idade */}
+                        <td className="px-4 py-4 text-slate-600 hidden md:table-cell">
+                          {animal.age} ano{animal.age !== 1 ? "s" : ""}
+                        </td>
+                        {/* Ações */}
+                        <td className="px-4 py-4">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => openEdit(animal)}
+                              className="p-2 rounded-lg text-slate-500 hover:text-[#1e3a29] hover:bg-slate-100 transition-colors"
+                              title="Editar"
+                            >
+                              <Pencil size={16} />
+                            </button>
+                            <button
+                              onClick={() => setConfirmDelete(animal)}
+                              className="p-2 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+                              title="Excluir"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="px-6 py-3 border-t border-slate-100 bg-slate-50 text-xs text-slate-400">
+                {filtered.length} animal{filtered.length !== 1 ? "is" : ""} cadastrado{filtered.length !== 1 ? "s" : ""}
+              </div>
+            </div>
           )}
         </div>
       </DashboardLayout>
 
-      {/* Delete Confirmation Modal */}
+      <AnimalModal
+        key={editingAnimal?.id ?? "new"}
+        isOpen={modalOpen}
+        editingAnimal={editingAnimal}
+        userId={userId ?? 0}
+        animals={animals}
+        onClose={() => setModalOpen(false)}
+        onSuccess={(msg) => showFeedback("Sucesso!", msg, "success")}
+        onError={(msg) => showFeedback("Erro", msg, "error")}
+      />
+
       <ConfirmationModal
-        isOpen={showDeleteModal}
-        title="Confirmar Exclusão"
-        message="Tem certeza que deseja excluir este animal? Esta ação não pode ser desfeita."
-        onConfirm={handleDeleteAnimal}
-        onCancel={() => setShowDeleteModal(false)}
-        confirmText="Excluir"
+        isOpen={!!confirmDelete}
+        title="Excluir Animal"
+        message={`Tem certeza que deseja excluir o animal ${confirmDelete?.tagNumber ? `#${confirmDelete.tagNumber}` : `"${confirmDelete?.name || "este animal"}"`}? Esta ação não pode ser desfeita.`}
+        confirmText="Sim, Excluir"
         cancelText="Cancelar"
         variant="primary"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmDelete(null)}
       />
 
       <ErrorModal
-        isOpen={showSuccessModal}
-        onClose={() => setShowSuccessModal(false)}
-        title="Sucesso!"
-        message={modalMessage}
-        type="success"
-      />
-
-      <ErrorModal
-        isOpen={showErrorModal}
-        onClose={() => setShowErrorModal(false)}
-        title="Erro"
-        message={modalMessage}
-        type="error"
+        isOpen={feedback.isOpen}
+        onClose={() => setFeedback((prev) => ({ ...prev, isOpen: false }))}
+        title={feedback.title}
+        message={feedback.message}
+        type={feedback.type}
       />
     </>
   );

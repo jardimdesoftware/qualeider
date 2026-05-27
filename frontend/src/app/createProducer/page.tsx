@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -11,12 +11,9 @@ import {
   BrandHeader,
   ContentCard,
   InputField,
-  CEPInputField,
-  SelectField,
   MultiStepForm,
   ErrorModal,
   PasswordStrength,
-  AddressData,
 } from "@/components/ui";
 import { PageFooter } from "@/components/layout";
 import {
@@ -27,7 +24,6 @@ import {
   ProducerData,
 } from "@/schemas/registration";
 import { maskCPF, maskPhone } from "@/utils/masks";
-import { useStates, useCities } from "@/hooks/queries/useLocation";
 import { useMultiStepForm, useFormData } from "@/hooks/useMultiStepForm";
 import { useCreateProducer } from "@/hooks/queries/useAuth";
 import { getFriendlyErrorMessage } from "@/utils/errorMessage";
@@ -63,23 +59,15 @@ export default function CreateProducer() {
     },
   });
 
-  // Step 2: Contato
+  // Step 2: Contato — state/city são hardcoded (IFPE Belo Jardim / PE)
   const step2Form = useForm<ProducerStep2Data>({
     resolver: zodResolver(producerStep2Schema),
     mode: "onBlur",
     defaultValues: {
       cpf: formData.cpf || "",
       phone: formData.phone || "",
-      state: formData.state || "",
-      city: formData.city || "",
     },
   });
-
-  const selectedState = step2Form.watch("state");
-  const { data: estados = [] } = useStates();
-  const { data: cidades = [], isLoading: isLoadingCities } = useCities(selectedState);
-  const estadoOptions = estados.map((e) => ({ value: e.sigla, label: e.nome }));
-  const cidadeOptions = cidades.map((c) => ({ value: c.nome, label: c.nome }));
 
   const getCurrentForm = () => (currentStep === 0 ? step1Form : step2Form);
 
@@ -96,10 +84,15 @@ export default function CreateProducer() {
   const { mutateAsync: createProducer, isPending } = useCreateProducer();
 
   const handleFinalSubmit = async () => {
+    const isValid = await step2Form.trigger();
+    if (!isValid) return;
+
     try {
       const finalData: ProducerData = {
         ...(formData as ProducerData),
         ...step2Form.getValues(),
+        state: "PE",
+        city: "Belo Jardim",
         userCategory: "Fisica",
         userType: "Pecuarista",
       };
@@ -128,18 +121,7 @@ export default function CreateProducer() {
     }
   };
 
-  const handleCEPFound = useCallback(
-    async (address: AddressData) => {
-      step2Form.setValue("state", address.state);
-      step2Form.setValue("city", address.city);
-      await step2Form.trigger(["state", "city"]);
-    },
-    [step2Form],
-  );
-
-  const currentForm = getCurrentForm();
-  const canGoNext = currentForm.formState.isValid;
-  const isSubmitting = currentForm.formState.isSubmitting || isPending;
+  const isSubmitting = isPending;
 
   return (
     <main className="flex justify-center items-center min-h-screen bg-gray-100 p-4">
@@ -151,20 +133,20 @@ export default function CreateProducer() {
         type={modalState.type}
       />
 
-      <ContentCard className="max-w-2xl">
+      <ContentCard className="max-w-2xl w-full">
         <BrandHeader
           title="Criar minha conta"
           subtitle="Cadastro do Administrador da Fazenda"
         />
 
-        <div className="p-8 pb-6 max-h-[75vh] overflow-y-auto">
+        <div className="px-6 py-6 md:px-8 md:py-8 pb-4 max-h-[80vh] overflow-y-auto">
           <MultiStepForm
             steps={formSteps}
             currentStep={currentStep}
             onStepChange={handleStepChange}
             onSubmit={handleFinalSubmit}
             isSubmitting={isSubmitting}
-            canGoNext={canGoNext}
+            canGoNext={true}
           >
             {/* Step 1: Dados Básicos */}
             {currentStep === 0 && (
@@ -217,7 +199,7 @@ export default function CreateProducer() {
               <div className="space-y-4">
                 <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
                   <Phone className="w-5 h-5 text-brand-primary" />
-                  Contato e Localização
+                  Dados de Contato
                 </h3>
 
                 <InputField
@@ -226,7 +208,9 @@ export default function CreateProducer() {
                   helperText="Seu CPF é usado apenas para identificação"
                   error={step2Form.formState.errors.cpf?.message}
                   {...step2Form.register("cpf")}
-                  onChange={(e) => step2Form.setValue("cpf", maskCPF(e.target.value))}
+                  onChange={(e) =>
+                    step2Form.setValue("cpf", maskCPF(e.target.value))
+                  }
                 />
 
                 <InputField
@@ -234,35 +218,10 @@ export default function CreateProducer() {
                   disabled={isSubmitting}
                   error={step2Form.formState.errors.phone?.message}
                   {...step2Form.register("phone")}
-                  onChange={(e) => step2Form.setValue("phone", maskPhone(e.target.value))}
+                  onChange={(e) =>
+                    step2Form.setValue("phone", maskPhone(e.target.value))
+                  }
                 />
-
-                <CEPInputField
-                  label="CEP (opcional)"
-                  helperText="Digite seu CEP para preencher o endereço automaticamente"
-                  onAddressFound={handleCEPFound}
-                />
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <SelectField
-                    label="Estado"
-                    disabled={isSubmitting}
-                    error={step2Form.formState.errors.state?.message}
-                    {...step2Form.register("state")}
-                    options={estadoOptions}
-                    onChange={(e) => {
-                      step2Form.setValue("state", e.target.value);
-                      step2Form.setValue("city", "");
-                    }}
-                  />
-                  <SelectField
-                    label="Cidade"
-                    disabled={isSubmitting || !selectedState || isLoadingCities}
-                    error={step2Form.formState.errors.city?.message}
-                    {...step2Form.register("city")}
-                    options={cidadeOptions}
-                  />
-                </div>
               </div>
             )}
           </MultiStepForm>

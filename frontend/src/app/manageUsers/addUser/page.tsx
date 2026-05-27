@@ -1,18 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { getUserRoleFromToken } from "@/utils/auth";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
-import { User, ShieldCheck } from "lucide-react";
+import { User, ShieldCheck, Tractor, CheckCircle2 } from "lucide-react";
 
 import { DashboardLayout } from "@/components/layout";
 import { PageHeader } from "@/components/dashboard";
 import {
   InputField,
-  SelectField,
   PasswordStrength,
   ErrorModal,
   Button,
@@ -46,15 +46,35 @@ type AddUserFormData = z.infer<typeof addUserSchema>;
 
 // ── Opções de Cargo ──────────────────────────────────────────────────────────
 
-const ROLE_OPTIONS = [
-  { value: UserRole.VAQUEIRO, label: "Vaqueiro (Funcionário operacional)" },
-  { value: UserRole.ADMIN, label: "Admin (Gestor / Co-administrador)" },
-];
+const ROLE_CARDS = [
+  {
+    value: UserRole.VAQUEIRO,
+    label: "Vaqueiro",
+    description: "Responsável pelas atividades operacionais da fazenda.",
+    icon: Tractor,
+    color: "amber",
+  },
+  {
+    value: UserRole.ADMIN,
+    label: "Administrador",
+    description: "Acesso completo: gerencia equipe, dados e relatórios.",
+    icon: ShieldCheck,
+    color: "blue",
+  },
+] as const;
 
 // ── Componente ───────────────────────────────────────────────────────────────
 
 export default function AddUser() {
   const router = useRouter();
+
+  useEffect(() => {
+    const role = getUserRoleFromToken();
+    if (role && role !== "ADMIN") {
+      router.replace("/dashboardUser");
+    }
+  }, [router]);
+
   const [modalState, setModalState] = useState({
     isOpen: false,
     type: "success" as "success" | "error",
@@ -65,12 +85,15 @@ export default function AddUser() {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<AddUserFormData>({
     resolver: zodResolver(addUserSchema),
     mode: "onBlur",
     defaultValues: { role: UserRole.VAQUEIRO },
   });
+
+  const selectedRole = watch("role");
 
   const { mutate: createUser, isPending } = useMutation({
     mutationFn: (values: AddUserFormData) =>
@@ -100,8 +123,9 @@ export default function AddUser() {
   });
 
   const handleModalClose = () => {
+    const wasSuccess = modalState.type === "success";
     setModalState((prev) => ({ ...prev, isOpen: false }));
-    if (modalState.type === "success") {
+    if (wasSuccess) {
       router.push("/manageUsers");
     }
   };
@@ -121,13 +145,98 @@ export default function AddUser() {
         type={modalState.type}
       />
 
-      <div className="p-6 md:p-8 max-w-2xl mx-auto">
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 md:p-8">
+      <div className="p-4 md:p-8 max-w-2xl mx-auto">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 md:p-8">
           <form
             onSubmit={handleSubmit((values) => createUser(values))}
-            className="space-y-6"
+            className="space-y-7"
           >
-            {/* Seção: Dados de Acesso */}
+            {/* ── Seção 1: Qual será o cargo? ─────────────────────────── */}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-1">
+                <ShieldCheck size={16} className="text-brand-primary" />
+                O que este funcionário será?
+              </h3>
+              <p className="text-xs text-gray-500 mb-4">
+                Escolha o nível de acesso antes de preencher os dados.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {ROLE_CARDS.map((card) => {
+                  const Icon = card.icon;
+                  const isSelected = selectedRole === card.value;
+                  const isAmber = card.color === "amber";
+
+                  return (
+                    <button
+                      key={card.value}
+                      type="button"
+                      disabled={isPending}
+                      onClick={() => setValue("role", card.value, { shouldValidate: true })}
+                      className={`
+                        relative flex flex-col gap-2 rounded-xl border-2 p-4 text-left transition-all duration-150 focus:outline-none
+                        ${isSelected
+                          ? isAmber
+                            ? "border-amber-500 bg-amber-50 shadow-sm"
+                            : "border-blue-500 bg-blue-50 shadow-sm"
+                          : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
+                        }
+                        disabled:opacity-60 disabled:cursor-not-allowed
+                      `}
+                    >
+                      {/* Check badge */}
+                      {isSelected && (
+                        <CheckCircle2
+                          size={18}
+                          className={`absolute top-3 right-3 ${
+                            isAmber ? "text-amber-500" : "text-blue-500"
+                          }`}
+                        />
+                      )}
+
+                      <div
+                        className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                          isSelected
+                            ? isAmber
+                              ? "bg-amber-100 text-amber-600"
+                              : "bg-blue-100 text-blue-600"
+                            : "bg-gray-100 text-gray-500"
+                        }`}
+                      >
+                        <Icon size={18} />
+                      </div>
+
+                      <div>
+                        <p
+                          className={`font-semibold text-sm ${
+                            isSelected
+                              ? isAmber
+                                ? "text-amber-700"
+                                : "text-blue-700"
+                              : "text-gray-800"
+                          }`}
+                        >
+                          {card.label}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-0.5 leading-snug">
+                          {card.description}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Hidden input para react-hook-form */}
+              <input type="hidden" {...register("role")} />
+              {errors.role && (
+                <p className="text-red-500 text-xs mt-2">{errors.role.message}</p>
+              )}
+            </div>
+
+            <hr className="border-gray-100" />
+
+            {/* ── Seção 2: Dados de Acesso ─────────────────────────────── */}
             <div>
               <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-4">
                 <User size={16} className="text-brand-primary" />
@@ -168,24 +277,7 @@ export default function AddUser() {
               </div>
             </div>
 
-            <hr className="border-gray-100" />
-
-            {/* Seção: Cargo */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-4">
-                <ShieldCheck size={16} className="text-brand-primary" />
-                Cargo / Perfil
-              </h3>
-              <SelectField
-                label="Cargo na Fazenda"
-                disabled={isPending}
-                error={errors.role?.message}
-                {...register("role")}
-                options={ROLE_OPTIONS}
-              />
-            </div>
-
-            {/* Ações */}
+            {/* ── Ações ─────────────────────────────────────────────────── */}
             <div className="flex items-center justify-end gap-3 pt-2">
               <Button
                 type="button"

@@ -13,7 +13,7 @@ import {
   Milk,
   Dna,
 } from "lucide-react";
-import { getUserTypeFromToken, clearAuthToken } from "@/utils/auth";
+import { getUserTypeFromToken, getUserRoleFromToken, clearAuthToken } from "@/utils/auth";
 import { debounce } from "@/utils/debounce";
 import { BREAKPOINTS, ICON_SIZES, LOGO_SIZES, TIMING } from "@/constants/ui";
 
@@ -21,6 +21,7 @@ export default function Sidebar() {
   const [isMobile, setIsMobile] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [userRole, setUserRole] = useState<"association" | "user" | null>(null);
+  const [userPermRole, setUserPermRole] = useState<"ADMIN" | "VAQUEIRO" | null>(null);
   const [pathname, setPathname] = useState("");
   const [mounted, setMounted] = useState(false);
 
@@ -39,6 +40,9 @@ export default function Sidebar() {
     const role = getUserTypeFromToken();
     setUserRole(role);
 
+    const permRole = getUserRoleFromToken();
+    setUserPermRole(permRole);
+
     debouncedCheckScreenSize();
     window.addEventListener("resize", debouncedCheckScreenSize);
 
@@ -52,18 +56,22 @@ export default function Sidebar() {
     window.location.href = "/login";
   };
 
+  const isAdmin = userPermRole === "ADMIN";
+
   /**
-   * Menu do usuário logado (ADMIN ou VAQUEIRO).
-   * Notificações e Configurações removidos do fluxo principal.
-   * O menu de Associação está em stand-by — não é exibido.
+   * Menu do usuário logado.
+   * "Funcionários" só aparece para ADMIN — Vaqueiro não gerencia equipe.
    */
-  const menuItems = [
-    { name: "Início", link: "/dashboardUser", icon: <PieChart size={ICON_SIZES.SM} /> },
-    { name: "Dados diários", link: "/dailyForm", icon: <Milk size={ICON_SIZES.SM} /> },
-    { name: "Meus Animais", link: "/manageMyAnimals", icon: <FileText size={ICON_SIZES.SM} /> },
-    { name: "Raças", link: "/dashboardUser/breeds", icon: <Dna size={ICON_SIZES.SM} /> },
-    { name: "Funcionários", link: "/manageUsers", icon: <Users size={ICON_SIZES.SM} /> },
+  const allMenuItems = [
+    { name: "Início", link: "/dashboardUser", icon: <PieChart size={ICON_SIZES.SM} />, adminOnly: false },
+    { name: "Dados diários", link: "/dailyForm", icon: <Milk size={ICON_SIZES.SM} />, adminOnly: false },
+    { name: "Meus Animais", link: "/manageMyAnimals", icon: <FileText size={ICON_SIZES.SM} />, adminOnly: false },
+    { name: "Raças", link: "/dashboardUser/breeds", icon: <Dna size={ICON_SIZES.SM} />, adminOnly: false },
+    { name: "Tipos de Animal", link: "/dashboardUser/animalSpecies", icon: <Dna size={ICON_SIZES.SM} />, adminOnly: false },
+    { name: "Funcionários", link: "/manageUsers", icon: <Users size={ICON_SIZES.SM} />, adminOnly: true },
   ];
+
+  const menuItems = allMenuItems.filter((item) => !item.adminOnly || isAdmin);
 
   if (!mounted) return <div className="w-64" />;
 

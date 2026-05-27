@@ -102,6 +102,8 @@ export class AuthService {
       sub: entity.id,
       associationId: entityType === 'user' ? entity.associationId : null,
       userType: entityType,
+      // role só existe para entidades do tipo 'user' (ADMIN | VAQUEIRO)
+      role: entityType === 'user' ? (entity.role ?? null) : null,
     };
 
     this.logger.log(`${entityType === 'user' ? 'Usuário' : 'Associação'} autenticado: ${entity.email}`);
