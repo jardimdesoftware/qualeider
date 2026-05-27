@@ -4,38 +4,40 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   IsEnum,
   IsInt,
-  IsNotEmpty,
   IsOptional,
+  IsPositive,
   IsString,
   Min,
+  Max,
 } from 'class-validator';
 import { AnimalType } from '@/domain/enums/enums';
 
 export class UpdateAnimalDto extends PartialType(CreateAnimalDto) {
-  @ApiProperty({ description: 'Nome do animal', example: 'Vaquinha mimosa' })
+  @ApiProperty({ description: 'Nome do animal', example: 'Vaquinha mimosa', required: false })
   @IsOptional()
   @IsString()
   name?: string;
 
-  @ApiProperty({
-    description: 'Animal',
-    enum: AnimalType,
-    example: AnimalType.Vaca,
-  })
-  @IsNotEmpty()
+  @ApiProperty({ description: 'Tipo do animal', enum: AnimalType, required: false })
+  @IsOptional()
   @IsEnum(AnimalType)
-  animalType!: AnimalType;
+  animalType?: AnimalType;
 
-  @ApiProperty({ description: 'Raça do animal', example: 'Holandês' })
+  @ApiProperty({ description: 'Raça do animal (texto legado)', example: 'Holandês', required: false })
+  @IsOptional()
   @IsString()
-  breed!: string;
+  breed?: string;
 
-  @ApiProperty({ description: 'Idade do animal', example: 10 })
-  @IsInt()
-  @Min(1)
-  age!: number;
+  @ApiProperty({ description: 'Id da raça (relação com tabela Breed)', example: 1, required: false })
+  @IsOptional()
+  @IsInt({ message: 'breedId deve ser um número inteiro' })
+  @IsPositive({ message: 'breedId deve ser positivo' })
+  breedId?: number;
 
-  @ApiProperty({ description: 'Id do usuário dono do animal', example: 2 })
+  @ApiProperty({ description: 'Idade do animal em anos', example: 3, required: false })
+  @IsOptional()
   @IsInt()
-  userId!: number;
+  @Min(0)
+  @Max(30)
+  age?: number;
 }

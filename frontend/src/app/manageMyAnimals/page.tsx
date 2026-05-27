@@ -35,7 +35,7 @@ export default function ManageAnimals() {
     (animal) =>
       (animal.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       animal.animalType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      animal.breed.toLowerCase().includes(searchTerm.toLowerCase())
+      (animal.breed ?? "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const indexOfLastAnimal = currentPage * animalsPerPage;

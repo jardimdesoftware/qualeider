@@ -1,11 +1,11 @@
-﻿"use client";
+"use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { User, Phone, Briefcase } from "lucide-react";
+import { User, Phone } from "lucide-react";
 
 import {
   BrandHeader,
@@ -13,22 +13,17 @@ import {
   InputField,
   CEPInputField,
   SelectField,
-  RadioCardGroup,
   MultiStepForm,
   ErrorModal,
   PasswordStrength,
   AddressData,
-  RadioCardOption,
 } from "@/components/ui";
 import { PageFooter } from "@/components/layout";
-import { USER_CATEGORIES } from "@/constants/user-options";
 import {
   producerStep1Schema,
   producerStep2Schema,
-  producerStep3Schema,
   ProducerStep1Data,
   ProducerStep2Data,
-  ProducerStep3Data,
   ProducerData,
 } from "@/schemas/registration";
 import { maskCPF, maskPhone } from "@/utils/masks";
@@ -38,25 +33,16 @@ import { useCreateProducer } from "@/hooks/queries/useAuth";
 import { getFriendlyErrorMessage } from "@/utils/errorMessage";
 
 const formSteps = [
-  {
-    id: "step1",
-    title: "Dados Básicos",
-  },
-  {
-    id: "step2",
-    title: "Contato",
-  },
-  {
-    id: "step3",
-    title: "Perfil",
-  },
+  { id: "step1", title: "Dados Básicos" },
+  { id: "step2", title: "Contato" },
 ];
 
 export default function CreateProducer() {
   const router = useRouter();
-  const { currentStep, goToStep } = useMultiStepForm(3);
+  const { currentStep, goToStep } = useMultiStepForm(2);
   const { formData, updateFormData } = useFormData<Partial<ProducerData>>({
     userCategory: "Fisica",
+    userType: "Pecuarista",
   });
 
   const [modalState, setModalState] = useState({
@@ -65,7 +51,7 @@ export default function CreateProducer() {
     message: "",
   });
 
-  // Step 1: Basic Info
+  // Step 1: Dados Básicos
   const step1Form = useForm<ProducerStep1Data>({
     resolver: zodResolver(producerStep1Schema),
     mode: "onBlur",
@@ -77,7 +63,7 @@ export default function CreateProducer() {
     },
   });
 
-  // Step 2: Contact & Location
+  // Step 2: Contato
   const step2Form = useForm<ProducerStep2Data>({
     resolver: zodResolver(producerStep2Schema),
     mode: "onBlur",
@@ -92,53 +78,30 @@ export default function CreateProducer() {
   const selectedState = step2Form.watch("state");
   const { data: estados = [] } = useStates();
   const { data: cidades = [], isLoading: isLoadingCities } = useCities(selectedState);
+  const estadoOptions = estados.map((e) => ({ value: e.sigla, label: e.nome }));
+  const cidadeOptions = cidades.map((c) => ({ value: c.nome, label: c.nome }));
 
-  // Step 3: Categorization
-  const step3Form = useForm<ProducerStep3Data>({
-    resolver: zodResolver(producerStep3Schema),
-    mode: "onBlur",
-    defaultValues: {
-      userCategory: formData.userCategory || "Fisica",
-      userType: formData.userType || "",
-    },
-  });
-
-  const getCurrentForm = () => {
-    switch (currentStep) {
-      case 0:
-        return step1Form;
-      case 1:
-        return step2Form;
-      case 2:
-        return step3Form;
-      default:
-        return step1Form;
-    }
-  };
+  const getCurrentForm = () => (currentStep === 0 ? step1Form : step2Form);
 
   const handleStepChange = async (newStep: number) => {
     const currentForm = getCurrentForm();
-
-    // Validate before progressing
     if (newStep > currentStep) {
       const isValid = await currentForm.trigger();
       if (!isValid) return;
     }
-
-    // Save current step data
     updateFormData(currentForm.getValues());
-
-    // Navigate
     goToStep(newStep);
   };
 
+  const { mutateAsync: createProducer, isPending } = useCreateProducer();
 
   const handleFinalSubmit = async () => {
     try {
-      // Merge all step data
       const finalData: ProducerData = {
         ...(formData as ProducerData),
-        ...step3Form.getValues(),
+        ...step2Form.getValues(),
+        userCategory: "Fisica",
+        userType: "Pecuarista",
       };
 
       await createProducer(finalData);
@@ -149,7 +112,6 @@ export default function CreateProducer() {
         message: "Cadastro realizado com sucesso!",
       });
     } catch (err) {
-      console.error(err);
       setModalState({
         isOpen: true,
         type: "error",
@@ -159,44 +121,25 @@ export default function CreateProducer() {
   };
 
   const handleModalClose = () => {
+    const wasSuccess = modalState.type === "success";
     setModalState((prev) => ({ ...prev, isOpen: false }));
-    if (modalState.type === "success") {
+    if (wasSuccess) {
       router.push("/login");
     }
   };
 
-  const handleCEPFound = (address: AddressData) => {
-    step2Form.setValue("state", address.state);
-    step2Form.setValue("city", address.city);
-    // Trigger validation after setting values
-    step2Form.trigger(["state", "city"]);
-  };
+  const handleCEPFound = useCallback(
+    async (address: AddressData) => {
+      step2Form.setValue("state", address.state);
+      step2Form.setValue("city", address.city);
+      await step2Form.trigger(["state", "city"]);
+    },
+    [step2Form],
+  );
 
-  const { mutateAsync: createProducer, isPending } = useCreateProducer();
-  // ... (handleFinalSubmit stays same)
-  
-  // ...
   const currentForm = getCurrentForm();
   const canGoNext = currentForm.formState.isValid;
   const isSubmitting = currentForm.formState.isSubmitting || isPending;
-
-  // User type options for RadioCardGroup
-  const userTypeOptions: RadioCardOption[] = USER_CATEGORIES.map((cat) => ({
-    value: cat,
-    label: cat,
-    description:
-      cat === "Pecuarista"
-        ? "Produção própria de leite"
-        : cat === "Cooperativa"
-        ? "Cooperado de associação"
-        : cat === "Associacao"
-        ? "Membro de associação"
-        : "Outro tipo de produtor",
-    icon: <Briefcase size={20} />,
-  }));
-
-  const estadoOptions = estados.map((e) => ({ value: e.sigla, label: e.nome }));
-  const cidadeOptions = cidades.map((c) => ({ value: c.nome, label: c.nome }));
 
   return (
     <main className="flex justify-center items-center min-h-screen bg-gray-100 p-4">
@@ -210,8 +153,8 @@ export default function CreateProducer() {
 
       <ContentCard className="max-w-2xl">
         <BrandHeader
-          title="Cadastro de Produtor"
-          subtitle="Registre-se como produtor"
+          title="Criar minha conta"
+          subtitle="Cadastro do Administrador da Fazenda"
         />
 
         <div className="p-8 pb-6 max-h-[75vh] overflow-y-auto">
@@ -223,7 +166,7 @@ export default function CreateProducer() {
             isSubmitting={isSubmitting}
             canGoNext={canGoNext}
           >
-            {/* Step 1: Basic Info */}
+            {/* Step 1: Dados Básicos */}
             {currentStep === 0 && (
               <div className="space-y-4">
                 <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -269,7 +212,7 @@ export default function CreateProducer() {
               </div>
             )}
 
-            {/* Step 2: Contact & Location */}
+            {/* Step 2: Contato */}
             {currentStep === 1 && (
               <div className="space-y-4">
                 <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -280,12 +223,10 @@ export default function CreateProducer() {
                 <InputField
                   label="CPF"
                   disabled={isSubmitting}
-                  helperText="Seu CPF é usado apenas para identificação e não será compartilhado"
+                  helperText="Seu CPF é usado apenas para identificação"
                   error={step2Form.formState.errors.cpf?.message}
                   {...step2Form.register("cpf")}
-                  onChange={(e) => {
-                    step2Form.setValue("cpf", maskCPF(e.target.value));
-                  }}
+                  onChange={(e) => step2Form.setValue("cpf", maskCPF(e.target.value))}
                 />
 
                 <InputField
@@ -293,14 +234,12 @@ export default function CreateProducer() {
                   disabled={isSubmitting}
                   error={step2Form.formState.errors.phone?.message}
                   {...step2Form.register("phone")}
-                  onChange={(e) => {
-                    step2Form.setValue("phone", maskPhone(e.target.value));
-                  }}
+                  onChange={(e) => step2Form.setValue("phone", maskPhone(e.target.value))}
                 />
 
                 <CEPInputField
                   label="CEP (opcional)"
-                  helperText="Digite seu CEP para preenchermos automaticamente o endereço"
+                  helperText="Digite seu CEP para preencher o endereço automaticamente"
                   onAddressFound={handleCEPFound}
                 />
 
@@ -316,7 +255,6 @@ export default function CreateProducer() {
                       step2Form.setValue("city", "");
                     }}
                   />
-
                   <SelectField
                     label="Cidade"
                     disabled={isSubmitting || !selectedState || isLoadingCities}
@@ -325,30 +263,6 @@ export default function CreateProducer() {
                     options={cidadeOptions}
                   />
                 </div>
-              </div>
-            )}
-
-            {/* Step 3: Categorization */}
-            {currentStep === 2 && (
-              <div className="space-y-4">
-                <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <Briefcase className="w-5 h-5 text-brand-primary" />
-                  Perfil de Produção
-                </h3>
-
-                <RadioCardGroup
-                  label="Tipo de Produtor"
-                  name="userType"
-                  value={step3Form.watch("userType")}
-                  onChange={(value) => {
-                    step3Form.setValue("userType", value);
-                    step3Form.trigger("userType");
-                  }}
-                  options={userTypeOptions}
-                  error={step3Form.formState.errors.userType?.message}
-                  helperText="Selecione a categoria que melhor descreve sua atividade"
-                  columns={2}
-                />
               </div>
             )}
           </MultiStepForm>

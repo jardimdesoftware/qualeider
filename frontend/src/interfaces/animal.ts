@@ -15,7 +15,8 @@ export interface Animal {
   id: number;
   name?: string;
   animalType: AnimalType;
-  breed: string;
+  breed?: string;       // opcional — campo legado, derivado do breedId
+  breedId?: number | null;
   age: number;
   userId: number;
   status: Status;

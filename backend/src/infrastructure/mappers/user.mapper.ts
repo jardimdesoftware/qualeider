@@ -1,6 +1,6 @@
 import { User as PrismaUser } from "@prisma/client";
 import { UserEntity } from "@/domain/entities/user.entity";
-import { UserCategory, UserType, Status } from "@/domain/enums/enums";
+import { UserCategory, UserRole, UserType, Status } from "@/domain/enums/enums";
 
 export class UserMapper {
     static toDomain(raw: PrismaUser): UserEntity {
@@ -11,6 +11,7 @@ export class UserMapper {
             password: raw.password,
             city: raw.city,
             state: raw.state,
+            role: raw.role as UserRole,
             userCategory: raw.userCategory as UserCategory,
             userType: raw.userType ? (raw.userType as UserType) : undefined,
             status: raw.status as Status,
@@ -30,6 +31,7 @@ export class UserMapper {
             password: user.password,
             city: user.city,
             state: user.state,
+            role: user.role,
             userCategory: user.userCategory,
             userType: user.userType,
             status: user.status,

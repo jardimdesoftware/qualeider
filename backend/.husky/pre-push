@@ -1,25 +1,31 @@
 #!/usr/bin/env sh
 
-echo "Executando todos os testes antes do push..."
+echo "Executando testes unitarios antes do push..."
 
-# Mudar para diretório backend
+# Mudar para diretorio backend
 cd backend
 
-# Executar testes unitários
+# Executar testes unitarios
 npm run test:unit
 
 if [ $? -ne 0 ]; then
-  echo "Testes unitários falharam! Push bloqueado."
+  echo "Testes unitarios falharam! Push bloqueado."
   exit 1
 fi
 
-# Executar testes E2E (opcional - pode ser lento)
-echo "Executando testes E2E..."
-npm run test:e2e
+# Testes E2E requerem banco qualeider_test acessivel localmente.
+# Sao pulados por padrao para nao bloquear pushes em ambientes de desenvolvimento.
+# Para rodar E2E: RUN_E2E=true git push
+if [ "$RUN_E2E" = "true" ]; then
+  echo "Executando testes E2E..."
+  npm run test:e2e
 
-if [ $? -ne 0 ]; then
-  echo "Testes E2E falharam! Push bloqueado."
-  exit 1
+  if [ $? -ne 0 ]; then
+    echo "Testes E2E falharam! Push bloqueado."
+    exit 1
+  fi
+else
+  echo "Testes E2E pulados (use RUN_E2E=true git push para incluir E2E)."
 fi
 
-echo "Todos os testes passaram! Push permitido."
+echo "Testes passaram! Push permitido."

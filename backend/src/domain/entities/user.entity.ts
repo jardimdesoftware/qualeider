@@ -1,4 +1,4 @@
-import { ID, UserCategory, UserType, Status } from '@/domain/enums/enums';
+import { ID, UserCategory, UserRole, UserType, Status } from '@/domain/enums/enums';
 
 export class UserEntity {
   constructor(props?: Partial<UserEntity>) {
@@ -10,6 +10,7 @@ export class UserEntity {
   name!: string;
   email!: string;
   password!: string;
+  role!: UserRole;
   userType?: UserType;
   userCategory!: UserCategory;
   document?: string | null;

@@ -8,6 +8,7 @@ export class AnimalEntity {
   name?: string | null;
   animalType!: AnimalType;
   breed!: string;
+  breedId?: ID | null;
   age!: number;
   userId!: ID;
   status!: Status;

@@ -1,3 +1,8 @@
+export enum UserRole {
+  ADMIN = "ADMIN",
+  VAQUEIRO = "VAQUEIRO",
+}
+
 export enum UserType {
   Pecuarista = "Pecuarista",
   Cooperativa = "Cooperativa",
@@ -20,6 +25,7 @@ export interface User {
   associationId?: number;
   name: string;
   email: string;
+  role: UserRole;
   userType?: UserType;
   userCategory: UserCategory;
   document?: string; // CPF or CNPJ

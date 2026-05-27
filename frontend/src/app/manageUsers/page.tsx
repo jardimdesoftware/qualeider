@@ -1,27 +1,186 @@
 "use client";
 
+import { useState } from "react";
+import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout";
 import { PageHeader } from "@/components/dashboard";
+import { UserPlus, Users, Search } from "lucide-react";
+import { ICON_SIZES, LOGO_SIZES } from "@/constants/ui";
+import { userService } from "@/services/userService";
+import { User, UserRole, Status } from "@/interfaces/user";
 import { EmptyState } from "@/components/ui";
-import { Users } from "lucide-react";
-import { ICON_SIZES } from "@/constants/ui";
+
+const ROLE_LABELS: Record<UserRole, string> = {
+  [UserRole.ADMIN]: "Admin",
+  [UserRole.VAQUEIRO]: "Vaqueiro",
+};
+
+const ROLE_BADGE_CLASSES: Record<UserRole, string> = {
+  [UserRole.ADMIN]:
+    "bg-blue-100 text-blue-800 border border-blue-200",
+  [UserRole.VAQUEIRO]:
+    "bg-amber-100 text-amber-800 border border-amber-200",
+};
 
 export default function ManageUsers() {
+  const [search, setSearch] = useState("");
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["users"],
+    queryFn: () => userService.findAll(),
+  });
+
+  const users: User[] = data?.data ?? [];
+
+  const filtered = users.filter((u) =>
+    u.name.toLowerCase().includes(search.toLowerCase()) ||
+    u.email.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <DashboardLayout>
       <PageHeader
-        title="Gerenciar Usuários"
-        subtitle="Visualize e gerencie os produtores da associação"
+        title="Funcionários"
+        subtitle="Gerencie os membros da sua fazenda"
       />
 
-      <div className="p-6 md:p-8 max-w-7xl mx-auto">
-        <EmptyState
-          icon={<Users size={ICON_SIZES.LG} className="text-slate-400" />}
-          title="Gerenciamento em desenvolvimento"
-          description="Esta funcionalidade será implementada em breve."
-          actionHref="/dashboardAssociation"
-          actionLabel="Voltar ao Dashboard"
-        />
+      <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
+        {/* Barra de ações */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="relative w-full sm:max-w-xs">
+            <Search
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            />
+            <input
+              type="text"
+              placeholder="Buscar por nome ou e-mail..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+            />
+          </div>
+
+          <Link
+            href="/manageUsers/addUser"
+            className="flex items-center gap-2 bg-brand-primary hover:bg-brand-primary-hover text-white font-semibold py-2 px-4 rounded-lg text-sm transition-colors shrink-0"
+          >
+            <UserPlus size={16} />
+            Adicionar Funcionário
+          </Link>
+        </div>
+
+        {/* Conteúdo */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-20 text-gray-500 text-sm">
+            Carregando funcionários...
+          </div>
+        )}
+
+        {isError && (
+          <div className="text-center py-20 text-red-500 text-sm">
+            Erro ao carregar funcionários. Tente novamente.
+          </div>
+        )}
+
+        {!isLoading && !isError && filtered.length === 0 && (
+          <EmptyState
+            icon={<Users size={LOGO_SIZES.LG} className="text-slate-400" />}
+            title={
+              search
+                ? "Nenhum funcionário encontrado"
+                : "Nenhum funcionário cadastrado"
+            }
+            description={
+              search
+                ? `Não há resultados para "${search}".`
+                : "Adicione o primeiro funcionário da sua fazenda."
+            }
+            actionHref="/manageUsers/addUser"
+            actionLabel="Adicionar Funcionário"
+          />
+        )}
+
+        {!isLoading && !isError && filtered.length > 0 && (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-200">
+                    <th className="text-left px-4 py-3 font-semibold text-gray-600">
+                      Nome
+                    </th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-600">
+                      E-mail
+                    </th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-600">
+                      Cargo / Perfil
+                    </th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-600">
+                      Cidade / Estado
+                    </th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-600">
+                      Status
+                    </th>
+                    <th className="px-4 py-3" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filtered.map((user) => (
+                    <tr
+                      key={user.id}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-4 py-3 font-medium text-gray-900">
+                        {user.name}
+                      </td>
+                      <td className="px-4 py-3 text-gray-600">{user.email}</td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${
+                            ROLE_BADGE_CLASSES[user.role] ??
+                            "bg-gray-100 text-gray-700"
+                          }`}
+                        >
+                          {ROLE_LABELS[user.role] ?? user.role}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-600">
+                        {user.city} / {user.state}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${
+                            user.status === Status.Active
+                              ? "bg-green-100 text-green-700"
+                              : "bg-red-100 text-red-700"
+                          }`}
+                        >
+                          {user.status === Status.Active ? "Ativo" : "Inativo"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <Link
+                          href={`/manageUsers/editUser?id=${user.id}`}
+                          className="text-brand-primary hover:underline text-xs font-semibold"
+                        >
+                          Editar
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="px-4 py-3 border-t border-gray-100 text-xs text-gray-500">
+              {filtered.length} funcionário{filtered.length !== 1 ? "s" : ""}{" "}
+              {search ? "encontrado" : "cadastrado"}
+              {filtered.length !== 1 ? "s" : ""}
+            </div>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

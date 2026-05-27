@@ -1,19 +1,12 @@
 import * as z from "zod";
 import { AnimalType } from "@/interfaces/animal";
 
-// ===========================
-// ANIMAL SCHEMA
-// ===========================
-
 export const animalSchema = z.object({
-  name: z.string().min(1, "Nome é obrigatório"),
+  name: z.string().optional(),
   animalType: z.nativeEnum(AnimalType),
-  breed: z.string().min(1, "Raça é obrigatória"),
-  age: z.number().min(1, "Idade deve ser no mínimo 1"),
+  breedId: z.number().int().positive("Selecione uma raça"),
+  breed: z.string().optional(),
+  age: z.number().min(0, "Idade não pode ser negativa").max(30, "Idade máxima é 30 anos"),
 });
-
-// ===========================
-// TYPES
-// ===========================
 
 export type AnimalData = z.infer<typeof animalSchema>;

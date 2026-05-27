@@ -10,7 +10,7 @@ import {
   Matches,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
-import { UserCategory, UserType } from '@/domain/enums/enums';
+import { UserCategory, UserRole, UserType } from '@/domain/enums/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEmailUnique } from '@/common/decorators/is-email-unique.decorator';
 
@@ -50,6 +50,18 @@ export class CreateUserDto {
     },
   )
   password!: string;
+
+  @ApiProperty({
+    description: 'Perfil/cargo do usuário no sistema',
+    enum: UserRole,
+    example: UserRole.ADMIN,
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(UserRole, {
+    message: 'O perfil (role) fornecido não é válido. Use ADMIN ou VAQUEIRO.',
+  })
+  role?: UserRole;
 
   @ApiProperty({
     description: 'Tipo de usuário',

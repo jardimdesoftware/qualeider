@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Loader2, MapPin } from "lucide-react";
-import { TIMING } from "@/constants/ui";
-import { formatCEP, cleanCEP, lookupSimpleAddress, CEPError } from "@/services/cepService";
+import { formatCEP } from "@/services/cepService";
 import { useCep } from "@/hooks/queries/useLocation";
 
 export interface AddressData {
@@ -45,42 +44,44 @@ export default function CEPInputField({
     This simplifies state management and adds caching.
   */
   const [cep, setCep] = useState(value);
-  const [shouldFetch, setShouldFetch] = useState(false);
-  
-  // Only enable the query when we have a full CEP and the user has stopped typing (via effect below or just reliance on validity)
-  // Actually useCep checks validity internally, but we might want to control when to start "paying attention" to errors
+
   const { data: addressData, isLoading, error } = useCep(cep);
 
   const [localError, setLocalError] = useState<string | null>(null);
+
+  // Usar ref para o callback evita que o useEffect dispare toda vez que o
+  // componente pai re-renderiza (a função mudaria de referência)
+  const onAddressFoundRef = useRef(onAddressFound);
+  onAddressFoundRef.current = onAddressFound;
+
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
 
   useEffect(() => {
     setCep(value);
   }, [value]);
 
-  // Handle successful data fetch
+  // Handle successful data fetch — ref garante estabilidade nas deps
   useEffect(() => {
     if (addressData) {
       setLocalError(null);
-      onAddressFound({
+      onAddressFoundRef.current({
         street: addressData.street,
         neighborhood: addressData.neighborhood,
         city: addressData.city,
-        state: addressData.state
+        state: addressData.state,
       });
     }
-  }, [addressData, onAddressFound]);
+  }, [addressData]);
 
   // Handle errors
   useEffect(() => {
     if (error) {
-       const msg = (error as any).message || "Erro ao buscar CEP.";
-       setLocalError(msg);
-       onError?.(msg);
-    } else {
-       // Clear error if loading starts or data resets? 
-       // React Query resets error on new fetch start if configured, but let's be safe
+      const msg = (error as any).message || "Erro ao buscar CEP.";
+      setLocalError(msg);
+      onErrorRef.current?.(msg);
     }
-  }, [error, onError]);
+  }, [error]);
 
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -41,4 +41,10 @@ export class CreateAnimalDto {
   @IsInt({ message: 'userId deve ser um número inteiro' })
   @IsPositive({ message: 'userId deve ser positivo' })
   userId!: number;
+
+  @ApiProperty({ description: 'Id da raça (relação com tabela Breed)', example: 1, required: false })
+  @IsOptional()
+  @IsInt({ message: 'breedId deve ser um número inteiro' })
+  @IsPositive({ message: 'breedId deve ser positivo' })
+  breedId?: number;
 }

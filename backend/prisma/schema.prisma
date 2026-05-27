@@ -8,6 +8,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  ADMIN
+  VAQUEIRO
+}
+
 enum UserType {
   Pecuarista
   Cooperativa
@@ -93,8 +98,9 @@ model User {
   document              String?          @unique // CPF ou CNPJ
   city                  String           
   state                 String 
+  role                  UserRole         @default(ADMIN)
   status                Status           @default(Active)
-  resetToken            String?  
+  resetToken            String?
   resetTokenExpiry      DateTime?
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
@@ -107,6 +113,17 @@ model User {
   @@index([associationId, status])
 }
 
+model Breed {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  animals     Animal[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([name])
+}
+
 model Animal {
   id                    Int              @id @default(autoincrement())
   name                  String?
@@ -114,8 +131,10 @@ model Animal {
   breed                 String
   age                   Int
   userId                Int
+  breedId               Int?
   status                Status           @default(Active)
   user                  User             @relation(fields: [userId], references: [id])
+  breedRelation         Breed?           @relation(fields: [breedId], references: [id])
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
   dailyCollectionItems  DailyCollectionItem[]

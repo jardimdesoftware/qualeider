@@ -1,3 +1,8 @@
+export enum UserRole {
+  ADMIN = 'ADMIN',
+  VAQUEIRO = 'VAQUEIRO',
+}
+
 export enum UserType {
   Pecuarista = 'Pecuarista',
   Cooperativa = 'Cooperativa',

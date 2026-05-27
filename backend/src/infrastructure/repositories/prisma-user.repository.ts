@@ -7,10 +7,11 @@ import { UserEntity } from '@/domain/entities/user.entity';
 import { UserCriteria } from '@/domain/criteria/user.criteria';
 import { handlePrismaError, PrismaErrorCode } from '@/common/utils/prisma-error-handler';
 import { UserMapper } from '@/infrastructure/mappers/user.mapper';
-import { 
-  UserCategory as PrismaUserCategory, 
-  UserType as PrismaUserType, 
-  Status as PrismaStatus 
+import {
+  UserCategory as PrismaUserCategory,
+  UserRole as PrismaUserRole,
+  UserType as PrismaUserType,
+  Status as PrismaStatus
 } from '@prisma/client';
 import { PaginatedResult, normalizePaginationParams, createPaginatedResult } from '@/domain/common/pagination.interface';
 
@@ -34,6 +35,7 @@ export class PrismaUserRepository implements IUserRepository {
           associationId: data.associationId,
 
           // Conversão segura de Enum Domínio -> Enum Prisma
+          role: (data.role as unknown as PrismaUserRole) ?? PrismaUserRole.ADMIN,
           userType: data.userType as unknown as PrismaUserType,
           userCategory: data.userCategory as unknown as PrismaUserCategory,
           status: (data.status as unknown as PrismaStatus) ?? PrismaStatus.Active,
@@ -131,6 +133,7 @@ export class PrismaUserRepository implements IUserRepository {
         };
       }
 
+      if (data.role) updateData.role = data.role as unknown as PrismaUserRole;
       if (data.userType) updateData.userType = data.userType as unknown as PrismaUserType;
       if (data.userCategory) updateData.userCategory = data.userCategory as unknown as PrismaUserCategory;
       if (data.status) updateData.status = data.status as unknown as PrismaStatus;

@@ -9,6 +9,7 @@ import { AuthPresentationModule } from './modules/auth.module';
 import { AssociationsPresentationModule } from './modules/associations.module';
 import { InvitesPresentationModule } from './modules/invites.module';
 import { NotificationsPresentationModule } from './modules/notifications.module';
+import { BreedsPresentationModule } from './modules/breeds.module';
 import { MailModule } from '@/mail/mail.module';
 import { WinstonModule } from 'nest-winston';
 import { winstonConfig } from '@/common/logger/logger.config';
@@ -54,6 +55,7 @@ import { HealthController } from './controllers/health.controller';
     AssociationsPresentationModule,
     InvitesPresentationModule,
     NotificationsPresentationModule,
+    BreedsPresentationModule,
     MailModule,
   ],
   controllers: [HealthController],
