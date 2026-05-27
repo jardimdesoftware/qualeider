@@ -1,3 +1,5 @@
+import { AnimalSpecies } from './animalSpecies';
+
 export enum AnimalType {
   Vaca = "Vaca",
   Cabra = "Cabra",
@@ -14,8 +16,10 @@ export enum Status {
 export interface Animal {
   id: number;
   name?: string;
-  animalType: AnimalType;
-  breed?: string;       // opcional — campo legado, derivado do breedId
+  animalType?: AnimalType;       // legado — pode ser null em animais novos
+  animalSpeciesId?: number | null;
+  animalSpecies?: AnimalSpecies | null;
+  breed?: string;
   breedId?: number | null;
   age: number;
   userId: number;

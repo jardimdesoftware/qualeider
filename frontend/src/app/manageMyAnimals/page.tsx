@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DashboardLayout } from "@/components/layout";
@@ -12,25 +12,10 @@ import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { useUserAnimals, useCreateAnimal, useUpdateAnimal, useDeleteAnimal } from "@/hooks/queries/useAnimals";
 import { useBreeds } from "@/hooks/queries/useBreeds";
-import { Animal, AnimalType } from "@/interfaces/animal";
+import { useAnimalSpecies } from "@/hooks/queries/useAnimalSpecies";
+import { Animal } from "@/interfaces/animal";
 import { animalSchema, AnimalData } from "@/schemas/animal";
-import { Plus, Pencil, Trash2, X, Cat, Search, Loader2 } from "lucide-react";
-
-const ANIMAL_TYPE_OPTIONS = [
-  { value: AnimalType.Vaca,   label: "Vaca"   },
-  { value: AnimalType.Cabra,  label: "Cabra"  },
-  { value: AnimalType.Ovelha, label: "Ovelha" },
-  { value: AnimalType.Bufala, label: "Bufala" },
-  { value: AnimalType.Outro,  label: "Outro"  },
-];
-
-const ANIMAL_TYPE_LABELS: Record<AnimalType, string> = {
-  [AnimalType.Vaca]:   "Vaca",
-  [AnimalType.Cabra]:  "Cabra",
-  [AnimalType.Ovelha]: "Ovelha",
-  [AnimalType.Bufala]: "Bufala",
-  [AnimalType.Outro]:  "Outro",
-};
+import { Plus, Pencil, Trash2, X, Cat, Search } from "lucide-react";
 
 interface AnimalModalProps {
   isOpen: boolean;
@@ -46,12 +31,13 @@ function AnimalModal({ isOpen, editingAnimal, userId, onClose, onSuccess, onErro
   const createAnimal = useCreateAnimal();
   const updateAnimal = useUpdateAnimal();
   const { data: breeds = [], isLoading: loadingBreeds } = useBreeds();
+  const { data: species = [], isLoading: loadingSpecies } = useAnimalSpecies();
 
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<AnimalData>({
     resolver: zodResolver(animalSchema),
     defaultValues: {
       name: editingAnimal?.name ?? "",
-      animalType: editingAnimal?.animalType ?? AnimalType.Vaca,
+      animalSpeciesId: editingAnimal?.animalSpeciesId ?? undefined,
       breedId: editingAnimal?.breedId ?? undefined,
       breed: editingAnimal?.breed ?? "",
       age: editingAnimal?.age ?? 1,
@@ -59,14 +45,14 @@ function AnimalModal({ isOpen, editingAnimal, userId, onClose, onSuccess, onErro
   });
 
   const selectedBreedId = watch("breedId");
+  const selectedSpeciesId = watch("animalSpeciesId");
+
+  const speciesOptions = species.map((s) => ({ value: String(s.id), label: s.name }));
   const breedOptions = breeds.map((b) => ({ value: String(b.id), label: b.name }));
 
-  useEffect(() => {
-    if (!isEditing && breeds.length > 0 && !selectedBreedId) {
-      setValue("breedId", breeds[0].id, { shouldValidate: false });
-      setValue("breed", breeds[0].name);
-    }
-  }, [breeds, isEditing, selectedBreedId, setValue]);
+  const handleSpeciesChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setValue("animalSpeciesId", Number(e.target.value), { shouldValidate: true });
+  };
 
   const handleBreedChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const id = Number(e.target.value);
@@ -113,13 +99,20 @@ function AnimalModal({ isOpen, editingAnimal, userId, onClose, onSuccess, onErro
           />
           <SelectField
             label="Tipo de Animal *"
-            error={errors.animalType?.message}
-            options={ANIMAL_TYPE_OPTIONS}
-            {...register("animalType")}
+            placeholder={
+              loadingSpecies ? "Carregando tipos..." :
+              speciesOptions.length === 0 ? "Nenhum tipo cadastrado — vá em Tipos de Animal" :
+              "Selecione o tipo"
+            }
+            disabled={loadingSpecies || speciesOptions.length === 0}
+            error={errors.animalSpeciesId?.message}
+            options={speciesOptions}
+            value={selectedSpeciesId ? String(selectedSpeciesId) : ""}
+            onChange={handleSpeciesChange}
           />
           <SelectField
-            label="Raca *"
-            placeholder={loadingBreeds ? "Carregando racas..." : breedOptions.length === 0 ? "Nenhuma raca cadastrada" : "Selecione uma raca"}
+            label="Raça *"
+            placeholder={loadingBreeds ? "Carregando raças..." : breedOptions.length === 0 ? "Nenhuma raça cadastrada" : "Selecione uma raça"}
             disabled={loadingBreeds || breedOptions.length === 0}
             error={errors.breedId?.message}
             options={breedOptions}
@@ -139,7 +132,7 @@ function AnimalModal({ isOpen, editingAnimal, userId, onClose, onSuccess, onErro
               Cancelar
             </Button>
             <Button type="submit" variant="primary" fullWidth loading={isPending}>
-              {isEditing ? "Salvar Alteracoes" : "Cadastrar"}
+              {isEditing ? "Salvar Alterações" : "Cadastrar"}
             </Button>
           </div>
         </form>
@@ -164,7 +157,7 @@ export default function ManageAnimals() {
   const filtered = useMemo(() =>
     animals.filter((a) =>
       (a.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
-      a.animalType.toLowerCase().includes(search.toLowerCase()) ||
+      (a.animalSpecies?.name ?? a.animalType ?? "").toLowerCase().includes(search.toLowerCase()) ||
       (a.breed ?? "").toLowerCase().includes(search.toLowerCase())
     ),
     [animals, search]
@@ -180,10 +173,10 @@ export default function ManageAnimals() {
     try {
       await deleteAnimal.mutateAsync(confirmDelete.id);
       setConfirmDelete(null);
-      showFeedback("Sucesso!", `Animal excluido com sucesso.`, "success");
+      showFeedback("Sucesso!", "Animal excluído com sucesso.", "success");
     } catch (err: any) {
       setConfirmDelete(null);
-      showFeedback("Erro", err?.response?.data?.message || "Nao foi possivel excluir.", "error");
+      showFeedback("Erro", err?.response?.data?.message || "Não foi possível excluir.", "error");
     }
   };
 
@@ -209,7 +202,7 @@ export default function ManageAnimals() {
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Buscar por nome, tipo ou raca..."
+                placeholder="Buscar por nome, tipo ou raça..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent"
@@ -221,7 +214,7 @@ export default function ManageAnimals() {
             <EmptyState
               icon={<Cat size={40} className="text-slate-400" />}
               title="Nenhum animal cadastrado"
-              description="Cadastre seu primeiro animal para comecar a gerenciar o rebanho."
+              description="Cadastre seu primeiro animal para começar a gerenciar o rebanho."
             />
           )}
 
@@ -240,9 +233,9 @@ export default function ManageAnimals() {
                       <th className="px-6 py-4 text-left font-semibold">#</th>
                       <th className="px-6 py-4 text-left font-semibold">Nome</th>
                       <th className="px-6 py-4 text-left font-semibold hidden md:table-cell">Tipo</th>
-                      <th className="px-6 py-4 text-left font-semibold hidden md:table-cell">Raca</th>
+                      <th className="px-6 py-4 text-left font-semibold hidden md:table-cell">Raça</th>
                       <th className="px-6 py-4 text-left font-semibold hidden md:table-cell">Idade</th>
-                      <th className="px-6 py-4 text-right font-semibold">Acoes</th>
+                      <th className="px-6 py-4 text-right font-semibold">Ações</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -254,14 +247,14 @@ export default function ManageAnimals() {
                             {animal.name || <span className="text-slate-400 italic font-normal">Sem nome</span>}
                           </span>
                           <span className="block text-xs text-slate-500 mt-0.5 md:hidden">
-                            {ANIMAL_TYPE_LABELS[animal.animalType]} {animal.breed ? `- ${animal.breed}` : ""} - {animal.age}a
+                            {animal.animalSpecies?.name ?? animal.animalType ?? "—"} {animal.breed ? `- ${animal.breed}` : ""} - {animal.age}a
                           </span>
                         </td>
                         <td className="px-6 py-4 text-slate-600 hidden md:table-cell">
-                          {ANIMAL_TYPE_LABELS[animal.animalType]}
+                          {animal.animalSpecies?.name ?? animal.animalType ?? <span className="text-slate-300 italic">—</span>}
                         </td>
                         <td className="px-6 py-4 text-slate-600 hidden md:table-cell">
-                          {animal.breed ?? <span className="text-slate-300 italic">sem raca</span>}
+                          {animal.breed ?? <span className="text-slate-300 italic">sem raça</span>}
                         </td>
                         <td className="px-6 py-4 text-slate-600 hidden md:table-cell">
                           {animal.age} ano{animal.age !== 1 ? "s" : ""}
@@ -310,7 +303,7 @@ export default function ManageAnimals() {
       <ConfirmationModal
         isOpen={!!confirmDelete}
         title="Excluir Animal"
-        message={`Tem certeza que deseja excluir "${confirmDelete?.name || "este animal"}"? Esta acao nao pode ser desfeita.`}
+        message={`Tem certeza que deseja excluir "${confirmDelete?.name || "este animal"}"? Esta ação não pode ser desfeita.`}
         confirmText="Sim, Excluir"
         cancelText="Cancelar"
         variant="primary"
