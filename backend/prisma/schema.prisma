@@ -124,14 +124,28 @@ model Breed {
   @@index([name])
 }
 
+model AnimalSpecies {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  animals     Animal[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("animal_species")
+  @@index([name])
+}
+
 model Animal {
   id                    Int              @id @default(autoincrement())
   name                  String?
-  animalType            AnimalType
-  breed                 String
+  animalType            AnimalType?
+  breed                 String?
   age                   Int
   userId                Int
   breedId               Int?
+  animalSpeciesId       Int?
+  animalSpecies         AnimalSpecies?   @relation(fields: [animalSpeciesId], references: [id])
   status                Status           @default(Active)
   user                  User             @relation(fields: [userId], references: [id])
   breedRelation         Breed?           @relation(fields: [breedId], references: [id])

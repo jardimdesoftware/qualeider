@@ -3,11 +3,12 @@ import { AnimalEntity } from "@/domain/entities/animal.entity";
 import { AnimalType, Status } from "@/domain/enums/enums";
 
 export class AnimalMapper {
-    static toDomain(raw: PrismaAnimal): AnimalEntity {
+    static toDomain(raw: PrismaAnimal & { animalSpecies?: { id: number; name: string; description?: string | null } | null }): AnimalEntity {
         return new AnimalEntity({
             id: raw.id,
             name: raw.name,
-            animalType: raw.animalType as AnimalType,
+            animalType: raw.animalType as AnimalType ?? null,
+            animalSpeciesId: raw.animalSpeciesId ?? null,
             breed: raw.breed,
             breedId: raw.breedId,
             age: raw.age,
@@ -22,8 +23,9 @@ export class AnimalMapper {
         return {
             id: animal.id,
             name: animal.name ?? null,
-            animalType: animal.animalType,
-            breed: animal.breed,
+            animalType: animal.animalType ?? null,
+            animalSpeciesId: animal.animalSpeciesId ?? null,
+            breed: animal.breed ?? null,
             breedId: animal.breedId ?? null,
             age: animal.age,
             userId: animal.userId,

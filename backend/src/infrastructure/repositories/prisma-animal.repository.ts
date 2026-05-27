@@ -21,13 +21,15 @@ export class PrismaAnimalRepository implements IAnimalRepository {
       const created = await this.prisma.animal.create({
         data: {
           name: data.name,
-          animalType: data.animalType,
-          breed: data.breed,
+          animalType: data.animalType ?? null,
+          animalSpeciesId: data.animalSpeciesId ?? null,
+          breed: data.breed ?? null,
           breedId: data.breedId ?? null,
           age: data.age,
           userId: data.userId,
           status: PrismaStatus.Active,
         },
+        include: { animalSpecies: true },
       });
       return AnimalMapper.toDomain(created);
     } catch (error) {
@@ -56,7 +58,7 @@ export class PrismaAnimalRepository implements IAnimalRepository {
       where.animalType = criteria.animalType;
     }
 
-    const include: Prisma.AnimalInclude = {};
+    const include: Prisma.AnimalInclude = { animalSpecies: true };
     if (criteria.includeUser) {
       include.user = true;
     }
@@ -82,15 +84,15 @@ export class PrismaAnimalRepository implements IAnimalRepository {
   }
 
   async findById(id: ID, options?: AnimalFindOneOptions): Promise<AnimalEntity | null> {
-    const include: Prisma.AnimalInclude = {};
-    
+    const include: Prisma.AnimalInclude = { animalSpecies: true };
+
     if (options?.includeUser) {
       include.user = true;
     }
 
     const rawAnimal = await this.prisma.animal.findUnique({
       where: { id },
-      include: Object.keys(include).length > 0 ? include : undefined,
+      include,
     });
     
     if (!rawAnimal) return null;
@@ -120,11 +122,13 @@ export class PrismaAnimalRepository implements IAnimalRepository {
         data: {
           name: data.name ?? undefined,
           animalType: data.animalType ?? undefined,
+          animalSpeciesId: data.animalSpeciesId ?? undefined,
           breed: data.breed ?? undefined,
           breedId: data.breedId ?? undefined,
           age: data.age ?? undefined,
           status: (data.status as unknown as PrismaStatus) ?? undefined,
         },
+        include: { animalSpecies: true },
       });
       return AnimalMapper.toDomain(updated);
     } catch (error) {

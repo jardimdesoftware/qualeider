@@ -6,8 +6,9 @@ export class AnimalEntity {
   }
   id!: ID;
   name?: string | null;
-  animalType!: AnimalType;
-  breed!: string;
+  animalType?: AnimalType | null;
+  animalSpeciesId?: ID | null;
+  breed?: string | null;
   breedId?: ID | null;
   age!: number;
   userId!: ID;

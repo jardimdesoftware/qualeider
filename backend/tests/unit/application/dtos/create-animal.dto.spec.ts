@@ -6,41 +6,31 @@ import { AnimalType } from '@/domain/enums/enums';
 describe('CreateAnimalDto', () => {
   describe('name validation', () => {
     it('deve aceitar name omitido', async () => {
-      const dto = plainToInstance(CreateAnimalDto, {
-        animalType: AnimalType.Vaca,
-        breed: 'Holandês',
-        age: 5,
-        userId: 1,
-      });
-
+      const dto = plainToInstance(CreateAnimalDto, { age: 5, userId: 1 });
       const errors = await validate(dto);
       const nameErrors = errors.filter((e) => e.property === 'name');
       expect(nameErrors.length).toBe(0);
     });
 
-    it('deve aceitar name válido', async () => {
+    it('deve aceitar name valido', async () => {
       const dto = plainToInstance(CreateAnimalDto, {
         name: 'Mimosa',
         animalType: AnimalType.Vaca,
-        breed: 'Holandês',
+        breed: 'Holandes',
         age: 5,
         userId: 1,
       });
-
       const errors = await validate(dto);
       const nameErrors = errors.filter((e) => e.property === 'name');
       expect(nameErrors.length).toBe(0);
     });
 
-    it('deve rejeitar name que não é string', async () => {
+    it('deve rejeitar name que nao e string', async () => {
       const dto = plainToInstance(CreateAnimalDto, {
         name: 123 as any,
-        animalType: AnimalType.Vaca,
-        breed: 'Holandês',
         age: 5,
         userId: 1,
       });
-
       const errors = await validate(dto);
       const nameError = errors.find((e) => e.property === 'name');
       expect(nameError).toBeDefined();
@@ -49,97 +39,82 @@ describe('CreateAnimalDto', () => {
   });
 
   describe('animalType validation', () => {
-    it('deve rejeitar animalType vazio', async () => {
+    it('deve aceitar animalType omitido (campo opcional)', async () => {
       const dto = plainToInstance(CreateAnimalDto, {
-        breed: 'Holandês',
+        animalSpeciesId: 1,
         age: 5,
         userId: 1,
       });
-
       const errors = await validate(dto);
-      expect(errors.some((e) => e.property === 'animalType')).toBe(true);
+      const animalTypeErrors = errors.filter((e) => e.property === 'animalType');
+      expect(animalTypeErrors.length).toBe(0);
     });
 
-    it('deve rejeitar animalType inválido', async () => {
+    it('deve rejeitar animalType invalido', async () => {
       const dto = plainToInstance(CreateAnimalDto, {
         animalType: 'INVALID' as any,
-        breed: 'Holandês',
         age: 5,
         userId: 1,
       });
-
       const errors = await validate(dto);
       const animalTypeError = errors.find((e) => e.property === 'animalType');
       expect(animalTypeError).toBeDefined();
       expect(animalTypeError?.constraints).toHaveProperty('isEnum');
     });
 
-    it('deve aceitar animalType válido - Vaca', async () => {
+    it('deve aceitar animalType valido - Vaca', async () => {
       const dto = plainToInstance(CreateAnimalDto, {
         animalType: AnimalType.Vaca,
-        breed: 'Holandês',
         age: 5,
         userId: 1,
       });
-
       const errors = await validate(dto);
-      const animalTypeErrors = errors.filter(
-        (e) => e.property === 'animalType',
-      );
+      const animalTypeErrors = errors.filter((e) => e.property === 'animalType');
       expect(animalTypeErrors.length).toBe(0);
     });
 
-    it('deve aceitar animalType válido - Cabra', async () => {
+    it('deve aceitar animalType valido - Cabra', async () => {
       const dto = plainToInstance(CreateAnimalDto, {
         animalType: AnimalType.Cabra,
-        breed: 'Saanen',
         age: 3,
         userId: 1,
       });
-
       const errors = await validate(dto);
-      const animalTypeErrors = errors.filter(
-        (e) => e.property === 'animalType',
-      );
+      const animalTypeErrors = errors.filter((e) => e.property === 'animalType');
       expect(animalTypeErrors.length).toBe(0);
     });
   });
 
   describe('breed validation', () => {
-    it('deve rejeitar breed vazio', async () => {
+    it('deve aceitar breed omitido (campo opcional)', async () => {
       const dto = plainToInstance(CreateAnimalDto, {
-        animalType: AnimalType.Vaca,
-        breed: '',
+        animalSpeciesId: 1,
         age: 5,
         userId: 1,
       });
-
       const errors = await validate(dto);
-      expect(errors.some((e) => e.property === 'breed')).toBe(true);
+      const breedErrors = errors.filter((e) => e.property === 'breed');
+      expect(breedErrors.length).toBe(0);
     });
 
-    it('deve rejeitar breed que não é string', async () => {
+    it('deve rejeitar breed que nao e string', async () => {
       const dto = plainToInstance(CreateAnimalDto, {
-        animalType: AnimalType.Vaca,
         breed: 123 as any,
         age: 5,
         userId: 1,
       });
-
       const errors = await validate(dto);
       const breedError = errors.find((e) => e.property === 'breed');
       expect(breedError).toBeDefined();
       expect(breedError?.constraints).toHaveProperty('isString');
     });
 
-    it('deve aceitar breed válido', async () => {
+    it('deve aceitar breed valido', async () => {
       const dto = plainToInstance(CreateAnimalDto, {
-        animalType: AnimalType.Vaca,
         breed: 'Jersey',
         age: 5,
         userId: 1,
       });
-
       const errors = await validate(dto);
       const breedErrors = errors.filter((e) => e.property === 'breed');
       expect(breedErrors.length).toBe(0);
@@ -148,24 +123,13 @@ describe('CreateAnimalDto', () => {
 
   describe('age validation', () => {
     it('deve rejeitar age vazio', async () => {
-      const dto = plainToInstance(CreateAnimalDto, {
-        animalType: AnimalType.Vaca,
-        breed: 'Holandês',
-        userId: 1,
-      });
-
+      const dto = plainToInstance(CreateAnimalDto, { userId: 1 });
       const errors = await validate(dto);
       expect(errors.some((e) => e.property === 'age')).toBe(true);
     });
 
-    it('deve rejeitar age que não é inteiro', async () => {
-      const dto = plainToInstance(CreateAnimalDto, {
-        animalType: AnimalType.Vaca,
-        breed: 'Holandês',
-        age: 5.5,
-        userId: 1,
-      });
-
+    it('deve rejeitar age que nao e inteiro', async () => {
+      const dto = plainToInstance(CreateAnimalDto, { age: 5.5, userId: 1 });
       const errors = await validate(dto);
       const ageError = errors.find((e) => e.property === 'age');
       expect(ageError).toBeDefined();
@@ -173,27 +137,15 @@ describe('CreateAnimalDto', () => {
     });
 
     it('deve rejeitar age negativo', async () => {
-      const dto = plainToInstance(CreateAnimalDto, {
-        animalType: AnimalType.Vaca,
-        breed: 'Holandês',
-        age: -1,
-        userId: 1,
-      });
-
+      const dto = plainToInstance(CreateAnimalDto, { age: -1, userId: 1 });
       const errors = await validate(dto);
       const ageError = errors.find((e) => e.property === 'age');
       expect(ageError).toBeDefined();
       expect(ageError?.constraints).toHaveProperty('min');
     });
 
-    it('deve aceitar age válido', async () => {
-      const dto = plainToInstance(CreateAnimalDto, {
-        animalType: AnimalType.Vaca,
-        breed: 'Holandês',
-        age: 10,
-        userId: 1,
-      });
-
+    it('deve aceitar age valido', async () => {
+      const dto = plainToInstance(CreateAnimalDto, { age: 10, userId: 1 });
       const errors = await validate(dto);
       const ageErrors = errors.filter((e) => e.property === 'age');
       expect(ageErrors.length).toBe(0);
@@ -202,66 +154,47 @@ describe('CreateAnimalDto', () => {
 
   describe('userId validation', () => {
     it('deve rejeitar userId vazio', async () => {
-      const dto = plainToInstance(CreateAnimalDto, {
-        animalType: AnimalType.Vaca,
-        breed: 'Holandês',
-        age: 5,
-      });
-
+      const dto = plainToInstance(CreateAnimalDto, { age: 5 });
       const errors = await validate(dto);
       expect(errors.some((e) => e.property === 'userId')).toBe(true);
     });
 
-    it('deve rejeitar userId que não é inteiro', async () => {
-      const dto = plainToInstance(CreateAnimalDto, {
-        animalType: AnimalType.Vaca,
-        breed: 'Holandês',
-        age: 5,
-        userId: 1.5,
-      });
-
+    it('deve rejeitar userId que nao e inteiro', async () => {
+      const dto = plainToInstance(CreateAnimalDto, { age: 5, userId: 1.5 });
       const errors = await validate(dto);
       const userIdError = errors.find((e) => e.property === 'userId');
       expect(userIdError).toBeDefined();
       expect(userIdError?.constraints).toHaveProperty('isInt');
     });
 
-    it('deve aceitar userId válido', async () => {
-      const dto = plainToInstance(CreateAnimalDto, {
-        animalType: AnimalType.Vaca,
-        breed: 'Holandês',
-        age: 5,
-        userId: 42,
-      });
-
+    it('deve aceitar userId valido', async () => {
+      const dto = plainToInstance(CreateAnimalDto, { age: 5, userId: 42 });
       const errors = await validate(dto);
       const userIdErrors = errors.filter((e) => e.property === 'userId');
       expect(userIdErrors.length).toBe(0);
     });
   });
 
-  describe('DTO completo válido', () => {
-    it('deve validar DTO completo sem nome', async () => {
+  describe('DTO completo valido', () => {
+    it('deve validar DTO com animalSpeciesId', async () => {
       const dto = plainToInstance(CreateAnimalDto, {
-        animalType: AnimalType.Ovelha,
+        animalSpeciesId: 1,
         breed: 'Merino',
         age: 3,
         userId: 1,
       });
-
       const errors = await validate(dto);
       expect(errors.length).toBe(0);
     });
 
-    it('deve validar DTO completo com nome', async () => {
+    it('deve validar DTO com animalType legado', async () => {
       const dto = plainToInstance(CreateAnimalDto, {
         name: 'Mimosa',
         animalType: AnimalType.Vaca,
-        breed: 'Holandês',
+        breed: 'Holandes',
         age: 7,
         userId: 5,
       });
-
       const errors = await validate(dto);
       expect(errors.length).toBe(0);
     });
