@@ -9,10 +9,17 @@ import {
   IsString,
   Min,
   Max,
+  MaxLength,
 } from 'class-validator';
 import { AnimalType } from '@/domain/enums/enums';
 
 export class UpdateAnimalDto extends PartialType(CreateAnimalDto) {
+  @ApiProperty({ description: 'Numero de identificacao do animal (brinco)', required: false })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  tagNumber?: string;
+
   @ApiProperty({ description: 'Nome do animal', required: false })
   @IsOptional()
   @IsString()
@@ -46,4 +53,28 @@ export class UpdateAnimalDto extends PartialType(CreateAnimalDto) {
   @Min(0)
   @Max(30)
   age?: number;
+
+  @ApiProperty({ description: 'ID da mae (animal cadastrado no sistema)', required: false })
+  @IsOptional()
+  @IsInt({ message: 'motherId deve ser um numero inteiro' })
+  @IsPositive({ message: 'motherId deve ser positivo' })
+  motherId?: number;
+
+  @ApiProperty({ description: 'Numero da mae quando nao cadastrada no sistema', required: false })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  motherCode?: string;
+
+  @ApiProperty({ description: 'ID do pai/reprodutor (animal cadastrado no sistema)', required: false })
+  @IsOptional()
+  @IsInt({ message: 'fatherId deve ser um numero inteiro' })
+  @IsPositive({ message: 'fatherId deve ser positivo' })
+  fatherId?: number;
+
+  @ApiProperty({ description: 'Numero ou codigo do pai quando nao cadastrado', required: false })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  fatherCode?: string;
 }

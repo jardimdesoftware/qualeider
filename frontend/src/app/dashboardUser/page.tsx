@@ -151,7 +151,8 @@ export default function DashboardUser() {
 
   const pieChartData = useMemo(() => {
     const animalTypeDistribution = animals.reduce((acc, animal) => {
-      acc[animal.animalType] = (acc[animal.animalType] || 0) + 1;
+      const key = animal.animalSpecies?.name ?? animal.animalType ?? "Outro";
+      acc[key] = (acc[key] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 

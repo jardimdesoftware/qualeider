@@ -7,13 +7,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { DashboardLayout } from "@/components/layout";
 import { PageHeader } from "@/components/dashboard";
 import { Button, InputField, SelectField, ErrorModal } from "@/components/ui";
-import { AnimalType } from "@/interfaces/animal";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { animalSchema, AnimalData } from "@/schemas/animal";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { getFriendlyErrorMessage } from "@/utils/errorMessage";
 import { useAnimal, useUpdateAnimal } from "@/hooks/queries/useAnimals";
 import { useBreeds } from "@/hooks/queries/useBreeds";
+import { useAnimalSpecies } from "@/hooks/queries/useAnimalSpecies";
 
 function EditAnimalContent() {
   const router = useRouter();
@@ -21,10 +21,9 @@ function EditAnimalContent() {
   const animalId = searchParams.get("id");
 
   const { isLoading: authLoading } = useAuthGuard("user");
-  const { data: animal, isLoading: loadingAnimal } = useAnimal(
-    animalId ? Number(animalId) : null
-  );
+  const { data: animal, isLoading: loadingAnimal } = useAnimal(animalId ? Number(animalId) : null);
   const { data: breeds = [], isLoading: loadingBreeds } = useBreeds();
+  const { data: species = [], isLoading: loadingSpecies } = useAnimalSpecies();
   const updateAnimal = useUpdateAnimal();
 
   const [modalState, setModalState] = useState({
@@ -45,18 +44,21 @@ function EditAnimalContent() {
     mode: "onBlur",
   });
 
-  // Valor atual do breedId no form — controla o <select> visualmente
   const selectedBreedId = watch("breedId");
+  const selectedSpeciesId = watch("animalSpeciesId");
 
-  // Popula o formulário quando o animal é carregado
   useEffect(() => {
     if (animal) {
       reset({
-        name: animal.name,
-        animalType: animal.animalType,
+        tagNumber: animal.tagNumber ?? undefined,
+        name: animal.name ?? undefined,
+        animalSpeciesId: animal.animalSpeciesId ?? undefined,
         breedId: animal.breedId ?? undefined,
-        breed: animal.breed,
+        breed: animal.breed ?? undefined,
         age: animal.age,
+        motherId: animal.motherId ?? undefined,
+        motherCode: animal.motherCode ?? undefined,
+        fatherCode: animal.fatherCode ?? undefined,
       });
     }
   }, [animal, reset]);
@@ -66,6 +68,10 @@ function EditAnimalContent() {
     setValue("breedId", id, { shouldValidate: true });
     const found = breeds.find((b) => b.id === id);
     setValue("breed", found?.name ?? "");
+  };
+
+  const handleSpeciesChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setValue("animalSpeciesId", Number(e.target.value), { shouldValidate: true });
   };
 
   const onSubmit = async (data: AnimalData) => {
@@ -79,6 +85,7 @@ function EditAnimalContent() {
   };
 
   const breedOptions = breeds.map((b) => ({ value: String(b.id), label: b.name }));
+  const speciesOptions = species.map((s) => ({ value: String(s.id), label: s.name }));
 
   if (authLoading || loadingAnimal) return <DashboardLoading />;
 
@@ -86,54 +93,40 @@ function EditAnimalContent() {
     <>
       <DashboardLayout>
         <PageHeader title="Editar Animal" subtitle="Atualize as informações do animal" />
-
         <div className="p-6 md:p-8 max-w-3xl mx-auto">
           <div className="bg-white rounded-xl shadow-md border border-slate-100 p-6 md:p-8">
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <InputField
-                label="Nome do Animal"
+                label="Número de identificação (brinco)"
+                placeholder="Ex: 013, 07..."
+                error={errors.tagNumber?.message}
+                {...register("tagNumber")}
+              />
+              <InputField
+                label="Nome do Animal (opcional)"
                 type="text"
                 disabled={isSubmitting}
                 error={errors.name?.message}
                 {...register("name")}
               />
-
               <SelectField
                 label="Tipo de Animal"
-                disabled={isSubmitting}
-                error={errors.animalType?.message}
-                options={[
-                  { value: AnimalType.Vaca, label: "Vaca" },
-                  { value: AnimalType.Cabra, label: "Cabra" },
-                  { value: AnimalType.Ovelha, label: "Ovelha" },
-                  { value: AnimalType.Bufala, label: "Búfala" },
-                  { value: AnimalType.Outro, label: "Outro" },
-                ]}
-                {...register("animalType")}
+                placeholder={loadingSpecies ? "Carregando tipos..." : speciesOptions.length === 0 ? "Nenhum tipo cadastrado" : "Selecione o tipo"}
+                disabled={isSubmitting || loadingSpecies || speciesOptions.length === 0}
+                error={errors.animalSpeciesId?.message}
+                options={speciesOptions}
+                value={selectedSpeciesId ? String(selectedSpeciesId) : ""}
+                onChange={handleSpeciesChange}
               />
-
-              {/*
-               * Raça alimentada 100% pelo banco via useBreeds.
-               * reset() popula breedId → watch("breedId") → value={String(selectedBreedId)}
-               * pré-seleciona visualmente a raça do animal sem precisar de prop value manual.
-               * onChange converte para number antes do setValue.
-               */}
               <SelectField
                 label="Raça"
-                placeholder={
-                  loadingBreeds
-                    ? "Carregando raças..."
-                    : breedOptions.length === 0
-                    ? "Nenhuma raça cadastrada — vá em Raças para adicionar"
-                    : "Selecione uma raça"
-                }
+                placeholder={loadingBreeds ? "Carregando raças..." : breedOptions.length === 0 ? "Nenhuma raça cadastrada" : "Selecione uma raça"}
                 disabled={isSubmitting || loadingBreeds || breedOptions.length === 0}
                 error={errors.breedId?.message}
                 options={breedOptions}
                 value={selectedBreedId ? String(selectedBreedId) : ""}
                 onChange={handleBreedChange}
               />
-
               <InputField
                 label="Idade (em anos)"
                 type="number"
@@ -143,17 +136,11 @@ function EditAnimalContent() {
                 max="30"
                 {...register("age", { valueAsNumber: true })}
               />
-
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <Button type="submit" variant="primary" fullWidth loading={isSubmitting}>
                   SALVAR ALTERAÇÕES
                 </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  fullWidth
-                  onClick={() => router.push("/manageMyAnimals")}
-                >
+                <Button type="button" variant="outline" fullWidth onClick={() => router.push("/manageMyAnimals")}>
                   Cancelar
                 </Button>
               </div>
@@ -161,7 +148,6 @@ function EditAnimalContent() {
           </div>
         </div>
       </DashboardLayout>
-
       <ErrorModal
         isOpen={modalState.isOpen}
         onClose={() => {

@@ -15,40 +15,65 @@ import { useBreeds } from "@/hooks/queries/useBreeds";
 import { useAnimalSpecies } from "@/hooks/queries/useAnimalSpecies";
 import { Animal } from "@/interfaces/animal";
 import { animalSchema, AnimalData } from "@/schemas/animal";
-import { Plus, Pencil, Trash2, X, Cat, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Cat, Search, Hash } from "lucide-react";
 
+// ─── Utilitário: label de identificação do animal ───────────────────────────
+function animalLabel(a: Animal): string {
+  if (a.tagNumber) return `#${a.tagNumber}${a.name ? ` – ${a.name}` : ""}`;
+  return a.name || `Animal ID ${a.id}`;
+}
+
+// ─── Modal de criação / edição ───────────────────────────────────────────────
 interface AnimalModalProps {
   isOpen: boolean;
   editingAnimal: Animal | null;
   userId: number;
+  animals: Animal[];
   onClose: () => void;
   onSuccess: (msg: string) => void;
   onError: (msg: string) => void;
 }
 
-function AnimalModal({ isOpen, editingAnimal, userId, onClose, onSuccess, onError }: AnimalModalProps) {
+function AnimalModal({ isOpen, editingAnimal, userId, animals, onClose, onSuccess, onError }: AnimalModalProps) {
   const isEditing = !!editingAnimal;
   const createAnimal = useCreateAnimal();
   const updateAnimal = useUpdateAnimal();
   const { data: breeds = [], isLoading: loadingBreeds } = useBreeds();
   const { data: species = [], isLoading: loadingSpecies } = useAnimalSpecies();
 
+  // Modo de seleção da mãe: "none" | "registered" | "unregistered"
+  const [motherMode, setMotherMode] = useState<"none" | "registered" | "unregistered">(() => {
+    if (editingAnimal?.motherId) return "registered";
+    if (editingAnimal?.motherCode) return "unregistered";
+    return "none";
+  });
+
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<AnimalData>({
     resolver: zodResolver(animalSchema),
     defaultValues: {
+      tagNumber: editingAnimal?.tagNumber ?? "",
       name: editingAnimal?.name ?? "",
       animalSpeciesId: editingAnimal?.animalSpeciesId ?? undefined,
       breedId: editingAnimal?.breedId ?? undefined,
       breed: editingAnimal?.breed ?? "",
       age: editingAnimal?.age ?? 1,
+      motherId: editingAnimal?.motherId ?? undefined,
+      motherCode: editingAnimal?.motherCode ?? "",
+      fatherCode: editingAnimal?.fatherCode ?? "",
     },
   });
 
   const selectedBreedId = watch("breedId");
   const selectedSpeciesId = watch("animalSpeciesId");
+  const selectedMotherId = watch("motherId");
 
   const speciesOptions = species.map((s) => ({ value: String(s.id), label: s.name }));
   const breedOptions = breeds.map((b) => ({ value: String(b.id), label: b.name }));
+
+  // Animais disponíveis para ser mãe (todos do usuário exceto o próprio animal em edição)
+  const motherOptions = animals
+    .filter((a) => a.id !== editingAnimal?.id && a.status === "Active")
+    .map((a) => ({ value: String(a.id), label: animalLabel(a) }));
 
   const handleSpeciesChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setValue("animalSpeciesId", Number(e.target.value), { shouldValidate: true });
@@ -61,13 +86,28 @@ function AnimalModal({ isOpen, editingAnimal, userId, onClose, onSuccess, onErro
     setValue("breed", found?.name ?? "");
   };
 
+  const handleMotherModeChange = (mode: "none" | "registered" | "unregistered") => {
+    setMotherMode(mode);
+    if (mode !== "registered") setValue("motherId", undefined);
+    if (mode !== "unregistered") setValue("motherCode", "");
+  };
+
+  const handleMotherSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setValue("motherId", Number(e.target.value) || undefined, { shouldValidate: true });
+  };
+
   const onSubmit = async (data: AnimalData) => {
+    // Limpa campos conflitantes com o modo selecionado
+    const payload = { ...data };
+    if (motherMode !== "registered") payload.motherId = undefined;
+    if (motherMode !== "unregistered") payload.motherCode = undefined;
+
     try {
       if (isEditing) {
-        await updateAnimal.mutateAsync({ id: editingAnimal.id, data });
+        await updateAnimal.mutateAsync({ id: editingAnimal.id, data: payload });
         onSuccess("Animal atualizado com sucesso!");
       } else {
-        await createAnimal.mutateAsync({ data, userId });
+        await createAnimal.mutateAsync({ data: payload, userId });
         onSuccess("Animal cadastrado com sucesso!");
       }
       onClose();
@@ -81,8 +121,8 @@ function AnimalModal({ isOpen, editingAnimal, userId, onClose, onSuccess, onErro
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 sticky top-0 bg-white z-10">
           <h2 className="text-xl font-bold text-[#1e3a29]">
             {isEditing ? "Editar Animal" : "Novo Animal"}
           </h2>
@@ -90,13 +130,23 @@ function AnimalModal({ isOpen, editingAnimal, userId, onClose, onSuccess, onErro
             <X size={20} />
           </button>
         </div>
+
         <form onSubmit={handleSubmit(onSubmit)} className="px-6 py-5 space-y-4">
+          {/* Número de identificação */}
+          <InputField
+            label="Número de identificação (brinco)"
+            placeholder="Ex: 013, 07, A15..."
+            error={errors.tagNumber?.message}
+            {...register("tagNumber")}
+          />
+
           <InputField
             label="Nome do Animal (opcional)"
             placeholder="Ex: Mimosa, Estrela..."
             error={errors.name?.message}
             {...register("name")}
           />
+
           <SelectField
             label="Tipo de Animal *"
             placeholder={
@@ -110,6 +160,7 @@ function AnimalModal({ isOpen, editingAnimal, userId, onClose, onSuccess, onErro
             value={selectedSpeciesId ? String(selectedSpeciesId) : ""}
             onChange={handleSpeciesChange}
           />
+
           <SelectField
             label="Raça *"
             placeholder={loadingBreeds ? "Carregando raças..." : breedOptions.length === 0 ? "Nenhuma raça cadastrada" : "Selecione uma raça"}
@@ -119,6 +170,7 @@ function AnimalModal({ isOpen, editingAnimal, userId, onClose, onSuccess, onErro
             value={selectedBreedId ? String(selectedBreedId) : ""}
             onChange={handleBreedChange}
           />
+
           <InputField
             label="Idade (anos) *"
             type="number"
@@ -127,6 +179,58 @@ function AnimalModal({ isOpen, editingAnimal, userId, onClose, onSuccess, onErro
             error={errors.age?.message}
             {...register("age", { valueAsNumber: true })}
           />
+
+          {/* ── Parentesco: Mãe ── */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-slate-700">Mãe</label>
+            <div className="flex gap-2">
+              {(["none", "registered", "unregistered"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => handleMotherModeChange(mode)}
+                  className={`flex-1 py-1.5 px-2 text-xs rounded-lg border transition-colors ${
+                    motherMode === mode
+                      ? "bg-[#1e3a29] text-white border-[#1e3a29]"
+                      : "bg-white text-slate-600 border-slate-200 hover:border-slate-400"
+                  }`}
+                >
+                  {mode === "none" && "Não informar"}
+                  {mode === "registered" && "Do rebanho"}
+                  {mode === "unregistered" && "Não cadastrada"}
+                </button>
+              ))}
+            </div>
+
+            {motherMode === "registered" && (
+              <SelectField
+                label=""
+                placeholder={motherOptions.length === 0 ? "Nenhum animal cadastrado" : "Selecione a mãe"}
+                disabled={motherOptions.length === 0}
+                options={motherOptions}
+                value={selectedMotherId ? String(selectedMotherId) : ""}
+                onChange={handleMotherSelect}
+              />
+            )}
+
+            {motherMode === "unregistered" && (
+              <InputField
+                label=""
+                placeholder="Número da mãe (ex: 07)"
+                error={errors.motherCode?.message}
+                {...register("motherCode")}
+              />
+            )}
+          </div>
+
+          {/* ── Parentesco: Pai / Reprodutor ── */}
+          <InputField
+            label="Pai / Reprodutor (opcional)"
+            placeholder="Ex: 03, Touro Nelore, Sêmen ref. 123..."
+            error={errors.fatherCode?.message}
+            {...register("fatherCode")}
+          />
+
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="outline" fullWidth onClick={onClose} disabled={isPending}>
               Cancelar
@@ -141,9 +245,11 @@ function AnimalModal({ isOpen, editingAnimal, userId, onClose, onSuccess, onErro
   );
 }
 
+// ─── Página principal ─────────────────────────────────────────────────────────
 export default function ManageAnimals() {
   const { userId, isLoading: authLoading } = useAuthGuard("user");
-  const { data: animals = [], isLoading } = useUserAnimals(userId);
+  const { data: animalsRaw = [], isLoading } = useUserAnimals(userId);
+  const animals = animalsRaw as Animal[];
   const deleteAnimal = useDeleteAnimal();
 
   const [modalOpen, setModalOpen]         = useState(false);
@@ -156,6 +262,7 @@ export default function ManageAnimals() {
 
   const filtered = useMemo(() =>
     animals.filter((a) =>
+      (a.tagNumber ?? "").toLowerCase().includes(search.toLowerCase()) ||
       (a.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
       (a.animalSpecies?.name ?? a.animalType ?? "").toLowerCase().includes(search.toLowerCase()) ||
       (a.breed ?? "").toLowerCase().includes(search.toLowerCase())
@@ -202,7 +309,7 @@ export default function ManageAnimals() {
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Buscar por nome, tipo ou raça..."
+                placeholder="Buscar por número, nome, tipo ou raça..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent"
@@ -230,19 +337,31 @@ export default function ManageAnimals() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-[#1e3a29] text-white">
-                      <th className="px-6 py-4 text-left font-semibold">#</th>
-                      <th className="px-6 py-4 text-left font-semibold">Nome</th>
-                      <th className="px-6 py-4 text-left font-semibold hidden md:table-cell">Tipo</th>
-                      <th className="px-6 py-4 text-left font-semibold hidden md:table-cell">Raça</th>
-                      <th className="px-6 py-4 text-left font-semibold hidden md:table-cell">Idade</th>
-                      <th className="px-6 py-4 text-right font-semibold">Ações</th>
+                      <th className="px-4 py-4 text-left font-semibold">Nº</th>
+                      <th className="px-4 py-4 text-left font-semibold">Nome</th>
+                      <th className="px-4 py-4 text-left font-semibold hidden md:table-cell">Tipo</th>
+                      <th className="px-4 py-4 text-left font-semibold hidden md:table-cell">Raça</th>
+                      <th className="px-4 py-4 text-left font-semibold hidden lg:table-cell">Mãe</th>
+                      <th className="px-4 py-4 text-left font-semibold hidden md:table-cell">Idade</th>
+                      <th className="px-4 py-4 text-right font-semibold">Ações</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {filtered.map((animal, index) => (
                       <tr key={animal.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-6 py-4 text-slate-400 font-mono text-xs">{index + 1}</td>
-                        <td className="px-6 py-4">
+                        {/* Número */}
+                        <td className="px-4 py-4">
+                          {animal.tagNumber ? (
+                            <span className="inline-flex items-center gap-1 font-mono font-semibold text-[#1e3a29] bg-green-50 border border-green-200 rounded px-2 py-0.5 text-xs">
+                              <Hash size={10} />
+                              {animal.tagNumber}
+                            </span>
+                          ) : (
+                            <span className="text-slate-300 text-xs font-mono">{index + 1}</span>
+                          )}
+                        </td>
+                        {/* Nome */}
+                        <td className="px-4 py-4">
                           <span className="font-semibold text-[#1e3a29]">
                             {animal.name || <span className="text-slate-400 italic font-normal">Sem nome</span>}
                           </span>
@@ -250,16 +369,36 @@ export default function ManageAnimals() {
                             {animal.animalSpecies?.name ?? animal.animalType ?? "—"} {animal.breed ? `- ${animal.breed}` : ""} - {animal.age}a
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-slate-600 hidden md:table-cell">
+                        {/* Tipo */}
+                        <td className="px-4 py-4 text-slate-600 hidden md:table-cell">
                           {animal.animalSpecies?.name ?? animal.animalType ?? <span className="text-slate-300 italic">—</span>}
                         </td>
-                        <td className="px-6 py-4 text-slate-600 hidden md:table-cell">
+                        {/* Raça */}
+                        <td className="px-4 py-4 text-slate-600 hidden md:table-cell">
                           {animal.breed ?? <span className="text-slate-300 italic">sem raça</span>}
                         </td>
-                        <td className="px-6 py-4 text-slate-600 hidden md:table-cell">
+                        {/* Mãe */}
+                        <td className="px-4 py-4 hidden lg:table-cell">
+                          {animal.mother ? (
+                            <span className="text-slate-600 text-xs">
+                              {animal.mother.tagNumber ? (
+                                <span className="font-mono font-semibold text-[#1e3a29]">#{animal.mother.tagNumber}</span>
+                              ) : (
+                                animal.mother.name || `ID ${animal.mother.id}`
+                              )}
+                            </span>
+                          ) : animal.motherCode ? (
+                            <span className="text-slate-400 text-xs italic">#{animal.motherCode} (pendente)</span>
+                          ) : (
+                            <span className="text-slate-200 text-xs">—</span>
+                          )}
+                        </td>
+                        {/* Idade */}
+                        <td className="px-4 py-4 text-slate-600 hidden md:table-cell">
                           {animal.age} ano{animal.age !== 1 ? "s" : ""}
                         </td>
-                        <td className="px-6 py-4">
+                        {/* Ações */}
+                        <td className="px-4 py-4">
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => openEdit(animal)}
@@ -295,6 +434,7 @@ export default function ManageAnimals() {
         isOpen={modalOpen}
         editingAnimal={editingAnimal}
         userId={userId ?? 0}
+        animals={animals}
         onClose={() => setModalOpen(false)}
         onSuccess={(msg) => showFeedback("Sucesso!", msg, "success")}
         onError={(msg) => showFeedback("Erro", msg, "error")}
@@ -303,7 +443,7 @@ export default function ManageAnimals() {
       <ConfirmationModal
         isOpen={!!confirmDelete}
         title="Excluir Animal"
-        message={`Tem certeza que deseja excluir "${confirmDelete?.name || "este animal"}"? Esta ação não pode ser desfeita.`}
+        message={`Tem certeza que deseja excluir o animal ${confirmDelete?.tagNumber ? `#${confirmDelete.tagNumber}` : `"${confirmDelete?.name || "este animal"}"`}? Esta ação não pode ser desfeita.`}
         confirmText="Sim, Excluir"
         cancelText="Cancelar"
         variant="primary"

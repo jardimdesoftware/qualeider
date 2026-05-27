@@ -5,6 +5,7 @@ export class AnimalEntity {
     if (props) Object.assign(this, props);
   }
   id!: ID;
+  tagNumber?: string | null;
   name?: string | null;
   animalType?: AnimalType | null;
   animalSpeciesId?: ID | null;
@@ -13,6 +14,15 @@ export class AnimalEntity {
   age!: number;
   userId!: ID;
   status!: Status;
+
+  // Parentesco - Mae
+  motherId?: ID | null;
+  motherCode?: string | null;
+
+  // Parentesco - Pai/Reprodutor
+  fatherId?: ID | null;
+  fatherCode?: string | null;
+
   createdAt!: Date;
   updatedAt!: Date;
 }

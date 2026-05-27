@@ -27,6 +27,8 @@ describe('AnimalsService', () => {
             create: jest.fn(),
             findAll: jest.fn(),
             findById: jest.fn(),
+            findByTagNumber: jest.fn(),
+            findPendingByParentCode: jest.fn().mockResolvedValue([]),
             update: jest.fn(),
             softDelete: jest.fn(),
             findAllByUserId: jest.fn(),

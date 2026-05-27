@@ -138,6 +138,7 @@ model AnimalSpecies {
 
 model Animal {
   id                    Int              @id @default(autoincrement())
+  tagNumber             String?          // numero de identificacao/brinco
   name                  String?
   animalType            AnimalType?
   breed                 String?
@@ -149,9 +150,27 @@ model Animal {
   status                Status           @default(Active)
   user                  User             @relation(fields: [userId], references: [id])
   breedRelation         Breed?           @relation(fields: [breedId], references: [id])
+
+  // Parentesco - Mae
+  motherId              Int?
+  mother                Animal?          @relation("AnimalMother", fields: [motherId], references: [id])
+  childrenAsMother      Animal[]         @relation("AnimalMother")
+  motherCode            String?          // numero da mae quando nao cadastrada no sistema
+
+  // Parentesco - Pai/Reprodutor
+  fatherId              Int?
+  father                Animal?          @relation("AnimalFather", fields: [fatherId], references: [id])
+  childrenAsFather      Animal[]         @relation("AnimalFather")
+  fatherCode            String?          // numero/codigo do pai quando nao cadastrado
+
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
   dailyCollectionItems  DailyCollectionItem[]
+
+  @@unique([userId, tagNumber])
+  @@index([userId, tagNumber])
+  @@index([motherId])
+  @@index([fatherId])
 }
 
 model DailyCollection {

@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { IAnimalRepository, AnimalFindOneOptions } from '@/domain/repositories/animal.repository';
 import { ID } from '@/domain/enums/enums';
@@ -10,6 +9,13 @@ import { AnimalMapper } from '@/infrastructure/mappers/animal.mapper';
 import { Status as PrismaStatus } from '@prisma/client';
 import { PaginatedResult, normalizePaginationParams, createPaginatedResult } from '@/domain/common/pagination.interface';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const ANIMAL_INCLUDE: any = {
+  animalSpecies: true,
+  mother: true,
+  father: true,
+};
+
 @Injectable()
 export class PrismaAnimalRepository implements IAnimalRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -18,9 +24,10 @@ export class PrismaAnimalRepository implements IAnimalRepository {
     data: Omit<AnimalEntity, 'id' | 'createdAt' | 'updatedAt' | 'status'>
   ): Promise<AnimalEntity> {
     try {
-      const created = await this.prisma.animal.create({
+      const created = await (this.prisma.animal.create as any)({
         data: {
-          name: data.name,
+          tagNumber: data.tagNumber ?? null,
+          name: data.name ?? null,
           animalType: data.animalType ?? null,
           animalSpeciesId: data.animalSpeciesId ?? null,
           breed: data.breed ?? null,
@@ -28,51 +35,58 @@ export class PrismaAnimalRepository implements IAnimalRepository {
           age: data.age,
           userId: data.userId,
           status: PrismaStatus.Active,
+          motherId: data.motherId ?? null,
+          motherCode: data.motherCode ?? null,
+          fatherId: data.fatherId ?? null,
+          fatherCode: data.fatherCode ?? null,
         },
-        include: { animalSpecies: true },
+        include: ANIMAL_INCLUDE,
       });
       return AnimalMapper.toDomain(created);
     } catch (error) {
       handlePrismaError(error, {
-        [PrismaErrorCode.FOREIGN_KEY_CONSTRAINT_FAILED]: 'Produtor (User) não encontrado.',
+        [PrismaErrorCode.FOREIGN_KEY_CONSTRAINT_FAILED]: 'Produtor (User) nao encontrado.',
+        [PrismaErrorCode.UNIQUE_CONSTRAINT_VIOLATION]: 'Ja existe um animal com esse numero de identificacao para este produtor.',
       });
     }
   }
 
   async findAll(criteria: AnimalCriteria = {}): Promise<PaginatedResult<AnimalEntity>> {
-    const where: Prisma.AnimalWhereInput = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = {};
 
-    where.status = criteria.status !== undefined ? (criteria.status as PrismaStatus) : PrismaStatus.Active;
+    where.status = criteria.status !== undefined ? criteria.status : PrismaStatus.Active;
 
     if (criteria.userId) {
       where.userId = criteria.userId;
     }
 
     if (criteria.associationId) {
-      where.user = {
-        associationId: criteria.associationId,
-      };
+      where.user = { associationId: criteria.associationId };
     }
 
     if (criteria.animalType) {
       where.animalType = criteria.animalType;
     }
 
-    const include: Prisma.AnimalInclude = { animalSpecies: true };
+    if (criteria.tagNumber) {
+      where.tagNumber = { contains: criteria.tagNumber, mode: 'insensitive' };
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const include: any = { ...ANIMAL_INCLUDE };
     if (criteria.includeUser) {
       include.user = true;
     }
 
-    // Normalizar parâmetros de paginação
     const { page, limit, skip } = normalizePaginationParams(criteria);
 
-    // Executar count e query em paralelo
     const [total, animals] = await Promise.all([
       this.prisma.animal.count({ where }),
-      this.prisma.animal.findMany({
+      (this.prisma.animal.findMany as any)({
         where,
-        include: Object.keys(include).length > 0 ? include : undefined,
-        orderBy: { createdAt: 'desc' },
+        include,
+        orderBy: { tagNumber: 'asc' },
         skip,
         take: limit,
       }),
@@ -84,32 +98,65 @@ export class PrismaAnimalRepository implements IAnimalRepository {
   }
 
   async findById(id: ID, options?: AnimalFindOneOptions): Promise<AnimalEntity | null> {
-    const include: Prisma.AnimalInclude = { animalSpecies: true };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const include: any = { ...ANIMAL_INCLUDE };
 
     if (options?.includeUser) {
       include.user = true;
     }
 
-    const rawAnimal = await this.prisma.animal.findUnique({
+    const rawAnimal = await (this.prisma.animal.findUnique as any)({
       where: { id },
       include,
     });
-    
+
     if (!rawAnimal) return null;
 
     return AnimalMapper.toDomain(rawAnimal);
   }
 
   async findByIds(ids: ID[], options?: AnimalFindOneOptions): Promise<AnimalEntity[]> {
-    const include: Prisma.AnimalInclude = {};
-    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const include: any = { ...ANIMAL_INCLUDE };
+
     if (options?.includeUser) {
       include.user = true;
     }
 
-    const animals = await this.prisma.animal.findMany({
+    const animals = await (this.prisma.animal.findMany as any)({
       where: { id: { in: ids } },
-      include: Object.keys(include).length > 0 ? include : undefined,
+      include,
+    });
+
+    return animals.map(AnimalMapper.toDomain);
+  }
+
+  async findByTagNumber(userId: ID, tagNumber: string): Promise<AnimalEntity | null> {
+    const raw = await (this.prisma.animal.findUnique as any)({
+      where: {
+        userId_tagNumber: { userId, tagNumber },
+      },
+      include: ANIMAL_INCLUDE,
+    });
+
+    if (!raw) return null;
+    return AnimalMapper.toDomain(raw);
+  }
+
+  /**
+   * Busca animais do mesmo usuario que tem motherCode OU fatherCode
+   * igual ao tagNumber informado (para reconciliacao automatica de parentesco).
+   */
+  async findPendingByParentCode(userId: ID, tagNumber: string): Promise<AnimalEntity[]> {
+    const animals = await (this.prisma.animal.findMany as any)({
+      where: {
+        userId,
+        OR: [
+          { motherCode: tagNumber, motherId: null },
+          { fatherCode: tagNumber, fatherId: null },
+        ],
+      },
+      include: ANIMAL_INCLUDE,
     });
 
     return animals.map(AnimalMapper.toDomain);
@@ -117,23 +164,29 @@ export class PrismaAnimalRepository implements IAnimalRepository {
 
   async update(id: ID, data: Partial<AnimalEntity>): Promise<AnimalEntity> {
     try {
-      const updated = await this.prisma.animal.update({
+      const updated = await (this.prisma.animal.update as any)({
         where: { id },
         data: {
+          tagNumber: data.tagNumber ?? undefined,
           name: data.name ?? undefined,
           animalType: data.animalType ?? undefined,
           animalSpeciesId: data.animalSpeciesId ?? undefined,
           breed: data.breed ?? undefined,
           breedId: data.breedId ?? undefined,
           age: data.age ?? undefined,
-          status: (data.status as unknown as PrismaStatus) ?? undefined,
+          status: data.status ?? undefined,
+          motherId: data.motherId ?? undefined,
+          motherCode: data.motherCode ?? undefined,
+          fatherId: data.fatherId ?? undefined,
+          fatherCode: data.fatherCode ?? undefined,
         },
-        include: { animalSpecies: true },
+        include: ANIMAL_INCLUDE,
       });
       return AnimalMapper.toDomain(updated);
     } catch (error) {
       handlePrismaError(error, {
-        [PrismaErrorCode.RECORD_NOT_FOUND]: `Animal com ID ${id} não encontrado.`,
+        [PrismaErrorCode.RECORD_NOT_FOUND]: `Animal com ID ${id} nao encontrado.`,
+        [PrismaErrorCode.UNIQUE_CONSTRAINT_VIOLATION]: 'Ja existe um animal com esse numero de identificacao para este produtor.',
       });
     }
   }
@@ -147,7 +200,7 @@ export class PrismaAnimalRepository implements IAnimalRepository {
       return AnimalMapper.toDomain(deactivated);
     } catch (error) {
       handlePrismaError(error, {
-        [PrismaErrorCode.RECORD_NOT_FOUND]: `Animal com ID ${id} não encontrado para remoção.`,
+        [PrismaErrorCode.RECORD_NOT_FOUND]: `Animal com ID ${id} nao encontrado para remocao.`,
       });
     }
   }

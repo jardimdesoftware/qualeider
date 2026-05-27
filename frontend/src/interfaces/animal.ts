@@ -15,20 +15,30 @@ export enum Status {
 
 export interface Animal {
   id: number;
-  name?: string;
-  animalType?: AnimalType;       // legado — pode ser null em animais novos
+  tagNumber?: string | null;       // número de identificação/brinco
+  name?: string | null;
+  animalType?: AnimalType | null;  // legado
   animalSpeciesId?: number | null;
   animalSpecies?: AnimalSpecies | null;
-  breed?: string;
+  breed?: string | null;
   breedId?: number | null;
   age: number;
   userId: number;
   status: Status;
+
+  // Parentesco
+  motherId?: number | null;
+  mother?: Animal | null;
+  motherCode?: string | null;
+  fatherId?: number | null;
+  father?: Animal | null;
+  fatherCode?: string | null;
+
   createdAt?: string;
   updatedAt?: string;
 }
 
 export type CreateAnimalDto = Omit<
   Animal,
-  "id" | "status" | "createdAt" | "updatedAt"
+  "id" | "status" | "createdAt" | "updatedAt" | "mother" | "father" | "animalSpecies"
 >;
