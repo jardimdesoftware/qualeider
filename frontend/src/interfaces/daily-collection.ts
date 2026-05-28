@@ -4,6 +4,25 @@ export enum MilkingPlace {
   Ambos = "Ambos",
 }
 
+export enum CmtResult {
+  Normal = "Normal",
+  Suspeito = "Suspeito",
+  Positivo = "Positivo",
+}
+
+export interface DailyCollectionItem {
+  id: number;
+  animalId: number;
+  dailyCollectionId: number;
+  quantity: number;
+  cmtResult?: CmtResult | null;
+  animal?: {
+    id: number;
+    name?: string | null;
+    tagNumber?: string | null;
+  };
+}
+
 export interface DailyCollection {
   id: number;
   quantity: number;
@@ -17,16 +36,7 @@ export interface DailyCollection {
   technicalAssistance: boolean;
   createdAt?: string;
   updatedAt?: string;
-  items?: {
-    id: number;
-    animalId: number;
-    dailyCollectionId: number;
-    quantity: number;
-    animal?: {
-      id: number;
-      name: string;
-    };
-  }[];
+  items?: DailyCollectionItem[];
 }
 
 export type DailyCollectionCreate = Omit<

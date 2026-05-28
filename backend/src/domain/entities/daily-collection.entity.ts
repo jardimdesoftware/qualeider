@@ -1,4 +1,4 @@
-import { ID, MilkingPlace, Status } from '@/domain/enums/enums';
+import { ID, MilkingPlace, Status, CmtResult } from '@/domain/enums/enums';
 
 export class DailyCollectionEntity {
   constructor(props?: Partial<DailyCollectionEntity>) {
@@ -25,8 +25,10 @@ export interface DailyCollectionItem {
   dailyCollectionId: ID;
   animalId: ID;
   quantity: number;
+  cmtResult?: CmtResult | null;
   animal?: {
     id: ID;
-    name: string;
+    name?: string | null;
+    tagNumber?: string | null;
   };
 }

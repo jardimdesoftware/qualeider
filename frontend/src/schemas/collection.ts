@@ -14,10 +14,15 @@ export const dailyCollectionSchema = z.object({
   milkingPlace: z.enum(["Aberto", "Curral", "Ambos"]),
   technicalAssistance: z.boolean(),
   userId: z.number().optional(),
-  items: z.array(z.object({
-    animalId: z.number(),
-    quantity: z.number().min(0),
-  })).optional(),
+  items: z
+    .array(
+      z.object({
+        animalId: z.number(),
+        quantity: z.number().min(0),
+        cmtResult: z.enum(["Normal", "Suspeito", "Positivo"]).optional().nullable(),
+      })
+    )
+    .optional(),
 });
 
 // ===========================
@@ -25,3 +30,9 @@ export const dailyCollectionSchema = z.object({
 // ===========================
 
 export type DailyCollectionData = z.infer<typeof dailyCollectionSchema>;
+
+export interface CollectionItem {
+  animalId: number;
+  quantity: number;
+  cmtResult?: string | null;
+}

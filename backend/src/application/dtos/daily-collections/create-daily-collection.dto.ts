@@ -13,7 +13,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { MilkingPlace } from '@/domain/enums/enums';
+import { MilkingPlace, CmtResult } from '@/domain/enums/enums';
 
 export class CreateDailyCollectionDto {
   @ApiProperty({
@@ -24,31 +24,31 @@ export class CreateDailyCollectionDto {
   @Min(0)
   quantity!: number;
 
-  @ApiProperty({ description: 'Id do usuário', example: 2 })
-  @IsInt({ message: 'userId deve ser um número inteiro' })
+  @ApiProperty({ description: 'Id do usuario', example: 2 })
+  @IsInt({ message: 'userId deve ser um numero inteiro' })
   @IsPositive({ message: 'userId deve ser positivo' })
   userId!: number;
 
-  @ApiProperty({ description: 'Número de animais ordenados', example: 5 })
-  @IsInt({ message: 'numAnimals deve ser um número inteiro' })
+  @ApiProperty({ description: 'Numero de animais ordenados', example: 5 })
+  @IsInt({ message: 'numAnimals deve ser um numero inteiro' })
   @Min(1, { message: 'Deve ordenar pelo menos 1 animal' })
-  @Max(9999, { message: 'Número de animais inválido' })
+  @Max(9999, { message: 'Numero de animais invalido' })
   numAnimals!: number;
 
-  @ApiProperty({ description: 'Número de ordenhas realizadas', example: 2 })
-  @IsInt({ message: 'numOrdens deve ser um número inteiro' })
+  @ApiProperty({ description: 'Numero de ordenhas realizadas', example: 2 })
+  @IsInt({ message: 'numOrdens deve ser um numero inteiro' })
   @Min(1, { message: 'Deve ter pelo menos 1 ordenha' })
-  @Max(10, { message: 'Número de ordenhas não pode exceder 10' })
+  @Max(10, { message: 'Numero de ordenhas nao pode exceder 10' })
   numOrdens!: number;
 
-  @ApiProperty({ description: 'Utilizou ração', example: true })
+  @ApiProperty({ description: 'Utilizou racao', example: true })
   @IsBoolean()
   rationProvided!: boolean;
 
-  @ApiProperty({ description: 'Número de lactações por animal', example: 2 })
-  @IsInt({ message: 'numLactation deve ser um número inteiro' })
-  @Min(0, { message: 'numLactation não pode ser negativo' })
-  @Max(15, { message: 'Número de lactações inválido' })
+  @ApiProperty({ description: 'Numero de lactacoes por animal', example: 2 })
+  @IsInt({ message: 'numLactation deve ser um numero inteiro' })
+  @Min(0, { message: 'numLactation nao pode ser negativo' })
+  @Max(15, { message: 'Numero de lactacoes invalido' })
   numLactation!: number;
 
   @ApiProperty({
@@ -59,10 +59,10 @@ export class CreateDailyCollectionDto {
   @IsEnum(MilkingPlace)
   milkingPlace!: MilkingPlace;
 
-  @ApiProperty({ description: 'Utilizou assistência técnica', example: true })
+  @ApiProperty({ description: 'Utilizou assistencia tecnica', example: true })
   @IsBoolean()
   technicalAssistance!: boolean;
-  
+
   @ApiProperty({ description: 'Data da coleta', example: '2025-11-22' })
   @Type(() => Date)
   @IsDate()
@@ -81,13 +81,18 @@ export class CreateDailyCollectionDto {
 
 export class CreateDailyCollectionItemDto {
   @ApiProperty({ description: 'ID do animal', example: 10 })
-  @IsInt({ message: 'animalId deve ser um número inteiro' })
+  @IsInt({ message: 'animalId deve ser um numero inteiro' })
   @IsPositive({ message: 'animalId deve ser positivo' })
   animalId!: number;
 
   @ApiProperty({ description: 'Quantidade de leite produzida', example: 12.5 })
-  @IsNumber({}, { message: 'quantity deve ser um número' })
+  @IsNumber({}, { message: 'quantity deve ser um numero' })
   @Min(0.01, { message: 'Quantidade deve ser maior que zero' })
-  @Max(1000, { message: 'Quantidade não pode exceder 1000 litros por animal' })
+  @Max(1000, { message: 'Quantidade nao pode exceder 1000 litros por animal' })
   quantity!: number;
+
+  @ApiProperty({ description: 'Resultado do teste da caneca (CMT)', enum: CmtResult, required: false })
+  @IsOptional()
+  @IsEnum(CmtResult)
+  cmtResult?: CmtResult | null;
 }
