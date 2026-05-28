@@ -26,9 +26,11 @@ export class DailyCollectionMapper {
         dailyCollectionId: item.dailyCollectionId,
         animalId: item.animalId,
         quantity: item.quantity,
+        cmtResult: item.cmtResult ?? null,
         animal: item.animal ? {
             id: item.animal.id,
-            name: item.animal.name,
+            name: item.animal.name ?? null,
+            tagNumber: item.animal.tagNumber ?? null,
         } : undefined,
       })) : undefined,
     });

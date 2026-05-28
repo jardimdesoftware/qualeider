@@ -201,12 +201,19 @@ model DailyCollectionItem {
   animalId          Int
   animal            Animal          @relation(fields: [animalId], references: [id])
   quantity          Float
+  cmtResult         CmtResult?      // resultado do teste da caneca (opcional)
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
   @@index([dailyCollectionId])
   @@index([animalId])
   @@index([dailyCollectionId, animalId])
+}
+
+enum CmtResult {
+  Normal
+  Suspeito
+  Positivo
 }
 
 enum InviteStatus {

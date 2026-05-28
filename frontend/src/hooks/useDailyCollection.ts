@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CollectionItem } from "@/schemas/collection";
 
 export interface ValidationError {
   field: string;
@@ -10,6 +11,13 @@ export interface DailyCollectionValidationResult {
   errors: ValidationError[];
 }
 
+export interface ConfirmedItemMap {
+  [animalId: number]: {
+    quantity: number;
+    cmtResult?: string | null;
+  };
+}
+
 /**
  * Custom hook for managing daily collection form logic and validation
  */
@@ -18,23 +26,19 @@ export function useDailyCollection() {
 
   /**
    * Validate collection items before submission
-   * @param items - Array of collection items with animalId and quantity
-   * @returns Validation result with any errors found
    */
   const validateCollectionItems = (
-    items: Array<{ animalId: number; quantity: number }>
+    items: CollectionItem[]
   ): DailyCollectionValidationResult => {
     const errors: ValidationError[] = [];
 
-    // Check if there are any items
     if (items.length === 0) {
       errors.push({
         field: "items",
-        message: "Adicione pelo menos um animal com produção para finalizar a coleta.",
+        message: "Adicione pelo menos uma vaca com produção para finalizar a coleta.",
       });
     }
 
-    // Validate each item
     items.forEach((item, index) => {
       if (item.quantity <= 0) {
         errors.push({
@@ -52,32 +56,39 @@ export function useDailyCollection() {
     });
 
     setValidationErrors(errors);
-
-    return {
-      isValid: errors.length === 0,
-      errors,
-    };
+    return { isValid: errors.length === 0, errors };
   };
 
   /**
-   * Transform production map to collection items, filtering out empty/zero values
-   * @param productionMap - Map of animalId to quantity string
-   * @returns Array of valid collection items
+   * Transform confirmed item map to array for API submission
    */
-  const transformProductionMapToItems = (
-    productionMap: Record<number, string>
-  ): Array<{ animalId: number; quantity: number }> => {
-    return Object.entries(productionMap)
-      .map(([animalId, val]) => ({
+  const transformConfirmedItemsToPayload = (
+    confirmedItems: ConfirmedItemMap
+  ): CollectionItem[] => {
+    return Object.entries(confirmedItems)
+      .map(([animalId, data]) => ({
         animalId: Number(animalId),
-        quantity: parseFloat(val) || 0,
+        quantity: data.quantity,
+        cmtResult: data.cmtResult ?? null,
       }))
       .filter((item) => item.quantity > 0);
   };
 
   /**
-   * Clear all validation errors
+   * @deprecated use transformConfirmedItemsToPayload
    */
+  const transformProductionMapToItems = (
+    productionMap: Record<number, string>
+  ): CollectionItem[] => {
+    return Object.entries(productionMap)
+      .map(([animalId, val]) => ({
+        animalId: Number(animalId),
+        quantity: parseFloat(val) || 0,
+        cmtResult: null,
+      }))
+      .filter((item) => item.quantity > 0);
+  };
+
   const clearValidationErrors = () => {
     setValidationErrors([]);
   };
@@ -85,6 +96,7 @@ export function useDailyCollection() {
   return {
     validationErrors,
     validateCollectionItems,
+    transformConfirmedItemsToPayload,
     transformProductionMapToItems,
     clearValidationErrors,
   };

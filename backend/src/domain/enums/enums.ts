@@ -59,3 +59,9 @@ export enum CoverageArea {
   Regional = 'Regional',
   Estadual = 'Estadual',
 }
+
+export enum CmtResult {
+  Normal = 'Normal',
+  Suspeito = 'Suspeito',
+  Positivo = 'Positivo',
+}

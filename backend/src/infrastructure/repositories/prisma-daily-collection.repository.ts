@@ -30,10 +30,11 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
             create: data.items.map((item) => ({
               animalId: item.animalId,
               quantity: item.quantity,
+              cmtResult: (item as any).cmtResult ?? null,
             })),
           } : undefined,
         },
-        include: { items: true },
+        include: { items: { include: { animal: { select: { id: true, name: true, tagNumber: true } as any } } } },
       });
       return DailyCollectionMapper.toDomain(created);
     } catch (error) {
@@ -157,6 +158,7 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
             dailyCollectionId: collectionId,
             animalId: item.animalId,
             quantity: item.quantity,
+            cmtResult: (item as any).cmtResult ?? null,
           })),
         });
       });
