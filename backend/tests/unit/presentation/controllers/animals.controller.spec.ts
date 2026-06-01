@@ -17,6 +17,7 @@ describe('AnimalsController', () => {
     findOne: jest.fn(),
     update: jest.fn(),
     remove: jest.fn(),
+    inativar: jest.fn(),
     findAllByUserId: jest.fn(),
   };
 

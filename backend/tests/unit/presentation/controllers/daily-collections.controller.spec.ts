@@ -18,6 +18,7 @@ describe('DailyCollectionsController', () => {
     update: jest.fn(),
     remove: jest.fn(),
     findAllByUserId: jest.fn(),
+    findHistoryByAnimal: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -193,6 +194,19 @@ describe('DailyCollectionsController', () => {
 
       expect(service.findAll).toHaveBeenCalledWith({ userId: 1 });
       expect(result).toEqual([]);
+    });
+  });
+  describe('findByAnimalId', () => {
+    it('deve retornar historico de coletas do animal', async () => {
+      const history = [
+        { collectionId: 1, collectionDate: new Date('2025-01-01'), quantity: 10, cmtResult: null },
+      ];
+      mockService.findHistoryByAnimal.mockResolvedValue(history);
+
+      const result = await controller.findByAnimalId(5);
+
+      expect(service.findHistoryByAnimal).toHaveBeenCalledWith(5);
+      expect(result).toEqual(history);
     });
   });
 });
