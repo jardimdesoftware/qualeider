@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { MilkingPlace, Prisma, Status } from '@prisma/client';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
-import { IDailyCollectionRepository, DailyCollectionFindOneOptions, CreateDailyCollectionData } from '@/domain/repositories/daily-collection.repository';
+import { IDailyCollectionRepository, DailyCollectionFindOneOptions, CreateDailyCollectionData, AnimalCollectionHistoryItem } from '@/domain/repositories/daily-collection.repository';
 import { ID } from '@/domain/enums/enums';
 import { DailyCollectionEntity, DailyCollectionItem } from '@/domain/entities/daily-collection.entity';
 import { DailyCollectionCriteria } from '@/domain/criteria/daily-collection.criteria';
@@ -198,6 +198,27 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
         [PrismaErrorCode.RECORD_NOT_FOUND]: `Coleta diária com ID ${id} não encontrada para remoção.`,
       });
     }
+  }
+
+  async findByAnimalId(animalId: ID): Promise<AnimalCollectionHistoryItem[]> {
+    const items = await this.prisma.dailyCollectionItem.findMany({
+      where: { animalId },
+      include: {
+        dailyCollection: {
+          select: { id: true, collectionDate: true },
+        },
+      },
+      orderBy: {
+        dailyCollection: { collectionDate: 'desc' },
+      },
+    });
+
+    return items.map((item) => ({
+      collectionId: item.dailyCollectionId,
+      collectionDate: item.dailyCollection.collectionDate,
+      quantity: item.quantity,
+      cmtResult: (item as any).cmtResult ?? null,
+    }));
   }
 
   async countItemsByAnimalId(animalId: ID): Promise<number> {

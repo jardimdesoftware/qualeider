@@ -14,10 +14,18 @@ export type CreateDailyCollectionData = Omit<DailyCollectionEntity, 'id' | 'crea
   status?: string;
 };
 
+export interface AnimalCollectionHistoryItem {
+  collectionId: ID;
+  collectionDate: Date;
+  quantity: number;
+  cmtResult?: string | null;
+}
+
 export interface IDailyCollectionRepository {
   create(data: CreateDailyCollectionData): Promise<DailyCollectionEntity>;
   findAll(criteria?: DailyCollectionCriteria): Promise<PaginatedResult<DailyCollectionEntity>>;
   findById(id: ID, options?: DailyCollectionFindOneOptions): Promise<DailyCollectionEntity | null>;
+  findByAnimalId(animalId: ID): Promise<AnimalCollectionHistoryItem[]>;
   update(
     id: ID,
     data: Partial<DailyCollectionEntity>,

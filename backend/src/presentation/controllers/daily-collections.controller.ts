@@ -123,4 +123,13 @@ export class DailyCollectionsController {
   async findAllByUserId(@Param('userId', ParseIntPipe) userId: number) {
     return this.dailyCollectionsService.findAll({ userId });
   }
+  @ApiOperation({ summary: 'Buscar historico de coletas de um animal especifico' })
+  @ApiParam({ name: 'animalId', description: 'ID do animal', type: Number })
+  @ApiResponse({ status: 200, description: 'Historico de coletas do animal' })
+  @ApiResponse({ status: 404, description: 'Animal nao encontrado' })
+  @Get('animal/:animalId')
+  @ResponseMessage('Historico de coletas do animal listado com sucesso')
+  async findByAnimalId(@Param('animalId', ParseIntPipe) animalId: number) {
+    return this.dailyCollectionsService.findHistoryByAnimal(animalId);
+  }
 }
