@@ -121,4 +121,7 @@ export class DailyCollectionsService {
     await this.findOne(id);
     return this.dailyCollectionRepository.softDelete(id);
   }
+  async findHistoryByAnimal(animalId: number) {
+    return this.dailyCollectionRepository.findByAnimalId(animalId);
+  }
 }

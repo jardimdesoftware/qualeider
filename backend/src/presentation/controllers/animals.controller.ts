@@ -5,6 +5,7 @@ import {
   Body,
   Param,
   Put,
+  Patch,
   Delete,
   ParseIntPipe,
   ValidationPipe,
@@ -33,8 +34,8 @@ export class AnimalsController {
   @ApiOperation({ summary: 'Cadastrar um Animal' })
   @ApiBearerAuth()
   @ApiResponse({ status: 201, description: 'Animal cadastrado com sucesso' })
-  @ApiResponse({ status: 400, description: 'Dados inválidos' })
-  @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
+  @ApiResponse({ status: 400, description: 'Dados invalidos' })
+  @ApiResponse({ status: 404, description: 'Usuario nao encontrado' })
   @Post()
   @UsePipes(new ValidationPipe({ transform: true }))
   @ResponseMessage('Animal criado com sucesso')
@@ -51,7 +52,6 @@ export class AnimalsController {
       userId: query.userId,
       status: query.status,
     };
-    
     return this.animalsService.findAll(criteria);
   }
 
@@ -60,7 +60,7 @@ export class AnimalsController {
   @ApiOperation({ summary: 'Buscar um animal pelo ID' })
   @ApiParam({ name: 'id', description: 'ID do animal', type: Number })
   @ApiResponse({ status: 200, description: 'Animal encontrado com sucesso' })
-  @ApiResponse({ status: 404, description: 'Animal não encontrado' })
+  @ApiResponse({ status: 404, description: 'Animal nao encontrado' })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return this.animalsService.findOne(id);
   }
@@ -69,7 +69,7 @@ export class AnimalsController {
   @ApiBearerAuth()
   @ApiParam({ name: 'id', description: 'ID do animal', type: Number })
   @ApiResponse({ status: 200, description: 'Animal atualizado com sucesso' })
-  @ApiResponse({ status: 404, description: 'Animal não encontrado' })
+  @ApiResponse({ status: 404, description: 'Animal nao encontrado' })
   @Put(':id')
   @UsePipes(new ValidationPipe({ transform: true }))
   @ResponseMessage('Animal atualizado com sucesso')
@@ -83,19 +83,30 @@ export class AnimalsController {
   @ApiOperation({ summary: 'Excluir (desativar) um animal' })
   @ApiBearerAuth()
   @ApiParam({ name: 'id', description: 'ID do animal', type: Number })
-  @ApiResponse({ status: 200, description: 'Animal excluído com sucesso' })
-  @ApiResponse({ status: 404, description: 'Animal não encontrado' })
+  @ApiResponse({ status: 200, description: 'Animal excluido com sucesso' })
+  @ApiResponse({ status: 404, description: 'Animal nao encontrado' })
   @Delete(':id')
-  @ResponseMessage('Animal excluído com sucesso')
+  @ResponseMessage('Animal excluido com sucesso')
   async remove(@Param('id', ParseIntPipe) id: number) {
     return this.animalsService.remove(id);
   }
 
-  @ApiOperation({ summary: 'Buscar animais de um usuário específico' })
-  @ApiParam({ name: 'userId', description: 'ID do usuário', type: Number })
-  @ApiResponse({ status: 200, description: 'Lista de animais do usuário' })
+  @ApiOperation({ summary: 'Inativar um animal (preserva historico de coletas)' })
+  @ApiBearerAuth()
+  @ApiParam({ name: 'id', description: 'ID do animal', type: Number })
+  @ApiResponse({ status: 200, description: 'Animal inativado com sucesso' })
+  @ApiResponse({ status: 404, description: 'Animal nao encontrado' })
+  @Patch(':id/inativar')
+  @ResponseMessage('Animal inativado com sucesso')
+  async inativar(@Param('id', ParseIntPipe) id: number) {
+    return this.animalsService.inativar(id);
+  }
+
+  @ApiOperation({ summary: 'Buscar animais de um usuario especifico' })
+  @ApiParam({ name: 'userId', description: 'ID do usuario', type: Number })
+  @ApiResponse({ status: 200, description: 'Lista de animais do usuario' })
   @Get('user/:userId')
-  @ResponseMessage('Animais do usuário listados com sucesso')
+  @ResponseMessage('Animais do usuario listados com sucesso')
   async findAllByUserId(@Param('userId', ParseIntPipe) userId: number) {
     return this.animalsService.findAll({ userId });
   }

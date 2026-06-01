@@ -26,4 +26,9 @@ export const animalService = {
   delete: async (id: number): Promise<void> => {
     await apiBase.delete(`/animals/${id}`);
   },
+
+  inativar: async (id: number): Promise<Animal> => {
+    const { data } = await apiBase.patch(`/animals/${id}/inativar`);
+    return data;
+  },
 };

@@ -93,6 +93,11 @@ export class AnimalsService {
     return updated;
   }
 
+  async inativar(id: number) {
+    await this.findOne(id);
+    return this.animalRepository.softDelete(id);
+  }
+
   async remove(id: number) {
     await this.findOne(id);
 
@@ -136,7 +141,4 @@ export class AnimalsService {
   }
 
   private async hasCollectionHistory(animalId: number): Promise<boolean> {
-    const count = await this.dailyCollectionRepository.countItemsByAnimalId(animalId);
-    return count > 0;
-  }
-}
+  

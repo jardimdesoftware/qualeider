@@ -19,8 +19,6 @@ import { Status, Animal } from "@/interfaces/animal";
 import { ActiveCowForm } from "./_components/ActiveCowForm";
 import { ConfirmedCowsList } from "./_components/ConfirmedCowsList";
 
-// ─── helpers ─────────────────────────────────────────────────────────────────
-
 function animalLabel(a: Animal): string {
   const tag = a.tagNumber ? `#${a.tagNumber}` : null;
   const name = a.name ?? null;
@@ -30,8 +28,6 @@ function animalLabel(a: Animal): string {
   return `Animal #${a.id}`;
 }
 
-// ─── component ───────────────────────────────────────────────────────────────
-
 export default function DailyForm() {
   const router = useRouter();
   const { userId, isLoading: isAuthLoading } = useAuthGuard("user");
@@ -40,17 +36,12 @@ export default function DailyForm() {
   const { data: animals = [], isLoading: isLoadingAnimals } = useUserAnimals(userId);
   const createCollection = useCreateCollection();
 
-  // ── per-cow state ───────────────────────────────────────────────────────────
   const [confirmedItems, setConfirmedItems] = useState<ConfirmedItemMap>({});
   const [selectedAnimalId, setSelectedAnimalId] = useState<number | null>(null);
   const [activeQuantity, setActiveQuantity] = useState("");
   const [activeCmtResult, setActiveCmtResult] = useState<string | null>(null);
-
-  // ── dropdown state ──────────────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
-
-  // ── misc ────────────────────────────────────────────────────────────────────
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [displayDate, setDisplayDate] = useState("");
   const [modalState, setModalState] = useState({
@@ -61,7 +52,6 @@ export default function DailyForm() {
 
   useEffect(() => { setDisplayDate(formatDateLongBR(new Date())); }, []);
 
-  // ── derived ─────────────────────────────────────────────────────────────────
   const activeAnimals = useMemo(
     () => animals.filter((a) => a.status === Status.Active),
     [animals]
@@ -93,8 +83,6 @@ export default function DailyForm() {
     return { totalMilk, milkedCows: items.length };
   }, [confirmedItems]);
 
-  // ── handlers ─────────────────────────────────────────────────────────────────
-
   const handleSelectAnimal = (animal: Animal) => {
     setSelectedAnimalId(animal.id);
     setActiveQuantity("");
@@ -107,7 +95,6 @@ export default function DailyForm() {
     if (!selectedAnimalId) return;
     const qty = parseFloat(activeQuantity.replace(",", "."));
     if (!qty || qty <= 0) return;
-
     setConfirmedItems((prev) => ({
       ...prev,
       [selectedAnimalId]: { quantity: qty, cmtResult: activeCmtResult },
@@ -132,15 +119,12 @@ export default function DailyForm() {
 
   const handleFinalize = async () => {
     if (!userId || isSubmitting) return;
-
     const items: CollectionItem[] = transformConfirmedItemsToPayload(confirmedItems);
     const validation = validateCollectionItems(items);
-
     if (!validation.isValid) {
       setModalState({ isOpen: true, type: "error", message: validation.errors[0].message });
       return;
     }
-
     setIsSubmitting(true);
     try {
       const payload = {
@@ -154,7 +138,6 @@ export default function DailyForm() {
         milkingPlace: MilkingPlace.Curral,
         items,
       };
-
       await createCollection.mutateAsync({ data: payload, userId });
       setModalState({ isOpen: true, type: "success", message: "Coleta registrada com sucesso!" });
     } catch (err) {
@@ -178,10 +161,11 @@ export default function DailyForm() {
           subtitle={displayDate || "Informe os dados da coleta de hoje"}
         />
 
-        <div className="flex-1 overflow-y-auto pb-28 md:pb-8">
-          <div className="p-4 max-w-2xl mx-auto space-y-6">
+        {/* Sem overflow-hidden no container para nao cortar o dropdown */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-4 pb-32 max-w-2xl mx-auto space-y-4">
 
-            {/* Progress bar */}
+            {/* Barra de progresso */}
             <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-semibold text-slate-600">Progresso da ordenha</span>
@@ -202,7 +186,6 @@ export default function DailyForm() {
               )}
             </div>
 
-            {/* Cow selector */}
             {activeAnimals.length === 0 ? (
               <div className="text-center text-slate-500 py-10 bg-white rounded-xl border border-slate-200">
                 <Milk className="w-10 h-10 mx-auto mb-3 text-slate-300" />
@@ -211,32 +194,33 @@ export default function DailyForm() {
               </div>
             ) : (
               <>
-                {/* Dropdown */}
+                {/* Seletor de vaca — expansao inline, sem absolute */}
                 {unconfirmedAnimals.length > 0 && !selectedAnimalId && (
-                  <div className="relative">
-                    <label className="block text-sm font-bold text-slate-700 mb-1">
-                      Selecionar vaca para ordenhar
-                    </label>
+                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    {/* Cabecalho clicavel */}
                     <button
                       type="button"
                       onClick={() => setDropdownOpen((o) => !o)}
-                      className="w-full flex items-center justify-between gap-2 bg-white border-2 border-slate-200 hover:border-[#d97706] rounded-xl p-4 text-left transition-colors"
+                      className="w-full flex items-center justify-between gap-2 p-4 text-left hover:bg-slate-50 transition-colors"
                     >
                       <div className="flex items-center gap-3">
                         <Milk className="w-5 h-5 text-slate-400 flex-shrink-0" />
-                        <span className="text-slate-500 font-medium">
-                          {unconfirmedAnimals.length} vaca{unconfirmedAnimals.length !== 1 ? "s" : ""} restante{unconfirmedAnimals.length !== 1 ? "s" : ""}...
-                        </span>
+                        <div>
+                          <p className="text-sm font-bold text-slate-700">Selecionar vaca para ordenhar</p>
+                          <p className="text-xs text-slate-400">
+                            {unconfirmedAnimals.length} vaca{unconfirmedAnimals.length !== 1 ? "s" : ""} restante{unconfirmedAnimals.length !== 1 ? "s" : ""}
+                          </p>
+                        </div>
                       </div>
-                      {dropdownOpen ? (
-                        <ChevronUp className="w-5 h-5 text-slate-400" />
-                      ) : (
-                        <ChevronDown className="w-5 h-5 text-slate-400" />
-                      )}
+                      {dropdownOpen
+                        ? <ChevronUp className="w-5 h-5 text-slate-400 flex-shrink-0" />
+                        : <ChevronDown className="w-5 h-5 text-slate-400 flex-shrink-0" />}
                     </button>
 
+                    {/* Lista expandida inline */}
                     {dropdownOpen && (
-                      <div className="absolute top-full left-0 right-0 z-40 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
+                      <div className="border-t border-slate-100">
+                        {/* Busca */}
                         <div className="p-3 border-b border-slate-100">
                           <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -250,7 +234,8 @@ export default function DailyForm() {
                             />
                           </div>
                         </div>
-                        <ul className="max-h-64 overflow-y-auto divide-y divide-slate-50">
+                        {/* Lista */}
+                        <ul className="divide-y divide-slate-50">
                           {filteredDropdown.length === 0 ? (
                             <li className="px-4 py-6 text-center text-slate-400 text-sm">
                               Nenhuma vaca encontrada
@@ -261,21 +246,21 @@ export default function DailyForm() {
                                 <button
                                   type="button"
                                   onClick={() => handleSelectAnimal(animal)}
-                                  className="w-full text-left px-4 py-3 hover:bg-amber-50 transition-colors flex items-center gap-3"
+                                  className="w-full text-left px-4 py-3 hover:bg-amber-50 active:bg-amber-100 transition-colors flex items-center gap-3"
                                 >
                                   <div className="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center flex-shrink-0">
                                     <Milk className="w-4 h-4 text-slate-500" />
                                   </div>
-                                  <div>
-                                    <p className="font-bold text-[#1e3a29] text-sm">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-bold text-[#1e3a29] text-sm truncate">
                                       {animalLabel(animal)}
                                     </p>
                                     {animal.breed && (
-                                      <p className="text-xs text-slate-400">{animal.breed}</p>
+                                      <p className="text-xs text-slate-400 truncate">{animal.breed}</p>
                                     )}
                                   </div>
                                   {animal.tagNumber && (
-                                    <span className="ml-auto text-xs font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                                    <span className="text-xs font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full flex-shrink-0">
                                       #{animal.tagNumber}
                                     </span>
                                   )}
@@ -289,17 +274,15 @@ export default function DailyForm() {
                   </div>
                 )}
 
-                {/* All done */}
+                {/* Todas confirmadas */}
                 {unconfirmedAnimals.length === 0 && !selectedAnimalId && (
                   <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl p-4">
                     <Check className="w-6 h-6 text-green-600 flex-shrink-0" />
-                    <p className="font-semibold text-green-800">
-                      Todas as vacas foram ordenhadas!
-                    </p>
+                    <p className="font-semibold text-green-800">Todas as vacas foram ordenhadas!</p>
                   </div>
                 )}
 
-                {/* Active cow form */}
+                {/* Formulario da vaca ativa */}
                 {selectedAnimal && (
                   <ActiveCowForm
                     animal={selectedAnimal}
@@ -317,7 +300,7 @@ export default function DailyForm() {
                   />
                 )}
 
-                {/* Confirmed list */}
+                {/* Lista de confirmadas */}
                 {Object.keys(confirmedItems).length > 0 && (
                   <ConfirmedCowsList
                     confirmedItems={confirmedItems}
@@ -331,13 +314,13 @@ export default function DailyForm() {
           </div>
         </div>
 
-        {/* Floating finish button */}
-        <div className="fixed bottom-6 left-0 w-full px-4 z-30 md:left-64 md:w-[calc(100%-16rem)] flex justify-center pointer-events-none">
+        {/* Botao flutuante */}
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-sm border-t border-slate-100 z-30 md:left-64">
           <button
             type="button"
             onClick={handleFinalize}
             disabled={totals.milkedCows === 0 || isSubmitting}
-            className="w-full max-w-md bg-[#d97706] hover:bg-[#b45309] disabled:bg-slate-300 disabled:cursor-not-allowed text-white p-4 rounded-xl shadow-xl font-bold text-lg flex justify-center items-center gap-2 transform active:scale-95 transition-all pointer-events-auto"
+            className="w-full max-w-2xl mx-auto block bg-[#d97706] hover:bg-[#b45309] disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white p-4 rounded-xl font-bold text-lg flex justify-center items-center gap-2 transform active:scale-95 transition-all"
           >
             {isSubmitting ? (
               <><Loader2 className="w-6 h-6 animate-spin" /> Salvando...</>
@@ -346,7 +329,7 @@ export default function DailyForm() {
                 <Save className="w-6 h-6" />
                 Finalizar Coleta
                 {totals.milkedCows > 0 && (
-                  <span className="bg-white/20 text-white text-sm px-2 py-0.5 rounded-full ml-1">
+                  <span className="bg-white/20 text-sm px-2 py-0.5 rounded-full ml-1">
                     {totals.milkedCows} vacas · {totals.totalMilk.toFixed(1)} L
                   </span>
                 )}

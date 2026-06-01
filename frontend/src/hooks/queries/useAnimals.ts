@@ -52,9 +52,20 @@ export function useUpdateAnimal() {
 
 export function useDeleteAnimal() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: animalService.delete,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ANIMALS_KEYS.all });
+    },
+  });
+}
+
+export function useInativarAnimal() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => animalService.inativar(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ANIMALS_KEYS.all });
     },
