@@ -23,8 +23,14 @@ describe('E2E: Associations - Relatórios', () => {
     globalToday = new Date();
     globalToday.setHours(12, 0, 0, 0);
     
+    // Garante que globalYesterday fica no mesmo mes que globalToday
+    // (evita falha no dia 1 do mes, quando "ontem" seria do mes anterior)
     globalYesterday = new Date(globalToday);
-    globalYesterday.setDate(globalYesterday.getDate() - 1);
+    if (globalToday.getDate() > 1) {
+      globalYesterday.setDate(globalYesterday.getDate() - 1);
+    } else {
+      globalYesterday.setDate(globalYesterday.getDate() + 1);
+    }
 
     const association = AssociationFactory.build();
     const createResponse = await testApp
