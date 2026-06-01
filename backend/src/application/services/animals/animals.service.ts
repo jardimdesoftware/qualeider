@@ -141,4 +141,7 @@ export class AnimalsService {
   }
 
   private async hasCollectionHistory(animalId: number): Promise<boolean> {
-  
+    const count = await this.dailyCollectionRepository.countItemsByAnimalId(animalId);
+    return count > 0;
+  }
+}
