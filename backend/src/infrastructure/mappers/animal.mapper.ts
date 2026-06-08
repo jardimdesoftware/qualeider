@@ -1,7 +1,6 @@
 import { AnimalEntity } from "@/domain/entities/animal.entity";
 import { AnimalType, Status } from "@/domain/enums/enums";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PrismaAnimalRaw = any;
 
 export class AnimalMapper {
