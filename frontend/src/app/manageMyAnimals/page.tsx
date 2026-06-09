@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DashboardLayout } from "@/components/layout";
@@ -15,7 +16,7 @@ import { useBreeds } from "@/hooks/queries/useBreeds";
 import { useAnimalSpecies } from "@/hooks/queries/useAnimalSpecies";
 import { Animal } from "@/interfaces/animal";
 import { animalSchema, AnimalData } from "@/schemas/animal";
-import { Plus, Pencil, Trash2, X, Cat, Search, Hash } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Cat, Search, Hash, Eye } from "lucide-react";
 
 // Utilitario: label de identificacao do animal
 function animalLabel(a: Animal): string {
@@ -241,6 +242,7 @@ function AnimalModal({ isOpen, editingAnimal, userId, animals, onClose, onSucces
 
 // Pagina principal
 export default function ManageAnimals() {
+  const router = useRouter();
   const { userId, isLoading: authLoading } = useAuthGuard("user");
   const { data: animalsRaw = [], isLoading } = useUserAnimals(userId);
   const animals = animalsRaw as Animal[];
@@ -252,18 +254,23 @@ export default function ManageAnimals() {
   const [confirmDelete, setConfirmDelete] = useState<Animal | null>(null);
   const [confirmInativar, setConfirmInativar] = useState<Animal | null>(null);
   const [search, setSearch] = useState("");
+  const [showInactive, setShowInactive] = useState(false);
   const [feedback, setFeedback] = useState<{
     isOpen: boolean; title: string; message: string; type: "success" | "error";
   }>({ isOpen: false, title: "", message: "", type: "success" });
 
   const filtered = useMemo(() =>
-    animals.filter((a) =>
-      (a.tagNumber ?? "").toLowerCase().includes(search.toLowerCase()) ||
-      (a.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
-      (a.animalSpecies?.name ?? a.animalType ?? "").toLowerCase().includes(search.toLowerCase()) ||
-      (a.breed ?? "").toLowerCase().includes(search.toLowerCase())
-    ),
-    [animals, search]
+    animals.filter((a) => {
+      if (!showInactive && a.status === "Inactive") return false;
+      const q = search.toLowerCase();
+      return (
+        (a.tagNumber ?? "").toLowerCase().includes(q) ||
+        (a.name ?? "").toLowerCase().includes(q) ||
+        (a.animalSpecies?.name ?? a.animalType ?? "").toLowerCase().includes(q) ||
+        (a.breed ?? "").toLowerCase().includes(q)
+      );
+    }),
+    [animals, search, showInactive]
   );
 
   const openCreate = () => { setEditingAnimal(null); setModalOpen(true); };
@@ -318,15 +325,28 @@ export default function ManageAnimals() {
 
         <div className="p-6 md:p-8 max-w-5xl mx-auto">
           {animals.length > 0 && (
-            <div className="relative mb-6 max-w-sm">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Buscar por numero, nome, tipo ou raca..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent"
-              />
+            <div className="flex flex-wrap items-center gap-3 mb-6">
+              <div className="relative flex-1 min-w-[200px] max-w-sm">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Buscar por numero, nome, tipo ou raca..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+                />
+              </div>
+              <button
+                onClick={() => setShowInactive((v) => !v)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                  showInactive
+                    ? "bg-red-50 border-red-200 text-red-700"
+                    : "bg-white border-gray-300 text-gray-500 hover:border-gray-400"
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full ${showInactive ? "bg-red-500" : "bg-gray-300"}`} />
+                {showInactive ? "Mostrar apenas ativos" : "Mostrar inativos"}
+              </button>
             </div>
           )}
 
@@ -373,9 +393,16 @@ export default function ManageAnimals() {
                           )}
                         </td>
                         <td className="px-4 py-4">
-                          <span className="font-semibold text-[#1e3a29]">
-                            {animal.name || <span className="text-slate-400 italic font-normal">Sem nome</span>}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-[#1e3a29]">
+                              {animal.name || <span className="text-slate-400 italic font-normal">Sem nome</span>}
+                            </span>
+                            {animal.status === "Inactive" && (
+                              <span className="inline-flex px-1.5 py-0.5 rounded text-[10px] font-semibold bg-red-100 text-red-600 uppercase tracking-wide">
+                                Inativo
+                              </span>
+                            )}
+                          </div>
                           <span className="block text-xs text-slate-500 mt-0.5 md:hidden">
                             {animal.animalSpecies?.name ?? animal.animalType ?? ""} {animal.breed ? `- ${animal.breed}` : ""} - {animal.age}a
                           </span>
@@ -406,6 +433,13 @@ export default function ManageAnimals() {
                         </td>
                         <td className="px-4 py-4">
                           <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => router.push(`/manageMyAnimals/${animal.id}`)}
+                              className="p-2 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                              title="Ver perfil"
+                            >
+                              <Eye size={16} />
+                            </button>
                             <button
                               onClick={() => openEdit(animal)}
                               className="p-2 rounded-lg text-slate-500 hover:text-[#1e3a29] hover:bg-slate-100 transition-colors"

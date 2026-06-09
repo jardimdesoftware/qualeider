@@ -1,11 +1,12 @@
-/*
-  Warnings:
+-- Migra enum "Role" (Admin/Common) para "UserRole" (ADMIN/VAQUEIRO) para alinhar com o codigo
+-- 1. Remover coluna role antiga
+ALTER TABLE "User" DROP COLUMN IF EXISTS "role";
 
-  - You are about to drop the column `role` on the `User` table. All the data in the column will be lost.
+-- 2. Remover enum antigo
+DROP TYPE IF EXISTS "Role";
 
-*/
--- AlterTable
-ALTER TABLE "User" DROP COLUMN "role";
+-- 3. Criar enum novo com valores que o codigo espera
+CREATE TYPE "UserRole" AS ENUM ('ADMIN', 'VAQUEIRO');
 
--- DropEnum
-DROP TYPE "Role";
+-- 4. Adicionar coluna role nova com tipo e default corretos
+ALTER TABLE "User" ADD COLUMN "role" "UserRole" NOT NULL DEFAULT 'ADMIN';

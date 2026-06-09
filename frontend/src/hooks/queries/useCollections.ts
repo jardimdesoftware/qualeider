@@ -7,6 +7,7 @@ import { STALE_TIMES } from '@/constants/query';
 export const COLLECTIONS_KEYS = {
   all: ['collections'] as const,
   byUser: (userId: number) => ['collections', 'user', userId] as const,
+  byAnimal: (animalId: number) => ['collections', 'animal', animalId] as const,
 };
 
 export function useUserCollections(userId: number | null) {
@@ -58,5 +59,14 @@ export function useDeleteCollection(userId: number | null) {
         queryClient.invalidateQueries({ queryKey: COLLECTIONS_KEYS.byUser(userId) });
       }
     },
+  });
+}
+
+export function useAnimalCollectionHistory(animalId: number | null) {
+  return useQuery({
+    queryKey: COLLECTIONS_KEYS.byAnimal(animalId!),
+    queryFn: () => collectionService.getHistoryByAnimal(animalId!),
+    enabled: !!animalId,
+    staleTime: STALE_TIMES.MEDIUM,
   });
 }

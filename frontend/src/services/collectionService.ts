@@ -1,5 +1,6 @@
 import { apiBase } from "./baseApi";
 import { DailyCollectionData } from "@/schemas/collection";
+import { AnimalCollectionHistoryItem } from "@/interfaces/daily-collection";
 
 export const collectionService = {
   create: async (data: DailyCollectionData, userId: number) => {
@@ -21,5 +22,10 @@ export const collectionService = {
   remove: async (id: number) => {
     const { data: response } = await apiBase.delete(`/daily-collections/${id}`);
     return response;
+  },
+
+  getHistoryByAnimal: async (animalId: number): Promise<AnimalCollectionHistoryItem[]> => {
+    const { data } = await apiBase.get(`/daily-collections/animal/${animalId}`);
+    return data;
   },
 };

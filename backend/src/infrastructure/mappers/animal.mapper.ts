@@ -18,8 +18,18 @@ export class AnimalMapper {
             status: raw.status as Status,
             motherId: raw.motherId ?? null,
             motherCode: raw.motherCode ?? null,
+            mother: raw.mother ? {
+                id: raw.mother.id,
+                tagNumber: raw.mother.tagNumber ?? null,
+                name: raw.mother.name ?? null,
+            } : null,
             fatherId: raw.fatherId ?? null,
             fatherCode: raw.fatherCode ?? null,
+            father: raw.father ? {
+                id: raw.father.id,
+                tagNumber: raw.father.tagNumber ?? null,
+                name: raw.father.name ?? null,
+            } : null,
             createdAt: raw.createdAt,
             updatedAt: raw.updatedAt,
         });
