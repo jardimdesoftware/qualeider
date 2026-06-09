@@ -9,7 +9,7 @@ export const USER_KEYS = {
 };
 
 export function useUsers(params?: Record<string, unknown>) {
-  return useQuery({
+  return useQuery<User[]>({
     queryKey: [...USER_KEYS.all, params],
     queryFn: () => userService.findAll(params),
     staleTime: STALE_TIMES.MEDIUM,
@@ -35,5 +35,3 @@ export function useUpdateUser() {
       queryClient.invalidateQueries({ queryKey: USER_KEYS.all });
       queryClient.invalidateQueries({ queryKey: USER_KEYS.byId(variables.id) });
     },
-  });
-}

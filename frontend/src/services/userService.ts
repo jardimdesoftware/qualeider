@@ -31,20 +31,16 @@ export const userService = {
   findAll: async (
     params?: Record<string, unknown>,
     signal?: AbortSignal
-  ): Promise<PaginatedUsers> => {
-    const { data } = await apiBase.get<PaginatedUsers>("/users", {
-      params,
-      signal,
-    });
-    return data;
+  ): Promise<User[]> => {
+    const { data } = await apiBase.get("/users", { params, signal });
+    // O interceptor do baseApi já extrai o array do wrapper paginado
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray((data as any).data)) return (data as any).data;
+    return [];
   },
 
   /**
    * Cria um funcionário internamente (Admin → Vaqueiro ou Admin adicional).
    * Chama o endpoint autenticado POST /users/internal.
    */
-  createInternal: async (userData: CreateUserDto): Promise<User> => {
-    const { data } = await apiBase.post<User>("/users/internal", userData);
-    return data;
-  },
-};
+  createInternal: async (use

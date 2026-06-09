@@ -84,7 +84,7 @@ model Association {
 
 enum UserRole {
   ADMIN
-  USER
+  VAQUEIRO
 }
 
 model User {
