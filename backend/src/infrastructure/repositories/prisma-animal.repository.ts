@@ -9,7 +9,6 @@ import { AnimalMapper } from '@/infrastructure/mappers/animal.mapper';
 import { Status as PrismaStatus } from '@prisma/client';
 import { PaginatedResult, normalizePaginationParams, createPaginatedResult } from '@/domain/common/pagination.interface';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ANIMAL_INCLUDE: any = {
   animalSpecies: true,
   mother: true,
@@ -52,7 +51,6 @@ export class PrismaAnimalRepository implements IAnimalRepository {
   }
 
   async findAll(criteria: AnimalCriteria = {}): Promise<PaginatedResult<AnimalEntity>> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {};
 
     where.status = criteria.status !== undefined ? criteria.status : PrismaStatus.Active;
@@ -73,7 +71,6 @@ export class PrismaAnimalRepository implements IAnimalRepository {
       where.tagNumber = { contains: criteria.tagNumber, mode: 'insensitive' };
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const include: any = { ...ANIMAL_INCLUDE };
     if (criteria.includeUser) {
       include.user = true;
@@ -98,7 +95,6 @@ export class PrismaAnimalRepository implements IAnimalRepository {
   }
 
   async findById(id: ID, options?: AnimalFindOneOptions): Promise<AnimalEntity | null> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const include: any = { ...ANIMAL_INCLUDE };
 
     if (options?.includeUser) {
@@ -116,7 +112,6 @@ export class PrismaAnimalRepository implements IAnimalRepository {
   }
 
   async findByIds(ids: ID[], options?: AnimalFindOneOptions): Promise<AnimalEntity[]> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const include: any = { ...ANIMAL_INCLUDE };
 
     if (options?.includeUser) {

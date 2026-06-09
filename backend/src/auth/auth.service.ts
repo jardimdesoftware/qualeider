@@ -39,7 +39,6 @@ export class AuthService {
     const user = await this.userRepository.findByEmail(email);
 
     if (user && (await this.hashService.compare(password, user.password))) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...result } = user;
       return result;
     }
@@ -57,7 +56,6 @@ export class AuthService {
       association &&
       (await this.hashService.compare(password, association.password))
     ) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...result } = association;
       return result;
     }
