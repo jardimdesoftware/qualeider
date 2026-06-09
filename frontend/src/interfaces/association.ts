@@ -61,15 +61,22 @@ export interface AssociateResponse {
 
 export interface HerdStats {
   totalAnimals: number;
-  activeAnimals: number;
-  avgMilkPerAnimal: number;
-  totalMilkProduction: number;
-  dailyHistory: {
-    date: string;
-    production: number;
-  }[];
+  totalMilkDay: number;
+  avgProduction: number;
+  heifers: number;
+  calves: number;
+  lactatingCows: number;
+  dryCows: number;
+  averageAnimalAge: number;
+  totalMilkingThisMonth: number;
+  rationProvidedPercentage: number;
+  averageLactationsThisMonth: number;
   breedDistribution: {
-    breed: string;
-    count: number;
+    name: string;
+    value: number;
+  }[];
+  productionHistory: {
+    date: string;
+    quantity: number;
   }[];
 }
