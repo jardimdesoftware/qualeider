@@ -18,10 +18,12 @@ export class AnimalEntity {
   // Parentesco - Mae
   motherId?: ID | null;
   motherCode?: string | null;
+  mother?: Partial<AnimalEntity> | null;
 
   // Parentesco - Pai/Reprodutor
   fatherId?: ID | null;
   fatherCode?: string | null;
+  father?: Partial<AnimalEntity> | null;
 
   createdAt!: Date;
   updatedAt!: Date;
