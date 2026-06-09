@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DashboardLayout } from "@/components/layout";
@@ -15,7 +16,7 @@ import { useBreeds } from "@/hooks/queries/useBreeds";
 import { useAnimalSpecies } from "@/hooks/queries/useAnimalSpecies";
 import { Animal } from "@/interfaces/animal";
 import { animalSchema, AnimalData } from "@/schemas/animal";
-import { Plus, Pencil, Trash2, X, Cat, Search, Hash } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Cat, Search, Hash, Eye } from "lucide-react";
 
 // Utilitario: label de identificacao do animal
 function animalLabel(a: Animal): string {
@@ -241,6 +242,7 @@ function AnimalModal({ isOpen, editingAnimal, userId, animals, onClose, onSucces
 
 // Pagina principal
 export default function ManageAnimals() {
+  const router = useRouter();
   const { userId, isLoading: authLoading } = useAuthGuard("user");
   const { data: animalsRaw = [], isLoading } = useUserAnimals(userId);
   const animals = animalsRaw as Animal[];
@@ -406,6 +408,13 @@ export default function ManageAnimals() {
                         </td>
                         <td className="px-4 py-4">
                           <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => router.push(`/manageMyAnimals/${animal.id}`)}
+                              className="p-2 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                              title="Ver perfil"
+                            >
+                              <Eye size={16} />
+                            </button>
                             <button
                               onClick={() => openEdit(animal)}
                               className="p-2 rounded-lg text-slate-500 hover:text-[#1e3a29] hover:bg-slate-100 transition-colors"

@@ -43,3 +43,10 @@ export type DailyCollectionCreate = Omit<
   DailyCollection,
   "id" | "createdAt" | "updatedAt"
 >;
+
+export interface AnimalCollectionHistoryItem {
+  collectionId: number;
+  collectionDate: string;
+  quantity: number;
+  cmtResult?: CmtResult | null;
+}
