@@ -1,5 +1,6 @@
 "use client";
 
+import { ReactNode } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Tag, Calendar, Dna, Heart, AlertCircle } from "lucide-react";
 import { DashboardLayout } from "@/components/layout";
@@ -11,10 +12,10 @@ import { useAnimalCollectionHistory } from "@/hooks/queries/useCollections";
 import { Status, Animal } from "@/interfaces/animal";
 import { CmtResult, AnimalCollectionHistoryItem } from "@/interfaces/daily-collection";
 
-// ─── helpers ────────────────────────────────────────────────────────────────
+// helpers
 
 function animalLabel(a: Animal): string {
-  if (a.tagNumber) return `#${a.tagNumber}${a.name ? ` – ${a.name}` : ""}`;
+  if (a.tagNumber) return `#${a.tagNumber}${a.name ? ` - ${a.name}` : ""}`;
   return a.name || `Animal ID ${a.id}`;
 }
 
@@ -32,9 +33,9 @@ function cmtBadge(result: CmtResult | null | undefined) {
   );
 }
 
-// ─── sub-components ──────────────────────────────────────────────────────────
+// sub-components
 
-function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
+function InfoRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex flex-col gap-0.5">
       <span className="text-xs uppercase tracking-wider text-gray-400 font-semibold">{label}</span>
@@ -79,7 +80,7 @@ function HistoryTable({ rows }: { rows: AnimalCollectionHistoryItem[] }) {
   );
 }
 
-// ─── page ────────────────────────────────────────────────────────────────────
+// page
 
 export default function AnimalDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -95,9 +96,9 @@ export default function AnimalDetailPage() {
   if (isError || !animal) {
     return (
       <DashboardLayout>
-        <PageHeader title="Animal não encontrado" subtitle="" />
+        <PageHeader title="Animal nao encontrado" subtitle="" />
         <div className="p-6 text-center text-gray-500">
-          Não foi possível carregar os dados do animal.
+          Nao foi possivel carregar os dados do animal.
         </div>
       </DashboardLayout>
     );
@@ -110,7 +111,7 @@ export default function AnimalDetailPage() {
     <DashboardLayout>
       <PageHeader
         title={animalLabel(animal)}
-        subtitle={`${animal.animalSpecies?.name ?? animal.animalType ?? "Animal"} · Perfil`}
+        subtitle={`${animal.animalSpecies?.name ?? animal.animalType ?? "Animal"} - Perfil`}
       />
 
       <div className="p-6 md:p-8 max-w-4xl mx-auto space-y-6">
@@ -127,7 +128,7 @@ export default function AnimalDetailPage() {
         {isInactive && (
           <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-2.5 text-sm font-medium">
             <AlertCircle size={16} />
-            Este animal está inativo e não aparece nas coletas.
+            Este animal esta inativo e nao aparece nas coletas.
           </div>
         )}
 
@@ -150,8 +151,8 @@ export default function AnimalDetailPage() {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
             <InfoRow label="Brinco / Tag" value={animal.tagNumber ? `#${animal.tagNumber}` : "—"} />
             <InfoRow label="Nome" value={animal.name} />
-            <InfoRow label="Espécie" value={animal.animalSpecies?.name ?? animal.animalType} />
-            <InfoRow label="Raça" value={animal.animalSpecies?.breeds?.find(b => b.id === animal.breedId)?.name ?? animal.breed} />
+            <InfoRow label="Especie" value={animal.animalSpecies?.name ?? animal.animalType} />
+            <InfoRow label="Raca" value={animal.breed} />
             <InfoRow label="Idade" value={animal.age ? `${animal.age} anos` : undefined} />
             <InfoRow
               label="Cadastrado em"
@@ -176,12 +177,12 @@ export default function AnimalDetailPage() {
 
             <div className="grid grid-cols-2 gap-5">
               <InfoRow
-                label="Mãe"
+                label="Mae"
                 value={
                   animal.mother
                     ? animalLabel(animal.mother)
                     : animal.motherCode
-                    ? `Código externo: ${animal.motherCode}`
+                    ? `Codigo externo: ${animal.motherCode}`
                     : undefined
                 }
               />
@@ -191,7 +192,7 @@ export default function AnimalDetailPage() {
                   animal.father
                     ? animalLabel(animal.father)
                     : animal.fatherCode
-                    ? `Código externo: ${animal.fatherCode}`
+                    ? `Codigo externo: ${animal.fatherCode}`
                     : undefined
                 }
               />
@@ -199,13 +200,13 @@ export default function AnimalDetailPage() {
           </div>
         )}
 
-        {/* histórico */}
+        {/* historico */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
           <div className="flex items-center gap-3 mb-1">
             <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
               <Calendar size={18} className="text-blue-500" />
             </div>
-            <h2 className="text-base font-semibold text-gray-800">Histórico de Ordenhas</h2>
+            <h2 className="text-base font-semibold text-gray-800">Historico de Ordenhas</h2>
             {!historyLoading && history.length > 0 && (
               <span className="ml-auto text-sm text-gray-500">
                 <span className="font-semibold text-brand-primary">{totalLiters.toFixed(1)} L</span>{" "}
@@ -220,7 +221,7 @@ export default function AnimalDetailPage() {
           </div>
 
           {historyLoading ? (
-            <div className="py-8 text-center text-gray-400 text-sm">Carregando histórico…</div>
+            <div className="py-8 text-center text-gray-400 text-sm">Carregando historico...</div>
           ) : (
             <HistoryTable rows={history} />
           )}
