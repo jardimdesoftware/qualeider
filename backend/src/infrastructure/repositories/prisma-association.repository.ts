@@ -167,12 +167,15 @@ export class PrismaAssociationRepository implements IAssociationRepository {
         AND status = 'Active'
         GROUP BY category
       `,
-      // 2. Total de vacas
+      // 2. Total de vacas (animalType legado OU animalSpecies "Vaca")
       this.prisma.animal.count({
         where: {
           user: { associationId },
-          animalType: 'Vaca',
-          status: 'Active'
+          status: 'Active',
+          OR: [
+            { animalType: 'Vaca' },
+            { animalSpecies: { name: 'Vaca' } },
+          ],
         }
       }),
       // 3. Produção de hoje

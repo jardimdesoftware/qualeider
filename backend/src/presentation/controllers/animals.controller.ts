@@ -51,6 +51,9 @@ export class AnimalsController {
       associationId: query.associationId,
       userId: query.userId,
       status: query.status,
+      animalType: query.animalType,
+      animalSpeciesId: query.animalSpeciesId,
+      tagNumber: query.tagNumber,
     };
     return this.animalsService.findAll(criteria);
   }
