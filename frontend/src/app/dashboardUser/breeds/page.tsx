@@ -7,6 +7,8 @@ import { PageHeader } from "@/components/dashboard";
 import { Button, EmptyState, ErrorModal, ConfirmationModal } from "@/components/ui";
 import InputField from "@/components/ui/input-field";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
+import { useRoleGuard } from "@/hooks/useRoleGuard";
+import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import {
   useBreeds,
   useCreateBreed,
@@ -160,6 +162,7 @@ function BreedModal({
 
 export default function BreedsPage() {
   useAuthGuard("user");
+  const { isChecking } = useRoleGuard(["ADMIN"]);
 
   const { data: breeds = [], isLoading, isError } = useBreeds();
   const deleteBreed = useDeleteBreed();
@@ -220,6 +223,8 @@ export default function BreedsPage() {
       );
     }
   };
+
+  if (isChecking) return <DashboardLoading />;
 
   return (
     <>

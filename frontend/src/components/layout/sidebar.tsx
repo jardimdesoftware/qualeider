@@ -60,14 +60,15 @@ export default function Sidebar() {
 
   /**
    * Menu do usuário logado.
-   * "Funcionários" só aparece para ADMIN — Vaqueiro não gerencia equipe.
+   * Vaqueiro tem acesso restrito: apenas Início, Dados diários e Meus Animais.
+   * Raças, Tipos de Animal e Funcionários são exclusivos do ADMIN.
    */
   const allMenuItems = [
     { name: "Início", link: "/dashboardUser", icon: <PieChart size={ICON_SIZES.SM} />, adminOnly: false },
     { name: "Dados diários", link: "/dailyForm", icon: <Milk size={ICON_SIZES.SM} />, adminOnly: false },
     { name: "Meus Animais", link: "/manageMyAnimals", icon: <FileText size={ICON_SIZES.SM} />, adminOnly: false },
-    { name: "Raças", link: "/dashboardUser/breeds", icon: <Dna size={ICON_SIZES.SM} />, adminOnly: false },
-    { name: "Tipos de Animal", link: "/dashboardUser/animalSpecies", icon: <Dna size={ICON_SIZES.SM} />, adminOnly: false },
+    { name: "Raças", link: "/dashboardUser/breeds", icon: <Dna size={ICON_SIZES.SM} />, adminOnly: true },
+    { name: "Tipos de Animal", link: "/dashboardUser/animalSpecies", icon: <Dna size={ICON_SIZES.SM} />, adminOnly: true },
     { name: "Funcionários", link: "/manageUsers", icon: <Users size={ICON_SIZES.SM} />, adminOnly: true },
   ];
 
