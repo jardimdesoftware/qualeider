@@ -116,13 +116,13 @@ export default function ManageUsers() {
                     <th className="text-left px-4 py-3 font-semibold text-gray-600">
                       Nome
                     </th>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-600">
+                    <th className="text-left px-4 py-3 font-semibold text-gray-600 hidden md:table-cell">
                       E-mail
                     </th>
                     <th className="text-left px-4 py-3 font-semibold text-gray-600">
                       Cargo / Perfil
                     </th>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-600">
+                    <th className="text-left px-4 py-3 font-semibold text-gray-600 hidden lg:table-cell">
                       Cidade / Estado
                     </th>
                     <th className="text-left px-4 py-3 font-semibold text-gray-600">
@@ -139,8 +139,11 @@ export default function ManageUsers() {
                     >
                       <td className="px-4 py-3 font-medium text-gray-900">
                         {user.name}
+                        <span className="block text-xs font-normal text-gray-500 md:hidden">
+                          {user.email}
+                        </span>
                       </td>
-                      <td className="px-4 py-3 text-gray-600">{user.email}</td>
+                      <td className="px-4 py-3 text-gray-600 hidden md:table-cell">{user.email}</td>
                       <td className="px-4 py-3">
                         <span
                           className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${
@@ -151,7 +154,7 @@ export default function ManageUsers() {
                           {ROLE_LABELS[user.role] ?? user.role}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-gray-600">
+                      <td className="px-4 py-3 text-gray-600 hidden lg:table-cell">
                         {user.city} / {user.state}
                       </td>
                       <td className="px-4 py-3">
