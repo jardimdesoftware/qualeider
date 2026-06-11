@@ -305,14 +305,10 @@ export default function DashboardUser() {
           </section>
 
           {/* Seção 2: Gráficos */}
-          {/* --- CORREÇÃO DE ESTILO NOS GRÁFICOS (Grid + min-height wrappers) --- */}
+          {/* Os componentes de gráfico já possuem seu próprio card (fundo, borda e altura) */}
           <section className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 min-h-[320px] w-full flex justify-center flex-col">
-              <AnimalDistributionChart data={pieChartData} />
-            </div>
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 min-h-[320px] w-full flex justify-center flex-col">
-              <MilkLast7DaysChart data={lineChartData} />
-            </div>
+            <AnimalDistributionChart data={pieChartData} />
+            <MilkLast7DaysChart data={lineChartData} />
           </section>
         </div>
       </DashboardLayout>

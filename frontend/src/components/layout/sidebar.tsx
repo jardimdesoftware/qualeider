@@ -58,6 +58,9 @@ export default function Sidebar() {
 
   const isAdmin = userPermRole === "ADMIN";
 
+  // Identidade visual: Admin usa tom ambar/dourado, Vaqueiro mantem o verde padrao
+  const sidebarBg = isAdmin ? "bg-admin-background" : "bg-green-background";
+
   /**
    * Menu do usuário logado.
    * Vaqueiro tem acesso restrito: apenas Início, Dados diários e Meus Animais.
@@ -81,7 +84,7 @@ export default function Sidebar() {
       {isMobile ? (
         <div className="relative">
           {/* Barra superior mobile */}
-          <div className="fixed top-0 left-0 right-0 bg-green-background p-4 flex justify-between items-center z-40 shadow-md">
+          <div className={`fixed top-0 left-0 right-0 ${sidebarBg} p-4 flex justify-between items-center z-40 shadow-md`}>
             <button onClick={toggleMenu} className="text-white">
               {menuOpen ? <X size={ICON_SIZES.MD} /> : <Menu size={ICON_SIZES.MD} />}
             </button>
@@ -90,7 +93,7 @@ export default function Sidebar() {
 
           {/* Gaveta lateral mobile */}
           <div
-            className={`fixed top-0 left-0 h-screen w-64 bg-green-background shadow-lg p-4 transition-transform duration-300 z-50 ${
+            className={`fixed top-0 left-0 h-screen w-64 ${sidebarBg} shadow-lg p-4 transition-transform duration-300 z-50 ${
               menuOpen ? "translate-x-0" : "-translate-x-full"
             }`}
           >
@@ -109,7 +112,14 @@ export default function Sidebar() {
                 width={LOGO_SIZES.MD}
                 height={LOGO_SIZES.MD}
               />
-              <h2 className="text-white font-bold text-lg">QualeiDer</h2>
+              <div>
+                <h2 className="text-white font-bold text-lg leading-tight">QualeiDer</h2>
+                {isAdmin && (
+                  <span className="text-[10px] uppercase tracking-wider font-semibold text-amber-200">
+                    Administrador
+                  </span>
+                )}
+              </div>
             </div>
 
             <nav className="mt-6 space-y-4">
@@ -141,7 +151,7 @@ export default function Sidebar() {
           </div>
         </div>
       ) : (
-        <aside className="h-screen w-64 bg-green-background shadow-lg p-4 flex flex-col justify-between">
+        <aside className={`h-screen w-64 ${sidebarBg} shadow-lg p-4 flex flex-col justify-between`}>
           <div>
             <div className="flex items-center gap-2 p-4">
               <Image
@@ -151,7 +161,14 @@ export default function Sidebar() {
                 width={LOGO_SIZES.MD}
                 height={LOGO_SIZES.MD}
               />
-              <h2 className="text-white font-bold text-lg">QualeiDer</h2>
+              <div>
+                <h2 className="text-white font-bold text-lg leading-tight">QualeiDer</h2>
+                {isAdmin && (
+                  <span className="text-[10px] uppercase tracking-wider font-semibold text-amber-200">
+                    Administrador
+                  </span>
+                )}
+              </div>
             </div>
 
             <nav className="mt-6 space-y-4">
