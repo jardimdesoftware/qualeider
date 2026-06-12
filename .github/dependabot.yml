@@ -1,0 +1,122 @@
+# =============================================================================
+# Dependabot — Automated Dependency Updates
+# =============================================================================
+# Mantém dependências atualizadas automaticamente com PRs semanais
+# Agrupa updates minor/patch para reduzir ruído de PRs
+# =============================================================================
+
+version: 2
+
+updates:
+  # ---------------------------------------------------------------------------
+  # Backend (npm)
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: "npm"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/Sao_Paulo"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "backend"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    groups:
+      # Agrupar updates de produção minor/patch
+      production-minor-patch:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
+      # Agrupar updates de dev minor/patch
+      dev-minor-patch:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+    # Major updates ficam em PRs individuais para review mais cuidadoso
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    # Reativar major updates individualmente conforme necessário
+
+  # ---------------------------------------------------------------------------
+  # Frontend (npm)
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/Sao_Paulo"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "frontend"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    groups:
+      production-minor-patch:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
+      dev-minor-patch:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ---------------------------------------------------------------------------
+  # Docker
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: "docker"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/Sao_Paulo"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "chore(docker)"
+
+  - package-ecosystem: "docker"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/Sao_Paulo"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "chore(docker)"
+
+  # ---------------------------------------------------------------------------
+  # GitHub Actions
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/Sao_Paulo"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "chore(ci)"

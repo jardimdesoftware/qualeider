@@ -1,0 +1,605 @@
+# =============================================================================
+# Backend CI/CD — Qualeider
+# =============================================================================
+# Workflow unificado que substitui backend-cicd.yml e tests.yml
+#
+# Arquitetura de jobs:
+# ┌──────────┐  ┌─────────────┐  ┌───────────────────┐  ┌───────────────┐  ┌───────────────┐
+# │   lint   │  │ unit-tests  │  │ integration-tests │  │  e2e-tests    │  │ security-scan │
+# └────┬─────┘  └──────┬──────┘  └────────┬──────────┘  └──────┬────────┘  └──────┬────────┘
+#      │               │                  │                    │                  │
+#      └───────────────┴──────────────────┴────────────────────┘                  │
+#                                    │                                            │
+#                           ┌────────▼────────┐                                   │
+#                           │  build-and-scan  │◄─────────────────────────────────┘
+#                           └────────┬────────┘
+#                                    │ (only main)
+#                           ┌────────▼────────┐
+#                           │  publish-image   │
+#                           └────────┬────────┘
+#                                    │
+#                           ┌────────▼────────┐
+#                           │release-creation  │
+#                           └─────────────────┘
+# =============================================================================
+
+name: Backend CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+
+  workflow_dispatch:
+
+# ---------------------------------------------------------------------------
+# Permissões globais mínimas (Principle of Least Privilege)
+# Cada job sobrescreve apenas o necessário
+# ---------------------------------------------------------------------------
+permissions:
+  contents: read
+
+# Cancelar execuções anteriores na mesma branch/PR
+concurrency:
+  group: backend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# ---------------------------------------------------------------------------
+# Variáveis de ambiente reutilizadas
+# ---------------------------------------------------------------------------
+env:
+  NODE_VERSION: "20"
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/qualeider-backend
+
+jobs:
+  # =========================================================================
+  # 1) LINT
+  # =========================================================================
+  lint:
+    name: 🔍 Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          HUSKY: "0"
+
+      - name: Run ESLint
+        run: npm run lint
+
+  # =========================================================================
+  # 2) UNIT TESTS
+  # =========================================================================
+  unit-tests:
+    name: 🧪 Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          HUSKY: "0"
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Run Unit Tests with Coverage
+        run: npm run test:unit -- --coverage --ci
+
+      - name: Upload Unit Test Coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-unit
+          path: backend/coverage/unit/
+          retention-days: 7
+
+  # =========================================================================
+  # 3) INTEGRATION TESTS
+  # =========================================================================
+  integration-tests:
+    name: 🔗 Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+
+    # PostgreSQL Service Container
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: qualeider_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          HUSKY: "0"
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Push database schema
+        run: npx prisma db push --accept-data-loss
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/qualeider_test
+
+      - name: Run Integration Tests
+        run: npm run test:integration -- --ci
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/qualeider_test
+          NODE_ENV: test
+          JWT_SECRET: test-secret-key-for-ci
+          JWT_EXPIRATION: 24h
+
+      - name: Upload Integration Test Coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-integration
+          path: backend/coverage/integration/
+          retention-days: 7
+
+  # =========================================================================
+  # 4) E2E TESTS
+  # =========================================================================
+  e2e-tests:
+    name: 🌐 E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+
+    # PostgreSQL Service Container
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: qualeider_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          HUSKY: "0"
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Push database schema
+        run: npx prisma db push --accept-data-loss
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/qualeider_test
+
+      - name: Run E2E Tests
+        run: npm run test:e2e -- --ci
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/qualeider_test
+          NODE_ENV: test
+          JWT_SECRET: test-secret-key-for-ci
+          JWT_EXPIRATION: 24h
+          MAIL_HOST: localhost
+          MAIL_PORT: 1025
+          MAIL_USER: ""
+          MAIL_PASSWORD: ""
+          MAIL_FROM: noreply@qualeider.test
+
+      - name: Upload E2E Test Coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-e2e
+          path: backend/coverage/e2e/
+          retention-days: 7
+
+  # =========================================================================
+  # 5) SECURITY SCAN (Trivy FS + Secrets + Config)
+  # =========================================================================
+  security-scan:
+    name: 🛡️ Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # --- Trivy Filesystem Scan (dependencies + vulnerabilities) ---
+      - name: Trivy — Filesystem Scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: "fs"
+          scan-ref: "backend"
+          format: "table"
+          exit-code: "1"
+          severity: "CRITICAL,HIGH"
+          ignore-unfixed: true
+          trivyignores: "backend/.trivyignore"
+
+      # --- Trivy Secrets Scan (API keys, tokens, passwords) ---
+      - name: Trivy — Secrets Scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: "fs"
+          scan-ref: "backend"
+          scanners: "secret"
+          format: "table"
+          exit-code: "1"
+
+      # --- Trivy Config Scan (Dockerfile, CI configs) ---
+      - name: Trivy — Config Scan (Dockerfile & CI)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: "config"
+          scan-ref: "."
+          format: "table"
+          exit-code: "0"
+          severity: "CRITICAL,HIGH,MEDIUM"
+          trivyignores: "backend/.trivyignore"
+
+      # --- Trivy SARIF para GitHub Security tab ---
+      - name: Trivy — SARIF Report
+        if: always()
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: "fs"
+          scan-ref: "backend"
+          format: "sarif"
+          output: "trivy-results.sarif"
+          severity: "CRITICAL,HIGH,MEDIUM"
+
+      - name: Upload Trivy SARIF to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: "trivy-results.sarif"
+          category: "trivy-fs"
+
+  # =========================================================================
+  # 6) DEPENDENCY REVIEW (Pull Requests only)
+  # =========================================================================
+  dependency-review:
+    name: 📦 Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          deny-licenses: GPL-3.0, AGPL-3.0
+          comment-summary-in-pr: always
+
+  # =========================================================================
+  # 7) BUILD, SCAN & SBOM
+  # =========================================================================
+  build-and-scan:
+    name: 🐳 Build & Scan Docker Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [lint, unit-tests, e2e-tests]
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+      created-tag: ${{ steps.tag.outputs.created_tag }}
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # --- Calcular tag de versão ---
+      - name: Calculate version tag
+        id: tag
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" && "${{ github.event.pull_request.merged }}" == "true" ]]; then
+            # Extrair tipo de mudança do corpo do PR
+            echo "${{ github.event.pull_request.body }}" > body.txt
+            change_type=""
+            if grep -q "\[x\] novo-marco" body.txt; then
+              change_type="novo-marco"
+            elif grep -q "\[x\] nova-feature-refactor" body.txt; then
+              change_type="nova-feature-refactor"
+            elif grep -q "\[x\] bug-fix" body.txt; then
+              change_type="bug-fix"
+            else
+              change_type="outros"
+            fi
+
+            # Obter última tag
+            tag=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null || echo "0.0.0")
+            if [[ -z "$tag" ]]; then tag="0.0.0"; fi
+
+            IFS='.' read -r major minor patch <<< "$tag"
+            case "$change_type" in
+              bug-fix)           patch=$((patch + 1));;
+              nova-feature-refactor) minor=$((minor + 1)); patch=0;;
+              novo-marco)        major=$((major + 1)); minor=0; patch=0;;
+              outros)            ;;
+            esac
+            created_tag="${major}.${minor}.${patch}"
+          else
+            # Para push ou workflow_dispatch, usar SHA curto
+            created_tag="dev-${GITHUB_SHA::7}"
+          fi
+
+          echo "created_tag=$created_tag" >> "$GITHUB_OUTPUT"
+          echo "change_type=${change_type:-none}" >> "$GITHUB_OUTPUT"
+          echo "📦 Tag: $created_tag"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        working-directory: .
+
+      # --- Docker Setup ---
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # --- Build Docker image ---
+      - name: Build Docker image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          file: backend/Dockerfile
+          push: false
+          load: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.created_tag }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.tag.outputs.created_tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # --- Trivy Image Scan ---
+      - name: Trivy — Docker Image Scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.created_tag }}"
+          format: "table"
+          exit-code: "1"
+          severity: "CRITICAL,HIGH"
+          ignore-unfixed: true
+          trivyignores: "backend/.trivyignore"
+
+      # --- Trivy Image SARIF ---
+      - name: Trivy — Image SARIF Report
+        if: always()
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.created_tag }}"
+          format: "sarif"
+          output: "trivy-image.sarif"
+          severity: "CRITICAL,HIGH,MEDIUM"
+
+      - name: Upload Image SARIF to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: "trivy-image.sarif"
+          category: "trivy-image"
+
+      # --- SBOM Generation (CycloneDX) ---
+      - name: Trivy — Generate SBOM (CycloneDX)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.created_tag }}"
+          format: "cyclonedx"
+          output: "sbom.cdx.json"
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cyclonedx
+          path: sbom.cdx.json
+          retention-days: 90
+
+  # =========================================================================
+  # 8) PUBLISH IMAGE + COSIGN SIGNING
+  # =========================================================================
+  publish-image:
+    name: 🚀 Publish & Sign Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [build-and-scan, security-scan]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    permissions:
+      contents: read
+      packages: write
+      id-token: write  # Required for Cosign keyless signing (Sigstore OIDC)
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # --- Docker Setup ---
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # --- Build & Push ---
+      - name: Build and Push Docker image
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          file: backend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-scan.outputs.created-tag }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ needs.build-and-scan.outputs.created-tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # --- Cosign Keyless Signing (Sigstore/Fulcio OIDC) ---
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign image with Cosign (keyless)
+        run: |
+          cosign sign --yes \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+
+  # =========================================================================
+  # 9) RELEASE CREATION
+  # =========================================================================
+  release-creation:
+    name: 📋 Create Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [build-and-scan, publish-image]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download SBOM
+        uses: actions/download-artifact@v4
+        with:
+          name: sbom-cyclonedx
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.build-and-scan.outputs.created-tag }}
+          name: Release ${{ needs.build-and-scan.outputs.created-tag }}
+          generate_release_notes: true
+          files: |
+            sbom.cdx.json
+          body: |
+            ## 🚀 Release ${{ needs.build-and-scan.outputs.created-tag }}
+
+            **Image**: `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-scan.outputs.created-tag }}`
+
+            ### Security
+            - ✅ Trivy vulnerability scan passed
+            - ✅ Image signed with Cosign (keyless/Sigstore)
+            - 📦 SBOM (CycloneDX) attached
+
+            ---
+            *Automatically generated from commit ${{ github.sha }}*
