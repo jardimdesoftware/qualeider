@@ -141,7 +141,7 @@ jobs:
           docker tag ghcr.io/${{ github.repository_owner }}/qualeider-frontend:$CREATED_TAG ghcr.io/${{ github.repository_owner }}/qualeider-frontend:latest
 
       - name: Trivy — Docker Image Scan
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: "ghcr.io/${{ github.repository_owner }}/qualeider-frontend:${{ env.CREATED_TAG }}"
           format: "table"

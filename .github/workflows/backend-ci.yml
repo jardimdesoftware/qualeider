@@ -288,7 +288,7 @@ jobs:
 
       # --- Trivy Filesystem Scan (dependencies + vulnerabilities) ---
       - name: Trivy — Filesystem Scan
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: "fs"
           scan-ref: "backend"
@@ -300,7 +300,7 @@ jobs:
 
       # --- Trivy Secrets Scan (API keys, tokens, passwords) ---
       - name: Trivy — Secrets Scan
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: "fs"
           scan-ref: "backend"
@@ -310,7 +310,7 @@ jobs:
 
       # --- Trivy Config Scan (Dockerfile, CI configs) ---
       - name: Trivy — Config Scan (Dockerfile & CI)
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: "config"
           scan-ref: "."
@@ -322,7 +322,7 @@ jobs:
       # --- Trivy SARIF para GitHub Security tab ---
       - name: Trivy — SARIF Report
         if: always()
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: "fs"
           scan-ref: "backend"
@@ -462,7 +462,7 @@ jobs:
 
       # --- Trivy Image Scan ---
       - name: Trivy — Docker Image Scan
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.created_tag }}"
           format: "table"
@@ -474,7 +474,7 @@ jobs:
       # --- Trivy Image SARIF ---
       - name: Trivy — Image SARIF Report
         if: always()
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.created_tag }}"
           format: "sarif"
@@ -491,7 +491,7 @@ jobs:
 
       # --- SBOM Generation (CycloneDX) ---
       - name: Trivy — Generate SBOM (CycloneDX)
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.created_tag }}"
           format: "cyclonedx"
