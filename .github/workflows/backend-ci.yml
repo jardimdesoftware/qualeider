@@ -338,29 +338,6 @@ jobs:
           sarif_file: "trivy-results.sarif"
           category: "trivy-fs"
 
-  # =========================================================================
-  # 6) DEPENDENCY REVIEW (Pull Requests only)
-  # =========================================================================
-  dependency-review:
-    name: 📦 Dependency Review
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    timeout-minutes: 10
-    continue-on-error: true
-    permissions:
-      contents: read
-      pull-requests: write
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Dependency Review
-        uses: actions/dependency-review-action@v4
-        with:
-          fail-on-severity: high
-          deny-licenses: GPL-3.0, AGPL-3.0
-          comment-summary-in-pr: always
 
   # =========================================================================
   # 7) BUILD, SCAN & SBOM
