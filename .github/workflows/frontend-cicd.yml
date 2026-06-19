@@ -140,21 +140,14 @@ jobs:
         run: |
           docker tag ghcr.io/${{ github.repository_owner }}/qualeider-frontend:$CREATED_TAG ghcr.io/${{ github.repository_owner }}/qualeider-frontend:latest
 
-      - name: Docker Login (Docker Hub)
-        uses: docker/login-action@v3.4.0
+      - name: Trivy — Docker Image Scan
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
-          username: ${{ secrets.GHCR_USER }}
-          password: ${{ secrets.DOCKERHUB_TOKEN  }}
-
-      - name: Install Docker Scout
-        run: |
-          curl -fsSL https://raw.githubusercontent.com/docker/scout-cli/main/install.sh -o install-scout.sh
-          sh install-scout.sh
-
-      - name: Scan image for critical vulnerabilities
-        run: |
-          docker scout cves --only-severity critical --exit-code ghcr.io/${{ github.repository_owner }}/qualeider-frontend:$CREATED_TAG
-          docker scout quickview ghcr.io/${{ github.repository_owner }}/qualeider-frontend:$CREATED_TAG
+          image-ref: "ghcr.io/${{ github.repository_owner }}/qualeider-frontend:${{ env.CREATED_TAG }}"
+          format: "table"
+          exit-code: "1"
+          severity: "CRITICAL,HIGH"
+          ignore-unfixed: true
 
       - name: Push Docker images (version and latest)
         run: |

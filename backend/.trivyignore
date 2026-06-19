@@ -1,0 +1,12 @@
+# =============================================================================
+# Trivy Ignore — Falsos Positivos Conhecidos
+# =============================================================================
+# Adicione CVEs que foram analisados e considerados não aplicáveis.
+# Formato: CVE-YYYY-XXXXX
+#
+# IMPORTANTE: Sempre documente o motivo da exclusão e a data da análise.
+# Revise este arquivo periodicamente (mínimo a cada 30 dias).
+#
+# Exemplo:
+# CVE-2023-12345  # Não aplicável: módulo não utilizado em produção (2024-01-15)
+# =============================================================================
