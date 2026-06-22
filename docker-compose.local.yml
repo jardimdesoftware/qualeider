@@ -1,0 +1,161 @@
+# =============================================================================
+# docker-compose.local.yml — Qualeider | Simulação Local de Produção
+# =============================================================================
+# Ambiente local avançado para simular a stack completa de produção.
+# Sobe TODOS os serviços em container (backend + frontend + banco + nginx),
+# ideal para validar configurações de proxy, roteamento e integração end-to-end
+# antes de fazer deploy real.
+#
+# Uso:
+#   1. Copie o .env.example: cp .env.example .env  (e preencha os valores)
+#   2. Suba tudo:
+#      docker compose -f docker-compose.local.yml up --build -d
+#   3. Acesse: http://localhost:8080
+#   4. API docs: http://localhost:8080/api-docs
+#
+# Diferença do docker-compose.dev.yml:
+#   - dev:   só infra (banco + redis), backend/frontend rodam no host
+#   - local: stack completa em container com nginx como reverse proxy
+#
+# Diferença do docker-compose.prod.yml:
+#   - local: faz build das imagens localmente (via Dockerfile)
+#   - prod:  usa imagens pré-publicadas do GHCR (sem build)
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:14-alpine
+    container_name: qualeider-postgres-local
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-qualeider}
+    volumes:
+      - pgdata_local:/var/lib/postgresql/data
+    networks:
+      - qualeider-local
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Redis — cache (ativo em NODE_ENV=production)
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: qualeider-redis-local
+    restart: unless-stopped
+    volumes:
+      - redis_data_local:/data
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-qualeider_redis}
+    networks:
+      - qualeider-local
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-qualeider_redis}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Backend — build local via Dockerfile
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: qualeider-backend-local
+    restart: on-failure
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-qualeider}?schema=public"
+      JWT_SECRET: ${JWT_SECRET:-local-dev-secret-change-me}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-24h}
+      PORT: 3000
+      NODE_ENV: production
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
+      SMTP_HOST: ${SMTP_HOST:-smtp.ethereal.email}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-noreply@qualeider.com}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-qualeider_redis}
+      REDIS_DB: 0
+    networks:
+      - qualeider-local
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ---------------------------------------------------------------------------
+  # Frontend — build local via Dockerfile
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: /api
+    container_name: qualeider-frontend-local
+    restart: on-failure
+    environment:
+      NEXT_PUBLIC_API_URL: /api
+    networks:
+      - qualeider-local
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 0"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ---------------------------------------------------------------------------
+  # Nginx — reverse proxy (simula produção)
+  # Frontend: http://localhost:8080
+  # API:      http://localhost:8080/api
+  # API Docs: http://localhost:8080/api-docs
+  # ---------------------------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    container_name: qualeider-nginx-local
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    networks:
+      - qualeider-local
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:80/ || exit 0"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  pgdata_local:
+    driver: local
+  redis_data_local:
+    driver: local
+
+networks:
+  qualeider-local:
+    driver: bridge

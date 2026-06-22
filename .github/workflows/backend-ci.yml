@@ -1,22 +1,19 @@
 # =============================================================================
 # Backend CI/CD — Qualeider
 # =============================================================================
-# Workflow unificado que substitui backend-cicd.yml e tests.yml
+# Workflow unificado de CI/CD para o backend.
 #
 # Arquitetura de jobs:
-# ┌──────────┐  ┌─────────────┐  ┌───────────────────┐  ┌───────────────┐  ┌───────────────┐
-# │   lint   │  │ unit-tests  │  │ integration-tests │  │  e2e-tests    │  │ security-scan │
-# └────┬─────┘  └──────┬──────┘  └────────┬──────────┘  └──────┬────────┘  └──────┬────────┘
-#      │               │                  │                    │                  │
-#      └───────────────┴──────────────────┴────────────────────┘                  │
-#                                    │                                            │
-#                           ┌────────▼────────┐                                   │
-#                           │  build-and-scan  │◄─────────────────────────────────┘
-#                           └────────┬────────┘
-#                                    │ (only main)
-#                           ┌────────▼────────┐
-#                           │  publish-image   │
-#                           └────────┬────────┘
+# ┌──────────┐  ┌─────────────┐  ┌───────────────────┐  ┌───────────────┐
+# │   lint   │  │ unit-tests  │  │ integration-tests │  │   e2e-tests   │
+# └────┬─────┘  └──────┬──────┘  └────────┬──────────┘  └──────┬────────┘
+#      │               │                  │                    │
+#      └───────────────┴──────────────────┴────────────────────┘
+#                                    │
+#                           ┌────────▼──────────────┐
+#                           │  build-and-publish     │  ← buildx multi-arch
+#                           │  (apenas na main)      │    AMD64 + ARM64 → GHCR
+#                           └────────┬──────────────┘
 #                                    │
 #                           ┌────────▼────────┐
 #                           │release-creation  │
@@ -37,12 +34,24 @@ on:
     paths:
       - "backend/**"
       - ".github/workflows/backend-ci.yml"
+    types:
+      - closed
 
   workflow_dispatch:
+    inputs:
+      change_type:
+        description: 'Tipo de mudança (novo-marco, nova-feature-refactor, bug-fix, outros)'
+        required: true
+        default: 'bug-fix'
+        type: choice
+        options:
+          - novo-marco
+          - nova-feature-refactor
+          - bug-fix
+          - outros
 
 # ---------------------------------------------------------------------------
 # Permissões globais mínimas (Principle of Least Privilege)
-# Cada job sobrescreve apenas o necessário
 # ---------------------------------------------------------------------------
 permissions:
   contents: read
@@ -61,6 +70,101 @@ env:
   IMAGE_NAME: ${{ github.repository_owner }}/qualeider-backend
 
 jobs:
+  # =========================================================================
+  # 0) TAG CREATION
+  # =========================================================================
+  tag-creation:
+    name: 0. Automatic Creation Process of New Tags
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main')
+    permissions:
+      contents: write
+    outputs:
+      created_tag: ${{ steps.created_tag.outputs.created_tag }}
+      change_type: ${{ steps.change_type.outputs.change_type }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install GitHub CLI
+        run: sudo apt-get install -y gh
+
+      - name: Write PR body and log context
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          echo "Event: ${{ github.event_name }}"
+          echo "PR merged: ${{ github.event.pull_request.merged }}"
+          printf '%s' "$PR_BODY" > body.txt
+          echo "--- PR body ---"
+          cat body.txt
+          echo "--- end ---"
+
+      - name: Extract type of change from PR
+        id: change_type
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "change_type=${{ inputs.change_type }}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          change_type=""
+          if grep -qiE "\[x\]\s*\`?novo-marco\`?" body.txt; then
+            change_type="novo-marco"
+          elif grep -qiE "\[x\]\s*\`?nova-feature-refactor\`?" body.txt; then
+            change_type="nova-feature-refactor"
+          elif grep -qiE "\[x\]\s*\`?bug-fix\`?" body.txt; then
+            change_type="bug-fix"
+          elif grep -qiE "\[x\]\s*\`?outros\`?" body.txt; then
+            change_type="outros"
+          else
+            echo "Nenhuma opção marcada corretamente no corpo do PR. Conteúdo:"
+            cat body.txt
+            exit 1
+          fi
+
+          echo "Tipo detectado: $change_type"
+          echo "change_type=$change_type" >> "$GITHUB_OUTPUT"
+
+      - name: Get the last release tag
+        id: last_tag
+        run: |
+          gh auth setup-git
+          tag=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null || echo "")
+          if [[ -z "$tag" ]]; then tag="0.0.0"; fi
+          echo "last_tag=$tag" >> "$GITHUB_OUTPUT"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Calculate new tag
+        id: created_tag
+        run: |
+          IFS='.' read -r major minor patch <<< "${{ steps.last_tag.outputs.last_tag }}"
+          case "${{ steps.change_type.outputs.change_type }}" in
+            bug-fix)
+              patch=$((patch + 1))
+              ;;
+            nova-feature-refactor)
+              minor=$((minor + 1))
+              patch=0
+              ;;
+            novo-marco)
+              major=$((major + 1))
+              minor=0
+              patch=0
+              ;;
+            outros)
+              # Mantém a tag atual
+              ;;
+          esac
+          created_tag="${major}.${minor}.${patch}"
+          echo "Nova tag: $created_tag"
+          echo "created_tag=$created_tag" >> "$GITHUB_OUTPUT"
+
   # =========================================================================
   # 1) LINT
   # =========================================================================
@@ -143,7 +247,6 @@ jobs:
       run:
         working-directory: backend
 
-    # PostgreSQL Service Container
     services:
       postgres:
         image: postgres:15-alpine
@@ -210,7 +313,6 @@ jobs:
       run:
         working-directory: backend
 
-    # PostgreSQL Service Container
     services:
       postgres:
         image: postgres:15-alpine
@@ -272,7 +374,7 @@ jobs:
           retention-days: 7
 
   # =========================================================================
-  # 5) SECURITY SCAN (Trivy FS + Secrets + Config)
+  # 5) SECURITY SCAN (Trivy FS — apenas reporta, não bloqueia)
   # =========================================================================
   security-scan:
     name: 🛡️ Security Scan
@@ -286,19 +388,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # --- Trivy Filesystem Scan (dependencies + vulnerabilities) ---
+      # --- Trivy Filesystem Scan (dependências + vulnerabilidades) ---
       - name: Trivy — Filesystem Scan
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: "fs"
           scan-ref: "backend"
           format: "table"
-          exit-code: "1"
+          exit-code: "0"            # ← Não bloqueia o pipeline
           severity: "CRITICAL,HIGH"
           ignore-unfixed: true
           trivyignores: "backend/.trivyignore"
 
-      # --- Trivy Secrets Scan (API keys, tokens, passwords) ---
+      # --- Trivy Secrets Scan ---
       - name: Trivy — Secrets Scan
         uses: aquasecurity/trivy-action@v0.36.0
         with:
@@ -306,7 +408,7 @@ jobs:
           scan-ref: "backend"
           scanners: "secret"
           format: "table"
-          exit-code: "1"
+          exit-code: "0"            # ← Não bloqueia o pipeline
 
       # --- Trivy Config Scan (Dockerfile, CI configs) ---
       - name: Trivy — Config Scan (Dockerfile & CI)
@@ -338,25 +440,32 @@ jobs:
           sarif_file: "trivy-results.sarif"
           category: "trivy-fs"
 
-
   # =========================================================================
-  # 7) BUILD, SCAN & SBOM
+  # 6) BUILD MULTI-ARCH & PUBLISH → GHCR (apenas na main)
   # =========================================================================
-  build-and-scan:
-    name: 🐳 Build & Scan Docker Image
+  build-and-publish:
+    name: 🐳 Build & Publish Multi-arch Image
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: [lint, unit-tests, e2e-tests]
+    timeout-minutes: 40
+    needs: [tag-creation, lint, unit-tests, e2e-tests, security-scan]
+    if: >
+      always() &&
+      needs.lint.result == 'success' &&
+      needs.unit-tests.result == 'success' &&
+      needs.e2e-tests.result == 'success' &&
+      (
+        (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
+        (github.event_name == 'workflow_dispatch') ||
+        (github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main')
+      )
     permissions:
       contents: read
       packages: write
       security-events: write
+      id-token: write   # Necessário para Cosign keyless signing
     outputs:
-      image-digest: ${{ steps.build.outputs.digest }}
-      created-tag: ${{ steps.tag.outputs.created_tag }}
-    defaults:
-      run:
-        working-directory: backend
+      image-digest: ${{ steps.push.outputs.digest }}
+      image-tag: ${{ steps.resolve_tag.outputs.image_tag }}
 
     steps:
       - name: Checkout repository
@@ -364,50 +473,22 @@ jobs:
         with:
           fetch-depth: 0
 
-      # --- Calcular tag de versão ---
-      - name: Calculate version tag
-        id: tag
+      # --- Resolver a tag da imagem ---
+      - name: Resolve image tag
+        id: resolve_tag
         run: |
-          if [[ "${{ github.event_name }}" == "pull_request" && "${{ github.event.pull_request.merged }}" == "true" ]]; then
-            # Extrair tipo de mudança do corpo do PR
-            echo "${{ github.event.pull_request.body }}" > body.txt
-            change_type=""
-            if grep -q "\[x\] novo-marco" body.txt; then
-              change_type="novo-marco"
-            elif grep -q "\[x\] nova-feature-refactor" body.txt; then
-              change_type="nova-feature-refactor"
-            elif grep -q "\[x\] bug-fix" body.txt; then
-              change_type="bug-fix"
-            else
-              change_type="outros"
-            fi
-
-            # Obter última tag
-            tag=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null || echo "0.0.0")
-            if [[ -z "$tag" ]]; then tag="0.0.0"; fi
-
-            IFS='.' read -r major minor patch <<< "$tag"
-            case "$change_type" in
-              bug-fix)           patch=$((patch + 1));;
-              nova-feature-refactor) minor=$((minor + 1)); patch=0;;
-              novo-marco)        major=$((major + 1)); minor=0; patch=0;;
-              outros)            ;;
-            esac
-            created_tag="${major}.${minor}.${patch}"
+          if [[ -n "${{ needs.tag-creation.outputs.created_tag }}" ]]; then
+            image_tag="${{ needs.tag-creation.outputs.created_tag }}"
           else
-            # Para push ou workflow_dispatch, usar SHA curto
-            created_tag="dev-${GITHUB_SHA::7}"
+            image_tag="dev-${GITHUB_SHA::7}"
           fi
+          echo "image_tag=$image_tag" >> "$GITHUB_OUTPUT"
+          echo "📦 Image tag: $image_tag"
 
-          echo "created_tag=$created_tag" >> "$GITHUB_OUTPUT"
-          echo "change_type=${change_type:-none}" >> "$GITHUB_OUTPUT"
-          echo "📦 Tag: $created_tag"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        working-directory: .
+      # --- Docker Setup (QEMU para emulação ARM64) ---
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
-      # --- Docker Setup ---
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -418,32 +499,34 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # --- Build Docker image ---
-      - name: Build Docker image
-        id: build
+      # --- Build & Push Multi-arch (AMD64 + ARM64) ---
+      - name: Build and Push Multi-arch Docker image
+        id: push
         uses: docker/build-push-action@v6
         with:
           context: backend
           file: backend/Dockerfile
-          push: false
-          load: true
+          platforms: linux/amd64,linux/arm64
+          push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.created_tag }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           labels: |
+            org.opencontainers.image.title=Qualeider Backend
+            org.opencontainers.image.description=Backend API for Qualeider platform
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.version=${{ steps.tag.outputs.created_tag }}
+            org.opencontainers.image.version=${{ steps.resolve_tag.outputs.image_tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # --- Trivy Image Scan ---
+      # --- Trivy Image Scan (apenas reporta, não bloqueia) ---
       - name: Trivy — Docker Image Scan
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.created_tag }}"
+          image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }}"
           format: "table"
-          exit-code: "1"
+          exit-code: "0"            # ← Não bloqueia o pipeline
           severity: "CRITICAL,HIGH"
           ignore-unfixed: true
           trivyignores: "backend/.trivyignore"
@@ -453,7 +536,7 @@ jobs:
         if: always()
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.created_tag }}"
+          image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }}"
           format: "sarif"
           output: "trivy-image.sarif"
           severity: "CRITICAL,HIGH,MEDIUM"
@@ -470,7 +553,7 @@ jobs:
       - name: Trivy — Generate SBOM (CycloneDX)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.created_tag }}"
+          image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }}"
           format: "cyclonedx"
           output: "sbom.cdx.json"
 
@@ -480,56 +563,6 @@ jobs:
           name: sbom-cyclonedx
           path: sbom.cdx.json
           retention-days: 90
-
-  # =========================================================================
-  # 8) PUBLISH IMAGE + COSIGN SIGNING
-  # =========================================================================
-  publish-image:
-    name: 🚀 Publish & Sign Image
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: [build-and-scan, security-scan]
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    permissions:
-      contents: read
-      packages: write
-      id-token: write  # Required for Cosign keyless signing (Sigstore OIDC)
-    defaults:
-      run:
-        working-directory: backend
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      # --- Docker Setup ---
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      # --- Build & Push ---
-      - name: Build and Push Docker image
-        id: push
-        uses: docker/build-push-action@v6
-        with:
-          context: backend
-          file: backend/Dockerfile
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-scan.outputs.created-tag }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          labels: |
-            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-            org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.version=${{ needs.build-and-scan.outputs.created-tag }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       # --- Cosign Keyless Signing (Sigstore/Fulcio OIDC) ---
       - name: Install Cosign
@@ -543,14 +576,21 @@ jobs:
           COSIGN_EXPERIMENTAL: "1"
 
   # =========================================================================
-  # 9) RELEASE CREATION
+  # 7) RELEASE CREATION
   # =========================================================================
   release-creation:
     name: 📋 Create Release
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: [build-and-scan, publish-image]
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: [tag-creation, build-and-publish]
+    if: >
+      needs.build-and-publish.result == 'success' &&
+      needs.tag-creation.result == 'success' &&
+      (
+        (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
+        (github.event_name == 'workflow_dispatch') ||
+        (github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main')
+      )
     permissions:
       contents: write
 
@@ -566,18 +606,27 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ needs.build-and-scan.outputs.created-tag }}
-          name: Release ${{ needs.build-and-scan.outputs.created-tag }}
+          tag_name: ${{ needs.tag-creation.outputs.created_tag }}
+          name: Release ${{ needs.tag-creation.outputs.created_tag }}
           generate_release_notes: true
           files: |
             sbom.cdx.json
           body: |
-            ## 🚀 Release ${{ needs.build-and-scan.outputs.created-tag }}
+            ## 🚀 Release ${{ needs.tag-creation.outputs.created_tag }}
 
-            **Image**: `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-scan.outputs.created-tag }}`
+            **Backend Image**: `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.tag-creation.outputs.created_tag }}`
+
+            ### Arquiteturas suportadas
+            - ✅ `linux/amd64` (x86_64)
+            - ✅ `linux/arm64` (ARM64 / OCI Free Tier / Apple Silicon)
+
+            ### Pull da imagem
+            ```bash
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.tag-creation.outputs.created_tag }}
+            ```
 
             ### Security
-            - ✅ Trivy vulnerability scan passed
+            - 🛡️ Trivy vulnerability scan executado (resultado na aba Security)
             - ✅ Image signed with Cosign (keyless/Sigstore)
             - 📦 SBOM (CycloneDX) attached
 

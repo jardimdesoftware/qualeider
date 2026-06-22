@@ -1,0 +1,76 @@
+# =============================================================================
+# docker-compose.dev.yml — Qualeider | Desenvolvimento Local
+# =============================================================================
+# Ambiente de desenvolvimento local.
+# Sobe apenas os serviços essenciais: banco de dados e Redis.
+# O backend e o frontend rodam diretamente no host (npm run start:dev / npm run dev)
+# para aproveitar hot-reload, breakpoints e logs nativos do terminal.
+#
+# Uso:
+#   docker compose -f docker-compose.dev.yml up -d
+#
+# Pré-requisitos:
+#   1. Copie o .env.example: cp .env.example .env
+#   2. Copie o backend env: cp backend/.env.example backend/.env
+#   3. Copie o frontend env: cp frontend/.env.example frontend/.env.local
+#   4. Suba os serviços de infra:
+#      docker compose -f docker-compose.dev.yml up -d
+#   5. Rode o backend: cd backend && npm run start:dev
+#   6. Rode o frontend: cd frontend && npm run dev
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL — banco de dados principal
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:14-alpine
+    container_name: qualeider-postgres-dev
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-qualeider}
+    volumes:
+      - pgdata_dev:/var/lib/postgresql/data
+    networks:
+      - qualeider-dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Redis — cache (opcional em dev, mas útil para testar comportamento prod)
+  # O backend usa in-memory automaticamente se NODE_ENV != production,
+  # mas o container fica disponível se quiser testar Redis manualmente.
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: qualeider-redis-dev
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data_dev:/data
+    command: redis-server --appendonly yes
+    networks:
+      - qualeider-dev
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata_dev:
+    driver: local
+  redis_data_dev:
+    driver: local
+
+networks:
+  qualeider-dev:
+    driver: bridge
