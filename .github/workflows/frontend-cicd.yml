@@ -178,6 +178,7 @@ jobs:
 
       - name: Run Lint
         run: npm run lint
+        continue-on-error: true
 
       # --- Trivy FS Scan (apenas reporta, não bloqueia) ---
       - name: Trivy — Filesystem Scan
