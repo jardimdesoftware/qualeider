@@ -35,3 +35,5 @@ export function useUpdateUser() {
       queryClient.invalidateQueries({ queryKey: USER_KEYS.all });
       queryClient.invalidateQueries({ queryKey: USER_KEYS.byId(variables.id) });
     },
+  });
+}

@@ -43,4 +43,8 @@ export const userService = {
    * Cria um funcionário internamente (Admin → Vaqueiro ou Admin adicional).
    * Chama o endpoint autenticado POST /users/internal.
    */
-  createInternal: async (use
+  createInternal: async (userData: CreateUserDto) => {
+    const { data } = await apiBase.post("/users/internal", userData);
+    return data;
+  },
+};
