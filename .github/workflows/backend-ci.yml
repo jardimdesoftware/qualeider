@@ -454,10 +454,10 @@ jobs:
           category: "trivy-fs"
 
   # =========================================================================
-  # 6) BUILD MULTI-ARCH & PUBLISH → GHCR (apenas na main)
+  # 1) BACKEND BUILD MULTI-ARCH & PUBLISH → GHCR (apenas na main)
   # =========================================================================
   build-and-publish:
-    name: 🐳 Build & Publish Multi-arch Image
+    name: 1. Backend CI/CD
     runs-on: ubuntu-latest
     timeout-minutes: 40
     needs: [tag-creation, lint, unit-tests, e2e-tests, security-scan]
@@ -589,10 +589,10 @@ jobs:
           COSIGN_EXPERIMENTAL: "1"
 
   # =========================================================================
-  # 7) RELEASE CREATION
+  # 3) RELEASE CREATION
   # =========================================================================
   release-creation:
-    name: 📋 Create Release
+    name: 3. Automatic Creation Process of New Releases
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [tag-creation, build-and-publish]
