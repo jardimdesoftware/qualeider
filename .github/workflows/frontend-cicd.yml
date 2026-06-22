@@ -29,6 +29,17 @@ on:
       - ".github/workflows/frontend-cicd.yml"
 
   workflow_dispatch:
+    inputs:
+      change_type:
+        description: 'Tipo de mudança (novo-marco, nova-feature-refactor, bug-fix, outros)'
+        required: true
+        default: 'bug-fix'
+        type: choice
+        options:
+          - novo-marco
+          - nova-feature-refactor
+          - bug-fix
+          - outros
 
 # ---------------------------------------------------------------------------
 # Permissões globais mínimas
@@ -81,8 +92,12 @@ jobs:
 
       - name: Extract type of change from PR
         id: change_type
-        if: github.event.pull_request.merged == true
         run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "change_type=${{ inputs.change_type }}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           change_type=""
           if grep -qiE "\[x\]\s*\`?novo-marco\`?" body.txt; then
             change_type="novo-marco"
@@ -114,7 +129,20 @@ jobs:
       - name: Calculate new tag
         id: created_tag
         run: |
-          IFS='.' read -r major minor patch <<< "${{ steps.last_tag.outputs.last_tag }}"
+          last_tag_raw="${{ steps.last_tag.outputs.last_tag }}"
+          # Remove o prefixo 'v' se existir para evitar erros de aritmética no bash
+          last_tag_clean="${last_tag_raw#v}"
+          if [[ -z "$last_tag_clean" || "$last_tag_clean" == "0.0.0" ]]; then
+            last_tag_clean="0.0.0"
+          fi
+
+          IFS='.' read -r major minor patch <<< "$last_tag_clean"
+
+          # Garantir que os componentes extraídos sejam numéricos
+          if ! [[ "$major" =~ ^[0-9]+$ ]]; then major=0; fi
+          if ! [[ "$minor" =~ ^[0-9]+$ ]]; then minor=0; fi
+          if ! [[ "$patch" =~ ^[0-9]+$ ]]; then patch=0; fi
+
           case "${{ steps.change_type.outputs.change_type }}" in
             bug-fix)
               patch=$((patch + 1))
@@ -133,11 +161,7 @@ jobs:
               ;;
           esac
 
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            created_tag="dev-${GITHUB_SHA::7}"
-          else
-            created_tag="${major}.${minor}.${patch}"
-          fi
+          created_tag="v${major}.${minor}.${patch}"
 
           echo "Nova tag: $created_tag"
           echo "created_tag=$created_tag" >> "$GITHUB_OUTPUT"
