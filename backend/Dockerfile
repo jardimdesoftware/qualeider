@@ -1,5 +1,5 @@
 # =============================================================================
-# Dockerfile — Backend Qualeider (Hardened)
+# Dockerfile — Backend Qualeider (Hardened, Multi-arch)
 # =============================================================================
 # Multi-stage build com boas práticas de segurança:
 # - Versões de imagem fixadas (sem :latest)
@@ -8,12 +8,17 @@
 # - Mínimo de pacotes instalados
 # - HEALTHCHECK embutido
 # - Labels OCI padronizados
+# - Suporte multi-arch: AMD64 + ARM64 (via buildx)
 # =============================================================================
 
 # ---------------------------------------------------------------------------
 # Stage 1: Builder
 # ---------------------------------------------------------------------------
 FROM node:20.18-alpine3.21 AS builder
+
+# Argumentos de build para multi-arch (informativo)
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
 
 WORKDIR /usr/appBackend
 
@@ -40,9 +45,8 @@ RUN npm run build
 # ---------------------------------------------------------------------------
 FROM node:20.18-alpine3.21 AS production
 
-# Instalar dumb-init (init process correto para PID 1) e curl para healthcheck
-# Em uma única camada para manter imagem mínima
-RUN apk add --no-cache dumb-init curl && \
+# Instalar dumb-init (init process correto para PID 1) e wget para healthcheck
+RUN apk add --no-cache dumb-init wget && \
     rm -rf /var/cache/apk/*
 
 # Criar usuário não-root
@@ -72,12 +76,12 @@ COPY --from=builder --chown=appuser:appgroup /usr/appBackend/dist ./dist
 # Mudar para usuário não-root
 USER appuser
 
-# Expor porta (documentação)
-EXPOSE 8080
+# Expor porta da aplicação
+EXPOSE 3000
 
 # Healthcheck embutido — verifica se a API responde
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:8080/api/health || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
 
 # Labels OCI padronizados
 LABEL org.opencontainers.image.title="Qualeider Backend" \

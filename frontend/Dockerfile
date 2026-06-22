@@ -1,49 +1,88 @@
-# 1. Install dependencies only when needed
-FROM node:20-alpine AS deps
+# =============================================================================
+# Dockerfile — Frontend Qualeider (Multi-arch)
+# =============================================================================
+# Multi-stage build para Next.js com suporte a AMD64 + ARM64 (via buildx)
+# - Versões de imagem fixadas (node:20.18-alpine3.21)
+# - Usuário não-root
+# - Build standalone do Next.js
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Stage 1: Instalar dependências
+# ---------------------------------------------------------------------------
+FROM node:20.18-alpine3.21 AS deps
+
+# Argumentos de build para multi-arch (informativo)
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+
 WORKDIR /usr/appFrontend
 
-# Copy package.json and lock file
+# Copiar arquivos de dependência
 COPY package.json package-lock.json ./
 
-# Install dependencies
+# Instalar dependências
 RUN npm ci
 
-# 2. Rebuild the source code only when needed
-FROM node:20-alpine AS builder
+# ---------------------------------------------------------------------------
+# Stage 2: Build da aplicação
+# ---------------------------------------------------------------------------
+FROM node:20.18-alpine3.21 AS builder
+
 WORKDIR /usr/appFrontend
 
-# Copy dependencies from the 'deps' stage
+# Copiar dependências do stage anterior
 COPY --from=deps /usr/appFrontend/node_modules ./node_modules
-# Copy the rest of the source code
+# Copiar o restante do código-fonte
 COPY . .
 
-# Set build-time arguments
+# Argumentos de build em tempo de compilação
 ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_APP_VERSION
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_PUBLIC_APP_VERSION=${NEXT_PUBLIC_APP_VERSION}
 
-# Build the Next.js application
+# Build da aplicação Next.js
 RUN npm run build
 
-# 3. Production image, copy all the files and run next
-FROM node:20-alpine AS runner
+# ---------------------------------------------------------------------------
+# Stage 3: Imagem de produção
+# ---------------------------------------------------------------------------
+FROM node:20.18-alpine3.21 AS runner
+
 WORKDIR /usr/appFrontend
 
 ENV NODE_ENV=production
 
-# Necessário para o healthcheck (docker-compose usa wget)
-RUN apk add --no-cache wget
+# Instalar wget para o healthcheck
+RUN apk add --no-cache wget && \
+    rm -rf /var/cache/apk/*
 
-# Instalar wget para o healthcheck do Docker
-RUN apk add --no-cache wget
+# Criar usuário não-root
+RUN addgroup -g 1001 -S appgroup && \
+    adduser -u 1001 -S appuser -G appgroup
 
-# Copy the standalone Next.js server
-COPY --from=builder /usr/appFrontend/.next/standalone ./
-# Copy the static assets
-COPY --from=builder /usr/appFrontend/.next/static ./.next/static
-# Copy the public assets
-COPY --from=builder /usr/appFrontend/public ./public
+# Copiar servidor Next.js standalone
+COPY --from=builder --chown=appuser:appgroup /usr/appFrontend/.next/standalone ./
+# Copiar assets estáticos
+COPY --from=builder --chown=appuser:appgroup /usr/appFrontend/.next/static ./.next/static
+# Copiar arquivos públicos
+COPY --from=builder --chown=appuser:appgroup /usr/appFrontend/public ./public
+
+# Mudar para usuário não-root
+USER appuser
 
 EXPOSE 3000
 
-# Run the standalone server
+# Healthcheck embutido
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1
+
+# Labels OCI padronizados
+LABEL org.opencontainers.image.title="Qualeider Frontend" \
+      org.opencontainers.image.description="Frontend Next.js for Qualeider platform" \
+      org.opencontainers.image.vendor="Qualeider" \
+      org.opencontainers.image.licenses="UNLICENSED"
+
+# Executar o servidor standalone
 CMD ["node", "server.js"]
