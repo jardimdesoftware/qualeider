@@ -24,6 +24,9 @@ import {
 } from '@nestjs/swagger';
 import { DailyCollectionCriteria } from '@/domain/criteria/daily-collection.criteria';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
+import { GetUser } from '@/common/decorators/get-user.decorator';
+import { UserRole } from '@/domain/enums/enums';
+import { MAX_LIMIT } from '@/domain/common/pagination.interface';
 
 @ApiTags('Daily Collections')
 @Controller('daily-collections')
@@ -111,8 +114,9 @@ export class DailyCollectionsController {
   }
 
   @ApiOperation({
-    summary: 'Buscar todos os formulários de um usuário pelo ID',
+    summary: 'Buscar formulários de um usuário pelo ID (ou de toda a associação, se o solicitante for ADMIN)',
   })
+  @ApiBearerAuth()
   @ApiParam({ name: 'userId', description: 'ID do usuário', type: Number })
   @ApiResponse({
     status: 200,
@@ -120,9 +124,24 @@ export class DailyCollectionsController {
   })
   @Get('user/:userId')
   @ResponseMessage('Formulários do usuário listados com sucesso')
-  async findAllByUserId(@Param('userId', ParseIntPipe) userId: number) {
+  async findAllByUserId(
+    @Param('userId', ParseIntPipe) userId: number,
+    @GetUser('role') role?: UserRole,
+    @GetUser('associationId') associationId?: number | null,
+  ) {
+    if (role === UserRole.ADMIN) {
+      // Se o admin pertence a uma associacao (cooperativa), restringe aos
+      // produtores dessa associacao. Caso contrario (cenario padrao atual,
+      // sem cooperativa), o admin enxerga as coletas de todos os produtores
+      // cadastrados no sistema - assim como ja ocorre em "Gerenciar Usuarios".
+      if (associationId) {
+        return this.dailyCollectionsService.findAll({ associationId, limit: MAX_LIMIT });
+      }
+      return this.dailyCollectionsService.findAll({ limit: MAX_LIMIT });
+    }
     return this.dailyCollectionsService.findAll({ userId });
   }
+
   @ApiOperation({ summary: 'Buscar historico de coletas de um animal especifico' })
   @ApiParam({ name: 'animalId', description: 'ID do animal', type: Number })
   @ApiResponse({ status: 200, description: 'Historico de coletas do animal' })
