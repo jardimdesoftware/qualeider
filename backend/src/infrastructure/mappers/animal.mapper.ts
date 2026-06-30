@@ -11,6 +11,11 @@ export class AnimalMapper {
             name: raw.name ?? null,
             animalType: raw.animalType as AnimalType ?? null,
             animalSpeciesId: raw.animalSpeciesId ?? null,
+            animalSpecies: raw.animalSpecies ? {
+                id: raw.animalSpecies.id,
+                name: raw.animalSpecies.name,
+                description: raw.animalSpecies.description ?? null,
+            } : null,
             breed: raw.breed ?? null,
             breedId: raw.breedId ?? null,
             age: raw.age,

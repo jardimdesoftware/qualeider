@@ -7,6 +7,8 @@ import { PageHeader } from "@/components/dashboard";
 import { Button, EmptyState, ErrorModal, ConfirmationModal } from "@/components/ui";
 import InputField from "@/components/ui/input-field";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
+import { useRoleGuard } from "@/hooks/useRoleGuard";
+import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import {
   useBreeds,
   useCreateBreed,
@@ -160,6 +162,7 @@ function BreedModal({
 
 export default function BreedsPage() {
   useAuthGuard("user");
+  const { isChecking } = useRoleGuard(["ADMIN"]);
 
   const { data: breeds = [], isLoading, isError } = useBreeds();
   const deleteBreed = useDeleteBreed();
@@ -221,6 +224,8 @@ export default function BreedsPage() {
     }
   };
 
+  if (isChecking) return <DashboardLoading />;
+
   return (
     <>
       <DashboardLayout>
@@ -267,62 +272,64 @@ export default function BreedsPage() {
           {/* Tabela */}
           {!isLoading && !isError && breeds.length > 0 && (
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-[#1e3a29] text-white">
-                    <th className="px-6 py-4 text-left font-semibold">#</th>
-                    <th className="px-6 py-4 text-left font-semibold">Nome</th>
-                    <th className="px-6 py-4 text-left font-semibold hidden md:table-cell">
-                      Descrição
-                    </th>
-                    <th className="px-6 py-4 text-right font-semibold">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {breeds.map((breed, index) => (
-                    <tr
-                      key={breed.id}
-                      className="hover:bg-slate-50 transition-colors"
-                    >
-                      <td className="px-6 py-4 text-slate-400 font-mono text-xs">
-                        {index + 1}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="font-semibold text-[#1e3a29]">
-                          {breed.name}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-slate-500 hidden md:table-cell max-w-xs">
-                        <span className="truncate block">
-                          {breed.description || (
-                            <span className="text-slate-300 italic">
-                              Sem descrição
-                            </span>
-                          )}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => openEdit(breed)}
-                            className="p-2 rounded-lg text-slate-500 hover:text-[#1e3a29] hover:bg-slate-100 transition-colors"
-                            title="Editar"
-                          >
-                            <Pencil size={16} />
-                          </button>
-                          <button
-                            onClick={() => setConfirmDelete(breed)}
-                            className="p-2 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors"
-                            title="Excluir"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-[#1e3a29] text-white">
+                      <th className="px-6 py-4 text-left font-semibold">#</th>
+                      <th className="px-6 py-4 text-left font-semibold">Nome</th>
+                      <th className="px-6 py-4 text-left font-semibold hidden md:table-cell">
+                        Descrição
+                      </th>
+                      <th className="px-6 py-4 text-right font-semibold">Ações</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {breeds.map((breed, index) => (
+                      <tr
+                        key={breed.id}
+                        className="hover:bg-slate-50 transition-colors"
+                      >
+                        <td className="px-6 py-4 text-slate-400 font-mono text-xs">
+                          {index + 1}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="font-semibold text-[#1e3a29]">
+                            {breed.name}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-slate-500 hidden md:table-cell max-w-xs">
+                          <span className="truncate block">
+                            {breed.description || (
+                              <span className="text-slate-300 italic">
+                                Sem descrição
+                              </span>
+                            )}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => openEdit(breed)}
+                              className="p-2 rounded-lg text-slate-500 hover:text-[#1e3a29] hover:bg-slate-100 transition-colors"
+                              title="Editar"
+                            >
+                              <Pencil size={16} />
+                            </button>
+                            <button
+                              onClick={() => setConfirmDelete(breed)}
+                              className="p-2 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+                              title="Excluir"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
               <div className="px-6 py-3 border-t border-slate-100 bg-slate-50 text-xs text-slate-400">
                 {breeds.length} {breeds.length === 1 ? "raça cadastrada" : "raças cadastradas"}

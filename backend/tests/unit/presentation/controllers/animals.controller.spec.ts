@@ -6,6 +6,8 @@ import { UpdateAnimalDto } from '@/application/dtos/animals/update-animal.dto';
 import { createAnimal } from '../../../factories/animal.factory';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 import { BusinessException } from '@/common/exceptions/business.exception';
+import { UserRole } from '@/domain/enums/enums';
+import { MAX_LIMIT } from '@/domain/common/pagination.interface';
 
 describe('AnimalsController', () => {
   let controller: AnimalsController;
@@ -167,13 +169,36 @@ describe('AnimalsController', () => {
   });
 
   describe('findAllByUserId', () => {
-      it('deve retornar lista de animais do usuário', async () => {
+      it('deve retornar lista de animais do usuário (vaqueiro)', async () => {
           const animals = [createAnimal({ id: 1, userId: 5 })];
           mockAnimalsService.findAll.mockResolvedValue(animals);
 
           const result = await controller.findAllByUserId(5);
 
           expect(animalsService.findAll).toHaveBeenCalledWith({ userId: 5 });
+          expect(result).toEqual(animals);
+      });
+
+      it('deve retornar animais de todos os produtores quando solicitante for ADMIN sem associacao', async () => {
+          const animals = [
+            createAnimal({ id: 1, userId: 1 }),
+            createAnimal({ id: 2, userId: 2 }),
+          ];
+          mockAnimalsService.findAll.mockResolvedValue(animals);
+
+          const result = await controller.findAllByUserId(1, UserRole.ADMIN, null);
+
+          expect(animalsService.findAll).toHaveBeenCalledWith({ limit: MAX_LIMIT });
+          expect(result).toEqual(animals);
+      });
+
+      it('deve restringir por associacao quando ADMIN pertence a uma associacao (cooperativa)', async () => {
+          const animals = [createAnimal({ id: 1, userId: 2 })];
+          mockAnimalsService.findAll.mockResolvedValue(animals);
+
+          const result = await controller.findAllByUserId(1, UserRole.ADMIN, 10);
+
+          expect(animalsService.findAll).toHaveBeenCalledWith({ associationId: 10, limit: MAX_LIMIT });
           expect(result).toEqual(animals);
       });
   });
