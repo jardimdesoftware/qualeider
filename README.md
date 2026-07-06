@@ -84,6 +84,16 @@ cp frontend/.env.example frontend/.env.local
 > outro dispositivo (VM, celular na mesma rede, etc.), troque `localhost` pelo IP
 > da máquina que roda o backend, ex.: `http://192.168.10.85:3000/api`.
 
+> **`backend/.env` → `CORS_ORIGINS`**: o backend só aceita requisições cujo `Origin`
+> esteja exatamente nesta lista (separada por vírgula, sem `*`). O padrão
+> (`http://localhost:3001,http://127.0.0.1:3001`) cobre o acesso pelo mesmo host.
+> Se você abre o frontend a partir de outra máquina/VM (ex.:
+> `http://192.168.10.85:3001`), adicione esse mesmo IP:porta à lista —
+> `CORS_ORIGINS=http://localhost:3001,http://127.0.0.1:3001,http://192.168.10.85:3001`
+> — senão o navegador bloqueia o preflight/OPTIONS antes mesmo de chamar a API.
+> **Nunca use `CORS_ORIGINS=*` em produção**: a API usa `credentials: true`
+> (JWT/cookies), e liberar qualquer origem nesse modo é inseguro.
+
 ### 3. Suba a infra (banco + redis)
 
 ```bash
