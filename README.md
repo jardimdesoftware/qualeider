@@ -77,6 +77,13 @@ cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env.local
 ```
 
+> **`frontend/.env.local` → `NEXT_PUBLIC_API_URL`**: o backend em dev roda na porta
+> **3000** (não 8080) com todas as rotas sob o prefixo **`/api`**. O valor padrão do
+> `frontend/.env.example` (`http://localhost:3000/api`) já cobre o fluxo abaixo,
+> onde backend e frontend rodam na mesma máquina. Se você acessa o frontend por
+> outro dispositivo (VM, celular na mesma rede, etc.), troque `localhost` pelo IP
+> da máquina que roda o backend, ex.: `http://192.168.10.85:3000/api`.
+
 ### 3. Suba a infra (banco + redis)
 
 ```bash
