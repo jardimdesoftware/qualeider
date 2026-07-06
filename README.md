@@ -77,22 +77,9 @@ cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env.local
 ```
 
-> **`frontend/.env.local` → `NEXT_PUBLIC_API_URL`**: o backend em dev roda na porta
-> **3000** (não 8080) com todas as rotas sob o prefixo **`/api`**. O valor padrão do
-> `frontend/.env.example` (`http://localhost:3000/api`) já cobre o fluxo abaixo,
-> onde backend e frontend rodam na mesma máquina. Se você acessa o frontend por
-> outro dispositivo (VM, celular na mesma rede, etc.), troque `localhost` pelo IP
-> da máquina que roda o backend, ex.: `http://192.168.10.85:3000/api`.
-
-> **`backend/.env` → `CORS_ORIGINS`**: o backend só aceita requisições cujo `Origin`
-> esteja exatamente nesta lista (separada por vírgula, sem `*`). O padrão
-> (`http://localhost:3001,http://127.0.0.1:3001`) cobre o acesso pelo mesmo host.
-> Se você abre o frontend a partir de outra máquina/VM (ex.:
-> `http://192.168.10.85:3001`), adicione esse mesmo IP:porta à lista —
-> `CORS_ORIGINS=http://localhost:3001,http://127.0.0.1:3001,http://192.168.10.85:3001`
-> — senão o navegador bloqueia o preflight/OPTIONS antes mesmo de chamar a API.
-> **Nunca use `CORS_ORIGINS=*` em produção**: a API usa `credentials: true`
-> (JWT/cookies), e liberar qualquer origem nesse modo é inseguro.
+> Os defaults de `NEXT_PUBLIC_API_URL` e `CORS_ORIGINS` acima cobrem o fluxo
+> onde backend e frontend rodam na mesma máquina. Para rodar em VM ou acessar
+> pela rede local, veja a seção [🌐 Executando em VM ou rede local](#-executando-em-vm-ou-rede-local).
 
 ### 3. Suba a infra (banco + redis)
 
@@ -118,6 +105,81 @@ cd frontend
 npm install
 npm run dev              # Hot-reload em http://localhost:3001
 ```
+
+---
+
+## 🌐 Executando em VM ou rede local
+
+Cenário comum: você roda backend e frontend numa máquina/VM, mas acessa pelo
+navegador de **outro dispositivo** na mesma rede (outra máquina, celular, ou
+a VM acessada do host). Isso exige alguns ajustes que não são necessários
+quando tudo roda no mesmo host.
+
+### `localhost`, `127.0.0.1` e IP da máquina não são a mesma coisa
+
+- `localhost` e `127.0.0.1` só resolvem para o **próprio dispositivo** — um
+  navegador rodando fora da máquina/VM nunca alcança `http://localhost:3000`
+  dela, mesmo que o servidor esteja de pé.
+- Para acessar de outro dispositivo, use o **IP real da máquina/VM na rede**
+  (ex.: `192.168.10.85`), descoberto com `ipconfig` (Windows) ou `ip addr` /
+  `hostname -I` (Linux).
+- Isso também importa para `CORS_ORIGINS`: o backend valida o header `Origin`
+  exatamente como o navegador o envia — se você acessa por IP, `localhost` na
+  whitelist não serve, e vice-versa. Por isso os `.env.example` já trazem
+  `localhost` **e** `127.0.0.1` juntos, e é preciso adicionar o IP manualmente.
+
+### 1. Exponha frontend e backend na rede
+
+Ambos já escutam em todas as interfaces por padrão em dev, então normalmente
+não é preciso mudar nada além do firewall/rede:
+
+- Backend: `app.listen(port, '0.0.0.0')` em [`backend/src/presentation/main.ts`](backend/src/presentation/main.ts).
+- Frontend: `next dev -p 3001` também escuta em `0.0.0.0`.
+
+Se estiver numa VM, garanta que a porta 3000 (backend) e 3001 (frontend)
+estejam liberadas/encaminhadas (port forwarding ou modo bridge na config de
+rede da VM).
+
+### 2. Configure `frontend/.env.local`
+
+```bash
+# Troque pelo IP real da máquina/VM que roda o backend
+NEXT_PUBLIC_API_URL=http://192.168.10.85:3000/api
+```
+
+### 3. Configure `backend/.env`
+
+```bash
+# Mantenha localhost/127.0.0.1 (útil se você também testa no mesmo host)
+# e adicione o IP:porta de onde o frontend será acessado
+CORS_ORIGINS="http://localhost:3001,http://127.0.0.1:3001,http://192.168.10.85:3001"
+```
+
+### 4. Valide a conectividade com `curl`
+
+Antes de testar pelo navegador, confirme que a API responde pelo IP:
+
+```bash
+curl -i http://192.168.10.85:3000/api/health
+# Esperado: HTTP/1.1 200 OK  { "status": "ok", "timestamp": "..." }
+```
+
+Se isso falhar, o problema é de rede/firewall — ainda não chegou a ser CORS
+ou autenticação.
+
+### 5. Troubleshooting: interpretando os erros
+
+| Sintoma no DevTools | Causa provável | Onde ajustar |
+|---|---|---|
+| `ERR_CONNECTION_REFUSED` / `Failed to fetch` | `NEXT_PUBLIC_API_URL` aponta para host/porta errado, ou backend não está de pé/acessível pela rede | `frontend/.env.local` → `NEXT_PUBLIC_API_URL`; confirme com o `curl` acima |
+| Erro de CORS / falha silenciosa no `OPTIONS` (preflight) | O `Origin` do navegador não está na whitelist do backend | `backend/.env` → `CORS_ORIGINS` (adicione o IP:porta exato usado no navegador) |
+| `404 Not Found` | Faltou o prefixo `/api` na URL, ou rota não existe | Confirme que `NEXT_PUBLIC_API_URL` termina em `/api` |
+| `401 Unauthorized` | Ótimo sinal — a requisição chegou até a API. Falha é de credenciais (usuário/senha), não de rede/CORS | Verifique o usuário de teste ou o fluxo de autenticação |
+
+> **Nota de segurança**: nunca use `CORS_ORIGINS=*` para "resolver rápido" o
+> problema, mesmo em dev — a API usa `credentials: true` (JWT/cookies), e
+> liberar qualquer origem nesse modo expõe a aplicação a requisições forjadas
+> de sites de terceiros.
 
 ---
 
