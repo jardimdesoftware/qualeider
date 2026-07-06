@@ -268,6 +268,13 @@ npm run test:all          # Unit + E2E
 
 ---
 
+## 🛡️ Segurança de dependências
+
+Auditoria de vulnerabilidades (`npm audit`) do backend e frontend, com plano de
+priorização e triagem: veja [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md).
+
+---
+
 ## Estrutura de pastas
 
 ```
