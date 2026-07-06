@@ -76,7 +76,7 @@ npm run dev
 
 Acesse: `http://localhost:3001`
 
-> **Nota**: Certifique-se que o Backend esteja rodando em `localhost:8080`.
+> **Nota**: Certifique-se que o Backend esteja rodando em `localhost:3000` (rotas sob `/api`).
 
 ## ✨ Funcionalidades
 
@@ -106,7 +106,7 @@ Acesse: `http://localhost:3001`
 
 | Variável | Descrição | Padrão |
 | --- | --- | --- |
-| `NEXT_PUBLIC_API_URL` | Endpoint base da API REST | `http://localhost:8080` |
+| `NEXT_PUBLIC_API_URL` | Endpoint base da API REST (deve incluir `/api`) | `http://localhost:3000/api` |
 
 ### Scripts Disponíveis
 
@@ -150,7 +150,7 @@ frontend/
 ## ⚠️ Resolução de Problemas
 
 **Erro: Conexão recusada ao logar**
-Verifique se o backend está rodando e se `NEXT_PUBLIC_API_URL` está apontando para a porta correta (padrão 8080).
+Verifique se o backend está rodando e se `NEXT_PUBLIC_API_URL` inclui o host, a porta correta (padrão `3000`) e o prefixo `/api` (ex.: `http://localhost:3000/api`). Se estiver acessando de outra máquina/VM, troque `localhost` pelo IP da máquina que roda o backend.
 
 **Erro: Hydration Mismatch**
 Geralmente ocorre por extensões de browser ou datas mal formatadas. Tente limpar o cache ou verificar se o servidor e cliente estão no mesmo fuso horário.

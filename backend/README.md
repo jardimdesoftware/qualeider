@@ -76,7 +76,7 @@ Para rodar todo o ambiente (Banco + API) com um único comando (requer Docker):
 docker-compose up --build
 ```
 
-A API estará disponível em: `http://localhost:8080`
+A API estará disponível em: `http://localhost:3000/api`
 
 Para parar:
 ```bash
@@ -97,7 +97,7 @@ docker-compose down
 
 ## 📡 API Endpoints
 
-Documentação interativa completa disponível via Swagger em: `http://localhost:8080/api`
+Documentação interativa completa disponível via Swagger em: `http://localhost:3000/api-docs`
 
 ### Exemplo de Uso: Registrar Coleta
 
