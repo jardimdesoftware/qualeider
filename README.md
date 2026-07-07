@@ -183,6 +183,62 @@ ou autenticação.
 
 ---
 
+## 📧 Comportamento de e-mail (SMTP) em desenvolvimento
+
+Ao subir o backend sem `SMTP_HOST`/`SMTP_USER`/`SMTP_PASSWORD` preenchidos em
+`backend/.env`, você verá este aviso no log de boot:
+
+```
+SMTP configuration incomplete. Email sending will fail!
+```
+
+Isso **não impede o backend de subir** — só avisa que o envio de e-mail vai
+falhar. O impacto real varia bastante por fluxo; a tabela abaixo resume o que
+foi confirmado no código (`backend/src/mail/`, `backend/src/listener/`,
+`backend/src/application/services/`):
+
+| Fluxo | Funciona sem SMTP? | O que acontece quando o envio falha |
+|---|---|---|
+| **Login** | ✅ Sim | Não envia e-mail nenhum — login não depende de SMTP. |
+| **Redefinir senha** (aplicar a nova senha com o token) | ✅ Sim | Não envia e-mail — só valida o token e atualiza a senha. |
+| **Esqueci minha senha** (solicitar o link) | ⚠️ **Não** | O token **é salvo no banco** antes do envio, mas o e-mail é enviado de forma síncrona dentro da mesma requisição — se falhar, o erro sobe e a requisição HTTP retorna erro, mesmo com o token já persistido. **Não há retry nem fallback em `failed_emails` para este fluxo.** |
+| **Convites** (criar/aceitar/recusar) | ✅ Sim | O convite é persistido no banco independente do e-mail. O envio roda em um listener assíncrono (`invite-email.listener.ts`) que **captura e apenas loga** a falha — sem retry, sem `failed_emails`. O e-mail simplesmente se perde silenciosamente. |
+| **Notificações** | ✅ Sim | A notificação é persistida no banco independente do e-mail. O envio (`email.listener.ts`) tenta **3 vezes** (backoff de 2s e 4s) e, se todas falharem, grava o registro na tabela `failed_emails` (model `FailedEmail` no `schema.prisma`) em vez de perder o e-mail. |
+
+> **Atenção**: a tabela `failed_emails` só recebe registros do fluxo de
+> **notificações**. Convites perdidos não aparecem lá, e "esqueci minha senha"
+> nem chega a tentar — ele quebra a requisição antes disso.
+
+### Configurando o Ethereal para testar e-mails localmente
+
+[Ethereal](https://ethereal.email) cria uma caixa de entrada fake — o e-mail
+"é enviado" de verdade via SMTP, mas fica preso lá, sem chegar a ninguém.
+
+1. Acesse [ethereal.email](https://ethereal.email) e clique em **Create Ethereal Account** (gera usuário/senha na hora, não precisa cadastro).
+2. Copie o `Username` e `Password` gerados para `backend/.env`:
+   ```
+   SMTP_HOST="smtp.ethereal.email"
+   SMTP_PORT=587
+   SMTP_USER="<usuário gerado pelo Ethereal>"
+   SMTP_PASSWORD="<senha gerada pelo Ethereal>"
+   SMTP_FROM="noreply@qualeider.com"
+   ```
+3. Reinicie o backend (`npm run start:dev`) — o aviso de SMTP incompleto deve sumir do log.
+4. Dispare qualquer fluxo que envie e-mail (convite, notificação, esqueci minha senha) e acesse [ethereal.email/messages](https://ethereal.email/messages) (logado com o mesmo usuário/senha) para ver o e-mail capturado.
+
+### Inspecionando e-mails que falharam (`failed_emails`)
+
+Hoje não existe endpoint ou tela para isso — só é possível consultar direto no banco:
+
+```bash
+cd backend
+npx prisma studio   # abre uma UI em http://localhost:5555 — tabela failed_emails
+```
+
+Ou via SQL direto (`psql`, DBeaver, etc.): `SELECT * FROM failed_emails ORDER BY "createdAt" DESC;`
+
+---
+
 ## 🔬 Simulação local de produção
 
 Sobe **todos os serviços em container** com nginx como reverse proxy.  
