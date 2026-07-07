@@ -108,6 +108,52 @@ npm run dev              # Hot-reload em http://localhost:3001
 
 ---
 
+## 🔗 URLs de referência (API, Health, Swagger)
+
+| Serviço | Mesmo host (dev) | VM / rede local |
+|---|---|---|
+| Frontend | `http://localhost:3001` | `http://192.168.10.85:3001` |
+| API (base) | `http://localhost:3000/api` | `http://192.168.10.85:3000/api` |
+| Health check | `http://localhost:3000/api/health` | `http://192.168.10.85:3000/api/health` |
+| Swagger UI | `http://localhost:3000/api-docs` | `http://192.168.10.85:3000/api-docs` |
+| Swagger JSON (spec) | `http://localhost:3000/api-docs-json` | `http://192.168.10.85:3000/api-docs-json` |
+
+> Troque `192.168.10.85` pelo IP real da sua máquina/VM — veja a seção
+> [🌐 Executando em VM ou rede local](#-executando-em-vm-ou-rede-local) logo
+> abaixo para descobrir o IP e ajustar `CORS_ORIGINS`/`NEXT_PUBLIC_API_URL`.
+> Na simulação de produção com nginx (`docker-compose.local.yml`), essas
+> mesmas rotas ficam por trás de uma única porta — veja a tabela em
+> [🔬 Simulação local de produção](#-simulação-local-de-produção).
+
+### O Swagger abriu em branco, mas `curl` retorna 200 OK — e agora?
+
+Isso **não significa que a API está fora do ar**. `curl` só confirma que o
+servidor respondeu com o HTML/JSON — ele não executa JavaScript nem aplica
+CSP, então não revela problemas que só acontecem dentro do navegador. Se
+`/api-docs` e `/api-docs-json` retornam `200` no `curl` mas a página fica em
+branco no navegador, causas prováveis, da mais comum para a mais rara:
+
+1. **CSP forçando upgrade para HTTPS num servidor que só fala HTTP** — o
+   Helmet inclui por padrão a diretiva `upgrade-insecure-requests`, que faz o
+   navegador tentar recarregar todo asset (JS/CSS do Swagger) via HTTPS. Como
+   nem o dev local nem a stack de nginx deste projeto (`nginx/nginx.conf`)
+   servem TLS, esses assets falham silenciosamente e a página fica em branco,
+   sem nenhum erro visível no `curl`. **Já corrigido** em
+   [`backend/src/presentation/main.ts`](backend/src/presentation/main.ts) —
+   se você está numa versão do backend anterior a essa correção, seria essa a
+   causa.
+2. **Cache do navegador ou extensões (ad-blocker/privacy)** bloqueando os
+   bundles do `swagger-ui`. Teste em uma aba anônima/privada antes de abrir
+   uma issue.
+3. **URL errada para o ambiente** — por exemplo, tentar `/api-docs` na porta
+   do frontend (3001) em vez da porta do backend (3000), ou usar `localhost`
+   ao acessar de outro dispositivo (veja a seção de VM/rede local abaixo).
+
+Se depois de descartar os três pontos acima o problema persistir, aí sim é
+caso de investigar como bug — mas normalmente é um desses três.
+
+---
+
 ## 🌐 Executando em VM ou rede local
 
 Cenário comum: você roda backend e frontend numa máquina/VM, mas acessa pelo
