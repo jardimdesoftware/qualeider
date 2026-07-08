@@ -10,7 +10,7 @@
 # ---------------------------------------------------------------------------
 # Stage 1: Instalar dependências
 # ---------------------------------------------------------------------------
-FROM node:20.18-alpine3.21 AS deps
+FROM node:25.2-alpine3.21 AS deps
 
 # Argumentos de build para multi-arch (informativo)
 ARG TARGETPLATFORM
@@ -27,7 +27,7 @@ RUN npm ci
 # ---------------------------------------------------------------------------
 # Stage 2: Build da aplicação
 # ---------------------------------------------------------------------------
-FROM node:20.18-alpine3.21 AS builder
+FROM node:25.2-alpine3.21 AS builder
 
 WORKDIR /usr/appFrontend
 
@@ -48,7 +48,7 @@ RUN npm run build
 # ---------------------------------------------------------------------------
 # Stage 3: Imagem de produção
 # ---------------------------------------------------------------------------
-FROM node:20.18-alpine3.21 AS runner
+FROM node:25.2-alpine3.21 AS runner
 
 WORKDIR /usr/appFrontend
 
