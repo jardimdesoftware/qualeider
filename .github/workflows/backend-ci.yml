@@ -59,7 +59,7 @@ permissions:
 # Cancelar execuções anteriores na mesma branch/PR
 concurrency:
   group: backend-ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 # ---------------------------------------------------------------------------
 # Variáveis de ambiente reutilizadas
@@ -460,11 +460,12 @@ jobs:
     name: 1. Backend CI/CD
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    needs: [tag-creation, lint, unit-tests, e2e-tests, security-scan]
+    needs: [tag-creation, lint, unit-tests, integration-tests, e2e-tests, security-scan]
     if: >
       always() &&
       needs.lint.result == 'success' &&
       needs.unit-tests.result == 'success' &&
+      needs.integration-tests.result == 'success' &&
       needs.e2e-tests.result == 'success' &&
       (
         (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
@@ -535,6 +536,7 @@ jobs:
 
       # --- Trivy Image Scan (apenas reporta, não bloqueia) ---
       - name: Trivy — Docker Image Scan
+        if: steps.push.outcome == 'success'
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }}"
@@ -543,19 +545,25 @@ jobs:
           severity: "CRITICAL,HIGH"
           ignore-unfixed: true
           trivyignores: "backend/.trivyignore"
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
 
       # --- Trivy Image SARIF ---
       - name: Trivy — Image SARIF Report
-        if: always()
+        if: steps.push.outcome == 'success'
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }}"
           format: "sarif"
           output: "trivy-image.sarif"
           severity: "CRITICAL,HIGH,MEDIUM"
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Image SARIF to GitHub Security
-        if: always()
+        if: steps.push.outcome == 'success'
         continue-on-error: true
         uses: github/codeql-action/upload-sarif@v3
         with:
@@ -564,13 +572,18 @@ jobs:
 
       # --- SBOM Generation (CycloneDX) ---
       - name: Trivy — Generate SBOM (CycloneDX)
+        if: steps.push.outcome == 'success'
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }}"
           format: "cyclonedx"
           output: "sbom.cdx.json"
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload SBOM
+        if: steps.push.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: sbom-cyclonedx
@@ -579,9 +592,11 @@ jobs:
 
       # --- Cosign Keyless Signing (Sigstore/Fulcio OIDC) ---
       - name: Install Cosign
+        if: steps.push.outcome == 'success'
         uses: sigstore/cosign-installer@v3
 
       - name: Sign image with Cosign (keyless)
+        if: steps.push.outcome == 'success'
         run: |
           cosign sign --yes \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}
