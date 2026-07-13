@@ -448,7 +448,7 @@ jobs:
       - name: Upload Trivy SARIF to GitHub Security
         if: always()
         continue-on-error: true
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: "trivy-results.sarif"
           category: "trivy-fs"
@@ -565,7 +565,7 @@ jobs:
       - name: Upload Image SARIF to GitHub Security
         if: steps.push.outcome == 'success'
         continue-on-error: true
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: "trivy-image.sarif"
           category: "trivy-image"
