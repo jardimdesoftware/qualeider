@@ -93,14 +93,27 @@
     "form-data": "^4.0.6",
     "jsonwebtoken": "^9.0.3",
     "html-minifier": "npm:html-minifier-terser@^7.2.0",
-    "minimatch": "^9.0.7",
     "qs": "^6.15.3",
-    "js-yaml": "^4.1.2",
-    "uuid": "^11.1.1",
-    "glob": "^10.4.7",
-    "file-type": "^21.3.2",
     "multer": "^2.2.0",
-    "nodemailer": "^9.0.3"
+    "nodemailer": "^9.0.3",
+    "@nestjs-modules/mailer": {
+      "glob": "^10.4.7"
+    },
+    "editorconfig": {
+      "minimatch": "^9.0.7"
+    },
+    "@nestjs/swagger": {
+      "js-yaml": "^4.1.2"
+    },
+    "@nestjs/schedule": {
+      "uuid": "^11.1.1"
+    },
+    "preview-email": {
+      "uuid": "^11.1.1"
+    },
+    "@nestjs/common": {
+      "file-type": "^21.3.2"
+    }
   },
   "lint-staged": {
     "*.ts": [
