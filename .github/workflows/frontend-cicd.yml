@@ -180,6 +180,9 @@ jobs:
       contents: read
       packages: write
       security-events: write
+    env:
+      # Se for um push/dispatch em `main` ou PR alvo `main`, Trivy deve falhar no CRITICAL
+      TRIVY_EXIT_ON_CRITICAL: ${{ ((github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main') || startsWith(github.ref, 'refs/heads/main')) ? '1' : '0' }}
     defaults:
       run:
         working-directory: frontend
@@ -211,7 +214,7 @@ jobs:
           scan-type: "fs"
           scan-ref: "frontend"
           format: "table"
-          exit-code: "0"            # ← Não bloqueia o pipeline
+          exit-code: ${{ env.TRIVY_EXIT_ON_CRITICAL }}
           severity: "CRITICAL,HIGH"
           ignore-unfixed: true
 
@@ -278,7 +281,7 @@ jobs:
         with:
           image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.tag-creation.outputs.created_tag }}"
           format: "table"
-          exit-code: "0"            # ← Não bloqueia o pipeline
+          exit-code: ${{ env.TRIVY_EXIT_ON_CRITICAL }}
           severity: "CRITICAL,HIGH"
           ignore-unfixed: true
 
