@@ -8,6 +8,15 @@ export function getFriendlyErrorMessage(error: unknown): string {
     const status = error.response?.status;
     const data = error.response?.data as any;
 
+    // Rate limiting: sempre usa mensagem amigável e local, com tempo de espera se disponível
+    if (status === 429) {
+      const retryAfter = Number(data?.retryAfter ?? error.response?.headers?.["retry-after"]);
+      if (Number.isFinite(retryAfter) && retryAfter > 0) {
+        return `Muitas tentativas. Aguarde ${retryAfter} segundos e tente novamente.`;
+      }
+      return "Muitas tentativas. Aguarde um momento e tente novamente.";
+    }
+
     // Mensagem específica enviada pelo backend (se existir)
     if (data?.message) {
       // Se for array de mensagens (ex: validação class-validator), pega a primeira
@@ -32,8 +41,6 @@ export function getFriendlyErrorMessage(error: unknown): string {
         return "Você não tem permissão para realizar esta ação.";
       case 404:
         return "Recurso não encontrado no servidor.";
-      case 429:
-        return "Muitas tentativas. Aguarde um momento e tente novamente.";
       case 500:
         return "Erro interno no servidor. Nossa equipe já foi notificada.";
       default:
