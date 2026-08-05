@@ -43,9 +43,61 @@ function configureCors(configService: ConfigService): CorsOptions {
 }
 
 /**
- * Configura o Swagger (OpenAPI) para a documentação da API.
+ * Caminhos expostos pelo Swagger (UI + specs raw), usados tanto para
+ * registrar o SwaggerModule quanto para bloqueá-los explicitamente quando
+ * SWAGGER_ENABLED=false.
  */
-function setupSwagger(app: INestApplication): void {
+const SWAGGER_PATHS = [
+  '/api-docs',
+  '/api-docs/',
+  '/api-docs-json',
+  '/api-docs-yaml',
+];
+
+/**
+ * Determina se o Swagger deve ser exposto neste ambiente.
+ *
+ * Habilitado por padrão (dev, simulação local com nginx e produção via
+ * docker-compose.prod.yml todos expõem /api-docs pela mesma rota, atrás do
+ * mesmo Nginx — ver README.md > "Swagger em produção"). Defina
+ * SWAGGER_ENABLED=false no .env para desabilitar explicitamente, por
+ * exemplo em um ambiente público onde não se deseja expor o schema da API.
+ */
+function isSwaggerEnabled(configService: ConfigService): boolean {
+  const raw = configService.get<string>('SWAGGER_ENABLED');
+  return raw === undefined || raw.trim().toLowerCase() !== 'false';
+}
+
+/**
+ * Quando o Swagger está desabilitado, responde 403 nas rotas conhecidas em
+ * vez de deixar cair no 404 padrão — evita a ambiguidade de "está fora do
+ * ar" vs. "foi desabilitado de propósito" (ver issue de inconsistência de
+ * /api-docs entre ambientes).
+ */
+function denySwaggerAccess(app: INestApplication): void {
+  const httpAdapter = app.getHttpAdapter();
+  const respondForbidden = (_req: unknown, res: any) => {
+    res.status(403).json({
+      statusCode: 403,
+      error: 'Forbidden',
+      message:
+        'Documentação da API (Swagger) está desabilitada neste ambiente.',
+    });
+  };
+
+  SWAGGER_PATHS.forEach((path) => httpAdapter.all(path, respondForbidden));
+}
+
+/**
+ * Configura o Swagger (OpenAPI) para a documentação da API, respeitando a
+ * flag SWAGGER_ENABLED.
+ */
+function setupSwagger(app: INestApplication, configService: ConfigService): void {
+  if (!isSwaggerEnabled(configService)) {
+    denySwaggerAccess(app);
+    return;
+  }
+
   const config = new DocumentBuilder()
     .setTitle('Sistema QuaLeiDer')
     .setDescription(
@@ -76,6 +128,7 @@ function getAppPort(configService: ConfigService): number {
 async function logAppStatus(
   app: INestApplication,
   corsOptions: CorsOptions,
+  swaggerEnabled: boolean,
 ): Promise<void> {
   const appUrl = await app.getUrl();
 
@@ -86,7 +139,12 @@ async function logAppStatus(
   };
 
   Logger.log(`Servidor rodando em ${appUrl}`, 'Bootstrap');
-  Logger.log(`Documentação da API disponível em ${appUrl}/api-docs`, 'Bootstrap');
+  Logger.log(
+    swaggerEnabled
+      ? `Documentação da API disponível em ${appUrl}/api-docs`
+      : `Documentação da API (Swagger) desabilitada (SWAGGER_ENABLED=false) — /api-docs responde 403`,
+    'Bootstrap',
+  );
   Logger.log(
     `CORS habilitado para: ${formatOrigin(corsOptions.origin)}`,
     'Bootstrap',
@@ -137,14 +195,15 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   // 4. Configurar Swagger
-  setupSwagger(app);
+  const swaggerEnabled = isSwaggerEnabled(configService);
+  setupSwagger(app, configService);
 
   // 4. Iniciar o servidor
   const port = getAppPort(configService);
   await app.listen(port, '0.0.0.0');
 
   // 5. Logar o status da aplicação
-  await logAppStatus(app, corsOptions);
+  await logAppStatus(app, corsOptions, swaggerEnabled);
 }
 
 bootstrap();
