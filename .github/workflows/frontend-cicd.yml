@@ -182,7 +182,7 @@ jobs:
       security-events: write
     env:
       # Se for um push/dispatch em `main` ou PR alvo `main`, Trivy deve falhar no CRITICAL
-      TRIVY_EXIT_ON_CRITICAL: ${{ ((github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main') || startsWith(github.ref, 'refs/heads/main')) ? '1' : '0' }}
+      TRIVY_EXIT_ON_CRITICAL: ${{ ((github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main') || startsWith(github.ref, 'refs/heads/main')) && '1' || '0' }}
     defaults:
       run:
         working-directory: frontend
