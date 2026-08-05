@@ -18,7 +18,7 @@ Este documento define a política de uso do Trivy nos workflows do CI para garan
 
 ### 4. Processo de exceções / allowlist
 - Exceções são tratadas via:
-  - incluir entradas justificadas em `backend/.trivyignore` ou `frontend/.trivyignore` (quando aplicável), acompanhadas de PR que contenha:
+  - incluir entradas justificadas em `backend/.trivyignore` (e, se o frontend precisar de allowlist, criar `frontend/.trivyignore` e apontar o workflow para ele), acompanhadas de PR que contenha:
     - justificativa técnica clara;
     - responsáveis e data para reavaliação;
     - label `security/exception` e aprovação de pelo menos um membro do time de segurança (ou reviewer responsável).
