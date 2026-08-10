@@ -29,6 +29,7 @@ import { BusinessException } from '@/common/exceptions/business.exception';
 import { UserCriteria } from '@/domain/criteria/user.criteria';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
 import { Public } from '@/common/decorators/public.decorator';
+import { GetUser } from '@/common/decorators/get-user.decorator';
 import { UserRole } from '@/domain/enums/enums';
 
 @ApiTags('Users')
@@ -56,6 +57,10 @@ export class UsersController {
   /**
    * Criação interna — usado pelo Admin logado para cadastrar funcionários (Vaqueiros).
    * Requer autenticação JWT. Aceita qualquer role (ADMIN ou VAQUEIRO).
+   *
+   * Quando o novo usuário é um VAQUEIRO, ele é automaticamente vinculado
+   * (via `adminId`) ao Admin (dono da fazenda) que o cadastrou, para que
+   * ambos enxerguem o mesmo rebanho (ver AnimalsController.findAllByUserId).
    */
   @Throttle({ default: { limit: 20, ttl: THROTTLE_TTL.LONG } })
   @Post('internal')
@@ -66,8 +71,20 @@ export class UsersController {
   @ApiResponse({ status: 401, description: 'Não autorizado' })
   @ApiResponse({ status: 409, description: 'Email já cadastrado' })
   @ResponseMessage('Usuário criado com sucesso')
-  async createInternal(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.create(createUserDto);
+  async createInternal(
+    @Body() createUserDto: CreateUserDto,
+    @GetUser('id') creatorId?: number,
+    @GetUser('role') creatorRole?: UserRole,
+    @GetUser('adminId') creatorAdminId?: number | null,
+  ) {
+    const isCreatingVaqueiro = createUserDto.role === UserRole.VAQUEIRO;
+    const adminId = isCreatingVaqueiro
+      ? creatorRole === UserRole.ADMIN
+        ? creatorId
+        : (creatorAdminId ?? undefined)
+      : undefined;
+
+    return this.usersService.create({ ...createUserDto, adminId });
   }
 
   @Get('check-email')

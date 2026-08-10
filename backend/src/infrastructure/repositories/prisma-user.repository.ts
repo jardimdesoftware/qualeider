@@ -33,6 +33,7 @@ export class PrismaUserRepository implements IUserRepository {
           city: data.city,
           state: data.state,
           associationId: data.associationId,
+          adminId: data.adminId,
 
           // Conversão segura de Enum Domínio -> Enum Prisma
           role: (data.role as unknown as PrismaUserRole) ?? PrismaUserRole.ADMIN,

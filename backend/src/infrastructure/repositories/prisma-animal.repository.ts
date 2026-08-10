@@ -63,6 +63,14 @@ export class PrismaAnimalRepository implements IAnimalRepository {
       where.user = { associationId: criteria.associationId };
     }
 
+    if (criteria.adminGroupId) {
+      // Rebanho do grupo Admin+Vaqueiros: animais do proprio Admin ou de
+      // qualquer Vaqueiro cadastrado por ele (User.adminId).
+      where.user = {
+        OR: [{ id: criteria.adminGroupId }, { adminId: criteria.adminGroupId }],
+      };
+    }
+
     if (criteria.animalType) {
       where.animalType = criteria.animalType;
     }

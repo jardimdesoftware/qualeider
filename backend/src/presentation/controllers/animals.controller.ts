@@ -121,17 +121,27 @@ export class AnimalsController {
     @Param('userId', ParseIntPipe) userId: number,
     @GetUser('role') role?: UserRole,
     @GetUser('associationId') associationId?: number | null,
+    @GetUser('adminId') requesterAdminId?: number | null,
   ) {
+    if (associationId) {
+      // Todo usuario (ADMIN ou VAQUEIRO) vinculado a uma associacao
+      // (cooperativa) enxerga o mesmo rebanho: os animais pertencem a
+      // associacao, nao a quem os cadastrou individualmente.
+      return this.animalsService.findAll({ associationId, limit: MAX_LIMIT });
+    }
     if (role === UserRole.ADMIN) {
-      // Se o admin pertence a uma associacao (cooperativa), restringe aos
-      // produtores dessa associacao. Caso contrario (cenario padrao atual,
-      // sem cooperativa), o admin enxerga os animais de todos os produtores
-      // cadastrados no sistema - assim como ja ocorre em "Gerenciar Usuarios".
-      if (associationId) {
-        return this.animalsService.findAll({ associationId, limit: MAX_LIMIT });
-      }
+      // Cenario padrao atual, sem cooperativa: o admin enxerga os animais
+      // de todos os produtores cadastrados no sistema - assim como ja
+      // ocorre em "Gerenciar Usuarios".
       return this.animalsService.findAll({ limit: MAX_LIMIT });
     }
+    if (requesterAdminId) {
+      // Vaqueiro vinculado a um Admin (dono da fazenda) via "Adicionar
+      // Funcionario": enxerga o mesmo rebanho desse Admin.
+      return this.animalsService.findAll({ adminGroupId: requesterAdminId, limit: MAX_LIMIT });
+    }
+    // Vaqueiro sem nenhum vinculo (legado): ve apenas os animais que ele
+    // proprio cadastrou.
     return this.animalsService.findAll({ userId });
   }
 }
