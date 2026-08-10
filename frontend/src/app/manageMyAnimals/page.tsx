@@ -287,7 +287,13 @@ export default function ManageAnimals() {
       showFeedback("Sucesso!", "Animal excluido com sucesso.", "success");
     } catch (err: any) {
       const msg: string = err?.response?.data?.message || "";
-      if (msg.includes("historico de coletas")) {
+      // Compara sem acentos para nao depender de a mensagem do backend
+      // vir exatamente com ou sem acentuacao (ex: "histórico" vs "historico").
+      const normalizedMsg = msg
+        .normalize("NFD")
+        .replace(/[̀-ͯ]/g, "")
+        .toLowerCase();
+      if (normalizedMsg.includes("historico de coletas")) {
         setConfirmInativar(animal);
       } else {
         showFeedback("Erro", msg || "Nao foi possivel excluir.", "error");
