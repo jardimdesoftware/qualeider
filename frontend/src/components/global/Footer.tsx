@@ -1,3 +1,5 @@
+import AppVersionBadge from "./AppVersionBadge";
+
 interface FooterProps {
   className?: string;
 }
@@ -9,6 +11,9 @@ export default function Footer({ className = "" }: FooterProps) {
     <div className={`text-center text-gray-500 text-sm ${className}`}>
       <p>© {currentYear} IFPE - Campus Belo Jardim</p>
       <p>Todos os direitos reservados</p>
+      <p className="text-xs text-gray-400 mt-1">
+        <AppVersionBadge />
+      </p>
     </div>
   );
 }
