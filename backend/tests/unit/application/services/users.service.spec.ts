@@ -311,6 +311,42 @@ describe('UsersService', () => {
       );
     });
 
+    it('deve propagar o status ao inativar um funcionário (regressão #167)', async () => {
+      const mockUser = createUser({ id: 1, status: Status.Active });
+      const updateDto: UpdateUserDto = { status: Status.Inactive };
+
+      (userRepository.partialUpdate as jest.Mock).mockResolvedValue({
+        ...mockUser,
+        status: Status.Inactive,
+      });
+
+      const result = await service.update(1, updateDto);
+
+      expect(userRepository.partialUpdate).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({ status: Status.Inactive }),
+      );
+      expect(result.status).toBe(Status.Inactive);
+    });
+
+    it('deve propagar o status ao reativar um funcionário inativo (regressão #167)', async () => {
+      const mockUser = createUser({ id: 1, status: Status.Inactive });
+      const updateDto: UpdateUserDto = { status: Status.Active };
+
+      (userRepository.partialUpdate as jest.Mock).mockResolvedValue({
+        ...mockUser,
+        status: Status.Active,
+      });
+
+      const result = await service.update(1, updateDto);
+
+      expect(userRepository.partialUpdate).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({ status: Status.Active }),
+      );
+      expect(result.status).toBe(Status.Active);
+    });
+
 
 
     it('deve tratar erro P2002 durante atualização e lançar BusinessException', async () => {

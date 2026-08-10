@@ -1,8 +1,8 @@
 import { PartialType, OmitType } from '@nestjs/mapped-types';
 import { CreateUserDto } from './create-user.dto';
-import { IsNotEmpty, IsString, IsEmail, IsEnum, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsString, IsEmail, IsEnum, IsOptional, MaxLength } from 'class-validator';
 import { Transform } from 'class-transformer';
-import { UserType, UserCategory } from '@/domain/enums/enums';
+import { UserType, UserCategory, Status } from '@/domain/enums/enums';
 import { ApiProperty } from '@nestjs/swagger';
 
 /**
@@ -63,4 +63,14 @@ export class UpdatePartialUserDto extends PartialType(
   @IsNotEmpty()
   @IsString()
   city!: string;
+
+  @ApiProperty({
+    description: 'Status da conta (Active/Inactive)',
+    enum: Status,
+    example: Status.Active,
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(Status, { message: 'O status fornecido não é válido.' })
+  status?: Status;
 }

@@ -2,7 +2,7 @@ import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
 import { UpdateUserDto } from '@/application/dtos/users/update-user.dto';
 import { UpdatePartialUserDto } from '@/application/dtos/users/update-partial-user.dto';
-import { UserCategory, UserRole } from '@/domain/enums/enums';
+import { UserCategory, UserRole, Status } from '@/domain/enums/enums';
 
 /**
  * Regressao da issue #166: editar um funcionario falhava com "Este e-mail
@@ -51,6 +51,27 @@ describe('UpdateUserDto', () => {
     expect(errors.length).toBeGreaterThan(0);
     expect(errors[0].property).toBe('email');
     expect(errors[0].constraints).toHaveProperty('isEmail');
+  });
+
+  it('deve validar sem erros ao inativar a conta (status: Inactive)', async () => {
+    const dto = plainToInstance(UpdateUserDto, {
+      email: 'vaqueiro@example.com',
+      status: Status.Inactive,
+    });
+
+    const errors = await validate(dto);
+    expect(errors).toHaveLength(0);
+  });
+
+  it('deve rejeitar um valor de status invalido', async () => {
+    const dto = plainToInstance(UpdateUserDto, {
+      status: 'Deleted',
+    });
+
+    const errors = await validate(dto);
+    expect(errors.length).toBeGreaterThan(0);
+    expect(errors[0].property).toBe('status');
+    expect(errors[0].constraints).toHaveProperty('isEnum');
   });
 });
 

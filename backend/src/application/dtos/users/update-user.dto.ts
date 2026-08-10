@@ -1,8 +1,9 @@
 import { PartialType, OmitType } from '@nestjs/mapped-types';
-import { IsEmail, IsOptional, MaxLength } from 'class-validator';
+import { IsEmail, IsEnum, IsOptional, MaxLength } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import { CreateUserDto } from './create-user.dto';
+import { Status } from '@/domain/enums/enums';
 
 /**
  * O campo `email` e reescrito aqui sem o validador `@IsEmailUnique`: esse
@@ -30,4 +31,14 @@ export class UpdateUserDto extends PartialType(
     typeof value === 'string' ? value.toLowerCase().trim() : value,
   )
   email?: string;
+
+  @ApiProperty({
+    description: 'Status da conta (Active/Inactive)',
+    enum: Status,
+    example: Status.Active,
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(Status, { message: 'O status fornecido não é válido.' })
+  status?: Status;
 }
