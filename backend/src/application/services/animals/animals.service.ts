@@ -7,6 +7,7 @@ import { UpdateAnimalDto } from '@/application/dtos/animals/update-animal.dto';
 import { AnimalCriteria } from '@/domain/criteria/animal.criteria';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 import { BusinessException } from '@/common/exceptions/business.exception';
+import { resolveHerdScope } from '@/domain/utils/herd-scope.util';
 
 @Injectable()
 export class AnimalsService {
@@ -26,6 +27,24 @@ export class AnimalsService {
     return user;
   }
 
+  private async assertTagNumberAvailable(
+    owner: Awaited<ReturnType<typeof this.validateUser>>,
+    tagNumber: string,
+    excludeAnimalId?: number,
+  ) {
+    const scope = resolveHerdScope(owner);
+    const conflict = await this.animalRepository.findConflictingTagNumber(
+      scope,
+      tagNumber,
+      excludeAnimalId,
+    );
+    if (conflict) {
+      throw new BusinessException(
+        'Já existe um animal com esse número de identificação nesta fazenda.',
+      );
+    }
+  }
+
   private async validateParent(parentId: number, userId: number, label: string) {
     const parent = await this.animalRepository.findById(parentId);
     if (!parent) {
@@ -38,7 +57,11 @@ export class AnimalsService {
   }
 
   async create(createAnimalDto: CreateAnimalDto) {
-    await this.validateUser(createAnimalDto.userId);
+    const owner = await this.validateUser(createAnimalDto.userId);
+
+    if (createAnimalDto.tagNumber) {
+      await this.assertTagNumberAvailable(owner, createAnimalDto.tagNumber);
+    }
 
     if (createAnimalDto.motherId) {
       await this.validateParent(createAnimalDto.motherId, createAnimalDto.userId, 'Mãe');
@@ -74,6 +97,11 @@ export class AnimalsService {
 
   async update(id: number, updateAnimalDto: UpdateAnimalDto) {
     const existing = await this.findOne(id);
+
+    if (updateAnimalDto.tagNumber && updateAnimalDto.tagNumber !== existing.tagNumber) {
+      const owner = await this.validateUser(existing.userId as number);
+      await this.assertTagNumberAvailable(owner, updateAnimalDto.tagNumber, id);
+    }
 
     if (updateAnimalDto.motherId) {
       await this.validateParent(updateAnimalDto.motherId, existing.userId as number, 'Mãe');
