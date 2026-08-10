@@ -5,6 +5,8 @@ import { PaginationParams } from '../common/pagination.interface';
  * 
  * @property associationId - Filtrar por ID da associação
  * @property userId - Filtrar por ID do usuário/produtor
+ * @property adminGroupId - Filtrar pelo grupo Admin+Vaqueiros (coletas de animais
+ *   cujo dono e o Admin com esse ID, ou um Vaqueiro cadastrado por esse Admin)
  * @property dateRange - Filtrar por intervalo de datas
  * @property includeUser - Se true, traz os dados do usuário/produtor
  * @property page - Número da página (padrão: 1)
@@ -13,6 +15,7 @@ import { PaginationParams } from '../common/pagination.interface';
 export interface DailyCollectionCriteria extends PaginationParams {
   associationId?: number;
   userId?: number;
+  adminGroupId?: number;
   dateRange?: {
     start: Date;
     end: Date;

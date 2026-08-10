@@ -4,7 +4,7 @@ import { createDailyCollection } from '../../../factories/daily-collection.facto
 import { createUser } from '../../../factories/user.factory';
 import { CreateDailyCollectionDto } from '@/application/dtos/daily-collections/create-daily-collection.dto';
 import { UpdateDailyCollectionDto } from '@/application/dtos/daily-collections/update-daily-collection.dto';
-import { MilkingPlace } from '@/domain/enums/enums';
+import { MilkingPlace, UserRole } from '@/domain/enums/enums';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 import { IDailyCollectionRepository, IDailyCollectionRepository as IDailyCollectionRepositorySymbol } from '@/domain/repositories/daily-collection.repository';
 import { IUserRepository, IUserRepository as IUserRepositorySymbol } from '@/domain/repositories/user.repository';
@@ -204,10 +204,12 @@ describe('DailyCollectionsService', () => {
       expect(dailyCollectionRepository.create).not.toHaveBeenCalled();
     });
 
-    it('deve lançar BusinessException se animal não pertence ao usuário', async () => {
+    it('deve lançar BusinessException se animal não pertence ao mesmo rebanho do usuário', async () => {
       const userId = 1;
+      const otherOwnerId = 999;
       const mockUser = createUser({ id: userId });
-      const mockAnimal = createAnimal({ id: 10, userId: 999 });
+      const otherOwner = createUser({ id: otherOwnerId });
+      const mockAnimal = createAnimal({ id: 10, userId: otherOwnerId });
 
       const createDto: CreateDailyCollectionDto = {
         quantity: 50.0,
@@ -224,12 +226,51 @@ describe('DailyCollectionsService', () => {
         ],
       };
 
-      userRepository.findById.mockResolvedValue(mockUser);
+      userRepository.findById.mockImplementation(async (id: number) =>
+        id === otherOwnerId ? otherOwner : mockUser,
+      );
       animalRepository.findByIds.mockResolvedValue([mockAnimal]);
 
       await expect(service.create(createDto)).rejects.toThrow(BusinessException);
-      await expect(service.create(createDto)).rejects.toThrow('Animal com ID 10 não pertence ao usuário');
+      await expect(service.create(createDto)).rejects.toThrow(
+        'Animal com ID 10 não pertence ao mesmo rebanho do usuário',
+      );
       expect(dailyCollectionRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('deve permitir registrar coleta de animal cadastrado por outro membro do mesmo grupo Admin+Vaqueiros', async () => {
+      const adminId = 1;
+      const vaqueiroId = 5;
+      const admin = createUser({ id: adminId, role: UserRole.ADMIN });
+      const vaqueiro = createUser({ id: vaqueiroId, role: UserRole.VAQUEIRO, adminId });
+      const mockAnimal = createAnimal({ id: 10, userId: adminId });
+      const mockCollection = createDailyCollection({ id: 1, userId: vaqueiroId });
+
+      const createDto: CreateDailyCollectionDto = {
+        quantity: 50.0,
+        userId: vaqueiroId,
+        numAnimals: 1,
+        numOrdens: 1,
+        rationProvided: false,
+        numLactation: 1,
+        milkingPlace: MilkingPlace.Aberto,
+        technicalAssistance: false,
+        collectionDate: new Date(),
+        items: [
+          { animalId: 10, quantity: 50.0 },
+        ],
+      };
+
+      userRepository.findById.mockImplementation(async (id: number) =>
+        id === adminId ? admin : vaqueiro,
+      );
+      animalRepository.findByIds.mockResolvedValue([mockAnimal]);
+      dailyCollectionRepository.create.mockResolvedValue(mockCollection);
+
+      const result = await service.create(createDto);
+
+      expect(result).toEqual(mockCollection);
+      expect(dailyCollectionRepository.create).toHaveBeenCalledWith(createDto);
     });
   });
 
