@@ -14,6 +14,7 @@ import { createUser } from '../../../factories';
 import { IAssociationRepository } from '@/domain/repositories/association.repository';
 import { IFailedEmailRepository } from '@/domain/repositories/failed-email.repository';
 import { BCRYPT_ROUNDS_RESET_PASSWORD } from '@/common/constants/security.constants';
+import { Status } from '@/domain/enums/enums';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -130,6 +131,24 @@ describe('AuthService', () => {
       const result = await service.validateUser('test@example.com', 'wrongPassword');
       expect(result).toBeNull();
     });
+
+    it('regressão #169: deve rejeitar login com UnauthorizedException quando a conta esta inativa (credenciais corretas)', async () => {
+      const mockUser = createUser({
+        email: 'vaqueiro@example.com',
+        password: 'hashedPassword',
+        status: Status.Inactive,
+      });
+
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(mockUser);
+      (hashService.compare as jest.Mock).mockResolvedValue(true);
+
+      await expect(
+        service.validateUser('vaqueiro@example.com', 'password123'),
+      ).rejects.toThrow(UnauthorizedException);
+      await expect(
+        service.validateUser('vaqueiro@example.com', 'password123'),
+      ).rejects.toThrow('Conta inativa. Entre em contato com o administrador.');
+    });
   });
 
   describe('validateAssociation', () => {
@@ -237,6 +256,21 @@ describe('AuthService', () => {
       await expect(service.executeLogin(loginDto)).rejects.toThrow(
         UnauthorizedException,
       );
+    });
+
+    it('regressão #169: propaga o erro de conta inativa sem cair no fallback de Associação', async () => {
+      const loginDto = { email: 'vaqueiro@example.com', password: 'password123' };
+      const inactiveError = new UnauthorizedException(
+        'Conta inativa. Entre em contato com o administrador.',
+      );
+
+      jest.spyOn(service, 'validateUser').mockRejectedValue(inactiveError);
+      jest.spyOn(service, 'validateAssociation');
+
+      await expect(service.executeLogin(loginDto)).rejects.toThrow(
+        'Conta inativa. Entre em contato com o administrador.',
+      );
+      expect(service.validateAssociation).not.toHaveBeenCalled();
     });
   });
 

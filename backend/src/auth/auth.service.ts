@@ -20,6 +20,7 @@ import {
 } from '@/common/constants/security.constants';
 import { UserEntity } from '@/domain/entities/user.entity';
 import { AssociationEntity } from '@/domain/entities/association.entity';
+import { Status } from '@/domain/enums/enums';
 
 @Injectable()
 export class AuthService {
@@ -41,6 +42,17 @@ export class AuthService {
     const user = await this.userRepository.findByEmail(email);
 
     if (user && (await this.hashService.compare(password, user.password))) {
+      // Credenciais corretas, mas conta inativa: nega o login com uma
+      // mensagem explicita em vez de emitir um token que so falharia depois
+      // (JwtStrategy/findById ja filtram usuarios Inactive, mas isso
+      // deixava o /auth/login mentir dizendo "sucesso" pra uma conta
+      // desativada).
+      if (user.status !== Status.Active) {
+        throw new UnauthorizedException(
+          'Conta inativa. Entre em contato com o administrador.',
+        );
+      }
+
       const { password, ...result } = user;
       return result;
     }
