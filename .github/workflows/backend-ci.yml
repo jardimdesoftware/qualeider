@@ -396,6 +396,9 @@ jobs:
     permissions:
       contents: read
       security-events: write
+    env:
+      # Falhar em CRITICAL quando for push/dispatch em `main` ou PR cujo alvo é `main`
+      TRIVY_EXIT_ON_CRITICAL: ${{ ((github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main') || startsWith(github.ref, 'refs/heads/main')) && '1' || '0' }}
 
     steps:
       - name: Checkout repository
@@ -408,7 +411,7 @@ jobs:
           scan-type: "fs"
           scan-ref: "backend"
           format: "table"
-          exit-code: "0"            # ← Não bloqueia o pipeline
+          exit-code: ${{ env.TRIVY_EXIT_ON_CRITICAL }}
           severity: "CRITICAL,HIGH"
           ignore-unfixed: true
           trivyignores: "backend/.trivyignore"
@@ -541,8 +544,8 @@ jobs:
         with:
           image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }}"
           format: "table"
-          exit-code: "0"            # ← Não bloqueia o pipeline
-          severity: "CRITICAL,HIGH"
+          exit-code: ${{ ((github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main') || startsWith(github.ref, 'refs/heads/main')) && '1' || '0' }}
+          severity: ${{ ((github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main') || startsWith(github.ref, 'refs/heads/main')) && 'CRITICAL' || 'CRITICAL,HIGH' }}
           ignore-unfixed: true
           trivyignores: "backend/.trivyignore"
         env:
