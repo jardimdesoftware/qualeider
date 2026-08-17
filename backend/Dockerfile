@@ -72,6 +72,7 @@ RUN node node_modules/prisma/build/index.js generate
 
 # Copiar artefatos de build
 COPY --from=builder --chown=appuser:appgroup /usr/appBackend/dist ./dist
+COPY --from=builder --chown=appuser:appgroup /usr/appBackend/src/templates ./src/templates
 
 # Remover gerenciadores de pacote do runtime; o container usa o Prisma local e o app via node.
 RUN rm -rf /usr/local/lib/node_modules/npm \
