@@ -2,7 +2,7 @@
 # Dockerfile — Frontend Qualeider (Multi-arch)
 # =============================================================================
 # Multi-stage build para Next.js com suporte a AMD64 + ARM64 (via buildx)
-# - Versões de imagem fixadas (node:20.18-alpine3.21)
+# - Versões de imagem fixadas (node:24.19-alpine3.24)
 # - Usuário não-root
 # - Build standalone do Next.js
 # =============================================================================
@@ -10,7 +10,7 @@
 # ---------------------------------------------------------------------------
 # Stage 1: Instalar dependências
 # ---------------------------------------------------------------------------
-FROM node:20.18-alpine3.21 AS deps
+FROM node:24.19-alpine3.24 AS deps
 
 # Argumentos de build para multi-arch (informativo)
 ARG TARGETPLATFORM
@@ -27,7 +27,7 @@ RUN npm ci
 # ---------------------------------------------------------------------------
 # Stage 2: Build da aplicação
 # ---------------------------------------------------------------------------
-FROM node:20.18-alpine3.21 AS builder
+FROM node:24.19-alpine3.24 AS builder
 
 WORKDIR /usr/appFrontend
 
@@ -48,7 +48,7 @@ RUN npm run build
 # ---------------------------------------------------------------------------
 # Stage 3: Imagem de produção
 # ---------------------------------------------------------------------------
-FROM node:20.18-alpine3.21 AS runner
+FROM node:24.19-alpine3.24 AS runner
 
 WORKDIR /usr/appFrontend
 
@@ -68,6 +68,16 @@ COPY --from=builder --chown=appuser:appgroup /usr/appFrontend/.next/standalone .
 COPY --from=builder --chown=appuser:appgroup /usr/appFrontend/.next/static ./.next/static
 # Copiar arquivos públicos
 COPY --from=builder --chown=appuser:appgroup /usr/appFrontend/public ./public
+
+# Remover gerenciadores de pacote do runtime; o servidor standalone executa direto via node.
+RUN rm -rf /usr/local/lib/node_modules/npm \
+    /usr/local/lib/node_modules/corepack \
+    /opt/yarn-* \
+    /usr/local/bin/npm \
+    /usr/local/bin/npx \
+    /usr/local/bin/corepack \
+    /usr/local/bin/yarn \
+    /usr/local/bin/yarnpkg
 
 # Mudar para usuário não-root
 USER appuser

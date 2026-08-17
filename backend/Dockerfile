@@ -14,7 +14,7 @@
 # ---------------------------------------------------------------------------
 # Stage 1: Builder
 # ---------------------------------------------------------------------------
-FROM node:20.18-alpine3.21 AS builder
+FROM node:24.19-alpine3.24 AS builder
 
 # Argumentos de build para multi-arch (informativo)
 ARG TARGETPLATFORM
@@ -34,7 +34,7 @@ RUN npm ci --ignore-scripts && \
     npm cache clean --force
 
 # Gerar Prisma Client
-RUN npx prisma generate
+RUN node node_modules/prisma/build/index.js generate
 
 # Copiar código-fonte e compilar
 COPY . .
@@ -43,7 +43,7 @@ RUN npm run build
 # ---------------------------------------------------------------------------
 # Stage 2: Production
 # ---------------------------------------------------------------------------
-FROM node:20.18-alpine3.21 AS production
+FROM node:24.19-alpine3.24 AS production
 
 # Instalar dumb-init (init process correto para PID 1) e wget para healthcheck
 RUN apk add --no-cache dumb-init wget && \
@@ -68,10 +68,20 @@ RUN npm ci --omit=dev --ignore-scripts && \
     rm -rf /root/.npm /tmp/*
 
 # Gerar Prisma Client para produção
-RUN npx prisma generate
+RUN node node_modules/prisma/build/index.js generate
 
 # Copiar artefatos de build
 COPY --from=builder --chown=appuser:appgroup /usr/appBackend/dist ./dist
+
+# Remover gerenciadores de pacote do runtime; o container usa o Prisma local e o app via node.
+RUN rm -rf /usr/local/lib/node_modules/npm \
+    /usr/local/lib/node_modules/corepack \
+    /opt/yarn-* \
+    /usr/local/bin/npm \
+    /usr/local/bin/npx \
+    /usr/local/bin/corepack \
+    /usr/local/bin/yarn \
+    /usr/local/bin/yarnpkg
 
 # Mudar para usuário não-root
 USER appuser
@@ -93,4 +103,4 @@ LABEL org.opencontainers.image.title="Qualeider Backend" \
 ENTRYPOINT ["dumb-init", "--"]
 
 # Executar migrations e iniciar servidor
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/presentation/main.js"]
+CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && node dist/src/presentation/main.js"]
