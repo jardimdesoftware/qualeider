@@ -286,7 +286,9 @@ export default function ManageAnimals() {
       await deleteAnimal.mutateAsync(animal.id);
       showFeedback("Sucesso!", "Animal excluido com sucesso.", "success");
     } catch (err: any) {
-      const msg: string = err?.response?.data?.message || "";
+      const rawMsg = err?.response?.data?.message;
+      // O backend sempre envia "message" como array (mesmo para erro unico).
+      const msg: string = (Array.isArray(rawMsg) ? rawMsg[0] : rawMsg) || "";
       // Compara sem acentos para nao depender de a mensagem do backend
       // vir exatamente com ou sem acentuacao (ex: "histórico" vs "historico").
       const normalizedMsg = msg
