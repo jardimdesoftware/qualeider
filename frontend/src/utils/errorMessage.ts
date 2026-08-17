@@ -17,7 +17,17 @@ export function getFriendlyErrorMessage(error: unknown): string {
       return "Muitas tentativas. Aguarde um momento e tente novamente.";
     }
 
-    // Mensagem específica enviada pelo backend (se existir)
+    // Erros 5xx: o filtro global do backend sempre responde
+    // { message: "Internal server error" } para qualquer 500, então a mensagem
+    // crua nunca é útil pro usuário final — prioriza o fallback amigável por
+    // status em vez de checar data.message primeiro.
+    if (status && status >= 500) {
+      return "Não foi possível processar sua solicitação agora. Tente novamente em alguns instantes.";
+    }
+
+    // Mensagem específica enviada pelo backend (se existir) — só chega aqui
+    // pra 4xx, que carregam mensagens pensadas pro usuário final (validação,
+    // regras de negócio).
     if (data?.message) {
       // Se for array de mensagens (ex: validação class-validator), pega a primeira
       if (Array.isArray(data.message)) {
@@ -41,8 +51,6 @@ export function getFriendlyErrorMessage(error: unknown): string {
         return "Você não tem permissão para realizar esta ação.";
       case 404:
         return "Recurso não encontrado no servidor.";
-      case 500:
-        return "Erro interno no servidor. Nossa equipe já foi notificada.";
       default:
         return "Ocorreu um erro na comunicação com o servidor.";
     }
