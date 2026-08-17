@@ -44,7 +44,14 @@ import { join } from 'path';
             from: `"Equipe de Suporte - QualeiDer" <${from}>`,
           },
           template: {
-            dir: join(process.cwd(), 'src', 'templates'),
+            // Relativo ao arquivo compilado (dist/src/mail/mail.module.js —
+            // o tsconfig preserva o prefixo src/ dentro de dist/), nao ao cwd:
+            // o nest-cli copia src/templates para dist/templates (sem o
+            // prefixo src/) no build (nest-cli.json > compilerOptions.assets),
+            // mas a imagem Docker de producao so contem dist/ —
+            // process.cwd() + 'src/templates' nunca existe la, apenas em dev
+            // via ts-node a partir da raiz do repo.
+            dir: join(__dirname, '..', '..', 'templates'),
             adapter: new HandlebarsAdapter(),
             options: {
               strict: true,
