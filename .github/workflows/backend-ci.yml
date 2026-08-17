@@ -516,7 +516,7 @@ jobs:
       # --- Build & Push Multi-arch (AMD64 + ARM64) ---
       - name: Build and Push Multi-arch Docker image
         id: push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: backend
           file: backend/Dockerfile
