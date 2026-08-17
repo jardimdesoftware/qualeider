@@ -10,3 +10,5 @@
 # Exemplo:
 # CVE-2023-12345  # Não aplicável: módulo não utilizado em produção (2024-01-15)
 # =============================================================================
+
+CVE-2026-31789 # OpenSSL: applies only to 32-bit platforms; published images support linux/amd64 and linux/arm64 (2026-08-17).

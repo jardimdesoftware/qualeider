@@ -65,7 +65,7 @@ concurrency:
 # Variáveis de ambiente reutilizadas
 # ---------------------------------------------------------------------------
 env:
-  NODE_VERSION: "20"
+  NODE_VERSION: "24"
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository_owner }}/qualeider-backend
 
@@ -447,6 +447,7 @@ jobs:
           format: "sarif"
           output: "trivy-results.sarif"
           severity: "CRITICAL,HIGH,MEDIUM"
+          trivyignores: "backend/.trivyignore"
 
       - name: Upload Trivy SARIF to GitHub Security
         if: always()
@@ -561,6 +562,7 @@ jobs:
           format: "sarif"
           output: "trivy-image.sarif"
           severity: "CRITICAL,HIGH,MEDIUM"
+          trivyignores: "backend/.trivyignore"
         env:
           TRIVY_USERNAME: ${{ github.actor }}
           TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}

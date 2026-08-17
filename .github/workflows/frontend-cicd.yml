@@ -53,7 +53,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: "20"
+  NODE_VERSION: "24"
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository_owner }}/qualeider-frontend
 
@@ -217,6 +217,7 @@ jobs:
           exit-code: ${{ env.TRIVY_EXIT_ON_CRITICAL }}
           severity: "CRITICAL,HIGH"
           ignore-unfixed: true
+          trivyignores: "frontend/.trivyignore"
 
       # --- Trivy SARIF para GitHub Security tab ---
       - name: Trivy — SARIF Report
@@ -228,6 +229,7 @@ jobs:
           format: "sarif"
           output: "trivy-frontend-fs.sarif"
           severity: "CRITICAL,HIGH,MEDIUM"
+          trivyignores: "frontend/.trivyignore"
 
       - name: Upload Trivy SARIF to GitHub Security
         if: always()
@@ -284,6 +286,7 @@ jobs:
           exit-code: ${{ env.TRIVY_EXIT_ON_CRITICAL }}
           severity: "CRITICAL,HIGH"
           ignore-unfixed: true
+          trivyignores: "frontend/.trivyignore"
 
       # --- Trivy Image SARIF ---
       - name: Trivy — Image SARIF Report
@@ -294,6 +297,7 @@ jobs:
           format: "sarif"
           output: "trivy-frontend-image.sarif"
           severity: "CRITICAL,HIGH,MEDIUM"
+          trivyignores: "frontend/.trivyignore"
 
       - name: Upload Image SARIF to GitHub Security
         if: always()
