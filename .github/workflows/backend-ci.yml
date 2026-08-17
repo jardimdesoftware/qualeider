@@ -243,7 +243,7 @@ jobs:
 
       - name: Upload Unit Test Coverage
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-unit
           path: backend/coverage/unit/
@@ -309,7 +309,7 @@ jobs:
 
       - name: Upload Integration Test Coverage
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-integration
           path: backend/coverage/integration/
@@ -380,7 +380,7 @@ jobs:
 
       - name: Upload E2E Test Coverage
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-e2e
           path: backend/coverage/e2e/
@@ -589,7 +589,7 @@ jobs:
 
       - name: Upload SBOM
         if: steps.push.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sbom-cyclonedx
           path: sbom.cdx.json
