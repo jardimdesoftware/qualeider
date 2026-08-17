@@ -544,8 +544,8 @@ jobs:
         with:
           image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }}"
           format: "table"
-          exit-code: ${{ env.TRIVY_EXIT_ON_CRITICAL }}
-          severity: "CRITICAL,HIGH"
+          exit-code: ${{ ((github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main') || startsWith(github.ref, 'refs/heads/main')) && '1' || '0' }}
+          severity: ${{ ((github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main') || startsWith(github.ref, 'refs/heads/main')) && 'CRITICAL' || 'CRITICAL,HIGH' }}
           ignore-unfixed: true
           trivyignores: "backend/.trivyignore"
         env:
