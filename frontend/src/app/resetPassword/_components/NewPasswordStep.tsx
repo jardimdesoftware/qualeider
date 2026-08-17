@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { InputField, Button } from "@/components/ui";
 import { useResetPassword } from "@/hooks/queries/useAuth";
-import { resetPasswordSchema, ResetPasswordData } from "@/schemas/auth";
+import { newPasswordSchema, NewPasswordData } from "@/schemas/auth";
 
 interface NewPasswordStepProps {
   email: string;
@@ -23,15 +23,15 @@ export function NewPasswordStep({
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<ResetPasswordData>({
-    resolver: zodResolver(resetPasswordSchema),
+  } = useForm<NewPasswordData>({
+    resolver: zodResolver(newPasswordSchema),
     mode: "onBlur",
   });
 
   const { mutateAsync: resetPassword, isPending } = useResetPassword();
   const formIsSubmitting = isSubmitting || isPending;
 
-  const onResetPassword = async (data: ResetPasswordData) => {
+  const onResetPassword = async (data: NewPasswordData) => {
     try {
       if (!email || !code) {
         throw new Error("Dados de verificação perdidos. Reinicie o processo.");
