@@ -12,7 +12,9 @@ import { IHashService as IHashServiceSymbol, type IHashService } from '@/applica
 import { createUser } from '../../../factories';
 
 import { IAssociationRepository } from '@/domain/repositories/association.repository';
+import { IFailedEmailRepository } from '@/domain/repositories/failed-email.repository';
 import { BCRYPT_ROUNDS_RESET_PASSWORD } from '@/common/constants/security.constants';
+import { Status } from '@/domain/enums/enums';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -21,6 +23,7 @@ describe('AuthService', () => {
   let mailService: jest.Mocked<MailService>;
   let hashService: jest.Mocked<IHashService>;
   let associationRepository: IAssociationRepository;
+  let failedEmailRepository: jest.Mocked<IFailedEmailRepository>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -63,6 +66,12 @@ describe('AuthService', () => {
             compare: jest.fn(),
           },
         },
+        {
+          provide: IFailedEmailRepository,
+          useValue: {
+            create: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -72,6 +81,7 @@ describe('AuthService', () => {
     mailService = module.get(MailService);
     hashService = module.get(IHashServiceSymbol) as any;
     associationRepository = module.get<IAssociationRepository>(IAssociationRepository) as any;
+    failedEmailRepository = module.get(IFailedEmailRepository);
   });
 
   afterEach(() => {
@@ -120,6 +130,24 @@ describe('AuthService', () => {
 
       const result = await service.validateUser('test@example.com', 'wrongPassword');
       expect(result).toBeNull();
+    });
+
+    it('regressão #169: deve rejeitar login com UnauthorizedException quando a conta esta inativa (credenciais corretas)', async () => {
+      const mockUser = createUser({
+        email: 'vaqueiro@example.com',
+        password: 'hashedPassword',
+        status: Status.Inactive,
+      });
+
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(mockUser);
+      (hashService.compare as jest.Mock).mockResolvedValue(true);
+
+      await expect(
+        service.validateUser('vaqueiro@example.com', 'password123'),
+      ).rejects.toThrow(UnauthorizedException);
+      await expect(
+        service.validateUser('vaqueiro@example.com', 'password123'),
+      ).rejects.toThrow('Conta inativa. Entre em contato com o administrador.');
     });
   });
 
@@ -228,6 +256,21 @@ describe('AuthService', () => {
       await expect(service.executeLogin(loginDto)).rejects.toThrow(
         UnauthorizedException,
       );
+    });
+
+    it('regressão #169: propaga o erro de conta inativa sem cair no fallback de Associação', async () => {
+      const loginDto = { email: 'vaqueiro@example.com', password: 'password123' };
+      const inactiveError = new UnauthorizedException(
+        'Conta inativa. Entre em contato com o administrador.',
+      );
+
+      jest.spyOn(service, 'validateUser').mockRejectedValue(inactiveError);
+      jest.spyOn(service, 'validateAssociation');
+
+      await expect(service.executeLogin(loginDto)).rejects.toThrow(
+        'Conta inativa. Entre em contato com o administrador.',
+      );
+      expect(service.validateAssociation).not.toHaveBeenCalled();
     });
   });
 
@@ -363,6 +406,59 @@ describe('AuthService', () => {
 
       expect(loggerErrorSpy).toHaveBeenCalledWith(
         'Erro ao processar reset de senha:',
+        expect.any(Error),
+      );
+
+      loggerErrorSpy.mockRestore();
+    });
+
+    it('regressão #168: nao deve retornar 500 quando o envio do email falha (ex: SMTP fora do ar)', async () => {
+      const loggerErrorSpy = jest.spyOn(Logger.prototype, 'error');
+      const mockUser = createUser({ id: 1, email: 'test@example.com', name: 'Test User' });
+
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(mockUser);
+      (userRepository.update as jest.Mock).mockResolvedValue({
+        ...mockUser,
+        resetToken: '123456',
+        resetTokenExpiry: new Date(),
+      });
+      mailService.sendResetPasswordEmail.mockRejectedValue(
+        new Error('connect ETIMEDOUT: SMTP indisponível'),
+      );
+      (failedEmailRepository.create as jest.Mock).mockResolvedValue({});
+
+      // O token ja foi persistido; a requisicao nao deve lancar/virar 500.
+      const result = await service.forgotPassword('test@example.com');
+
+      expect(result.message).toContain('enviado com sucesso');
+      expect(failedEmailRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          payload: expect.objectContaining({ to: 'test@example.com' }),
+          errorReason: expect.stringContaining('SMTP indisponível'),
+        }),
+      );
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Falha ao enviar e-mail de redefinição de senha'),
+        expect.any(Error),
+      );
+
+      loggerErrorSpy.mockRestore();
+    });
+
+    it('regressão #168: registra falha na DLQ mesmo se o proprio salvamento na DLQ falhar (nao deve quebrar a requisicao)', async () => {
+      const loggerErrorSpy = jest.spyOn(Logger.prototype, 'error');
+      const mockUser = createUser({ id: 1, email: 'test@example.com', name: 'Test User' });
+
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(mockUser);
+      (userRepository.update as jest.Mock).mockResolvedValue(mockUser);
+      mailService.sendResetPasswordEmail.mockRejectedValue(new Error('SMTP indisponível'));
+      (failedEmailRepository.create as jest.Mock).mockRejectedValue(new Error('DB indisponível'));
+
+      const result = await service.forgotPassword('test@example.com');
+
+      expect(result.message).toContain('enviado com sucesso');
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        'CRÍTICO: Falha ao salvar e-mail de redefinição de senha na DLQ!',
         expect.any(Error),
       );
 

@@ -5,7 +5,7 @@ import { createAnimal } from '../../../factories/animal.factory';
 import { createUser } from '../../../factories/user.factory';
 import { CreateAnimalDto } from '@/application/dtos/animals/create-animal.dto';
 import { UpdateAnimalDto } from '@/application/dtos/animals/update-animal.dto';
-import { AnimalType, Status } from '@/domain/enums/enums';
+import { AnimalType, Status, UserRole } from '@/domain/enums/enums';
 import { IAnimalRepository, IAnimalRepository as IAnimalRepositorySymbol } from '@/domain/repositories/animal.repository';
 import { IUserRepository, IUserRepository as IUserRepositorySymbol } from '@/domain/repositories/user.repository';
 import { IDailyCollectionRepository, IDailyCollectionRepository as IDailyCollectionRepositorySymbol } from '@/domain/repositories/daily-collection.repository';
@@ -27,7 +27,7 @@ describe('AnimalsService', () => {
             create: jest.fn(),
             findAll: jest.fn(),
             findById: jest.fn(),
-            findByTagNumber: jest.fn(),
+            findConflictingTagNumber: jest.fn(),
             findPendingByParentCode: jest.fn().mockResolvedValue([]),
             update: jest.fn(),
             softDelete: jest.fn(),
@@ -101,6 +101,52 @@ describe('AnimalsService', () => {
         'Usuário com ID 999 não encontrado.',
       );
       expect(animalRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('deve lançar BusinessException quando o tagNumber ja existe no mesmo grupo Admin+Vaqueiros', async () => {
+      const vaqueiroId = 5;
+      const adminId = 1;
+      const vaqueiro = createUser({ id: vaqueiroId, role: UserRole.VAQUEIRO, adminId });
+      const createDto: CreateAnimalDto = {
+        name: 'Mimosa',
+        tagNumber: 'vaca1',
+        age: 5,
+        userId: vaqueiroId,
+      } as CreateAnimalDto;
+
+      userRepository.findById.mockResolvedValue(vaqueiro);
+      animalRepository.findConflictingTagNumber.mockResolvedValue(
+        createAnimal({ id: 99, userId: adminId, tagNumber: 'vaca1' }),
+      );
+
+      await expect(service.create(createDto)).rejects.toThrow(BusinessException);
+      expect(animalRepository.findConflictingTagNumber).toHaveBeenCalledWith(
+        { adminGroupId: adminId },
+        'vaca1',
+        undefined,
+      );
+      expect(animalRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('deve permitir criar animal com tagNumber quando nao ha conflito no escopo do rebanho', async () => {
+      const userId = 1;
+      const mockUser = createUser({ id: userId });
+      const createDto: CreateAnimalDto = {
+        name: 'Mimosa',
+        tagNumber: 'vaca1',
+        age: 5,
+        userId,
+      } as CreateAnimalDto;
+      const mockAnimal = createAnimal({ ...createDto, id: 1 });
+
+      userRepository.findById.mockResolvedValue(mockUser);
+      animalRepository.findConflictingTagNumber.mockResolvedValue(null);
+      animalRepository.create.mockResolvedValue(mockAnimal);
+
+      const result = await service.create(createDto);
+
+      expect(result).toEqual(mockAnimal);
+      expect(animalRepository.create).toHaveBeenCalledWith(createDto);
     });
   });
 
@@ -235,6 +281,43 @@ describe('AnimalsService', () => {
 
         await expect(service.update(999, updateDto as any)).rejects.toThrow(EntityNotFoundException);
         expect(animalRepository.update).not.toHaveBeenCalled();
+    });
+
+    it('deve lançar BusinessException ao trocar o tagNumber para um ja usado no mesmo grupo Admin+Vaqueiros', async () => {
+      const vaqueiroId = 5;
+      const adminId = 1;
+      const mockExistingAnimal = createAnimal({ id: 1, userId: vaqueiroId, tagNumber: 'vaca9' });
+      const updateDto: Partial<UpdateAnimalDto> = { tagNumber: 'vaca1' };
+
+      animalRepository.findById.mockResolvedValue(mockExistingAnimal);
+      userRepository.findById.mockResolvedValue(
+        createUser({ id: vaqueiroId, role: UserRole.VAQUEIRO, adminId }),
+      );
+      animalRepository.findConflictingTagNumber.mockResolvedValue(
+        createAnimal({ id: 99, userId: adminId, tagNumber: 'vaca1' }),
+      );
+
+      await expect(service.update(1, updateDto as any)).rejects.toThrow(BusinessException);
+      expect(animalRepository.findConflictingTagNumber).toHaveBeenCalledWith(
+        { adminGroupId: adminId },
+        'vaca1',
+        1,
+      );
+      expect(animalRepository.update).not.toHaveBeenCalled();
+    });
+
+    it('deve permitir manter o mesmo tagNumber sem revalidar conflito', async () => {
+      const updateDto: Partial<UpdateAnimalDto> = { tagNumber: 'vaca1', age: 6 };
+      const mockExistingAnimal = createAnimal({ id: 1, tagNumber: 'vaca1' });
+      const mockUpdatedAnimal = createAnimal({ id: 1, ...updateDto });
+
+      animalRepository.findById.mockResolvedValue(mockExistingAnimal);
+      animalRepository.update.mockResolvedValue(mockUpdatedAnimal);
+
+      const result = await service.update(1, updateDto as any);
+
+      expect(result).toEqual(mockUpdatedAnimal);
+      expect(animalRepository.findConflictingTagNumber).not.toHaveBeenCalled();
     });
   });
 

@@ -89,16 +89,19 @@ enum UserRole {
 
 model User {
   id                    Int              @id @default(autoincrement())
-  associationId         Int?             
+  associationId         Int?
   association           Association?     @relation(fields: [associationId], references: [id])
+  adminId               Int?             // Admin (dono da fazenda) que cadastrou este funcionario (Vaqueiro)
+  admin                 User?            @relation("AdminVaqueiros", fields: [adminId], references: [id])
+  vaqueiros             User[]           @relation("AdminVaqueiros")
   name                  String
   email                 String           @unique
   password              String
   userType              UserType?
-  userCategory          UserCategory 
+  userCategory          UserCategory
   document              String?          @unique // CPF ou CNPJ
-  city                  String           
-  state                 String 
+  city                  String
+  state                 String
   role                  UserRole         @default(ADMIN)
   status                Status           @default(Active)
   resetToken            String?
@@ -112,6 +115,7 @@ model User {
   receivedNotifications NotificationRecipient[]
   @@index([city, state, status])
   @@index([associationId, status])
+  @@index([adminId])
 }
 
 model Breed {

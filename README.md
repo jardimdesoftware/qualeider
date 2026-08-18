@@ -152,6 +152,43 @@ branco no navegador, causas prováveis, da mais comum para a mais rara:
 Se depois de descartar os três pontos acima o problema persistir, aí sim é
 caso de investigar como bug — mas normalmente é um desses três.
 
+### Swagger em produção
+
+O Swagger **fica habilitado por padrão em todos os ambientes** — dev, a
+simulação local com nginx (`docker-compose.local.yml`) e produção
+(`docker-compose.prod.yml`/`docker-compose.yml`) usam a mesma configuração
+de rota (`nginx/nginx.conf` encaminha qualquer coisa que comece com `/api`,
+incluindo `/api-docs`, para o backend) e o mesmo código
+([`backend/src/presentation/main.ts`](backend/src/presentation/main.ts)). Não
+existe um "modo produção" que desabilite o Swagger automaticamente — se
+`/api-docs` responde `404` numa instância hospedada, **não é intencional**;
+é sinal de deriva de ambiente. Antes de abrir uma issue, verifique:
+
+1. **Imagem desatualizada** — confirme a tag rodando (`docker compose -f
+   docker-compose.prod.yml images`) e se ela já inclui este comportamento.
+2. **Proxy externo na frente do Nginx do projeto** (Traefik, Coolify, CDN,
+   etc.) — alguns hosts adicionam roteamento próprio que pode não replicar
+   `nginx/nginx.conf` deste repo. Confirme com `curl -i` direto na porta do
+   Nginx do compose antes de suspeitar do backend.
+3. **`SWAGGER_ENABLED=false` no `.env` do servidor** (ver abaixo) — desabilita
+   de propósito e nesse caso a resposta é um `403` explícito, não `404`.
+
+#### Desabilitando o Swagger de propósito
+
+Expor o schema completo da API publicamente pode não ser desejável para uma
+instância exposta na internet. Para desabilitar, defina no `.env` usado pelo
+compose (raiz do projeto) ou no `backend/.env` (execução direta no host):
+
+```bash
+SWAGGER_ENABLED=false
+```
+
+Com a flag em `false`, `/api-docs`, `/api-docs-json` e `/api-docs-yaml`
+respondem `403 Forbidden` com uma mensagem explícita — em vez do `404`
+ambíguo que não deixa claro se é "fora do ar" ou "desabilitado de
+propósito". O padrão (sem a variável, ou qualquer valor diferente de
+`"false"`) é **habilitado**.
+
 ---
 
 ## 🌐 Executando em VM ou rede local

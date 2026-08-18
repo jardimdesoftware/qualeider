@@ -216,6 +216,19 @@ describe('DailyCollectionsController', () => {
       expect(service.findAll).toHaveBeenCalledWith({ associationId: 10, limit: MAX_LIMIT });
       expect(result).toEqual(items);
     });
+
+    it('deve retornar coletas do Admin quando VAQUEIRO foi cadastrado por ele (sem associacao/cooperativa)', async () => {
+      const items: any[] = [
+        { id: 1, userId: 1 }, // coleta do Admin
+        { id: 2, userId: 5 }, // coleta do proprio Vaqueiro
+      ];
+      mockService.findAll.mockResolvedValue(items);
+
+      const result = await controller.findAllByUserId(5, UserRole.VAQUEIRO, null, 1);
+
+      expect(service.findAll).toHaveBeenCalledWith({ adminGroupId: 1, limit: MAX_LIMIT });
+      expect(result).toEqual(items);
+    });
   });
 
   describe('findByAnimalId', () => {

@@ -1,6 +1,6 @@
 import { setupE2ETests, teardownE2ETests, E2E_TIMEOUT } from '../setup';
 import { TestApp, AuthHelper } from '../helpers';
-import { UserCategory } from '@/domain/enums/enums';
+import { UserCategory, UserRole, Status } from '@/domain/enums/enums';
 import { UserFactory } from '../factories';
 import { HttpStatus } from '@nestjs/common';
 
@@ -245,6 +245,106 @@ describe('E2E: Users - CRUD Operations', () => {
           email: 'admin@example.com',
         })
         .expect(HttpStatus.BAD_REQUEST);
+    });
+
+    it('regressão #166: deve permitir reenviar o proprio email do usuario ao editar outros campos', async () => {
+      const createData = UserFactory.build({
+        email: 'mesmo-email@example.com',
+        name: 'Nome Original',
+        city: 'Recife',
+        state: 'PE',
+      });
+
+      const created = await testApp
+        .request()
+        .post('/users')
+        .send(createData)
+        .expect(HttpStatus.CREATED);
+
+      const response = await testApp
+        .request()
+        .put(`/users/${created.body.data.id}`)
+        .set(authHelper.authHeader(adminToken))
+        .send({
+          name: 'Nome Atualizado',
+          email: 'mesmo-email@example.com',
+        })
+        .expect(HttpStatus.OK);
+
+      expect(response.body.data.name).toBe('Nome Atualizado');
+      expect(response.body.data.email).toBe('mesmo-email@example.com');
+    });
+
+    it('regressão #167: deve permitir inativar um funcionário via update', async () => {
+      const createData = UserFactory.build({
+        email: 'inativar-update@example.com',
+      });
+
+      const created = await testApp
+        .request()
+        .post('/users')
+        .send(createData)
+        .expect(HttpStatus.CREATED);
+
+      const response = await testApp
+        .request()
+        .put(`/users/${created.body.data.id}`)
+        .set(authHelper.authHeader(adminToken))
+        .send({ status: Status.Inactive })
+        .expect(HttpStatus.OK);
+
+      expect(response.body.data.status).toBe(Status.Inactive);
+    });
+
+    it('regressão #167: deve permitir reativar um funcionário previamente inativado', async () => {
+      const createData = UserFactory.build({
+        email: 'reativar-update@example.com',
+      });
+
+      const created = await testApp
+        .request()
+        .post('/users')
+        .send(createData)
+        .expect(HttpStatus.CREATED);
+
+      const userId = created.body.data.id;
+
+      await testApp
+        .request()
+        .put(`/users/${userId}`)
+        .set(authHelper.authHeader(adminToken))
+        .send({ status: Status.Inactive })
+        .expect(HttpStatus.OK);
+
+      const reactivated = await testApp
+        .request()
+        .put(`/users/${userId}`)
+        .set(authHelper.authHeader(adminToken))
+        .send({ status: Status.Active })
+        .expect(HttpStatus.OK);
+
+      expect(reactivated.body.data.status).toBe(Status.Active);
+    });
+
+    it('deve permitir alterar o cargo/perfil (role) de um funcionário', async () => {
+      const createData = UserFactory.build({
+        email: 'trocar-role@example.com',
+      });
+
+      const created = await testApp
+        .request()
+        .post('/users')
+        .send(createData)
+        .expect(HttpStatus.CREATED);
+
+      const response = await testApp
+        .request()
+        .put(`/users/${created.body.data.id}`)
+        .set(authHelper.authHeader(adminToken))
+        .send({ role: UserRole.VAQUEIRO })
+        .expect(HttpStatus.OK);
+
+      expect(response.body.data.role).toBe(UserRole.VAQUEIRO);
     });
   });
 

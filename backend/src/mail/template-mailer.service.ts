@@ -58,7 +58,13 @@ export class TemplateMailerService {
     const cached = this.templates.get(templateName);
     if (cached) return cached;
 
-    const filePath = join(process.cwd(), 'src', 'templates', `${templateName}.hbs`);
+    // Relativo ao arquivo compilado (dist/src/mail/template-mailer.service.js —
+    // o tsconfig preserva o prefixo src/ dentro de dist/), nao ao cwd: o
+    // nest-cli copia src/templates para dist/templates (sem o prefixo src/)
+    // no build (nest-cli.json > compilerOptions.assets), mas a imagem Docker
+    // de producao so contem dist/ — process.cwd() + 'src/templates' nunca
+    // existe la, apenas em dev via ts-node a partir da raiz do repo.
+    const filePath = join(__dirname, '..', '..', 'templates', `${templateName}.hbs`);
     const source = await fs.readFile(filePath, 'utf8');
     const compiled = handlebars.compile(source, { strict: true });
     this.templates.set(templateName, compiled);

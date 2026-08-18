@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Instagram, Facebook, Youtube, Phone, Mail } from "lucide-react";
+import AppVersionBadge from "@/components/global/AppVersionBadge";
 
 export function LandingFooter() {
   return (
@@ -68,6 +69,9 @@ export function LandingFooter() {
           </ul>
           <div className="mt-6 pt-6 border-t border-[#ffffff10]">
             <p className="text-xs">© 2025 IFPE - Campus Belo Jardim</p>
+            <p className="text-xs text-slate-500 mt-1">
+              <AppVersionBadge />
+            </p>
           </div>
         </div>
       </div>

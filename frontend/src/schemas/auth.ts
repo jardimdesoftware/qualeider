@@ -75,6 +75,18 @@ export const resetPasswordSchema = z.object({
   path: ["confirmPassword"],
 });
 
+// Etapa final do reset de senha: o formulario so coleta password/confirmPassword
+// (email e code ja foram validados na etapa anterior e chegam via props, nao
+// via campos do form) — usar resetPasswordSchema aqui sempre falhava a
+// validacao porque email/code nunca eram preenchidos pelo form.
+export const newPasswordSchema = z.object({
+  password: passwordRule,
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "As senhas não conferem",
+  path: ["confirmPassword"],
+});
+
 // Trocar senha (usuário logado)
 export const changePasswordSchema = z.object({
   currentPassword: passwordRule,
@@ -96,4 +108,5 @@ export type LoginData = z.infer<typeof loginSchema>;
 export type RegisterData = z.infer<typeof registerSchema>;
 export type ForgotPasswordData = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordData = z.infer<typeof resetPasswordSchema>;
+export type NewPasswordData = z.infer<typeof newPasswordSchema>;
 export type ChangePasswordData = z.infer<typeof changePasswordSchema>;

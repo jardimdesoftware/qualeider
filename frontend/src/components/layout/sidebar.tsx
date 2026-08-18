@@ -16,6 +16,7 @@ import {
 import { getUserTypeFromToken, getUserRoleFromToken, clearAuthToken } from "@/utils/auth";
 import { debounce } from "@/utils/debounce";
 import { BREAKPOINTS, ICON_SIZES, LOGO_SIZES, TIMING } from "@/constants/ui";
+import AppVersionBadge from "@/components/global/AppVersionBadge";
 
 export default function Sidebar() {
   const [isMobile, setIsMobile] = useState(false);
@@ -139,7 +140,7 @@ export default function Sidebar() {
               ))}
             </nav>
 
-            <div className="absolute bottom-4 left-4">
+            <div className="absolute bottom-4 left-4 space-y-1">
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-2 text-white p-3 rounded-lg hover:bg-red-600"
@@ -147,6 +148,9 @@ export default function Sidebar() {
                 <LogOut size={ICON_SIZES.SM} />
                 Sair
               </button>
+              <p className="text-[10px] text-white/60 px-3">
+                <AppVersionBadge />
+              </p>
             </div>
           </div>
         </div>
@@ -189,7 +193,7 @@ export default function Sidebar() {
             </nav>
           </div>
 
-          <div className="p-4">
+          <div className="p-4 space-y-1">
             <button
               onClick={handleLogout}
               className="flex items-center gap-2 text-white p-3 rounded-lg hover:bg-red-600 hover:text-white w-full transition-colors duration-200"
@@ -197,6 +201,9 @@ export default function Sidebar() {
               <LogOut size={ICON_SIZES.SM} />
               Sair
             </button>
+            <p className="text-[10px] text-white/60 px-3">
+              <AppVersionBadge />
+            </p>
           </div>
         </aside>
       )}

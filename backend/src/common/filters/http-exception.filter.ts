@@ -6,7 +6,11 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
+import { ThrottlerException } from '@nestjs/throttler';
 import { Request, Response } from 'express';
+
+const THROTTLER_FRIENDLY_MESSAGE =
+  'Muitas tentativas realizadas. Aguarde alguns instantes e tente novamente.';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -18,6 +22,23 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
 
     const status = this.getStatus(exception);
+
+    if (exception instanceof ThrottlerException) {
+      this.logException(status, THROTTLER_FRIENDLY_MESSAGE, exception);
+
+      const retryAfter = response.getHeader('Retry-After');
+
+      response.status(status).json({
+        statusCode: status,
+        message: [THROTTLER_FRIENDLY_MESSAGE],
+        error: 'TooManyRequests',
+        ...(retryAfter ? { retryAfter: Number(retryAfter) } : {}),
+        timestamp: new Date().toISOString(),
+        path: request.url,
+      });
+      return;
+    }
+
     const exceptionResponse = this.getExceptionResponse(exception);
     const message = this.getMessage(exceptionResponse);
 

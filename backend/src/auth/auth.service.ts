@@ -9,6 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import { IHashService } from '@/application/ports/hash.service';
 import { IUserRepository } from '@/domain/repositories/user.repository';
 import { IAssociationRepository } from '@/domain/repositories/association.repository';
+import { IFailedEmailRepository } from '@/domain/repositories/failed-email.repository';
 import { MailService } from '@/mail/mail.service';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 import {
@@ -19,6 +20,7 @@ import {
 } from '@/common/constants/security.constants';
 import { UserEntity } from '@/domain/entities/user.entity';
 import { AssociationEntity } from '@/domain/entities/association.entity';
+import { Status } from '@/domain/enums/enums';
 
 @Injectable()
 export class AuthService {
@@ -30,6 +32,7 @@ export class AuthService {
     private jwtService: JwtService,
     private mailService: MailService,
     @Inject(IHashService) private hashService: IHashService,
+    @Inject(IFailedEmailRepository) private failedEmailRepository: IFailedEmailRepository,
   ) {}
 
   async validateUser(
@@ -39,6 +42,17 @@ export class AuthService {
     const user = await this.userRepository.findByEmail(email);
 
     if (user && (await this.hashService.compare(password, user.password))) {
+      // Credenciais corretas, mas conta inativa: nega o login com uma
+      // mensagem explicita em vez de emitir um token que so falharia depois
+      // (JwtStrategy/findById ja filtram usuarios Inactive, mas isso
+      // deixava o /auth/login mentir dizendo "sucesso" pra uma conta
+      // desativada).
+      if (user.status !== Status.Active) {
+        throw new UnauthorizedException(
+          'Conta inativa. Entre em contato com o administrador.',
+        );
+      }
+
       const { password, ...result } = user;
       return result;
     }
@@ -139,14 +153,26 @@ export class AuthService {
         resetTokenExpiry,
       });
 
-      await this.mailService.sendResetPasswordEmail(
-        user.email,
-        resetToken,
-        user.name,
-        { expiryDate: resetTokenExpiry },
-      );
-
-      this.logger.log(`Token de reset enviado para ${user.email}`);
+      // O token ja foi persistido nesse ponto. Uma falha apenas no ENVIO do
+      // e-mail (SMTP fora do ar, credenciais invalidas/ausentes, etc.) nao
+      // deve derrubar a requisicao com 500: registramos a falha na mesma
+      // fila (failed_emails) usada pelo fluxo de notificacoes e continuamos
+      // respondendo com sucesso ao cliente.
+      try {
+        await this.mailService.sendResetPasswordEmail(
+          user.email,
+          resetToken,
+          user.name,
+          { expiryDate: resetTokenExpiry },
+        );
+        this.logger.log(`Token de reset enviado para ${user.email}`);
+      } catch (mailError) {
+        this.logger.error(
+          `Falha ao enviar e-mail de redefinição de senha para ${user.email}:`,
+          mailError,
+        );
+        await this.recordFailedResetEmail(user.email, resetToken, resetTokenExpiry, mailError);
+      }
 
       return {
         status: HttpStatus.CREATED,
@@ -155,6 +181,31 @@ export class AuthService {
     } catch (error) {
       this.logger.error('Erro ao processar reset de senha:', error);
       throw error;
+    }
+  }
+
+  private async recordFailedResetEmail(
+    to: string,
+    resetToken: string,
+    resetTokenExpiry: Date,
+    error: unknown,
+  ) {
+    try {
+      await this.failedEmailRepository.create({
+        payload: {
+          to,
+          subject: 'Redefinição de senha',
+          template: 'reset-password',
+          context: { resetToken, expiryDate: resetTokenExpiry },
+        },
+        errorReason: error instanceof Error ? error.message : String(error),
+        retryCount: 0,
+      });
+    } catch (dlqError) {
+      this.logger.error(
+        'CRÍTICO: Falha ao salvar e-mail de redefinição de senha na DLQ!',
+        dlqError,
+      );
     }
   }
 

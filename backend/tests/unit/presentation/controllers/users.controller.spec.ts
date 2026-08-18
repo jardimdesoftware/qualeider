@@ -66,6 +66,53 @@ describe('UsersController', () => {
     });
   });
 
+  describe('createInternal', () => {
+    it('deve vincular adminId = id do criador quando ADMIN cadastra um VAQUEIRO', async () => {
+      const createDto: CreateUserDto = {
+        name: 'Vaqueiro Novo',
+        email: 'vaqueiro@example.com',
+        role: UserRole.VAQUEIRO,
+      } as any;
+      const createdUser = createUser({ ...createDto, id: 5 });
+      mockUsersService.create.mockResolvedValue(createdUser);
+
+      const result = await controller.createInternal(createDto, 1, UserRole.ADMIN, null);
+
+      expect(usersService.create).toHaveBeenCalledWith({ ...createDto, adminId: 1 });
+      expect(result).toEqual(createdUser);
+    });
+
+    it('deve propagar o adminId do criador quando um VAQUEIRO (ja vinculado) cadastra outro VAQUEIRO', async () => {
+      const createDto: CreateUserDto = {
+        name: 'Vaqueiro Novo',
+        email: 'vaqueiro2@example.com',
+        role: UserRole.VAQUEIRO,
+      } as any;
+      const createdUser = createUser({ ...createDto, id: 6 });
+      mockUsersService.create.mockResolvedValue(createdUser);
+
+      const result = await controller.createInternal(createDto, 5, UserRole.VAQUEIRO, 1);
+
+      expect(usersService.create).toHaveBeenCalledWith({ ...createDto, adminId: 1 });
+      expect(result).toEqual(createdUser);
+    });
+
+    it('nao deve setar adminId ao cadastrar um novo ADMIN', async () => {
+      const createDto: CreateUserDto = {
+        name: 'Outro Admin',
+        email: 'admin2@example.com',
+        role: UserRole.ADMIN,
+      } as any;
+      const createdUser = createUser({ ...createDto, id: 7 });
+      mockUsersService.create.mockResolvedValue(createdUser);
+
+      const result = await controller.createInternal(createDto, 1, UserRole.ADMIN, null);
+
+      expect(usersService.create).toHaveBeenCalledWith({ ...createDto, adminId: undefined });
+      expect(result).toEqual(createdUser);
+    });
+  });
+
   describe('checkEmail', () => {
     it('deve retornar exists: true quando email existe', async () => {
       const email = 'existing@example.com';

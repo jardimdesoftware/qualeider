@@ -201,5 +201,31 @@ describe('AnimalsController', () => {
           expect(animalsService.findAll).toHaveBeenCalledWith({ associationId: 10, limit: MAX_LIMIT });
           expect(result).toEqual(animals);
       });
+
+      it('deve retornar o rebanho da associacao quando VAQUEIRO pertence a uma associacao (mesmo rebanho do ADMIN)', async () => {
+          const animals = [
+            createAnimal({ id: 1, userId: 2 }),
+            createAnimal({ id: 2, userId: 5 }),
+          ];
+          mockAnimalsService.findAll.mockResolvedValue(animals);
+
+          const result = await controller.findAllByUserId(5, UserRole.VAQUEIRO, 10);
+
+          expect(animalsService.findAll).toHaveBeenCalledWith({ associationId: 10, limit: MAX_LIMIT });
+          expect(result).toEqual(animals);
+      });
+
+      it('deve retornar o rebanho do Admin quando VAQUEIRO foi cadastrado por ele (sem associacao/cooperativa)', async () => {
+          const animals = [
+            createAnimal({ id: 1, userId: 1 }), // animal do Admin
+            createAnimal({ id: 2, userId: 5 }), // animal do proprio Vaqueiro
+          ];
+          mockAnimalsService.findAll.mockResolvedValue(animals);
+
+          const result = await controller.findAllByUserId(5, UserRole.VAQUEIRO, null, 1);
+
+          expect(animalsService.findAll).toHaveBeenCalledWith({ adminGroupId: 1, limit: MAX_LIMIT });
+          expect(result).toEqual(animals);
+      });
   });
 });

@@ -33,6 +33,7 @@ export class PrismaUserRepository implements IUserRepository {
           city: data.city,
           state: data.state,
           associationId: data.associationId,
+          adminId: data.adminId,
 
           // Conversão segura de Enum Domínio -> Enum Prisma
           role: (data.role as unknown as PrismaUserRole) ?? PrismaUserRole.ADMIN,
@@ -138,8 +139,11 @@ export class PrismaUserRepository implements IUserRepository {
       if (data.userCategory) updateData.userCategory = data.userCategory as unknown as PrismaUserCategory;
       if (data.status) updateData.status = data.status as unknown as PrismaStatus;
 
+      // Sem filtro de status no where: o update precisa funcionar tanto para
+      // inativar (Active -> Inactive) quanto para reativar (Inactive -> Active)
+      // um usuario existente.
       const updated = await this.prisma.user.update({
-        where: { id, status: PrismaStatus.Active },
+        where: { id },
         data: updateData,
       });
       

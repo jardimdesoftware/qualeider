@@ -18,7 +18,7 @@ export class UsersService {
     @Inject(IHashService) private readonly hashService: IHashService,
   ) {}
 
-  async create(createUserDto: CreateUserDto) {
+  async create(createUserDto: CreateUserDto & { adminId?: number }) {
     const { password, ...rest } = createUserDto;
 
     const hashedPassword = await this.hashPasswordIfNeeded(password);

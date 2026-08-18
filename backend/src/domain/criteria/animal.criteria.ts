@@ -6,6 +6,8 @@ import { PaginationParams } from '../common/pagination.interface';
  *
  * @property associationId - Filtrar por ID da associacao
  * @property userId - Filtrar por ID do usuario/produtor
+ * @property adminGroupId - Filtrar pelo grupo Admin+Vaqueiros (animais cujo dono
+ *   e o Admin com esse ID, ou um Vaqueiro cadastrado por esse Admin)
  * @property status - Filtrar por status (padrao: 'Active' se nao informado)
  * @property includeUser - Se true, traz os dados do usuario/produtor
  * @property animalType - Filtrar por tipo de animal (legado)
@@ -17,6 +19,7 @@ import { PaginationParams } from '../common/pagination.interface';
 export interface AnimalCriteria extends PaginationParams {
   associationId?: number;
   userId?: number;
+  adminGroupId?: number;
   status?: 'Active' | 'Inactive';
   includeUser?: boolean;
   animalType?: AnimalType;
