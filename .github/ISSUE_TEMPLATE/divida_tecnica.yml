@@ -1,0 +1,37 @@
+name: 🔧 Dívida técnica / Chore / Infra
+description: Registrar débito técnico, tarefa de manutenção ou mudança de infraestrutura
+title: "[Tech Debt] "
+labels:
+  - tech-debt
+body:
+  - type: textarea
+    id: contexto
+    attributes:
+      label: Contexto
+      description: O que existe hoje (código, config, dependência, processo) e onde.
+    validations:
+      required: true
+
+  - type: textarea
+    id: comportamento-atual
+    attributes:
+      label: Situação atual / problema
+      description: Por que isso é um débito — o que está errado, desatualizado ou arriscado.
+    validations:
+      required: true
+
+  - type: textarea
+    id: impacto
+    attributes:
+      label: Impacto
+      description: Risco de não resolver (manutenibilidade, custo, complexidade, segurança, performance).
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposta-solucao
+    attributes:
+      label: Proposta de solução
+      description: Abordagem sugerida pra resolver, com passos se já tiver clareza.
+    validations:
+      required: false

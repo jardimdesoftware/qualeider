@@ -1,0 +1,67 @@
+name: 🐛 Bug Report
+description: Reportar um comportamento incorreto ou inesperado no sistema
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: textarea
+    id: contexto
+    attributes:
+      label: Contexto
+      description: Onde o bug ocorre (tela, endpoint, fluxo) e em que condições.
+      placeholder: "Ex.: Ao tentar excluir um animal com histórico de coletas, na tela Meus Animais..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: comportamento-atual
+    attributes:
+      label: Comportamento atual
+      description: O que acontece hoje (o bug em si).
+    validations:
+      required: true
+
+  - type: textarea
+    id: comportamento-esperado
+    attributes:
+      label: Comportamento esperado
+      description: O que deveria acontecer no lugar.
+    validations:
+      required: true
+
+  - type: textarea
+    id: passos-reproduzir
+    attributes:
+      label: Passos para reproduzir
+      description: Passo a passo, numerado, para reproduzir o bug de forma confiável.
+      placeholder: |
+        1. Acesse ...
+        2. Clique em ...
+        3. Observe que ...
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: impacto
+    attributes:
+      label: Impacto
+      description: Quem é afetado e quão grave é (bloqueia uso? é só visual? afeta dados?).
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidencias
+    attributes:
+      label: Evidências
+      description: Screenshots, logs de console/rede, mensagens de erro. Arraste arquivos aqui se precisar.
+    validations:
+      required: false
+
+  - type: textarea
+    id: proposta-solucao
+    attributes:
+      label: Proposta de solução
+      description: Se já tiver uma hipótese de causa raiz ou sugestão de correção, descreva aqui (opcional).
+    validations:
+      required: false

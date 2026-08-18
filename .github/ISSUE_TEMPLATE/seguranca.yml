@@ -1,0 +1,73 @@
+name: 🔒 Segurança
+description: Reportar uma vulnerabilidade ou fragilidade de segurança
+title: "[Security] "
+labels:
+  - security
+body:
+  - type: markdown
+    attributes:
+      value: |
+        > **Vulnerabilidade crítica ou já explorável em produção?** Não abra uma issue pública.
+        > Reporte de forma privada seguindo o processo de disclosure do repositório (ver `SECURITY_AUDIT.md`),
+        > pra evitar expor o problema antes de haver correção.
+
+  - type: textarea
+    id: contexto
+    attributes:
+      label: Contexto
+      description: Onde a fragilidade está (endpoint, tela, dependência, configuração).
+    validations:
+      required: true
+
+  - type: textarea
+    id: comportamento-atual
+    attributes:
+      label: Comportamento atual (a falha)
+      description: O que o sistema permite ou expõe indevidamente hoje.
+    validations:
+      required: true
+
+  - type: textarea
+    id: passos-reproduzir
+    attributes:
+      label: Passos para reproduzir / evidenciar
+      description: Passo a passo pra demonstrar a fragilidade, sem detalhar um exploit completo se for crítico.
+      render: markdown
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severidade
+    attributes:
+      label: Severidade estimada
+      options:
+        - Crítica (dado sensível exposto ou exploração trivial)
+        - Alta (exploração possível com esforço moderado)
+        - Média (requer condições específicas)
+        - Baixa (hardening, defesa em profundidade)
+    validations:
+      required: true
+
+  - type: textarea
+    id: impacto
+    attributes:
+      label: Impacto
+      description: O que um atacante ganharia (dados, acesso, disponibilidade).
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidencias
+    attributes:
+      label: Evidências
+      description: Logs, requisições, screenshots — sem incluir credenciais reais ou dados de usuários.
+    validations:
+      required: false
+
+  - type: textarea
+    id: proposta-solucao
+    attributes:
+      label: Proposta de correção
+      description: Mitigação ou correção sugerida (opcional).
+    validations:
+      required: false

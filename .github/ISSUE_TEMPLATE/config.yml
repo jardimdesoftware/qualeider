@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Dúvidas gerais
+    url: https://github.com/jardimdesoftware/qualeider/discussions
+    about: Pra perguntas que não são bug, melhoria, segurança ou dívida técnica, use as Discussions.
