@@ -1,6 +1,6 @@
 import { PartialType, OmitType } from '@nestjs/mapped-types';
 import { CreateUserDto } from './create-user.dto';
-import { IsNotEmpty, IsString, IsEmail, IsEnum, IsOptional, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsString, IsEmail, IsEnum, IsOptional, MaxLength, Length } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { UserType, UserCategory, Status } from '@/domain/enums/enums';
 import { ApiProperty } from '@nestjs/swagger';
@@ -20,6 +20,7 @@ export class UpdatePartialUserDto extends PartialType(
   @ApiProperty({ description: 'Nome do usuário', example: 'Silva Santos' })
   @IsNotEmpty()
   @IsString()
+  @MaxLength(255, { message: 'O nome deve ter no máximo 255 caracteres.' })
   name!: string;
 
   @ApiProperty({
@@ -56,12 +57,13 @@ export class UpdatePartialUserDto extends PartialType(
 
   @ApiProperty({ description: 'Estado do usuário', example: 'PE' })
   @IsNotEmpty()
-  @IsString()
+  @Length(2, 2, { message: 'O estado deve ser uma sigla de 2 caracteres (UF).' })
   state!: string;
 
   @ApiProperty({ description: 'Cidade do usuário', example: 'Belo Jardim' })
   @IsNotEmpty()
   @IsString()
+  @MaxLength(100, { message: 'A cidade deve ter no máximo 100 caracteres.' })
   city!: string;
 
   @ApiProperty({

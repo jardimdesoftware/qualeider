@@ -7,6 +7,7 @@ import {
   IsOptional,
   IsString,
   MinLength,
+  MaxLength,
   ValidateIf,
 } from 'class-validator';
 import { NotificationType } from '@/domain/enums/enums'; 
@@ -39,16 +40,19 @@ export class SendNotificationDto {
   @IsNotEmpty()
   @IsString()
   @MinLength(3)
+  @MaxLength(200)
   subject!: string;
 
   @ApiProperty({ example: 'Lembre-se de registrar a coleta...' })
   @IsNotEmpty()
   @IsString()
   @MinLength(10)
+  @MaxLength(2000)
   message!: string;
 
   @ApiProperty({ required: false, example: 'default-template' })
   @IsOptional()
   @IsString()
+  @MaxLength(100)
   template?: string;
 }

@@ -21,6 +21,7 @@ export class CreateAnimalDto {
   @ApiProperty({ description: 'Nome do animal', example: 'Mimosa', required: false })
   @IsOptional()
   @IsString()
+  @MaxLength(100)
   name?: string;
 
   @ApiProperty({ description: 'Tipo de animal (legado)', enum: AnimalType, required: false })
@@ -37,6 +38,7 @@ export class CreateAnimalDto {
   @ApiProperty({ description: 'Raca do animal', example: 'Holandes', required: false })
   @IsOptional()
   @IsString()
+  @MaxLength(100)
   breed?: string;
 
   @ApiProperty({ description: 'Id da raca (relacao com tabela Breed)', example: 1, required: false })

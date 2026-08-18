@@ -23,6 +23,7 @@ export class UpdateAnimalDto extends PartialType(CreateAnimalDto) {
   @ApiProperty({ description: 'Nome do animal', required: false })
   @IsOptional()
   @IsString()
+  @MaxLength(100)
   name?: string;
 
   @ApiProperty({ description: 'Tipo do animal (legado)', enum: AnimalType, required: false })
@@ -39,6 +40,7 @@ export class UpdateAnimalDto extends PartialType(CreateAnimalDto) {
   @ApiProperty({ description: 'Raca do animal', required: false })
   @IsOptional()
   @IsString()
+  @MaxLength(100)
   breed?: string;
 
   @ApiProperty({ description: 'Id da raca (relacao com tabela Breed)', required: false })
