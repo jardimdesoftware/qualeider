@@ -53,7 +53,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: "20"
+  NODE_VERSION: "24"
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository_owner }}/qualeider-frontend
 
@@ -180,6 +180,9 @@ jobs:
       contents: read
       packages: write
       security-events: write
+    env:
+      # Se for um push/dispatch em `main` ou PR alvo `main`, Trivy deve falhar no CRITICAL
+      TRIVY_EXIT_ON_CRITICAL: ${{ ((github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main') || startsWith(github.ref, 'refs/heads/main')) && '1' || '0' }}
     defaults:
       run:
         working-directory: frontend
@@ -191,7 +194,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
@@ -211,9 +214,10 @@ jobs:
           scan-type: "fs"
           scan-ref: "frontend"
           format: "table"
-          exit-code: "0"            # ← Não bloqueia o pipeline
+          exit-code: ${{ env.TRIVY_EXIT_ON_CRITICAL }}
           severity: "CRITICAL,HIGH"
           ignore-unfixed: true
+          trivyignores: "frontend/.trivyignore"
 
       # --- Trivy SARIF para GitHub Security tab ---
       - name: Trivy — SARIF Report
@@ -225,11 +229,12 @@ jobs:
           format: "sarif"
           output: "trivy-frontend-fs.sarif"
           severity: "CRITICAL,HIGH,MEDIUM"
+          trivyignores: "frontend/.trivyignore"
 
       - name: Upload Trivy SARIF to GitHub Security
         if: always()
         continue-on-error: true
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: "trivy-frontend-fs.sarif"
           category: "trivy-frontend-fs"
@@ -251,7 +256,7 @@ jobs:
       # --- Build & Push Multi-arch (AMD64 + ARM64) ---
       - name: Build and Push Multi-arch Docker image
         id: push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: frontend
           file: frontend/Dockerfile
@@ -270,7 +275,7 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.version=${{ needs.tag-creation.outputs.created_tag }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=max,ignore-error=true
 
       # --- Trivy Image Scan (apenas reporta, não bloqueia) ---
       - name: Trivy — Docker Image Scan
@@ -278,9 +283,10 @@ jobs:
         with:
           image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.tag-creation.outputs.created_tag }}"
           format: "table"
-          exit-code: "0"            # ← Não bloqueia o pipeline
+          exit-code: ${{ env.TRIVY_EXIT_ON_CRITICAL }}
           severity: "CRITICAL,HIGH"
           ignore-unfixed: true
+          trivyignores: "frontend/.trivyignore"
 
       # --- Trivy Image SARIF ---
       - name: Trivy — Image SARIF Report
@@ -291,11 +297,12 @@ jobs:
           format: "sarif"
           output: "trivy-frontend-image.sarif"
           severity: "CRITICAL,HIGH,MEDIUM"
+          trivyignores: "frontend/.trivyignore"
 
       - name: Upload Image SARIF to GitHub Security
         if: always()
         continue-on-error: true
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: "trivy-frontend-image.sarif"
           category: "trivy-frontend-image"

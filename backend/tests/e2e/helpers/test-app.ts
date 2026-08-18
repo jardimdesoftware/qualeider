@@ -56,7 +56,11 @@ export class TestApp {
   getApp(): INestApplication { return this.app; }
   getModule(): TestingModule { return this.moduleRef; }
   getPrismaService(): PrismaService { return this.moduleRef.get<PrismaService>(PrismaService); }
-  async close(): Promise<void> { await this.app.close(); }
+  async close(): Promise<void> {
+    if (this.app) {
+      await this.app.close();
+    }
+  }
 
   request() {
     const baseRequest = request(this.app.getHttpServer());

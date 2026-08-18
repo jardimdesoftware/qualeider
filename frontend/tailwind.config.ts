@@ -14,12 +14,16 @@ const config: Config = {
       colors: {
         // Legacy (manter para compatibilidade)
         'green-background': "#20732D",
-        
+
         // Brand Colors (novo sistema de design)
         'brand-primary': '#1e3a29',
         'brand-primary-hover': '#2d5a42',
         'brand-secondary': '#d97706',
         'brand-accent': '#fbbf24',
+
+        // Identidade visual do Admin (diferencia da area do Vaqueiro)
+        'admin-background': '#1E293B',
+        'admin-background-hover': '#0F172A',
       }
     },
   },

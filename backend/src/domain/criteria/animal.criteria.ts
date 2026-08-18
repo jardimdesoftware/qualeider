@@ -8,7 +8,8 @@ import { PaginationParams } from '../common/pagination.interface';
  * @property userId - Filtrar por ID do usuario/produtor
  * @property status - Filtrar por status (padrao: 'Active' se nao informado)
  * @property includeUser - Se true, traz os dados do usuario/produtor
- * @property animalType - Filtrar por tipo de animal
+ * @property animalType - Filtrar por tipo de animal (legado)
+ * @property animalSpeciesId - Filtrar por ID do tipo de animal (tabela AnimalSpecies)
  * @property tagNumber - Filtrar por numero de identificacao (busca parcial)
  * @property page - Numero da pagina (padrao: 1)
  * @property limit - Limite de registros por pagina (padrao: 50, max: 1000)
@@ -19,5 +20,6 @@ export interface AnimalCriteria extends PaginationParams {
   status?: 'Active' | 'Inactive';
   includeUser?: boolean;
   animalType?: AnimalType;
+  animalSpeciesId?: number;
   tagNumber?: string;
 }

@@ -113,6 +113,11 @@ async function bootstrap() {
           scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
           styleSrc: ["'self'", "'unsafe-inline'"],
           imgSrc: ["'self'", 'data:', 'https:'],
+          // Helmet inclui essa diretiva por padrão, o que faz o navegador tentar
+          // recarregar todo asset (JS/CSS do Swagger, etc.) via HTTPS — quebrando
+          // silenciosamente a página em qualquer ambiente que sirva HTTP puro
+          // (dev local e a stack de nginx deste projeto, que não termina TLS).
+          upgradeInsecureRequests: null,
         },
       },
     }),

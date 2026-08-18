@@ -25,6 +25,9 @@ import {
 } from '@nestjs/swagger';
 import { AnimalCriteria } from '@/domain/criteria/animal.criteria';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
+import { GetUser } from '@/common/decorators/get-user.decorator';
+import { UserRole } from '@/domain/enums/enums';
+import { MAX_LIMIT } from '@/domain/common/pagination.interface';
 
 @ApiTags('Animais')
 @Controller('animals')
@@ -51,6 +54,9 @@ export class AnimalsController {
       associationId: query.associationId,
       userId: query.userId,
       status: query.status,
+      animalType: query.animalType,
+      animalSpeciesId: query.animalSpeciesId,
+      tagNumber: query.tagNumber,
     };
     return this.animalsService.findAll(criteria);
   }
@@ -102,12 +108,30 @@ export class AnimalsController {
     return this.animalsService.inativar(id);
   }
 
-  @ApiOperation({ summary: 'Buscar animais de um usuario especifico' })
+  @ApiOperation({
+    summary:
+      'Buscar animais de um usuario especifico (ou de toda a associacao, se o solicitante for ADMIN)',
+  })
+  @ApiBearerAuth()
   @ApiParam({ name: 'userId', description: 'ID do usuario', type: Number })
   @ApiResponse({ status: 200, description: 'Lista de animais do usuario' })
   @Get('user/:userId')
   @ResponseMessage('Animais do usuario listados com sucesso')
-  async findAllByUserId(@Param('userId', ParseIntPipe) userId: number) {
+  async findAllByUserId(
+    @Param('userId', ParseIntPipe) userId: number,
+    @GetUser('role') role?: UserRole,
+    @GetUser('associationId') associationId?: number | null,
+  ) {
+    if (role === UserRole.ADMIN) {
+      // Se o admin pertence a uma associacao (cooperativa), restringe aos
+      // produtores dessa associacao. Caso contrario (cenario padrao atual,
+      // sem cooperativa), o admin enxerga os animais de todos os produtores
+      // cadastrados no sistema - assim como ja ocorre em "Gerenciar Usuarios".
+      if (associationId) {
+        return this.animalsService.findAll({ associationId, limit: MAX_LIMIT });
+      }
+      return this.animalsService.findAll({ limit: MAX_LIMIT });
+    }
     return this.animalsService.findAll({ userId });
   }
 }

@@ -118,8 +118,8 @@ export class PrismaAssociationRepository implements IAssociationRepository {
     // Se não tiver no cache, calcula
     const stats = await this.calculateHerdStats(associationId);
     
-    // Salva no cache (TTL 5 minutos = 300 segundos)
-    await this.cacheManager.set(cacheKey, stats, 300);
+    // Salva no cache (TTL 5 minutos)
+    await this.cacheManager.set(cacheKey, stats, 300000);
     
     return stats;
   }
@@ -167,12 +167,15 @@ export class PrismaAssociationRepository implements IAssociationRepository {
         AND status = 'Active'
         GROUP BY category
       `,
-      // 2. Total de vacas
+      // 2. Total de vacas (animalType legado OU animalSpecies "Vaca")
       this.prisma.animal.count({
         where: {
           user: { associationId },
-          animalType: 'Vaca',
-          status: 'Active'
+          status: 'Active',
+          OR: [
+            { animalType: 'Vaca' },
+            { animalSpecies: { name: 'Vaca' } },
+          ],
         }
       }),
       // 3. Produção de hoje
@@ -285,8 +288,8 @@ export class PrismaAssociationRepository implements IAssociationRepository {
     // Se não tiver no cache, calcula
     const ranking = await this.calculateProducerRanking(associationId, startDate, endDate);
     
-    // Salva no cache (TTL 10 minutos = 600 segundos para rankings)
-    await this.cacheManager.set(cacheKey, ranking, 600);
+    // Salva no cache (TTL 10 minutos para rankings)
+    await this.cacheManager.set(cacheKey, ranking, 600000);
     
     return ranking;
   }
@@ -371,8 +374,8 @@ export class PrismaAssociationRepository implements IAssociationRepository {
     // Se não tiver no cache, calcula
     const report = await this.calculateMonthlyReport(associationId, year, month);
     
-    // Salva no cache (TTL 30 minutos = 1800 segundos para relatórios mensais)
-    await this.cacheManager.set(cacheKey, report, 1800);
+    // Salva no cache (TTL 30 minutos para relatórios mensais)
+    await this.cacheManager.set(cacheKey, report, 1800000);
     
     return report;
   }

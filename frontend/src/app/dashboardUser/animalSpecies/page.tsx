@@ -10,6 +10,7 @@ import { Button, EmptyState, ErrorModal, ConfirmationModal } from "@/components/
 import InputField from "@/components/ui/input-field";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
+import { useRoleGuard } from "@/hooks/useRoleGuard";
 import { useAnimalSpecies, useCreateAnimalSpecies, useUpdateAnimalSpecies, useDeleteAnimalSpecies } from "@/hooks/queries/useAnimalSpecies";
 import { AnimalSpecies } from "@/interfaces/animalSpecies";
 import { Plus, Pencil, Trash2, X, Dna, Search } from "lucide-react";
@@ -100,6 +101,7 @@ function SpeciesModal({ isOpen, editing, onClose, onSuccess, onError }: SpeciesM
 
 export default function AnimalSpeciesPage() {
   const { isLoading: authLoading } = useAuthGuard("user");
+  const { isChecking: roleChecking } = useRoleGuard(["ADMIN"]);
   const { data: species = [], isLoading } = useAnimalSpecies();
   const deleteSpecies = useDeleteAnimalSpecies();
 
@@ -133,7 +135,7 @@ export default function AnimalSpeciesPage() {
     }
   };
 
-  if (authLoading || isLoading) return <DashboardLoading />;
+  if (authLoading || roleChecking || isLoading) return <DashboardLoading />;
 
   return (
     <>

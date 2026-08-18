@@ -67,6 +67,10 @@ export class PrismaAnimalRepository implements IAnimalRepository {
       where.animalType = criteria.animalType;
     }
 
+    if (criteria.animalSpeciesId) {
+      where.animalSpeciesId = criteria.animalSpeciesId;
+    }
+
     if (criteria.tagNumber) {
       where.tagNumber = { contains: criteria.tagNumber, mode: 'insensitive' };
     }

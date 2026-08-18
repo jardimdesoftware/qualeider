@@ -4,8 +4,9 @@ import { DailyCollectionsService } from '@/application/services/daily-collection
 import { CreateDailyCollectionDto } from '@/application/dtos/daily-collections/create-daily-collection.dto';
 import { UpdateDailyCollectionDto } from '@/application/dtos/daily-collections/update-daily-collection.dto';
 import { createDailyCollection } from '../../../factories/daily-collection.factory';
-import { MilkingPlace } from '@/domain/enums/enums';
+import { MilkingPlace, UserRole } from '@/domain/enums/enums';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
+import { MAX_LIMIT } from '@/domain/common/pagination.interface';
 
 describe('DailyCollectionsController', () => {
   let controller: DailyCollectionsController;
@@ -195,7 +196,28 @@ describe('DailyCollectionsController', () => {
       expect(service.findAll).toHaveBeenCalledWith({ userId: 1 });
       expect(result).toEqual([]);
     });
+
+    it('deve retornar coletas de todos os produtores quando solicitante for ADMIN sem associacao', async () => {
+      const items: any[] = [{ id: 1, userId: 2 }];
+      mockService.findAll.mockResolvedValue(items);
+
+      const result = await controller.findAllByUserId(1, UserRole.ADMIN, null);
+
+      expect(service.findAll).toHaveBeenCalledWith({ limit: MAX_LIMIT });
+      expect(result).toEqual(items);
+    });
+
+    it('deve restringir por associacao quando ADMIN pertence a uma associacao (cooperativa)', async () => {
+      const items: any[] = [{ id: 1, userId: 2 }];
+      mockService.findAll.mockResolvedValue(items);
+
+      const result = await controller.findAllByUserId(1, UserRole.ADMIN, 10);
+
+      expect(service.findAll).toHaveBeenCalledWith({ associationId: 10, limit: MAX_LIMIT });
+      expect(result).toEqual(items);
+    });
   });
+
   describe('findByAnimalId', () => {
     it('deve retornar historico de coletas do animal', async () => {
       const history = [

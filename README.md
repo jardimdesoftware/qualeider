@@ -77,6 +77,10 @@ cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env.local
 ```
 
+> Os defaults de `NEXT_PUBLIC_API_URL` e `CORS_ORIGINS` acima cobrem o fluxo
+> onde backend e frontend rodam na mesma máquina. Para rodar em VM ou acessar
+> pela rede local, veja a seção [🌐 Executando em VM ou rede local](#-executando-em-vm-ou-rede-local).
+
 ### 3. Suba a infra (banco + redis)
 
 ```bash
@@ -101,6 +105,183 @@ cd frontend
 npm install
 npm run dev              # Hot-reload em http://localhost:3001
 ```
+
+---
+
+## 🔗 URLs de referência (API, Health, Swagger)
+
+| Serviço | Mesmo host (dev) | VM / rede local |
+|---|---|---|
+| Frontend | `http://localhost:3001` | `http://192.168.10.85:3001` |
+| API (base) | `http://localhost:3000/api` | `http://192.168.10.85:3000/api` |
+| Health check | `http://localhost:3000/api/health` | `http://192.168.10.85:3000/api/health` |
+| Swagger UI | `http://localhost:3000/api-docs` | `http://192.168.10.85:3000/api-docs` |
+| Swagger JSON (spec) | `http://localhost:3000/api-docs-json` | `http://192.168.10.85:3000/api-docs-json` |
+
+> Troque `192.168.10.85` pelo IP real da sua máquina/VM — veja a seção
+> [🌐 Executando em VM ou rede local](#-executando-em-vm-ou-rede-local) logo
+> abaixo para descobrir o IP e ajustar `CORS_ORIGINS`/`NEXT_PUBLIC_API_URL`.
+> Na simulação de produção com nginx (`docker-compose.local.yml`), essas
+> mesmas rotas ficam por trás de uma única porta — veja a tabela em
+> [🔬 Simulação local de produção](#-simulação-local-de-produção).
+
+### O Swagger abriu em branco, mas `curl` retorna 200 OK — e agora?
+
+Isso **não significa que a API está fora do ar**. `curl` só confirma que o
+servidor respondeu com o HTML/JSON — ele não executa JavaScript nem aplica
+CSP, então não revela problemas que só acontecem dentro do navegador. Se
+`/api-docs` e `/api-docs-json` retornam `200` no `curl` mas a página fica em
+branco no navegador, causas prováveis, da mais comum para a mais rara:
+
+1. **CSP forçando upgrade para HTTPS num servidor que só fala HTTP** — o
+   Helmet inclui por padrão a diretiva `upgrade-insecure-requests`, que faz o
+   navegador tentar recarregar todo asset (JS/CSS do Swagger) via HTTPS. Como
+   nem o dev local nem a stack de nginx deste projeto (`nginx/nginx.conf`)
+   servem TLS, esses assets falham silenciosamente e a página fica em branco,
+   sem nenhum erro visível no `curl`. **Já corrigido** em
+   [`backend/src/presentation/main.ts`](backend/src/presentation/main.ts) —
+   se você está numa versão do backend anterior a essa correção, seria essa a
+   causa.
+2. **Cache do navegador ou extensões (ad-blocker/privacy)** bloqueando os
+   bundles do `swagger-ui`. Teste em uma aba anônima/privada antes de abrir
+   uma issue.
+3. **URL errada para o ambiente** — por exemplo, tentar `/api-docs` na porta
+   do frontend (3001) em vez da porta do backend (3000), ou usar `localhost`
+   ao acessar de outro dispositivo (veja a seção de VM/rede local abaixo).
+
+Se depois de descartar os três pontos acima o problema persistir, aí sim é
+caso de investigar como bug — mas normalmente é um desses três.
+
+---
+
+## 🌐 Executando em VM ou rede local
+
+Cenário comum: você roda backend e frontend numa máquina/VM, mas acessa pelo
+navegador de **outro dispositivo** na mesma rede (outra máquina, celular, ou
+a VM acessada do host). Isso exige alguns ajustes que não são necessários
+quando tudo roda no mesmo host.
+
+### `localhost`, `127.0.0.1` e IP da máquina não são a mesma coisa
+
+- `localhost` e `127.0.0.1` só resolvem para o **próprio dispositivo** — um
+  navegador rodando fora da máquina/VM nunca alcança `http://localhost:3000`
+  dela, mesmo que o servidor esteja de pé.
+- Para acessar de outro dispositivo, use o **IP real da máquina/VM na rede**
+  (ex.: `192.168.10.85`), descoberto com `ipconfig` (Windows) ou `ip addr` /
+  `hostname -I` (Linux).
+- Isso também importa para `CORS_ORIGINS`: o backend valida o header `Origin`
+  exatamente como o navegador o envia — se você acessa por IP, `localhost` na
+  whitelist não serve, e vice-versa. Por isso os `.env.example` já trazem
+  `localhost` **e** `127.0.0.1` juntos, e é preciso adicionar o IP manualmente.
+
+### 1. Exponha frontend e backend na rede
+
+Ambos já escutam em todas as interfaces por padrão em dev, então normalmente
+não é preciso mudar nada além do firewall/rede:
+
+- Backend: `app.listen(port, '0.0.0.0')` em [`backend/src/presentation/main.ts`](backend/src/presentation/main.ts).
+- Frontend: `next dev -p 3001` também escuta em `0.0.0.0`.
+
+Se estiver numa VM, garanta que a porta 3000 (backend) e 3001 (frontend)
+estejam liberadas/encaminhadas (port forwarding ou modo bridge na config de
+rede da VM).
+
+### 2. Configure `frontend/.env.local`
+
+```bash
+# Troque pelo IP real da máquina/VM que roda o backend
+NEXT_PUBLIC_API_URL=http://192.168.10.85:3000/api
+```
+
+### 3. Configure `backend/.env`
+
+```bash
+# Mantenha localhost/127.0.0.1 (útil se você também testa no mesmo host)
+# e adicione o IP:porta de onde o frontend será acessado
+CORS_ORIGINS="http://localhost:3001,http://127.0.0.1:3001,http://192.168.10.85:3001"
+```
+
+### 4. Valide a conectividade com `curl`
+
+Antes de testar pelo navegador, confirme que a API responde pelo IP:
+
+```bash
+curl -i http://192.168.10.85:3000/api/health
+# Esperado: HTTP/1.1 200 OK  { "status": "ok", "timestamp": "..." }
+```
+
+Se isso falhar, o problema é de rede/firewall — ainda não chegou a ser CORS
+ou autenticação.
+
+### 5. Troubleshooting: interpretando os erros
+
+| Sintoma no DevTools | Causa provável | Onde ajustar |
+|---|---|---|
+| `ERR_CONNECTION_REFUSED` / `Failed to fetch` | `NEXT_PUBLIC_API_URL` aponta para host/porta errado, ou backend não está de pé/acessível pela rede | `frontend/.env.local` → `NEXT_PUBLIC_API_URL`; confirme com o `curl` acima |
+| Erro de CORS / falha silenciosa no `OPTIONS` (preflight) | O `Origin` do navegador não está na whitelist do backend | `backend/.env` → `CORS_ORIGINS` (adicione o IP:porta exato usado no navegador) |
+| `404 Not Found` | Faltou o prefixo `/api` na URL, ou rota não existe | Confirme que `NEXT_PUBLIC_API_URL` termina em `/api` |
+| `401 Unauthorized` | Ótimo sinal — a requisição chegou até a API. Falha é de credenciais (usuário/senha), não de rede/CORS | Verifique o usuário de teste ou o fluxo de autenticação |
+
+> **Nota de segurança**: nunca use `CORS_ORIGINS=*` para "resolver rápido" o
+> problema, mesmo em dev — a API usa `credentials: true` (JWT/cookies), e
+> liberar qualquer origem nesse modo expõe a aplicação a requisições forjadas
+> de sites de terceiros.
+
+---
+
+## 📧 Comportamento de e-mail (SMTP) em desenvolvimento
+
+Ao subir o backend sem `SMTP_HOST`/`SMTP_USER`/`SMTP_PASSWORD` preenchidos em
+`backend/.env`, você verá este aviso no log de boot:
+
+```
+SMTP configuration incomplete. Email sending will fail!
+```
+
+Isso **não impede o backend de subir** — só avisa que o envio de e-mail vai
+falhar. O impacto real varia bastante por fluxo; a tabela abaixo resume o que
+foi confirmado no código (`backend/src/mail/`, `backend/src/listener/`,
+`backend/src/application/services/`):
+
+| Fluxo | Funciona sem SMTP? | O que acontece quando o envio falha |
+|---|---|---|
+| **Login** | ✅ Sim | Não envia e-mail nenhum — login não depende de SMTP. |
+| **Redefinir senha** (aplicar a nova senha com o token) | ✅ Sim | Não envia e-mail — só valida o token e atualiza a senha. |
+| **Esqueci minha senha** (solicitar o link) | ⚠️ **Não** | O token **é salvo no banco** antes do envio, mas o e-mail é enviado de forma síncrona dentro da mesma requisição — se falhar, o erro sobe e a requisição HTTP retorna erro, mesmo com o token já persistido. **Não há retry nem fallback em `failed_emails` para este fluxo.** |
+| **Convites** (criar/aceitar/recusar) | ✅ Sim | O convite é persistido no banco independente do e-mail. O envio roda em um listener assíncrono (`invite-email.listener.ts`) que **captura e apenas loga** a falha — sem retry, sem `failed_emails`. O e-mail simplesmente se perde silenciosamente. |
+| **Notificações** | ✅ Sim | A notificação é persistida no banco independente do e-mail. O envio (`email.listener.ts`) tenta **3 vezes** (backoff de 2s e 4s) e, se todas falharem, grava o registro na tabela `failed_emails` (model `FailedEmail` no `schema.prisma`) em vez de perder o e-mail. |
+
+> **Atenção**: a tabela `failed_emails` só recebe registros do fluxo de
+> **notificações**. Convites perdidos não aparecem lá, e "esqueci minha senha"
+> nem chega a tentar — ele quebra a requisição antes disso.
+
+### Configurando o Ethereal para testar e-mails localmente
+
+[Ethereal](https://ethereal.email) cria uma caixa de entrada fake — o e-mail
+"é enviado" de verdade via SMTP, mas fica preso lá, sem chegar a ninguém.
+
+1. Acesse [ethereal.email](https://ethereal.email) e clique em **Create Ethereal Account** (gera usuário/senha na hora, não precisa cadastro).
+2. Copie o `Username` e `Password` gerados para `backend/.env`:
+   ```
+   SMTP_HOST="smtp.ethereal.email"
+   SMTP_PORT=587
+   SMTP_USER="<usuário gerado pelo Ethereal>"
+   SMTP_PASSWORD="<senha gerada pelo Ethereal>"
+   SMTP_FROM="noreply@qualeider.com"
+   ```
+3. Reinicie o backend (`npm run start:dev`) — o aviso de SMTP incompleto deve sumir do log.
+4. Dispare qualquer fluxo que envie e-mail (convite, notificação, esqueci minha senha) e acesse [ethereal.email/messages](https://ethereal.email/messages) (logado com o mesmo usuário/senha) para ver o e-mail capturado.
+
+### Inspecionando e-mails que falharam (`failed_emails`)
+
+Hoje não existe endpoint ou tela para isso — só é possível consultar direto no banco:
+
+```bash
+cd backend
+npx prisma studio   # abre uma UI em http://localhost:5555 — tabela failed_emails
+```
+
+Ou via SQL direto (`psql`, DBeaver, etc.): `SELECT * FROM failed_emails ORDER BY "createdAt" DESC;`
 
 ---
 
@@ -186,6 +367,13 @@ npm run test:integration  # Testes de integração (requer PostgreSQL)
 npm run test:e2e          # Testes E2E (requer PostgreSQL)
 npm run test:all          # Unit + E2E
 ```
+
+---
+
+## 🛡️ Segurança de dependências
+
+Auditoria de vulnerabilidades (`npm audit`) do backend e frontend, com plano de
+priorização e triagem: veja [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md).
 
 ---
 

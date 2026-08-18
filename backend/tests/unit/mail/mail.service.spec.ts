@@ -1,11 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { MailService } from '@/mail/mail.service';
-import { MailerService } from '@nestjs-modules/mailer';
+import { TemplateMailerService } from '@/mail/template-mailer.service';
 import { Logger } from '@nestjs/common';
 
 describe('MailService', () => {
   let service: MailService;
-  let mockMailerService: jest.Mocked<MailerService>;
+  let mockMailerService: jest.Mocked<TemplateMailerService>;
 
   beforeEach(async () => {
     mockMailerService = {
@@ -16,7 +16,7 @@ describe('MailService', () => {
       providers: [
         MailService,
         {
-          provide: MailerService,
+          provide: TemplateMailerService,
           useValue: mockMailerService,
         },
       ],
