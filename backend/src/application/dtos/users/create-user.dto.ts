@@ -41,6 +41,7 @@ export class CreateUserDto {
   @IsNotEmpty({ message: 'A senha não pode ser vazia.' })
   @IsString()
   @MinLength(8, { message: 'A senha deve ter no mínimo 8 caracteres.' })
+  @MaxLength(72, { message: 'A senha deve ter no máximo 72 caracteres.' })
   // [BR-003] Validação de Senha
   @Matches(
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/,
@@ -93,6 +94,7 @@ export class CreateUserDto {
   })
   @IsOptional()
   @IsString({ message: 'O documento deve ser uma string.' })
+  @MaxLength(20, { message: 'O documento deve ter no máximo 20 caracteres.' })
   document?: string;
 
   @ApiProperty({ description: 'Estado do usuário (UF)', example: 'PE' })
@@ -108,6 +110,7 @@ export class CreateUserDto {
   @ApiProperty({ description: 'Cidade do usuário', example: 'Belo Jardim' })
   @IsNotEmpty({ message: 'A cidade não pode ser vazia.' })
   @IsString()
+  @MaxLength(100, { message: 'A cidade deve ter no máximo 100 caracteres.' })
   city!: string;
 
   @ApiProperty({

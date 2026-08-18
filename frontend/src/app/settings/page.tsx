@@ -11,20 +11,20 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
 const settingsSchema = z.object({
-  name: z.string().min(3, "Nome deve ter no mínimo 3 caracteres"),
-  tradeName: z.string().optional(),
-  email: z.string().email("Email inválido"),
-  landlinePhone: z.string().min(10, "Telefone inválido"),
-  mobilePhone: z.string().optional(),
-  zipCode: z.string().min(8, "CEP inválido"),
-  street: z.string().min(3, "Rua inválida"),
-  number: z.string().min(1, "Número obrigatório"),
-  neighborhood: z.string().min(3, "Bairro obrigatório"),
-  city: z.string().min(3, "Cidade obrigatória"),
+  name: z.string().min(3, "Nome deve ter no mínimo 3 caracteres").max(255, "Nome muito longo"),
+  tradeName: z.string().max(100, "Nome fantasia muito longo").optional(),
+  email: z.string().max(254, "Email muito longo").email("Email inválido"),
+  landlinePhone: z.string().min(10, "Telefone inválido").max(20, "Telefone muito longo"),
+  mobilePhone: z.string().max(20, "Telefone muito longo").optional(),
+  zipCode: z.string().min(8, "CEP inválido").max(9, "CEP inválido"),
+  street: z.string().min(3, "Rua inválida").max(255, "Rua muito longa"),
+  number: z.string().min(1, "Número obrigatório").max(20, "Número muito longo"),
+  neighborhood: z.string().min(3, "Bairro obrigatório").max(100, "Bairro muito longo"),
+  city: z.string().min(3, "Cidade obrigatória").max(100, "Cidade muito longa"),
   state: z.string().length(2, "Estado deve ter 2 letras"),
-  presidentName: z.string().min(3, "Nome do presidente inválido"),
-  presidentEmail: z.string().email("Email do presidente inválido"),
-  presidentPhone: z.string().min(10, "Telefone do presidente inválido"),
+  presidentName: z.string().min(3, "Nome do presidente inválido").max(255, "Nome muito longo"),
+  presidentEmail: z.string().max(254, "Email muito longo").email("Email do presidente inválido"),
+  presidentPhone: z.string().min(10, "Telefone do presidente inválido").max(20, "Telefone muito longo"),
 });
 
 type SettingsForm = z.infer<typeof settingsSchema>;

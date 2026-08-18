@@ -5,8 +5,8 @@ import { emailRule, passwordRule, nameRule, cpfRule, cnpjRule, phoneRule } from 
 // SCHEMAS DE LOCATION
 // ===========================
 
-export const stateRule = z.string().min(1, "Estado é obrigatório");
-export const cityRule = z.string().min(1, "Cidade é obrigatória");
+export const stateRule = z.string().length(2, "Estado deve ser a sigla (UF) com 2 letras");
+export const cityRule = z.string().min(1, "Cidade é obrigatória").max(100, "Cidade muito longa");
 
 // ===========================
 // PRODUCER SCHEMA (Complete)

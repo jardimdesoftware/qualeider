@@ -7,11 +7,13 @@ import * as z from "zod";
 export const emailRule = z
   .string()
   .min(1, "Email é obrigatório")
+  .max(254, "Email muito longo") // RFC 5321 — espelha @MaxLength(254) do backend
   .email("Formato de email inválido");
 
 export const passwordRule = z
   .string()
   .min(8, "A senha deve ter no mínimo 8 caracteres")
+  .max(72, "Senha muito longa") // bcrypt trunca silenciosamente acima de 72 bytes
   .regex(/[a-z]/, "A senha deve conter pelo menos uma letra minúscula")
   .regex(/[A-Z]/, "A senha deve conter pelo menos uma letra maiúscula")
   .regex(/[0-9]/, "A senha deve conter pelo menos um número")
@@ -20,7 +22,7 @@ export const passwordRule = z
 export const nameRule = z
   .string()
   .min(3, "Nome deve ter no mínimo 3 caracteres")
-  .max(100, "Nome muito longo");
+  .max(255, "Nome muito longo"); // espelha @Length(3, 255) do backend
 
 export const cpfRule = z
   .string()
