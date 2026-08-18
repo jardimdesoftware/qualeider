@@ -16,7 +16,7 @@
 #   FRONTEND_TAG    → tag da imagem frontend (ex: 1.2.0 ou latest)
 #   POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB
 #   JWT_SECRET, JWT_EXPIRATION
-#   CORS_ORIGINS, SMTP_*, REDIS_PASSWORD
+#   CORS_ORIGINS, SMTP_*
 # =============================================================================
 
 services:
@@ -42,24 +42,6 @@ services:
       retries: 5
 
   # ---------------------------------------------------------------------------
-  # Redis
-  # ---------------------------------------------------------------------------
-  redis:
-    image: redis:7-alpine
-    container_name: qualeider-redis
-    restart: unless-stopped
-    volumes:
-      - redis_data:/data
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
-    networks:
-      - qualeider-network
-    healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # ---------------------------------------------------------------------------
   # Backend — imagem GHCR (multi-arch AMD64 + ARM64)
   # ---------------------------------------------------------------------------
   backend:
@@ -68,8 +50,6 @@ services:
     restart: unless-stopped
     depends_on:
       postgres:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     environment:
       DATABASE_URL: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-qualeider}?schema=public"
@@ -84,10 +64,6 @@ services:
       SMTP_USER: ${SMTP_USER}
       SMTP_PASSWORD: ${SMTP_PASSWORD}
       SMTP_FROM: ${SMTP_FROM:-noreply@qualeider.com}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
-      REDIS_DB: 0
     networks:
       - qualeider-network
     healthcheck:
@@ -141,8 +117,6 @@ services:
 
 volumes:
   pgdata:
-    driver: local
-  redis_data:
     driver: local
 
 networks:

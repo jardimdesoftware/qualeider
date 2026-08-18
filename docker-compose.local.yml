@@ -14,7 +14,7 @@
 #   4. API docs: http://localhost:8080/api-docs
 #
 # Diferença do docker-compose.dev.yml:
-#   - dev:   só infra (banco + redis), backend/frontend rodam no host
+#   - dev:   só infra (banco), backend/frontend rodam no host
 #   - local: stack completa em container com nginx como reverse proxy
 #
 # Diferença do docker-compose.prod.yml:
@@ -45,24 +45,6 @@ services:
       retries: 5
 
   # ---------------------------------------------------------------------------
-  # Redis — cache (ativo em NODE_ENV=production)
-  # ---------------------------------------------------------------------------
-  redis:
-    image: redis:7-alpine
-    container_name: qualeider-redis-local
-    restart: unless-stopped
-    volumes:
-      - redis_data_local:/data
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-qualeider_redis}
-    networks:
-      - qualeider-local
-    healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-qualeider_redis}", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # ---------------------------------------------------------------------------
   # Backend — build local via Dockerfile
   # ---------------------------------------------------------------------------
   backend:
@@ -73,8 +55,6 @@ services:
     restart: on-failure
     depends_on:
       postgres:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     environment:
       DATABASE_URL: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-qualeider}?schema=public"
@@ -89,10 +69,6 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-noreply@qualeider.com}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-qualeider_redis}
-      REDIS_DB: 0
     networks:
       - qualeider-local
     healthcheck:
@@ -153,8 +129,6 @@ services:
 
 volumes:
   pgdata_local:
-    driver: local
-  redis_data_local:
     driver: local
 
 networks:

@@ -17,7 +17,7 @@ Este repositório é um monorepo com:
 |---|---|
 | Backend | Node.js 20, NestJS 10, Prisma 6 |
 | Banco de dados | PostgreSQL 14 |
-| Cache | Redis 7 (produção) / in-memory (dev) |
+| Cache | in-memory (via cache-manager) |
 | Frontend | Next.js 15, React 19, Tailwind CSS |
 | Auth | JWT (Bearer), bcrypt |
 | Email | Nodemailer (SMTP) |
@@ -56,7 +56,7 @@ O projeto possui **quatro arquivos de compose**, cada um com um propósito espec
 
 ## 🖥️ Desenvolvimento local (recomendado)
 
-O modo de desenvolvimento usa **apenas a infra em container** (banco + redis).  
+O modo de desenvolvimento usa **apenas a infra em container** (banco).  
 O backend e o frontend rodam no host para ter hot-reload e acesso ao debugger.
 
 ### 1. Pré-requisitos
@@ -81,7 +81,7 @@ cp frontend/.env.example frontend/.env.local
 > onde backend e frontend rodam na mesma máquina. Para rodar em VM ou acessar
 > pela rede local, veja a seção [🌐 Executando em VM ou rede local](#-executando-em-vm-ou-rede-local).
 
-### 3. Suba a infra (banco + redis)
+### 3. Suba a infra (banco)
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d
@@ -461,7 +461,6 @@ Para variáveis exclusivas do backend em desenvolvimento, veja [`backend/.env.ex
 |---|---|
 | `POSTGRES_PASSWORD` | Senha do PostgreSQL |
 | `JWT_SECRET` | Chave para assinar tokens JWT (mínimo 32 chars) |
-| `REDIS_PASSWORD` | Senha do Redis |
 | `SMTP_USER` / `SMTP_PASSWORD` | Credenciais de email |
 
 ---
