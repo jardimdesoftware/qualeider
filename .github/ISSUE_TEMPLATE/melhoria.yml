@@ -1,0 +1,45 @@
+name: ✨ Melhoria / Enhancement
+description: Propor uma melhoria em uma funcionalidade que já existe
+title: "[Enhancement] "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: contexto
+    attributes:
+      label: Contexto
+      description: Qual funcionalidade/tela está em jogo e por que a melhoria surgiu.
+    validations:
+      required: true
+
+  - type: textarea
+    id: comportamento-atual
+    attributes:
+      label: Comportamento atual
+      description: Como a funcionalidade se comporta hoje.
+    validations:
+      required: true
+
+  - type: textarea
+    id: comportamento-esperado
+    attributes:
+      label: Comportamento esperado
+      description: O que deveria acontecer depois da melhoria.
+    validations:
+      required: true
+
+  - type: textarea
+    id: impacto
+    attributes:
+      label: Impacto
+      description: Quem se beneficia e o quanto (UX, performance, manutenibilidade etc.).
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposta-solucao
+    attributes:
+      label: Proposta de solução
+      description: Se já tiver uma ideia de como implementar, descreva aqui (opcional).
+    validations:
+      required: false
