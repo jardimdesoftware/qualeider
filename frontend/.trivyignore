@@ -1,0 +1,7 @@
+# =============================================================================
+# Trivy Ignore - Known False Positives
+# =============================================================================
+# Keep entries documented with scope and review date.
+# =============================================================================
+
+CVE-2026-31789 # OpenSSL: applies only to 32-bit platforms; published images support linux/amd64 and linux/arm64 (2026-08-17).
