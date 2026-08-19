@@ -40,7 +40,7 @@ Acesse agora pelo [link](https://qualeider.valerialima.me/).
 Acesse o protótipo no [Figma]().
 
 ## 📅 Weekly
-Acesse nossa weekly no [Canva]([https://canva.link/ig3m8fzockzm8yh](https://canva.link/cjnkfhj7uqdhunl)).
+Acesse nossa weekly no [Canva](https://canva.link/cjnkfhj7uqdhunl).
 
 ## 🤝 Contribuição
 
