@@ -15,7 +15,7 @@ Security alerts are handled through four layers:
 | Layer | Tooling | Where it runs | Purpose |
 |---|---|---|---|
 | Dependency updates | Dependabot | `.github/dependabot.yml` | Opens weekly PRs for npm, Docker and GitHub Actions updates. |
-| Dependency/container scan | Trivy | Backend and frontend CI/CD workflows | Blocks `CRITICAL` findings in `main` and PRs targeting `main`; uploads SARIF to GitHub Security. |
+| Dependency/container scan | Trivy | Backend and frontend CI/CD workflows | Blocks `CRITICAL` and `HIGH` findings in `main` and PRs targeting `main`; uploads SARIF to GitHub Security. |
 | Code scanning | CodeQL | `.github/workflows/codeql.yml` | Runs static analysis for JavaScript/TypeScript on PRs, pushes and weekly schedule. |
 | Manual triage | GitHub Security tab + this document | Each security review | Classifies remaining alerts by severity, exploitability and fix risk. |
 
@@ -23,7 +23,7 @@ Security alerts are handled through four layers:
 
 Alerts are classified using this order:
 
-1. `CRITICAL` or actively exploited alerts: fix immediately or revert the
+1. `CRITICAL`, `HIGH` or actively exploited alerts: fix immediately or revert the
    dependency/change that introduced them.
 2. Runtime production dependencies with network, auth, file parsing, template
    rendering, database or request-processing impact: prioritize before dev-only
@@ -93,7 +93,7 @@ This update completes the requested maturity work for #176:
 
 - Dependabot coverage is already configured for backend, frontend, Docker and
   GitHub Actions.
-- Trivy CI uploads SARIF and blocks critical findings on production paths.
+- Trivy CI uploads SARIF and blocks critical/high findings on production paths.
 - CodeQL scanning is now codified in the repository.
 - The alert triage strategy, prioritization rules and backlog states are
   documented here.

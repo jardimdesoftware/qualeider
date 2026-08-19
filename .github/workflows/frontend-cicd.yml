@@ -8,7 +8,7 @@
 #        │
 # ┌──────▼──────────────────────┐
 # │  frontend-docker            │  ← buildx multi-arch AMD64 + ARM64 → GHCR
-# │  (lint + build + trivy)     │    Trivy: apenas reporta, não bloqueia
+# │  (lint + build + trivy)     │    Trivy bloqueia CRITICAL/HIGH em main
 # └──────┬──────────────────────┘
 #        │
 # ┌──────▼──────────┐
@@ -181,8 +181,8 @@ jobs:
       packages: write
       security-events: write
     env:
-      # Se for um push/dispatch em `main` ou PR alvo `main`, Trivy deve falhar no CRITICAL
-      TRIVY_EXIT_ON_CRITICAL: ${{ ((github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main') || startsWith(github.ref, 'refs/heads/main')) && '1' || '0' }}
+      # Se for um push/dispatch em `main` ou PR alvo `main`, Trivy deve falhar em CRITICAL/HIGH
+      TRIVY_BLOCKING_EXIT_CODE: ${{ ((github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main') || startsWith(github.ref, 'refs/heads/main')) && '1' || '0' }}
     defaults:
       run:
         working-directory: frontend
@@ -207,14 +207,14 @@ jobs:
         run: npm run lint
         continue-on-error: true
 
-      # --- Trivy FS Scan (apenas reporta, não bloqueia) ---
+      # --- Trivy FS Scan (bloqueia CRITICAL/HIGH em main e PRs para main) ---
       - name: Trivy — Filesystem Scan
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: "fs"
           scan-ref: "frontend"
           format: "table"
-          exit-code: ${{ env.TRIVY_EXIT_ON_CRITICAL }}
+          exit-code: ${{ env.TRIVY_BLOCKING_EXIT_CODE }}
           severity: "CRITICAL,HIGH"
           ignore-unfixed: true
           trivyignores: "frontend/.trivyignore"
@@ -277,13 +277,13 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max,ignore-error=true
 
-      # --- Trivy Image Scan (apenas reporta, não bloqueia) ---
+      # --- Trivy Image Scan (bloqueia CRITICAL/HIGH em main e PRs para main) ---
       - name: Trivy — Docker Image Scan
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.tag-creation.outputs.created_tag }}"
           format: "table"
-          exit-code: ${{ env.TRIVY_EXIT_ON_CRITICAL }}
+          exit-code: ${{ env.TRIVY_BLOCKING_EXIT_CODE }}
           severity: "CRITICAL,HIGH"
           ignore-unfixed: true
           trivyignores: "frontend/.trivyignore"
