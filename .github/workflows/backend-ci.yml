@@ -387,7 +387,7 @@ jobs:
           retention-days: 7
 
   # =========================================================================
-  # 5) SECURITY SCAN (Trivy FS — apenas reporta, não bloqueia)
+  # 5) SECURITY SCAN (Trivy FS — bloqueia CRITICAL/HIGH em main e PRs para main)
   # =========================================================================
   security-scan:
     name: 🛡️ Security Scan
@@ -397,8 +397,8 @@ jobs:
       contents: read
       security-events: write
     env:
-      # Falhar em CRITICAL quando for push/dispatch em `main` ou PR cujo alvo é `main`
-      TRIVY_EXIT_ON_CRITICAL: ${{ ((github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main') || startsWith(github.ref, 'refs/heads/main')) && '1' || '0' }}
+      # Falhar em CRITICAL/HIGH quando for push/dispatch em `main` ou PR cujo alvo é `main`
+      TRIVY_BLOCKING_EXIT_CODE: ${{ ((github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main') || startsWith(github.ref, 'refs/heads/main')) && '1' || '0' }}
 
     steps:
       - name: Checkout repository
@@ -411,7 +411,7 @@ jobs:
           scan-type: "fs"
           scan-ref: "backend"
           format: "table"
-          exit-code: ${{ env.TRIVY_EXIT_ON_CRITICAL }}
+          exit-code: ${{ env.TRIVY_BLOCKING_EXIT_CODE }}
           severity: "CRITICAL,HIGH"
           ignore-unfixed: true
           trivyignores: "backend/.trivyignore"
@@ -433,8 +433,8 @@ jobs:
           scan-type: "config"
           scan-ref: "."
           format: "table"
-          exit-code: "0"
-          severity: "CRITICAL,HIGH,MEDIUM"
+          exit-code: ${{ env.TRIVY_BLOCKING_EXIT_CODE }}
+          severity: "CRITICAL,HIGH"
           trivyignores: "backend/.trivyignore"
 
       # --- Trivy SARIF para GitHub Security tab ---
@@ -538,7 +538,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max,ignore-error=true
 
-      # --- Trivy Image Scan (apenas reporta, não bloqueia) ---
+      # --- Trivy Image Scan (bloqueia CRITICAL/HIGH em main e PRs para main) ---
       - name: Trivy — Docker Image Scan
         if: steps.push.outcome == 'success'
         uses: aquasecurity/trivy-action@v0.36.0
@@ -546,7 +546,7 @@ jobs:
           image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }}"
           format: "table"
           exit-code: ${{ ((github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main') || startsWith(github.ref, 'refs/heads/main')) && '1' || '0' }}
-          severity: ${{ ((github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main') || startsWith(github.ref, 'refs/heads/main')) && 'CRITICAL' || 'CRITICAL,HIGH' }}
+          severity: "CRITICAL,HIGH"
           ignore-unfixed: true
           trivyignores: "backend/.trivyignore"
         env:
