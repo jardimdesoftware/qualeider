@@ -14,6 +14,8 @@ import { PaginationParams } from '../common/pagination.interface';
 export interface UserCriteria extends PaginationParams {
   ids?: number[];
   associationId?: number;
+  /** Filtrar por funcionarios vinculados a um Admin especifico (dono da fazenda). */
+  adminId?: number;
   status?: 'Active' | 'Inactive';
   emailContains?: string;
   includeAnimals?: boolean;

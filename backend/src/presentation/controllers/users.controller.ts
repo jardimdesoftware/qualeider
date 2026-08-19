@@ -108,14 +108,18 @@ export class UsersController {
     status: 200,
     description: 'Lista de usuários obtida com sucesso',
   })
-  async findAll(@Query() query: FindUsersDto) {
+  async findAll(
+    @Query() query: FindUsersDto,
+    @GetUser('id') requesterId: number,
+    @GetUser('role') requesterRole: UserRole,
+  ) {
     const criteria: UserCriteria = {
       associationId: query.associationId,
       status: query.status,
       emailContains: query.emailContains,
     };
-    
-    return this.usersService.findAll(criteria);
+
+    return this.usersService.findAll(criteria, { id: requesterId, role: requesterRole });
   }
 
   @Get(':id')
@@ -125,8 +129,12 @@ export class UsersController {
   @ApiParam({ name: 'id', description: 'ID do usuário', type: Number })
   @ApiResponse({ status: 200, description: 'Usuário encontrado' })
   @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
-  async findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.usersService.findOne(id);
+  async findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @GetUser('id') requesterId: number,
+    @GetUser('role') requesterRole: UserRole,
+  ) {
+    return this.usersService.findOneForRequester(id, { id: requesterId, role: requesterRole });
   }
 
   @ApiOperation({ summary: 'Atualizar todos os dados de um usuário pelo ID' })
@@ -141,13 +149,8 @@ export class UsersController {
     @Body() updateUserDto: UpdateUserDto,
     @GetUser('id') requesterId: number,
     @GetUser('role') requesterRole: UserRole,
-    @GetUser('associationId') requesterAssociationId: number | null,
   ) {
-    return this.usersService.update(id, updateUserDto, {
-      id: requesterId,
-      role: requesterRole,
-      associationId: requesterAssociationId,
-    });
+    return this.usersService.update(id, updateUserDto, { id: requesterId, role: requesterRole });
   }
 
   @ApiOperation({ summary: 'Atualizar alguns dados de um usuário pelo ID' })
@@ -162,12 +165,10 @@ export class UsersController {
     @Body() updatePartialUserDto: UpdatePartialUserDto,
     @GetUser('id') requesterId: number,
     @GetUser('role') requesterRole: UserRole,
-    @GetUser('associationId') requesterAssociationId: number | null,
   ) {
     return this.usersService.partialUpdate(id, updatePartialUserDto, {
       id: requesterId,
       role: requesterRole,
-      associationId: requesterAssociationId,
     });
   }
 
@@ -178,7 +179,11 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
   @Delete(':id')
   @ResponseMessage('Usuário excluído com sucesso')
-  async remove(@Param('id', ParseIntPipe) id: number) {
-    return this.usersService.remove(id);
+  async remove(
+    @Param('id', ParseIntPipe) id: number,
+    @GetUser('id') requesterId: number,
+    @GetUser('role') requesterRole: UserRole,
+  ) {
+    return this.usersService.remove(id, { id: requesterId, role: requesterRole });
   }
 }

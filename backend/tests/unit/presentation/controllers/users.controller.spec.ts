@@ -18,6 +18,7 @@ describe('UsersController', () => {
     findByEmail: jest.fn(),
     findAll: jest.fn(),
     findOne: jest.fn(),
+    findOneForRequester: jest.fn(),
     update: jest.fn(),
     partialUpdate: jest.fn(),
     remove: jest.fn(),
@@ -135,50 +136,45 @@ describe('UsersController', () => {
   });
 
   describe('findAll', () => {
-    it('deve retornar todos os usuários', async () => {
+    it('deve repassar status/associationId/emailContains e a identidade do requisitante', async () => {
       const users = [createUser({ id: 1 })];
       mockUsersService.findAll.mockResolvedValue(users);
 
-      const result = await controller.findAll({});
+      const result = await controller.findAll(
+        { associationId: 5, status: 'Active', emailContains: 'test' } as any,
+        1,
+        UserRole.ADMIN,
+      );
 
-      expect(usersService.findAll).toHaveBeenCalledWith({});
+      expect(usersService.findAll).toHaveBeenCalledWith(
+        { associationId: 5, status: 'Active', emailContains: 'test' },
+        { id: 1, role: UserRole.ADMIN },
+      );
       expect(result).toEqual(users);
-    });
-
-    it('deve filtrar usuários por associationId, status e emailContains', async () => {
-      const users = [createUser({ id: 1, associationId: 5 })];
-      mockUsersService.findAll.mockResolvedValue(users);
-
-      await controller.findAll({
-        associationId: 5,
-        status: 'Active',
-        emailContains: 'test',
-      });
-
-      expect(usersService.findAll).toHaveBeenCalledWith({
-        associationId: 5,
-        status: 'Active',
-        emailContains: 'test',
-      });
     });
   });
 
   describe('findOne', () => {
-    it('deve retornar um usuário pelo ID', async () => {
+    it('deve buscar um usuário pelo ID repassando a identidade do requisitante', async () => {
       const user = createUser({ id: 1 });
-      mockUsersService.findOne.mockResolvedValue(user);
+      mockUsersService.findOneForRequester.mockResolvedValue(user);
 
-      const result = await controller.findOne(1);
+      const result = await controller.findOne(1, 1, UserRole.ADMIN);
 
-      expect(usersService.findOne).toHaveBeenCalledWith(1);
+      expect(usersService.findOneForRequester).toHaveBeenCalledWith(1, {
+        id: 1,
+        role: UserRole.ADMIN,
+      });
       expect(result).toEqual(user);
     });
 
     it('deve propagar EntityNotFoundException quando usuário não existe', async () => {
       const error = new EntityNotFoundException('Usuário não encontrado.');
-      mockUsersService.findOne.mockRejectedValue(error);
+      mockUsersService.findOneForRequester.mockRejectedValue(error);
 
-      await expect(controller.findOne(999)).rejects.toThrow(EntityNotFoundException);
+      await expect(
+        controller.findOne(999, 1, UserRole.ADMIN),
+      ).rejects.toThrow(EntityNotFoundException);
     });
   });
 
@@ -186,15 +182,14 @@ describe('UsersController', () => {
     it('deve atualizar usuário e retornar wrapper', async () => {
       const updateDto: UpdateUserDto = { name: 'João Updated' };
       const updatedUser = createUser({ id: 1, ...updateDto });
-      
+
       mockUsersService.update.mockResolvedValue(updatedUser);
 
-      const result = await controller.update(1, updateDto, 1, UserRole.ADMIN, null);
+      const result = await controller.update(1, updateDto, 1, UserRole.ADMIN);
 
       expect(usersService.update).toHaveBeenCalledWith(1, updateDto, {
         id: 1,
         role: UserRole.ADMIN,
-        associationId: null,
       });
       expect(result).toEqual(updatedUser);
     });
@@ -204,7 +199,7 @@ describe('UsersController', () => {
       mockUsersService.update.mockRejectedValue(error);
 
       await expect(
-        controller.update(999, {}, 1, UserRole.ADMIN, null),
+        controller.update(999, {}, 1, UserRole.ADMIN),
       ).rejects.toThrow(EntityNotFoundException);
     });
   });
@@ -216,25 +211,27 @@ describe('UsersController', () => {
 
       mockUsersService.partialUpdate.mockResolvedValue(updatedUser);
 
-      const result = await controller.partialUpdate(1, updateDto, 1, UserRole.ADMIN, null);
+      const result = await controller.partialUpdate(1, updateDto, 1, UserRole.ADMIN);
 
       expect(usersService.partialUpdate).toHaveBeenCalledWith(1, updateDto, {
         id: 1,
         role: UserRole.ADMIN,
-        associationId: null,
       });
       expect(result).toEqual(updatedUser);
     });
   });
 
   describe('remove', () => {
-    it('deve remover usuário e retornar wrapper', async () => {
+    it('deve remover usuário repassando a identidade do requisitante', async () => {
       const deleted = createUser({ id: 1 });
       mockUsersService.remove.mockResolvedValue(deleted);
 
-      const result = await controller.remove(1);
+      const result = await controller.remove(1, 1, UserRole.ADMIN);
 
-      expect(usersService.remove).toHaveBeenCalledWith(1);
+      expect(usersService.remove).toHaveBeenCalledWith(1, {
+        id: 1,
+        role: UserRole.ADMIN,
+      });
       expect(result).toEqual(deleted);
     });
 
@@ -242,7 +239,9 @@ describe('UsersController', () => {
       const error = new EntityNotFoundException('Usuário não encontrado.');
       mockUsersService.remove.mockRejectedValue(error);
 
-      await expect(controller.remove(999)).rejects.toThrow(EntityNotFoundException);
+      await expect(
+        controller.remove(999, 1, UserRole.ADMIN),
+      ).rejects.toThrow(EntityNotFoundException);
     });
   });
 });
