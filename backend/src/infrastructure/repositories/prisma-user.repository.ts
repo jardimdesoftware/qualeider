@@ -60,7 +60,8 @@ export class PrismaUserRepository implements IUserRepository {
       : PrismaStatus.Active;
 
     if (criteria.associationId) where.associationId = criteria.associationId;
-    
+    if (criteria.adminId) where.adminId = criteria.adminId;
+
     if (criteria.ids && criteria.ids.length > 0) where.id = { in: criteria.ids };
 
     if (criteria.emailContains) where.email = { contains: criteria.emailContains }; 
@@ -103,13 +104,6 @@ export class PrismaUserRepository implements IUserRepository {
       include: Object.keys(include).length > 0 ? include : undefined,
     });
     
-    if (!rawUser) return null;
-
-    return UserMapper.toDomain(rawUser);
-  }
-
-  async findByIdAny(id: ID): Promise<Omit<UserEntity, 'password'> | null> {
-    const rawUser = await this.prisma.user.findUnique({ where: { id } });
     if (!rawUser) return null;
 
     return UserMapper.toDomain(rawUser);

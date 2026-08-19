@@ -11,12 +11,11 @@ import { UserRole } from '@/domain/enums/enums';
 
 /**
  * Identidade de quem esta fazendo a requisicao (extraida do JWT), usada para
- * checar se o requisitante tem permissao para gerenciar o usuario alvo.
+ * checar se o requisitante e ADMIN antes de gerenciar usuarios.
  */
 export interface RequesterContext {
   id: number;
   role?: UserRole;
-  associationId?: number | null;
 }
 
 @Injectable()
@@ -45,7 +44,7 @@ export class UsersService {
   }
 
   async update(id: number, updateUserDto: UpdateUserDto, requester: RequesterContext) {
-    await this.assertCanManage(id, requester);
+    this.assertIsAdmin(requester);
     return this.performUpdate(id, updateUserDto);
   }
 
@@ -54,41 +53,26 @@ export class UsersService {
     updatePartialUserDto: UpdatePartialUserDto,
     requester: RequesterContext,
   ) {
-    await this.assertCanManage(id, requester);
+    this.assertIsAdmin(requester);
     return this.performUpdate(id, updatePartialUserDto);
   }
 
   /**
-   * Garante que o requisitante pode editar o usuario alvo: precisa ser ADMIN
-   * e o alvo precisa estar no escopo dele (mesma associacao, funcionario
-   * vinculado via adminId, ou ele mesmo). Sem isso, qualquer usuario
-   * autenticado conseguia editar role/associationId de qualquer conta do
-   * sistema via PUT/PATCH /users/:id (escalada de privilegio).
+   * Garante que o requisitante e ADMIN. Sistema single-tenant (uso interno
+   * do IFPE, sem cooperativas/associacoes distintas isolando "fazendas"
+   * diferentes): todo ADMIN gerencia todos os usuarios. Sem essa checagem,
+   * qualquer usuario autenticado (inclusive VAQUEIRO) conseguia editar
+   * role/associationId de qualquer conta do sistema via PUT/PATCH
+   * /users/:id (escalada de privilegio).
    */
-  private async assertCanManage(targetId: number, requester: RequesterContext): Promise<void> {
+  private assertIsAdmin(requester: RequesterContext): void {
     if (requester.role !== UserRole.ADMIN) {
-      throw new ForbiddenException('Você não tem permissão para editar este usuário.');
-    }
-
-    if (requester.id === targetId) {
-      return;
-    }
-
-    const target = await this.userRepository.findByIdAny(targetId);
-    if (!target) {
-      throw new EntityNotFoundException(`Usuário com ID ${targetId} não encontrado.`);
-    }
-
-    const managesTarget =
-      target.adminId === requester.id ||
-      (requester.associationId != null && target.associationId === requester.associationId);
-
-    if (!managesTarget) {
-      throw new ForbiddenException('Você não tem permissão para editar este usuário.');
+      throw new ForbiddenException('Você não tem permissão para gerenciar usuários.');
     }
   }
 
-  async remove(id: number) {
+  async remove(id: number, requester: RequesterContext) {
+    this.assertIsAdmin(requester);
     const deactivated = await this.userRepository.softDelete(id);
     this.logger.log(`Usuário removido (soft delete): ID ${id}`);
     return this.removePassword(deactivated);
@@ -99,7 +83,14 @@ export class UsersService {
     return this.userRepository.findByEmail(email);
   }
 
-  async findAll(criteria?: UserCriteria) {
+  /**
+   * Lista usuarios. So ADMIN pode listar (VAQUEIRO nao gerencia ninguem).
+   * Sistema single-tenant: todo ADMIN ve todos os usuarios, sem isolamento
+   * por "fazenda" - ver assertIsAdmin.
+   */
+  async findAll(criteria: UserCriteria, requester: RequesterContext) {
+    this.assertIsAdmin(requester);
+
     const result = await this.userRepository.findAll(criteria);
     return {
       ...result,
@@ -107,6 +98,12 @@ export class UsersService {
     };
   }
 
+  /**
+   * Busca interna por ID, sem checagem de autorizacao. Usada internamente
+   * (ex.: JwtStrategy carregando o proprio usuario autenticado a cada
+   * requisicao) - NAO deve ser exposta diretamente por um controller sem
+   * antes checar o escopo do requisitante (ver findOneForRequester).
+   */
   async findOne(id: number) {
     const user = await this.userRepository.findById(id);
     if (!user) {
@@ -115,6 +112,16 @@ export class UsersService {
       );
     }
     return this.removePassword(user);
+  }
+
+  /**
+   * Busca por ID para uso via API: exige que o requisitante seja ADMIN. Sem
+   * isso, qualquer usuario autenticado conseguia ver os dados de qualquer
+   * outro usuario do sistema (IDOR).
+   */
+  async findOneForRequester(id: number, requester: RequesterContext) {
+    this.assertIsAdmin(requester);
+    return this.findOne(id);
   }
 
   async exists(id: number): Promise<boolean> {

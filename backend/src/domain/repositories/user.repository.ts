@@ -21,12 +21,6 @@ export interface IUserRepository {
     id: ID,
     options?: UserFindOneOptions
   ): Promise<Omit<UserEntity, 'password'> | null>;
-  /**
-   * Busca por ID sem filtrar por status (ativo/inativo). Usado para
-   * checagens de autorizacao (ex.: um ADMIN reativando um funcionario
-   * inativo) onde `findById` filtraria o registro incorretamente.
-   */
-  findByIdAny(id: ID): Promise<Omit<UserEntity, 'password'> | null>;
   update(
     id: ID,
     data: Partial<UserEntity>,

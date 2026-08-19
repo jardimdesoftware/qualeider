@@ -99,7 +99,26 @@ describe('E2E: Users - CRUD Operations', () => {
   });
 
   describe('GET /users (List)', () => {
+    /**
+     * Correcao do IDOR: a listagem agora e sempre restrita ao escopo do
+     * requisitante (funcionarios vinculados via adminId, ou membros da
+     * mesma associacao) - nao existe mais um "listar todos" para ADMINs
+     * sem cooperativa. Por isso criamos um funcionario do adminToken antes
+     * de listar, para garantir que o resultado nao venha vazio.
+     */
     it('deve listar usuários com autenticação (Array direto)', async () => {
+      await testApp
+        .request()
+        .post('/users/internal')
+        .set(authHelper.authHeader(adminToken))
+        .send(
+          UserFactory.build({
+            email: 'listagem-funcionario@example.com',
+            role: UserRole.VAQUEIRO,
+          }),
+        )
+        .expect(HttpStatus.CREATED);
+
       const response = await testApp
         .request()
         .get('/users')
@@ -132,7 +151,8 @@ describe('E2E: Users - CRUD Operations', () => {
     it('deve buscar usuário por ID com autenticação', async () => {
       const created = await testApp
         .request()
-        .post('/users')
+        .post('/users/internal')
+        .set(authHelper.authHeader(adminToken))
         .send({
           email: 'findone@example.com',
           password: 'Test@1234',
@@ -140,6 +160,7 @@ describe('E2E: Users - CRUD Operations', () => {
           userCategory: UserCategory.Fisica,
           city: 'Brasília',
           state: 'DF',
+          role: UserRole.VAQUEIRO,
         })
         .expect(HttpStatus.CREATED);
 
@@ -376,11 +397,13 @@ describe('E2E: Users - CRUD Operations', () => {
         name: 'Delete User',
         city: 'Recife',
         state: 'PE',
+        role: UserRole.VAQUEIRO,
       });
 
       const created = await testApp
         .request()
-        .post('/users')
+        .post('/users/internal')
+        .set(authHelper.authHeader(adminToken))
         .send(deleteData)
         .expect(HttpStatus.CREATED);
 

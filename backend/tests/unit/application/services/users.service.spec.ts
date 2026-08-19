@@ -17,6 +17,9 @@ describe('UsersService', () => {
   let userRepository: IUserRepository;
   let hashService: IHashService;
 
+  const admin = { id: 1, role: UserRole.ADMIN };
+  const vaqueiro = { id: 1, role: UserRole.VAQUEIRO };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -27,7 +30,6 @@ describe('UsersService', () => {
             create: jest.fn(),
             findAll: jest.fn(),
             findById: jest.fn(),
-            findByIdAny: jest.fn(),
             update: jest.fn(),
             partialUpdate: jest.fn(),
             softDelete: jest.fn(),
@@ -96,9 +98,9 @@ describe('UsersService', () => {
         city: 'SP',
         state: 'SP',
       };
-      
+
       (hashService.hash as jest.Mock).mockResolvedValue('hash');
-      
+
       // Simula retorno do repositório já sem senha (por algum motivo, ex: projeção)
       const mockUserNoPass = { id: 1, name: 'John', email: 'john@example.com' };
       (userRepository.create as jest.Mock).mockResolvedValue(mockUserNoPass);
@@ -173,47 +175,31 @@ describe('UsersService', () => {
     });
   });
 
-  describe('findAll', () => {
-    it('deve retornar todos os usuários', async () => {
-      const mockUsers = [
-        createUser({ id: 1, status: Status.Active }),
-        createUser({ id: 2, status: Status.Active }),
-      ];
-      const mockPaginatedResult = {
-        data: mockUsers,
-        total: 2,
-        page: 1,
-        limit: 50,
-        totalPages: 1,
-        hasNextPage: false,
-        hasPreviousPage: false,
-      };
-
-      (userRepository.findAll as jest.Mock).mockResolvedValue(mockPaginatedResult);
-
-      const result = await service.findAll();
-
-      expect(userRepository.findAll).toHaveBeenCalled();
-      expect(result.data).toHaveLength(2);
-      expect(result.total).toBe(2);
+  describe('findAll (só ADMIN pode listar; sistema single-tenant, sem isolamento entre admins)', () => {
+    const mockPaginatedResult = (users: ReturnType<typeof createUser>[]) => ({
+      data: users,
+      total: users.length,
+      page: 1,
+      limit: 50,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: false,
     });
 
-    it('deve filtrar usuários por associationId quando informado', async () => {
-      const mockUsers = [createUser({ id: 1, associationId: 10 })];
-      const mockPaginatedResult = {
-        data: mockUsers,
-        total: 1,
-        page: 1,
-        limit: 50,
-        totalPages: 1,
-        hasNextPage: false,
-        hasPreviousPage: false,
-      };
-      (userRepository.findAll as jest.Mock).mockResolvedValue(mockPaginatedResult);
+    it('deve negar listagem quando o requisitante não é ADMIN', async () => {
+      await expect(service.findAll({}, vaqueiro)).rejects.toThrow(ForbiddenException);
 
-      await service.findAll({ associationId: 10 });
+      expect(userRepository.findAll).not.toHaveBeenCalled();
+    });
 
-      expect(userRepository.findAll).toHaveBeenCalledWith({ associationId: 10 });
+    it('deve listar usando os critérios repassados, sem forçar nenhum escopo', async () => {
+      const mockUsers = [createUser({ id: 2 }), createUser({ id: 3 })];
+      (userRepository.findAll as jest.Mock).mockResolvedValue(mockPaginatedResult(mockUsers));
+
+      const result = await service.findAll({ status: 'Active' }, admin);
+
+      expect(userRepository.findAll).toHaveBeenCalledWith({ status: 'Active' });
+      expect(result.data).toHaveLength(2);
     });
   });
 
@@ -243,6 +229,23 @@ describe('UsersService', () => {
     });
   });
 
+  describe('findOneForRequester (só ADMIN pode buscar por ID via API)', () => {
+    it('deve negar quando o requisitante não é ADMIN', async () => {
+      await expect(service.findOneForRequester(2, vaqueiro)).rejects.toThrow(
+        ForbiddenException,
+      );
+    });
+
+    it('deve permitir quando o requisitante é ADMIN, mesmo para um usuário sem nenhuma relação com ele', async () => {
+      const targetUser = createUser({ id: 2, status: Status.Active });
+      (userRepository.findById as jest.Mock).mockResolvedValue(targetUser);
+
+      const result = await service.findOneForRequester(2, admin);
+
+      expect(result.id).toBe(2);
+    });
+  });
+
   describe('update', () => {
     it('deve atualizar usuário com sucesso', async () => {
       const mockUser = createUser({ id: 1, status: Status.Active });
@@ -251,13 +254,12 @@ describe('UsersService', () => {
         city: 'Updated City',
       };
 
-      (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
       (userRepository.partialUpdate as jest.Mock).mockResolvedValue({
         ...mockUser,
         ...updateDto,
       });
 
-      const result = await service.update(1, updateDto, { id: 1, role: UserRole.ADMIN, associationId: null });
+      const result = await service.update(1, updateDto, admin);
 
       expect(userRepository.partialUpdate).toHaveBeenCalledWith(1, updateDto);
       expect(result.name).toBe('Updated Name');
@@ -268,13 +270,12 @@ describe('UsersService', () => {
       const updateDto: UpdateUserDto = { password: 'newPassword123' };
 
       (hashService.hash as jest.Mock).mockResolvedValue('newHashedPassword');
-      (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
       (userRepository.partialUpdate as jest.Mock).mockResolvedValue({
         ...mockUser,
         password: 'newHashedPassword',
       });
 
-      await service.update(1, updateDto, { id: 1, role: UserRole.ADMIN, associationId: null });
+      await service.update(1, updateDto, admin);
 
       expect(hashService.hash).toHaveBeenCalledWith(
         'newPassword123',
@@ -290,10 +291,9 @@ describe('UsersService', () => {
       const mockUser = createUser({ id: 1, status: Status.Active });
       const updateDto: UpdateUserDto = { name: 'Updated', password: '' };
 
-      (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
       (userRepository.partialUpdate as jest.Mock).mockResolvedValue(mockUser);
 
-      await service.update(1, updateDto, { id: 1, role: UserRole.ADMIN, associationId: null });
+      await service.update(1, updateDto, admin);
 
       expect(hashService.hash).not.toHaveBeenCalled();
       expect(userRepository.partialUpdate).toHaveBeenCalledWith(
@@ -304,11 +304,10 @@ describe('UsersService', () => {
 
     it('deve lançar EntityNotFoundException quando usuário não for encontrado', async () => {
       const updateDto: UpdateUserDto = { name: 'New Name' };
-      // O Service não chama mais findById, ele confia que p repository lança erro se não achar
       const error = new EntityNotFoundException('Usuário não encontrado');
       (userRepository.partialUpdate as jest.Mock).mockRejectedValue(error);
 
-      await expect(service.update(999, updateDto, { id: 999, role: UserRole.ADMIN, associationId: null })).rejects.toThrow(
+      await expect(service.update(999, updateDto, admin)).rejects.toThrow(
         EntityNotFoundException,
       );
     });
@@ -322,7 +321,7 @@ describe('UsersService', () => {
         status: Status.Inactive,
       });
 
-      const result = await service.update(1, updateDto, { id: 1, role: UserRole.ADMIN, associationId: null });
+      const result = await service.update(1, updateDto, admin);
 
       expect(userRepository.partialUpdate).toHaveBeenCalledWith(
         1,
@@ -340,7 +339,7 @@ describe('UsersService', () => {
         status: Status.Active,
       });
 
-      const result = await service.update(1, updateDto, { id: 1, role: UserRole.ADMIN, associationId: null });
+      const result = await service.update(1, updateDto, admin);
 
       expect(userRepository.partialUpdate).toHaveBeenCalledWith(
         1,
@@ -349,52 +348,41 @@ describe('UsersService', () => {
       expect(result.status).toBe(Status.Active);
     });
 
-
-
     it('deve tratar erro P2002 durante atualização e lançar BusinessException', async () => {
       const updateDto: UpdateUserDto = {
         name: 'Updated Name',
         city: 'Updated City',
       };
-      const mockUser = createUser({ id: 1, status: Status.Active });
-
-      (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
 
       // Repository lança BusinessException diretamente
       const error = new BusinessException('Email já cadastrado');
       (userRepository.partialUpdate as jest.Mock).mockRejectedValue(error);
 
-      await expect(service.update(1, updateDto, { id: 1, role: UserRole.ADMIN, associationId: null })).rejects.toThrow(
+      await expect(service.update(1, updateDto, admin)).rejects.toThrow(
         BusinessException,
       );
-      await expect(service.update(1, updateDto, { id: 1, role: UserRole.ADMIN, associationId: null })).rejects.toThrow(
+      await expect(service.update(1, updateDto, admin)).rejects.toThrow(
         'Email já cadastrado',
       );
     });
 
     it('deve relançar erros de foreign key do Repository durante atualização', async () => {
       const updateDto: UpdateUserDto = { name: 'Updated Name' };
-      const mockUser = createUser({ id: 1, status: Status.Active });
-
-      (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
 
       // Repository trata P2003 e lança BusinessException
       const error = new BusinessException('Referência inválida. Verifique os dados relacionados.');
       (userRepository.partialUpdate as jest.Mock).mockRejectedValue(error);
 
-      await expect(service.update(1, updateDto, { id: 1, role: UserRole.ADMIN, associationId: null })).rejects.toThrow(BusinessException);
+      await expect(service.update(1, updateDto, admin)).rejects.toThrow(BusinessException);
     });
 
     it('deve relançar erros genéricos durante atualização', async () => {
       const updateDto: UpdateUserDto = { name: 'Updated Name' };
-      const mockUser = createUser({ id: 1, status: Status.Active });
-
-      (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
 
       const genericError = new Error('Database connection lost');
       (userRepository.partialUpdate as jest.Mock).mockRejectedValue(genericError);
 
-      await expect(service.update(1, updateDto, { id: 1, role: UserRole.ADMIN, associationId: null })).rejects.toThrow(
+      await expect(service.update(1, updateDto, admin)).rejects.toThrow(
         'Database connection lost',
       );
     });
@@ -404,56 +392,24 @@ describe('UsersService', () => {
     it('deve negar edição quando o requisitante não é ADMIN', async () => {
       const updateDto: UpdateUserDto = { role: UserRole.ADMIN } as UpdateUserDto;
 
-      await expect(
-        service.update(2, updateDto, { id: 1, role: UserRole.VAQUEIRO, associationId: null }),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(service.update(2, updateDto, vaqueiro)).rejects.toThrow(
+        ForbiddenException,
+      );
 
       expect(userRepository.partialUpdate).not.toHaveBeenCalled();
     });
 
-    it('deve negar edição quando o ADMIN não gerencia o usuário alvo (fora da sua associação/equipe)', async () => {
-      const targetUser = createUser({ id: 2, associationId: 99, adminId: null });
-      (userRepository.findByIdAny as jest.Mock).mockResolvedValue(targetUser);
+    it('deve permitir que o ADMIN edite qualquer usuário do sistema (single-tenant, sem isolamento entre admins)', async () => {
       const updateDto: UpdateUserDto = { name: 'Novo Nome' };
-
-      await expect(
-        service.update(2, updateDto, { id: 1, role: UserRole.ADMIN, associationId: 10 }),
-      ).rejects.toThrow(ForbiddenException);
-
-      expect(userRepository.partialUpdate).not.toHaveBeenCalled();
-    });
-
-    it('deve permitir que o ADMIN edite um funcionário vinculado a ele via adminId', async () => {
-      const targetUser = createUser({ id: 2, associationId: null, adminId: 1 });
-      (userRepository.findByIdAny as jest.Mock).mockResolvedValue(targetUser);
       (userRepository.partialUpdate as jest.Mock).mockResolvedValue({
-        ...targetUser,
+        id: 2,
         name: 'Novo Nome',
       });
-      const updateDto: UpdateUserDto = { name: 'Novo Nome' };
 
-      const result = await service.update(2, updateDto, {
-        id: 1,
-        role: UserRole.ADMIN,
-        associationId: null,
-      });
+      const result = await service.update(2, updateDto, admin);
 
       expect(userRepository.partialUpdate).toHaveBeenCalledWith(2, updateDto);
       expect(result.name).toBe('Novo Nome');
-    });
-
-    it('deve permitir que o ADMIN edite um usuário da mesma associação', async () => {
-      const targetUser = createUser({ id: 2, associationId: 10, adminId: null });
-      (userRepository.findByIdAny as jest.Mock).mockResolvedValue(targetUser);
-      (userRepository.partialUpdate as jest.Mock).mockResolvedValue({
-        ...targetUser,
-        role: UserRole.ADMIN,
-      });
-      const updateDto: UpdateUserDto = { role: UserRole.ADMIN } as UpdateUserDto;
-
-      await service.update(2, updateDto, { id: 1, role: UserRole.ADMIN, associationId: 10 });
-
-      expect(userRepository.partialUpdate).toHaveBeenCalledWith(2, updateDto);
     });
   });
 
@@ -462,27 +418,32 @@ describe('UsersService', () => {
       const mockUser = createUser({ id: 1, status: Status.Active });
       const updateDto = { city: 'New City' } as UpdatePartialUserDto;
 
-      (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
       (userRepository.partialUpdate as jest.Mock).mockResolvedValue({
         ...mockUser,
         city: 'New City',
       });
 
-      const result = await service.partialUpdate(1, updateDto, { id: 1, role: UserRole.ADMIN, associationId: null });
+      const result = await service.partialUpdate(1, updateDto, admin);
       expect(result.city).toBe('New City');
+    });
+
+    it('deve negar quando o requisitante não é ADMIN', async () => {
+      const updateDto = { city: 'New City' } as UpdatePartialUserDto;
+
+      await expect(service.partialUpdate(1, updateDto, vaqueiro)).rejects.toThrow(
+        ForbiddenException,
+      );
+      expect(userRepository.partialUpdate).not.toHaveBeenCalled();
     });
 
     it('deve tratar erro de email duplicado durante atualização parcial e lançar BusinessException', async () => {
       const updateDto = { city: 'New City' } as UpdatePartialUserDto;
-      const mockUser = createUser({ id: 1, status: Status.Active });
-
-      (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
 
       // Repository lança BusinessException diretamente
       const error = new BusinessException('Email já cadastrado');
       (userRepository.partialUpdate as jest.Mock).mockRejectedValue(error);
 
-      await expect(service.partialUpdate(1, updateDto, { id: 1, role: UserRole.ADMIN, associationId: null })).rejects.toThrow(
+      await expect(service.partialUpdate(1, updateDto, admin)).rejects.toThrow(
         BusinessException,
       );
     });
@@ -493,10 +454,9 @@ describe('UsersService', () => {
       const mockUser = createUser({ id: 1, status: Status.Active });
       const mockDeactivatedUser = { ...mockUser, status: Status.Inactive };
 
-      (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
       (userRepository.softDelete as jest.Mock).mockResolvedValue(mockDeactivatedUser);
 
-      const result = await service.remove(1);
+      const result = await service.remove(1, admin);
 
       expect(userRepository.softDelete).toHaveBeenCalledWith(1);
       expect(result.status).toBe(Status.Inactive);
@@ -506,9 +466,13 @@ describe('UsersService', () => {
       const error = new EntityNotFoundException('Usuário não encontrado');
       (userRepository.softDelete as jest.Mock).mockRejectedValue(error);
 
-      await expect(service.remove(999)).rejects.toThrow(
-        EntityNotFoundException,
-      );
+      await expect(service.remove(999, admin)).rejects.toThrow(EntityNotFoundException);
+    });
+
+    it('deve negar remoção quando o requisitante não é ADMIN', async () => {
+      await expect(service.remove(2, vaqueiro)).rejects.toThrow(ForbiddenException);
+
+      expect(userRepository.softDelete).not.toHaveBeenCalled();
     });
   });
 
