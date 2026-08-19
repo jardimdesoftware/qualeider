@@ -1,470 +1,52 @@
+![License](https://img.shields.io/github/license/jardimdesoftware/qualeider)
+![Last Commit](https://img.shields.io/github/last-commit/jardimdesoftware/qualeider)
+![Top Languages](https://img.shields.io/github/languages/top/jardimdesoftware/qualeider)
+![Repo Size](https://img.shields.io/github/repo-size/jardimdesoftware/qualeider)
+![Contributors](https://img.shields.io/github/contributors/jardimdesoftware/qualeider)
+![Open Issues](https://img.shields.io/github/issues/jardimdesoftware/qualeider)
+![Open PRs](https://img.shields.io/github/issues-pr/jardimdesoftware/qualeider)
+![Forks](https://img.shields.io/github/forks/jardimdesoftware/qualeider)
+![Stars](https://img.shields.io/github/stars/jardimdesoftware/qualeider)
+
+![Backend CI/CD](https://github.com/jardimdesoftware/qualeider/actions/workflows/backend-ci.yml/badge.svg)
+![Frontend CI/CD](https://github.com/jardimdesoftware/qualeider/actions/workflows/frontend-cicd.yml/badge.svg)
+![CodeQL](https://github.com/jardimdesoftware/qualeider/actions/workflows/codeql.yml/badge.svg)
+
 # QuaLeiDer
 
-Plataforma para gestão de produtores, animais e coletas diárias de leite.
+Plataforma web para gestão de produtores, animais e coletas diárias de leite,
+apoiando associações e produtores no acompanhamento da produção leiteira com
+mais organização, rastreabilidade e segurança.
 
-Este repositório é um monorepo com:
+Acesse agora pelo [link](https://qualeider.valerialima.me/).
 
-- **Backend**: API REST em NestJS + Prisma + PostgreSQL
-- **Frontend**: Web App em Next.js (App Router) + Tailwind CSS
+## Tecnologias Utilizadas
 
-![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=next.js&logoColor=white) ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB) ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=for-the-badge&logo=tailwind-css&logoColor=white) ![NestJS](https://img.shields.io/badge/NestJS-E0234E?style=for-the-badge&logo=nestjs&logoColor=white) ![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=for-the-badge&logo=prisma&logoColor=white) ![PostgreSQL](https://img.shields.io/badge/postgresql-4169e1?style=for-the-badge&logo=postgresql&logoColor=white) ![JWT](https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=JSON%20web%20tokens&logoColor=white) ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+- **Front-end:** Next.js, React e Tailwind CSS
+- **Back-end:** NestJS, Prisma ORM e JWT
+- **Banco de Dados:** PostgreSQL
+- **Infraestrutura:** Docker, GitHub Actions, GHCR e Azure Container Apps
 
----
+![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=next.js&logoColor=white)
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![NestJS](https://img.shields.io/badge/NestJS-E0234E?style=for-the-badge&logo=nestjs&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=for-the-badge&logo=prisma&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Azure](https://img.shields.io/badge/Azure_Container_Apps-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white)
 
-## Stack principal
+## Documentação e Wiki
 
-| Camada | Tecnologia |
-|---|---|
-| Backend | Node.js 20, NestJS 10, Prisma 6 |
-| Banco de dados | PostgreSQL 14 |
-| Cache | in-memory (via cache-manager) |
-| Frontend | Next.js 15, React 19, Tailwind CSS |
-| Auth | JWT (Bearer), bcrypt |
-| Email | Nodemailer (SMTP) |
-| Docs | Swagger em `/api-docs` |
-| CI/CD | GitHub Actions + GHCR (imagens multi-arch AMD64 + ARM64) |
+A documentação detalhada do projeto deve ser mantida na [Wiki do Qualeider](https://github.com/jardimdesoftware/qualeider/wiki), incluindo requisitos, arquitetura, setup local, deploy, decisões técnicas, segurança e guias operacionais.
 
----
+## Pacotes
 
-## Arquitetura (backend)
+As imagens Docker publicadas pelo CI/CD estão disponíveis no GitHub Container Registry:
 
-O backend segue Clean Architecture por camadas:
-
-```
-backend/src/
-  domain/          # Entidades, enums e interfaces de repositório
-  application/     # DTOs, casos de uso e portas (interfaces de serviço)
-  infrastructure/  # Prisma (repositórios), serviços JWT/bcrypt, email
-  presentation/    # Controllers NestJS, main.ts (bootstrap)
-  common/          # Filtros globais, cache config, guards reutilizáveis
-```
-
----
-
-## Ambientes Docker
-
-O projeto possui **quatro arquivos de compose**, cada um com um propósito específico:
-
-| Arquivo | Ambiente | Quando usar |
-|---|---|---|
-| `docker-compose.dev.yml` | Desenvolvimento local | Dia a dia — backend/frontend rodam no host |
-| `docker-compose.local.yml` | Simulação de produção local | Testar nginx + stack completa antes de fazer deploy |
-| `docker-compose.yml` | Produção (build local) | Deploy sem CI/CD configurado, build das imagens na hora |
-| `docker-compose.prod.yml` | Produção (imagens GHCR) | Deploy via pipeline — usa imagens pré-publicadas multi-arch |
-
----
-
-## 🖥️ Desenvolvimento local (recomendado)
-
-O modo de desenvolvimento usa **apenas a infra em container** (banco).  
-O backend e o frontend rodam no host para ter hot-reload e acesso ao debugger.
-
-### 1. Pré-requisitos
-
-- [Node.js 20+](https://nodejs.org/)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) ou Docker + Docker Compose
-
-### 2. Configuração inicial
-
-```bash
-# Clone o repositório
-git clone https://github.com/ifpebj-ti/qualeider.git
-cd qualeider
-
-# Configure as variáveis de ambiente
-cp .env.example .env
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env.local
-```
-
-> Os defaults de `NEXT_PUBLIC_API_URL` e `CORS_ORIGINS` acima cobrem o fluxo
-> onde backend e frontend rodam na mesma máquina. Para rodar em VM ou acessar
-> pela rede local, veja a seção [🌐 Executando em VM ou rede local](#-executando-em-vm-ou-rede-local).
-
-### 3. Suba a infra (banco)
-
-```bash
-docker compose -f docker-compose.dev.yml up -d
-```
-
-### 4. Rode o backend
-
-```bash
-cd backend
-npm install
-npx prisma migrate dev   # Aplica migrations e gera o Prisma Client
-npm run start:dev        # Hot-reload em http://localhost:3000
-```
-
-> API Docs (Swagger): [http://localhost:3000/api-docs](http://localhost:3000/api-docs)
-
-### 5. Rode o frontend
-
-```bash
-cd frontend
-npm install
-npm run dev              # Hot-reload em http://localhost:3001
-```
-
----
-
-## 🔗 URLs de referência (API, Health, Swagger)
-
-| Serviço | Mesmo host (dev) | VM / rede local |
-|---|---|---|
-| Frontend | `http://localhost:3001` | `http://192.168.10.85:3001` |
-| API (base) | `http://localhost:3000/api` | `http://192.168.10.85:3000/api` |
-| Health check | `http://localhost:3000/api/health` | `http://192.168.10.85:3000/api/health` |
-| Swagger UI | `http://localhost:3000/api-docs` | `http://192.168.10.85:3000/api-docs` |
-| Swagger JSON (spec) | `http://localhost:3000/api-docs-json` | `http://192.168.10.85:3000/api-docs-json` |
-
-> Troque `192.168.10.85` pelo IP real da sua máquina/VM — veja a seção
-> [🌐 Executando em VM ou rede local](#-executando-em-vm-ou-rede-local) logo
-> abaixo para descobrir o IP e ajustar `CORS_ORIGINS`/`NEXT_PUBLIC_API_URL`.
-> Na simulação de produção com nginx (`docker-compose.local.yml`), essas
-> mesmas rotas ficam por trás de uma única porta — veja a tabela em
-> [🔬 Simulação local de produção](#-simulação-local-de-produção).
-
-### O Swagger abriu em branco, mas `curl` retorna 200 OK — e agora?
-
-Isso **não significa que a API está fora do ar**. `curl` só confirma que o
-servidor respondeu com o HTML/JSON — ele não executa JavaScript nem aplica
-CSP, então não revela problemas que só acontecem dentro do navegador. Se
-`/api-docs` e `/api-docs-json` retornam `200` no `curl` mas a página fica em
-branco no navegador, causas prováveis, da mais comum para a mais rara:
-
-1. **CSP forçando upgrade para HTTPS num servidor que só fala HTTP** — o
-   Helmet inclui por padrão a diretiva `upgrade-insecure-requests`, que faz o
-   navegador tentar recarregar todo asset (JS/CSS do Swagger) via HTTPS. Como
-   nem o dev local nem a stack de nginx deste projeto (`nginx/nginx.conf`)
-   servem TLS, esses assets falham silenciosamente e a página fica em branco,
-   sem nenhum erro visível no `curl`. **Já corrigido** em
-   [`backend/src/presentation/main.ts`](backend/src/presentation/main.ts) —
-   se você está numa versão do backend anterior a essa correção, seria essa a
-   causa.
-2. **Cache do navegador ou extensões (ad-blocker/privacy)** bloqueando os
-   bundles do `swagger-ui`. Teste em uma aba anônima/privada antes de abrir
-   uma issue.
-3. **URL errada para o ambiente** — por exemplo, tentar `/api-docs` na porta
-   do frontend (3001) em vez da porta do backend (3000), ou usar `localhost`
-   ao acessar de outro dispositivo (veja a seção de VM/rede local abaixo).
-
-Se depois de descartar os três pontos acima o problema persistir, aí sim é
-caso de investigar como bug — mas normalmente é um desses três.
-
-### Swagger em produção
-
-O Swagger **fica habilitado por padrão em todos os ambientes** — dev, a
-simulação local com nginx (`docker-compose.local.yml`) e produção
-(`docker-compose.prod.yml`/`docker-compose.yml`) usam a mesma configuração
-de rota (`nginx/nginx.conf` encaminha qualquer coisa que comece com `/api`,
-incluindo `/api-docs`, para o backend) e o mesmo código
-([`backend/src/presentation/main.ts`](backend/src/presentation/main.ts)). Não
-existe um "modo produção" que desabilite o Swagger automaticamente — se
-`/api-docs` responde `404` numa instância hospedada, **não é intencional**;
-é sinal de deriva de ambiente. Antes de abrir uma issue, verifique:
-
-1. **Imagem desatualizada** — confirme a tag rodando (`docker compose -f
-   docker-compose.prod.yml images`) e se ela já inclui este comportamento.
-2. **Proxy externo na frente do Nginx do projeto** (Traefik, Coolify, CDN,
-   etc.) — alguns hosts adicionam roteamento próprio que pode não replicar
-   `nginx/nginx.conf` deste repo. Confirme com `curl -i` direto na porta do
-   Nginx do compose antes de suspeitar do backend.
-3. **`SWAGGER_ENABLED=false` no `.env` do servidor** (ver abaixo) — desabilita
-   de propósito e nesse caso a resposta é um `403` explícito, não `404`.
-
-#### Desabilitando o Swagger de propósito
-
-Expor o schema completo da API publicamente pode não ser desejável para uma
-instância exposta na internet. Para desabilitar, defina no `.env` usado pelo
-compose (raiz do projeto) ou no `backend/.env` (execução direta no host):
-
-```bash
-SWAGGER_ENABLED=false
-```
-
-Com a flag em `false`, `/api-docs`, `/api-docs-json` e `/api-docs-yaml`
-respondem `403 Forbidden` com uma mensagem explícita — em vez do `404`
-ambíguo que não deixa claro se é "fora do ar" ou "desabilitado de
-propósito". O padrão (sem a variável, ou qualquer valor diferente de
-`"false"`) é **habilitado**.
-
----
-
-## 🌐 Executando em VM ou rede local
-
-Cenário comum: você roda backend e frontend numa máquina/VM, mas acessa pelo
-navegador de **outro dispositivo** na mesma rede (outra máquina, celular, ou
-a VM acessada do host). Isso exige alguns ajustes que não são necessários
-quando tudo roda no mesmo host.
-
-### `localhost`, `127.0.0.1` e IP da máquina não são a mesma coisa
-
-- `localhost` e `127.0.0.1` só resolvem para o **próprio dispositivo** — um
-  navegador rodando fora da máquina/VM nunca alcança `http://localhost:3000`
-  dela, mesmo que o servidor esteja de pé.
-- Para acessar de outro dispositivo, use o **IP real da máquina/VM na rede**
-  (ex.: `192.168.10.85`), descoberto com `ipconfig` (Windows) ou `ip addr` /
-  `hostname -I` (Linux).
-- Isso também importa para `CORS_ORIGINS`: o backend valida o header `Origin`
-  exatamente como o navegador o envia — se você acessa por IP, `localhost` na
-  whitelist não serve, e vice-versa. Por isso os `.env.example` já trazem
-  `localhost` **e** `127.0.0.1` juntos, e é preciso adicionar o IP manualmente.
-
-### 1. Exponha frontend e backend na rede
-
-Ambos já escutam em todas as interfaces por padrão em dev, então normalmente
-não é preciso mudar nada além do firewall/rede:
-
-- Backend: `app.listen(port, '0.0.0.0')` em [`backend/src/presentation/main.ts`](backend/src/presentation/main.ts).
-- Frontend: `next dev -p 3001` também escuta em `0.0.0.0`.
-
-Se estiver numa VM, garanta que a porta 3000 (backend) e 3001 (frontend)
-estejam liberadas/encaminhadas (port forwarding ou modo bridge na config de
-rede da VM).
-
-### 2. Configure `frontend/.env.local`
-
-```bash
-# Troque pelo IP real da máquina/VM que roda o backend
-NEXT_PUBLIC_API_URL=http://192.168.10.85:3000/api
-```
-
-### 3. Configure `backend/.env`
-
-```bash
-# Mantenha localhost/127.0.0.1 (útil se você também testa no mesmo host)
-# e adicione o IP:porta de onde o frontend será acessado
-CORS_ORIGINS="http://localhost:3001,http://127.0.0.1:3001,http://192.168.10.85:3001"
-```
-
-### 4. Valide a conectividade com `curl`
-
-Antes de testar pelo navegador, confirme que a API responde pelo IP:
-
-```bash
-curl -i http://192.168.10.85:3000/api/health
-# Esperado: HTTP/1.1 200 OK  { "status": "ok", "timestamp": "..." }
-```
-
-Se isso falhar, o problema é de rede/firewall — ainda não chegou a ser CORS
-ou autenticação.
-
-### 5. Troubleshooting: interpretando os erros
-
-| Sintoma no DevTools | Causa provável | Onde ajustar |
-|---|---|---|
-| `ERR_CONNECTION_REFUSED` / `Failed to fetch` | `NEXT_PUBLIC_API_URL` aponta para host/porta errado, ou backend não está de pé/acessível pela rede | `frontend/.env.local` → `NEXT_PUBLIC_API_URL`; confirme com o `curl` acima |
-| Erro de CORS / falha silenciosa no `OPTIONS` (preflight) | O `Origin` do navegador não está na whitelist do backend | `backend/.env` → `CORS_ORIGINS` (adicione o IP:porta exato usado no navegador) |
-| `404 Not Found` | Faltou o prefixo `/api` na URL, ou rota não existe | Confirme que `NEXT_PUBLIC_API_URL` termina em `/api` |
-| `401 Unauthorized` | Ótimo sinal — a requisição chegou até a API. Falha é de credenciais (usuário/senha), não de rede/CORS | Verifique o usuário de teste ou o fluxo de autenticação |
-
-> **Nota de segurança**: nunca use `CORS_ORIGINS=*` para "resolver rápido" o
-> problema, mesmo em dev — a API usa `credentials: true` (JWT/cookies), e
-> liberar qualquer origem nesse modo expõe a aplicação a requisições forjadas
-> de sites de terceiros.
-
----
-
-## 📧 Comportamento de e-mail (SMTP) em desenvolvimento
-
-Ao subir o backend sem `SMTP_HOST`/`SMTP_USER`/`SMTP_PASSWORD` preenchidos em
-`backend/.env`, você verá este aviso no log de boot:
-
-```
-SMTP configuration incomplete. Email sending will fail!
-```
-
-Isso **não impede o backend de subir** — só avisa que o envio de e-mail vai
-falhar. O impacto real varia bastante por fluxo; a tabela abaixo resume o que
-foi confirmado no código (`backend/src/mail/`, `backend/src/listener/`,
-`backend/src/application/services/`):
-
-| Fluxo | Funciona sem SMTP? | O que acontece quando o envio falha |
-|---|---|---|
-| **Login** | ✅ Sim | Não envia e-mail nenhum — login não depende de SMTP. |
-| **Redefinir senha** (aplicar a nova senha com o token) | ✅ Sim | Não envia e-mail — só valida o token e atualiza a senha. |
-| **Esqueci minha senha** (solicitar o link) | ⚠️ **Não** | O token **é salvo no banco** antes do envio, mas o e-mail é enviado de forma síncrona dentro da mesma requisição — se falhar, o erro sobe e a requisição HTTP retorna erro, mesmo com o token já persistido. **Não há retry nem fallback em `failed_emails` para este fluxo.** |
-| **Convites** (criar/aceitar/recusar) | ✅ Sim | O convite é persistido no banco independente do e-mail. O envio roda em um listener assíncrono (`invite-email.listener.ts`) que **captura e apenas loga** a falha — sem retry, sem `failed_emails`. O e-mail simplesmente se perde silenciosamente. |
-| **Notificações** | ✅ Sim | A notificação é persistida no banco independente do e-mail. O envio (`email.listener.ts`) tenta **3 vezes** (backoff de 2s e 4s) e, se todas falharem, grava o registro na tabela `failed_emails` (model `FailedEmail` no `schema.prisma`) em vez de perder o e-mail. |
-
-> **Atenção**: a tabela `failed_emails` só recebe registros do fluxo de
-> **notificações**. Convites perdidos não aparecem lá, e "esqueci minha senha"
-> nem chega a tentar — ele quebra a requisição antes disso.
-
-### Configurando o Ethereal para testar e-mails localmente
-
-[Ethereal](https://ethereal.email) cria uma caixa de entrada fake — o e-mail
-"é enviado" de verdade via SMTP, mas fica preso lá, sem chegar a ninguém.
-
-1. Acesse [ethereal.email](https://ethereal.email) e clique em **Create Ethereal Account** (gera usuário/senha na hora, não precisa cadastro).
-2. Copie o `Username` e `Password` gerados para `backend/.env`:
-   ```
-   SMTP_HOST="smtp.ethereal.email"
-   SMTP_PORT=587
-   SMTP_USER="<usuário gerado pelo Ethereal>"
-   SMTP_PASSWORD="<senha gerada pelo Ethereal>"
-   SMTP_FROM="noreply@qualeider.com"
-   ```
-3. Reinicie o backend (`npm run start:dev`) — o aviso de SMTP incompleto deve sumir do log.
-4. Dispare qualquer fluxo que envie e-mail (convite, notificação, esqueci minha senha) e acesse [ethereal.email/messages](https://ethereal.email/messages) (logado com o mesmo usuário/senha) para ver o e-mail capturado.
-
-### Inspecionando e-mails que falharam (`failed_emails`)
-
-Hoje não existe endpoint ou tela para isso — só é possível consultar direto no banco:
-
-```bash
-cd backend
-npx prisma studio   # abre uma UI em http://localhost:5555 — tabela failed_emails
-```
-
-Ou via SQL direto (`psql`, DBeaver, etc.): `SELECT * FROM failed_emails ORDER BY "createdAt" DESC;`
-
----
-
-## 🔬 Simulação local de produção
-
-Sobe **todos os serviços em container** com nginx como reverse proxy.  
-Útil para validar roteamento, proxy e integração antes do deploy real.
-
-```bash
-# Configure o .env
-cp .env.example .env
-# Edite o NEXT_PUBLIC_API_URL para /api (nginx faz o proxy)
-
-docker compose -f docker-compose.local.yml up --build -d
-```
-
-| URL | Serviço |
-|---|---|
-| `http://localhost:8080` | Frontend |
-| `http://localhost:8080/api` | API REST |
-| `http://localhost:8080/api-docs` | Swagger |
-
----
-
-## 🚀 Deploy em produção
-
-### Opção 1 — Build local (sem CI/CD)
-
-```bash
-# No servidor:
-cp .env.example .env
-# Preencha os valores reais no .env
-
-docker compose up --build -d
-
-# Frontend: http://<ip-servidor>:3001
-# API:      http://<ip-servidor>:3000/api
-```
-
-### Opção 2 — Imagens GHCR (recomendado, via CI/CD)
-
-As imagens são publicadas automaticamente via GitHub Actions no GHCR  
-com suporte a **AMD64 e ARM64** (servidores OCI Free Tier, ARM, etc.).
-
-```bash
-# No servidor, faça login no GHCR:
-echo $CR_PAT | docker login ghcr.io -u <SEU_USUARIO_GITHUB> --password-stdin
-
-# Configure o .env com o owner e tags das imagens:
-cp .env.example .env
-# GHCR_OWNER=ifpebj-ti
-# BACKEND_TAG=latest   (ou ex: 1.2.0)
-# FRONTEND_TAG=latest
-
-docker compose -f docker-compose.prod.yml up -d
-```
-
-#### Atualizar para nova versão
-
-```bash
-# Puxar as novas imagens:
-docker compose -f docker-compose.prod.yml pull
-
-# Recriar os containers:
-docker compose -f docker-compose.prod.yml up -d
-```
-
-#### Verificar arquiteturas disponíveis
-
-```bash
-docker manifest inspect ghcr.io/ifpebj-ti/qualeider-backend:latest
-```
-
----
-
-## 🧪 Testes (backend)
-
-```bash
-cd backend
-
-npm run test:unit         # Testes unitários
-npm run test:integration  # Testes de integração (requer PostgreSQL)
-npm run test:e2e          # Testes E2E (requer PostgreSQL)
-npm run test:all          # Unit + E2E
-```
-
----
-
-## 🛡️ Segurança de dependências
-
-Auditoria de vulnerabilidades (`npm audit`) do backend e frontend, com plano de
-priorização e triagem: veja [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md).
-
----
-
-## Estrutura de pastas
-
-```
-qualeider/
-├── backend/               # API NestJS + Prisma
-│   ├── src/
-│   │   ├── domain/        # Entidades e interfaces
-│   │   ├── application/   # Casos de uso e DTOs
-│   │   ├── infrastructure/# Prisma, JWT, bcrypt
-│   │   ├── presentation/  # Controllers, main.ts
-│   │   └── common/        # Filtros, cache, guards
-│   ├── prisma/            # schema.prisma e migrations
-│   └── Dockerfile
-│
-├── frontend/              # App Next.js
-│   ├── src/
-│   │   ├── app/           # Rotas (App Router)
-│   │   ├── components/    # Componentes UI
-│   │   └── services/      # Integração com API
-│   └── Dockerfile
-│
-├── nginx/
-│   └── nginx.conf         # Config do reverse proxy
-│
-├── .github/workflows/
-│   ├── backend-ci.yml     # CI/CD do backend (multi-arch)
-│   └── frontend-cicd.yml  # CI/CD do frontend (multi-arch)
-│
-├── docker-compose.dev.yml    # 🖥️ Desenvolvimento (só infra)
-├── docker-compose.local.yml  # 🔬 Simulação local (stack completa)
-├── docker-compose.yml        # 🚀 Produção (build local)
-└── docker-compose.prod.yml   # 🚀 Produção (imagens GHCR)
-```
-
----
-
-## Variáveis de ambiente
-
-Consulte o [`.env.example`](.env.example) para a lista completa com descrições.  
-Para variáveis exclusivas do backend em desenvolvimento, veja [`backend/.env.example`](backend/.env.example).
-
-### Variáveis obrigatórias em produção
-
-| Variável | Descrição |
-|---|---|
-| `POSTGRES_PASSWORD` | Senha do PostgreSQL |
-| `JWT_SECRET` | Chave para assinar tokens JWT (mínimo 32 chars) |
-| `SMTP_USER` / `SMTP_PASSWORD` | Credenciais de email |
-
----
+- [qualeider-backend](https://github.com/jardimdesoftware/qualeider/pkgs/container/qualeider-backend)
+- [qualeider-frontend](https://github.com/jardimdesoftware/qualeider/pkgs/container/qualeider-frontend)
 
 ## Contribuição
 
-Veja [CONTRIBUTING.md](CONTRIBUTING.md) para diretrizes de contribuição.
+Consulte o [guia de contribuição](CONTRIBUTING.md) antes de abrir issues, branches ou pull requests.
