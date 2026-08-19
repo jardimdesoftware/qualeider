@@ -12,7 +12,7 @@
 ![Frontend CI/CD](https://github.com/jardimdesoftware/qualeider/actions/workflows/frontend-cicd.yml/badge.svg)
 ![CodeQL](https://github.com/jardimdesoftware/qualeider/actions/workflows/codeql.yml/badge.svg)
 
-# QuaLeiDer
+# 🐄🥛 QuaLeiDer
 
 Plataforma web para gestão de produtores, animais e coletas diárias de leite,
 apoiando associações e produtores no acompanhamento da produção leiteira com
@@ -20,7 +20,7 @@ mais organização, rastreabilidade e segurança.
 
 Acesse agora pelo [link](https://qualeider.valerialima.me/).
 
-## Tecnologias Utilizadas
+## 💻 Tecnologias Utilizadas
 
 - **Front-end:** Next.js, React e Tailwind CSS
 - **Back-end:** NestJS, Prisma ORM e JWT
@@ -36,17 +36,12 @@ Acesse agora pelo [link](https://qualeider.valerialima.me/).
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![Azure](https://img.shields.io/badge/Azure_Container_Apps-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white)
 
-## Documentação e Wiki
+## 🎨 Protótipo
+Acesse o protótipo no [Figma]().
 
-A documentação detalhada do projeto deve ser mantida na [Wiki do Qualeider](https://github.com/jardimdesoftware/qualeider/wiki), incluindo requisitos, arquitetura, setup local, deploy, decisões técnicas, segurança e guias operacionais.
+## 📅 Weekly
+Acesse nossa weekly no [Canva]([https://canva.link/ig3m8fzockzm8yh](https://canva.link/cjnkfhj7uqdhunl)).
 
-## Pacotes
-
-As imagens Docker publicadas pelo CI/CD estão disponíveis no GitHub Container Registry:
-
-- [qualeider-backend](https://github.com/jardimdesoftware/qualeider/pkgs/container/qualeider-backend)
-- [qualeider-frontend](https://github.com/jardimdesoftware/qualeider/pkgs/container/qualeider-frontend)
-
-## Contribuição
+## 🤝 Contribuição
 
 Consulte o [guia de contribuição](CONTRIBUTING.md) antes de abrir issues, branches ou pull requests.
