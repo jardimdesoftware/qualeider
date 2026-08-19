@@ -85,8 +85,7 @@ describe('E2E: Auth - Forgot/Reset Password', () => {
       });
 
       if (user) {
-        const crypto = require('crypto');
-        resetToken = crypto.randomBytes(32).toString('hex');
+        resetToken = '123456';
         const resetTokenExpires = new Date();
         resetTokenExpires.setHours(resetTokenExpires.getHours() + 1);
 
@@ -121,7 +120,7 @@ describe('E2E: Auth - Forgot/Reset Password', () => {
         .post('/auth/validate-reset-token')
         .send({
           email: userEmail,
-          token: 'invalid-token-123',
+          token: '000000',
         })
         .expect(HttpStatus.UNAUTHORIZED);
     });
@@ -162,7 +161,7 @@ describe('E2E: Auth - Forgot/Reset Password', () => {
         .post('/auth/reset-password')
         .send({
           email: userEmail,
-          token: 'invalid-token',
+          token: '000000',
           newPassword: 'NewPass@123',
         })
         .expect(HttpStatus.UNAUTHORIZED);
@@ -174,7 +173,7 @@ describe('E2E: Auth - Forgot/Reset Password', () => {
         .post('/auth/reset-password')
         .send({
           email: 'nonexistent@example.com',
-          token: 'any-token',
+          token: '000000',
           newPassword: 'ValidPass@123',
         })
         .expect(HttpStatus.NOT_FOUND);
