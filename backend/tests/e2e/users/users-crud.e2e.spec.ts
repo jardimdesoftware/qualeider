@@ -171,17 +171,28 @@ describe('E2E: Users - CRUD Operations', () => {
   });
 
   describe('PUT /users/:id (Update)', () => {
+    /**
+     * Correcao da escalada de privilegio: PUT/PATCH /users/:id agora exige
+     * que o requisitante seja ADMIN e gerencie o usuario alvo (mesma
+     * associacao ou funcionario vinculado via adminId). Por isso os
+     * "funcionarios" editados aqui precisam ser criados via POST
+     * /users/internal (autenticado como adminToken), que vincula o novo
+     * usuario ao admin criador via adminId - e nao mais via POST /users
+     * publico, que sempre cria uma conta ADMIN independente.
+     */
     it('deve atualizar usuário com dados válidos', async () => {
       const createData = UserFactory.build({
         email: 'update@example.com',
         name: 'Update User',
         city: 'Porto Alegre',
         state: 'RS',
+        role: UserRole.VAQUEIRO,
       });
 
       const created = await testApp
         .request()
-        .post('/users')
+        .post('/users/internal')
+        .set(authHelper.authHeader(adminToken))
         .send(createData)
         .expect(HttpStatus.CREATED);
 
@@ -229,11 +240,13 @@ describe('E2E: Users - CRUD Operations', () => {
         name: 'Unique User',
         city: 'Salvador',
         state: 'BA',
+        role: UserRole.VAQUEIRO,
       });
 
       const created = await testApp
         .request()
-        .post('/users')
+        .post('/users/internal')
+        .set(authHelper.authHeader(adminToken))
         .send(createData)
         .expect(HttpStatus.CREATED);
 
@@ -253,11 +266,13 @@ describe('E2E: Users - CRUD Operations', () => {
         name: 'Nome Original',
         city: 'Recife',
         state: 'PE',
+        role: UserRole.VAQUEIRO,
       });
 
       const created = await testApp
         .request()
-        .post('/users')
+        .post('/users/internal')
+        .set(authHelper.authHeader(adminToken))
         .send(createData)
         .expect(HttpStatus.CREATED);
 
@@ -278,11 +293,13 @@ describe('E2E: Users - CRUD Operations', () => {
     it('regressão #167: deve permitir inativar um funcionário via update', async () => {
       const createData = UserFactory.build({
         email: 'inativar-update@example.com',
+        role: UserRole.VAQUEIRO,
       });
 
       const created = await testApp
         .request()
-        .post('/users')
+        .post('/users/internal')
+        .set(authHelper.authHeader(adminToken))
         .send(createData)
         .expect(HttpStatus.CREATED);
 
@@ -299,11 +316,13 @@ describe('E2E: Users - CRUD Operations', () => {
     it('regressão #167: deve permitir reativar um funcionário previamente inativado', async () => {
       const createData = UserFactory.build({
         email: 'reativar-update@example.com',
+        role: UserRole.VAQUEIRO,
       });
 
       const created = await testApp
         .request()
-        .post('/users')
+        .post('/users/internal')
+        .set(authHelper.authHeader(adminToken))
         .send(createData)
         .expect(HttpStatus.CREATED);
 
@@ -329,11 +348,13 @@ describe('E2E: Users - CRUD Operations', () => {
     it('deve permitir alterar o cargo/perfil (role) de um funcionário', async () => {
       const createData = UserFactory.build({
         email: 'trocar-role@example.com',
+        role: UserRole.VAQUEIRO,
       });
 
       const created = await testApp
         .request()
-        .post('/users')
+        .post('/users/internal')
+        .set(authHelper.authHeader(adminToken))
         .send(createData)
         .expect(HttpStatus.CREATED);
 
@@ -395,7 +416,8 @@ describe('E2E: Users - CRUD Operations', () => {
     it('deve executar CRUD completo com sucesso', async () => {
       const created = await testApp
         .request()
-        .post('/users')
+        .post('/users/internal')
+        .set(authHelper.authHeader(adminToken))
         .send({
           email: 'fullcrud@example.com',
           password: 'FullCRUD@1234',
@@ -403,6 +425,7 @@ describe('E2E: Users - CRUD Operations', () => {
           userCategory: UserCategory.Fisica,
           city: 'Belo Horizonte',
           state: 'MG',
+          role: UserRole.VAQUEIRO,
         })
         .expect(HttpStatus.CREATED);
 

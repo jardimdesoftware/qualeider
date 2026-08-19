@@ -189,9 +189,13 @@ describe('UsersController', () => {
       
       mockUsersService.update.mockResolvedValue(updatedUser);
 
-      const result = await controller.update(1, updateDto);
+      const result = await controller.update(1, updateDto, 1, UserRole.ADMIN, null);
 
-      expect(usersService.update).toHaveBeenCalledWith(1, updateDto);
+      expect(usersService.update).toHaveBeenCalledWith(1, updateDto, {
+        id: 1,
+        role: UserRole.ADMIN,
+        associationId: null,
+      });
       expect(result).toEqual(updatedUser);
     });
 
@@ -199,7 +203,9 @@ describe('UsersController', () => {
       const error = new EntityNotFoundException('Usuário não encontrado.');
       mockUsersService.update.mockRejectedValue(error);
 
-      await expect(controller.update(999, {})).rejects.toThrow(EntityNotFoundException);
+      await expect(
+        controller.update(999, {}, 1, UserRole.ADMIN, null),
+      ).rejects.toThrow(EntityNotFoundException);
     });
   });
 
@@ -207,12 +213,16 @@ describe('UsersController', () => {
     it('deve atualizar parcialmente e retornar wrapper', async () => {
       const updateDto: UpdatePartialUserDto = { email: 'new@email.com' } as UpdatePartialUserDto;
       const updatedUser = createUser({ id: 1, ...updateDto });
-      
+
       mockUsersService.partialUpdate.mockResolvedValue(updatedUser);
 
-      const result = await controller.partialUpdate(1, updateDto);
+      const result = await controller.partialUpdate(1, updateDto, 1, UserRole.ADMIN, null);
 
-      expect(usersService.partialUpdate).toHaveBeenCalledWith(1, updateDto);
+      expect(usersService.partialUpdate).toHaveBeenCalledWith(1, updateDto, {
+        id: 1,
+        role: UserRole.ADMIN,
+        associationId: null,
+      });
       expect(result).toEqual(updatedUser);
     });
   });

@@ -138,9 +138,16 @@ export class UsersController {
   @ResponseMessage('Usuário atualizado com sucesso')
   async update(
     @Param('id', ParseIntPipe) id: number,
-    @Body() updateUserDto: UpdateUserDto
+    @Body() updateUserDto: UpdateUserDto,
+    @GetUser('id') requesterId: number,
+    @GetUser('role') requesterRole: UserRole,
+    @GetUser('associationId') requesterAssociationId: number | null,
   ) {
-    return this.usersService.update(id, updateUserDto);
+    return this.usersService.update(id, updateUserDto, {
+      id: requesterId,
+      role: requesterRole,
+      associationId: requesterAssociationId,
+    });
   }
 
   @ApiOperation({ summary: 'Atualizar alguns dados de um usuário pelo ID' })
@@ -153,8 +160,15 @@ export class UsersController {
   async partialUpdate(
     @Param('id', ParseIntPipe) id: number,
     @Body() updatePartialUserDto: UpdatePartialUserDto,
+    @GetUser('id') requesterId: number,
+    @GetUser('role') requesterRole: UserRole,
+    @GetUser('associationId') requesterAssociationId: number | null,
   ) {
-    return this.usersService.partialUpdate(id, updatePartialUserDto);
+    return this.usersService.partialUpdate(id, updatePartialUserDto, {
+      id: requesterId,
+      role: requesterRole,
+      associationId: requesterAssociationId,
+    });
   }
 
   @ApiOperation({ summary: 'Excluir um usuário pelo ID' })
