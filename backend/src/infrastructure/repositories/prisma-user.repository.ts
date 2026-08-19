@@ -108,6 +108,13 @@ export class PrismaUserRepository implements IUserRepository {
     return UserMapper.toDomain(rawUser);
   }
 
+  async findByIdAny(id: ID): Promise<Omit<UserEntity, 'password'> | null> {
+    const rawUser = await this.prisma.user.findUnique({ where: { id } });
+    if (!rawUser) return null;
+
+    return UserMapper.toDomain(rawUser);
+  }
+
   async update(id: ID, data: Partial<UserEntity>): Promise<Omit<UserEntity, 'password'>> {
     return this.performUpdate(id, data);
   }
