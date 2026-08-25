@@ -9,8 +9,9 @@
 ![Stars](https://img.shields.io/github/stars/jardimdesoftware/qualeider)
 
 ![Backend CI/CD](https://github.com/jardimdesoftware/qualeider/actions/workflows/backend-ci.yml/badge.svg)
-![Frontend CI/CD](https://github.com/jardimdesoftware/qualeider/actions/workflows/frontend-cicd.yml/badge.svg)
+![Frontend CI/CD](https://github.com/jardimdesoftware/qualeider/actions/workflows/frontend-ci.yml/badge.svg)
 ![CodeQL](https://github.com/jardimdesoftware/qualeider/actions/workflows/codeql.yml/badge.svg)
+![Vulnerabilidades](badges/vulnerabilidades.svg)
 
 # 🐄🥛 QuaLeiDer
 
@@ -36,11 +37,23 @@ Acesse agora pelo [link](https://qualeider.valerialima.me/).
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![Azure](https://img.shields.io/badge/Azure_Container_Apps-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white)
 
-## 🎨 Protótipo
-Acesse o protótipo no [Figma]().
-
 ## 📅 Weekly
 Acesse nossa weekly no [Canva](https://canva.link/cjnkfhj7uqdhunl).
+
+## 🛠️ Rodando localmente
+
+Use o [Makefile](Makefile) como ponto de entrada (`make help` lista os alvos disponíveis):
+
+```bash
+make setup   # cria os .env a partir dos .example
+make dev     # sobe o postgres de desenvolvimento e roda o seed
+make backend # roda o backend em modo watch
+make frontend # roda o frontend em modo dev
+```
+
+## 🔒 Segurança
+
+Política de segurança, triagem de alertas e escopo de disclosure em [SECURITY.md](SECURITY.md).
 
 ## 🤝 Contribuição
 

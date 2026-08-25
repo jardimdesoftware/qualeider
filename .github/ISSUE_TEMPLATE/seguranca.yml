@@ -8,7 +8,7 @@ body:
     attributes:
       value: |
         > **Vulnerabilidade crítica ou já explorável em produção?** Não abra uma issue pública.
-        > Reporte de forma privada seguindo o processo de disclosure do repositório (ver `SECURITY_AUDIT.md`),
+        > Reporte de forma privada seguindo o processo de disclosure do repositório (ver `SECURITY.md`),
         > pra evitar expor o problema antes de haver correção.
 
   - type: textarea
