@@ -50,20 +50,27 @@ export default function CEPInputField({
   const [localError, setLocalError] = useState<string | null>(null);
 
   // Usar ref para o callback evita que o useEffect dispare toda vez que o
-  // componente pai re-renderiza (a função mudaria de referência)
+  // componente pai re-renderiza (a função mudaria de referência).
+  // Sincronizado num effect sem deps (roda apos cada render, mesma ordem
+  // relativa aos effects abaixo) em vez de atribuir direto no corpo do
+  // render, que a regra react-hooks/refs proíbe.
   const onAddressFoundRef = useRef(onAddressFound);
-  onAddressFoundRef.current = onAddressFound;
-
   const onErrorRef = useRef(onError);
-  onErrorRef.current = onError;
 
   useEffect(() => {
+    onAddressFoundRef.current = onAddressFound;
+    onErrorRef.current = onError;
+  });
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sincroniza estado interno editavel com a prop externa `value`
     setCep(value);
   }, [value]);
 
   // Handle successful data fetch — ref garante estabilidade nas deps
   useEffect(() => {
     if (addressData) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reage a resultado assincrono da query e chama callback externo
       setLocalError(null);
       onAddressFoundRef.current({
         street: addressData.street,
@@ -78,33 +85,30 @@ export default function CEPInputField({
   useEffect(() => {
     if (error) {
       const msg = (error as any).message || "Erro ao buscar CEP.";
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reage a erro assincrono da query e chama callback externo
       setLocalError(msg);
       onErrorRef.current?.(msg);
     }
   }, [error]);
-
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatCEP(e.target.value);
     setCep(formatted);
     // Clear local error while typing
     if (localError) setLocalError(null);
-    
+
     onChange?.(formatted);
   };
 
-  const displayError = error ? localError : (propsError || localError);
+  const displayError = error ? localError : propsError || localError;
 
   // We need to override the displayError logic slightly because prop error is passed as 'error'
   // Renaming prop 'error' to 'propsError' in arguments would be cleaner
 
-
   return (
     <div className="space-y-1">
-      <label className="text-brand-primary font-medium text-sm">
-        {label}
-      </label>
-      
+      <label className="text-brand-primary font-medium text-sm">{label}</label>
+
       <div className="relative">
         <input
           type="text"
@@ -122,7 +126,7 @@ export default function CEPInputField({
             ${displayError ? "border-red-500" : ""}
             ${className}`}
         />
-        
+
         <div className="absolute right-3 top-1/2 -translate-y-1/2">
           {isLoading ? (
             <Loader2 className="w-5 h-5 text-brand-primary animate-spin" />
@@ -138,8 +142,10 @@ export default function CEPInputField({
           {helperText}
         </p>
       )}
-      
-      {displayError && <p className="text-red-500 text-xs mt-1">{displayError}</p>}
+
+      {displayError && (
+        <p className="text-red-500 text-xs mt-1">{displayError}</p>
+      )}
     </div>
   );
 }

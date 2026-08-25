@@ -13,7 +13,11 @@ import {
   Milk,
   Dna,
 } from "lucide-react";
-import { getUserTypeFromToken, getUserRoleFromToken, clearAuthToken } from "@/utils/auth";
+import {
+  getUserTypeFromToken,
+  getUserRoleFromToken,
+  clearAuthToken,
+} from "@/utils/auth";
 import { debounce } from "@/utils/debounce";
 import { BREAKPOINTS, ICON_SIZES, LOGO_SIZES, TIMING } from "@/constants/ui";
 import AppVersionBadge from "@/components/global/AppVersionBadge";
@@ -22,7 +26,9 @@ export default function Sidebar() {
   const [isMobile, setIsMobile] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [userRole, setUserRole] = useState<"association" | "user" | null>(null);
-  const [userPermRole, setUserPermRole] = useState<"ADMIN" | "VAQUEIRO" | null>(null);
+  const [userPermRole, setUserPermRole] = useState<"ADMIN" | "VAQUEIRO" | null>(
+    null,
+  );
   const [pathname, setPathname] = useState("");
   const [mounted, setMounted] = useState(false);
 
@@ -31,10 +37,11 @@ export default function Sidebar() {
       debounce(() => {
         setIsMobile(window.innerWidth < BREAKPOINTS.MOBILE);
       }, TIMING.DEBOUNCE_SHORT),
-    []
+    [],
   );
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- window/token so existem no client, roda 1x no mount
     setMounted(true);
     setPathname(window.location.pathname);
 
@@ -68,12 +75,42 @@ export default function Sidebar() {
    * Raças, Tipos de Animal e Funcionários são exclusivos do ADMIN.
    */
   const allMenuItems = [
-    { name: "Início", link: "/dashboardUser", icon: <PieChart size={ICON_SIZES.SM} />, adminOnly: false },
-    { name: "Dados diários", link: "/dailyForm", icon: <Milk size={ICON_SIZES.SM} />, adminOnly: false },
-    { name: "Meus Animais", link: "/manageMyAnimals", icon: <FileText size={ICON_SIZES.SM} />, adminOnly: false },
-    { name: "Raças", link: "/dashboardUser/breeds", icon: <Dna size={ICON_SIZES.SM} />, adminOnly: true },
-    { name: "Tipos de Animal", link: "/dashboardUser/animalSpecies", icon: <Dna size={ICON_SIZES.SM} />, adminOnly: true },
-    { name: "Funcionários", link: "/manageUsers", icon: <Users size={ICON_SIZES.SM} />, adminOnly: true },
+    {
+      name: "Início",
+      link: "/dashboardUser",
+      icon: <PieChart size={ICON_SIZES.SM} />,
+      adminOnly: false,
+    },
+    {
+      name: "Dados diários",
+      link: "/dailyForm",
+      icon: <Milk size={ICON_SIZES.SM} />,
+      adminOnly: false,
+    },
+    {
+      name: "Meus Animais",
+      link: "/manageMyAnimals",
+      icon: <FileText size={ICON_SIZES.SM} />,
+      adminOnly: false,
+    },
+    {
+      name: "Raças",
+      link: "/dashboardUser/breeds",
+      icon: <Dna size={ICON_SIZES.SM} />,
+      adminOnly: true,
+    },
+    {
+      name: "Tipos de Animal",
+      link: "/dashboardUser/animalSpecies",
+      icon: <Dna size={ICON_SIZES.SM} />,
+      adminOnly: true,
+    },
+    {
+      name: "Funcionários",
+      link: "/manageUsers",
+      icon: <Users size={ICON_SIZES.SM} />,
+      adminOnly: true,
+    },
   ];
 
   const menuItems = allMenuItems.filter((item) => !item.adminOnly || isAdmin);
@@ -85,9 +122,15 @@ export default function Sidebar() {
       {isMobile ? (
         <div className="relative">
           {/* Barra superior mobile */}
-          <div className={`fixed top-0 left-0 right-0 ${sidebarBg} p-4 flex justify-between items-center z-40 shadow-md`}>
+          <div
+            className={`fixed top-0 left-0 right-0 ${sidebarBg} p-4 flex justify-between items-center z-40 shadow-md`}
+          >
             <button onClick={toggleMenu} className="text-white">
-              {menuOpen ? <X size={ICON_SIZES.MD} /> : <Menu size={ICON_SIZES.MD} />}
+              {menuOpen ? (
+                <X size={ICON_SIZES.MD} />
+              ) : (
+                <Menu size={ICON_SIZES.MD} />
+              )}
             </button>
             <h2 className="text-white font-bold text-lg">QualeiDer</h2>
           </div>
@@ -114,7 +157,9 @@ export default function Sidebar() {
                 height={LOGO_SIZES.MD}
               />
               <div>
-                <h2 className="text-white font-bold text-lg leading-tight">QualeiDer</h2>
+                <h2 className="text-white font-bold text-lg leading-tight">
+                  QualeiDer
+                </h2>
                 {isAdmin && (
                   <span className="text-[10px] uppercase tracking-wider font-semibold text-amber-200">
                     Administrador
@@ -155,7 +200,9 @@ export default function Sidebar() {
           </div>
         </div>
       ) : (
-        <aside className={`h-screen w-64 ${sidebarBg} shadow-lg p-4 flex flex-col justify-between`}>
+        <aside
+          className={`h-screen w-64 ${sidebarBg} shadow-lg p-4 flex flex-col justify-between`}
+        >
           <div>
             <div className="flex items-center gap-2 p-4">
               <Image
@@ -166,7 +213,9 @@ export default function Sidebar() {
                 height={LOGO_SIZES.MD}
               />
               <div>
-                <h2 className="text-white font-bold text-lg leading-tight">QualeiDer</h2>
+                <h2 className="text-white font-bold text-lg leading-tight">
+                  QualeiDer
+                </h2>
                 {isAdmin && (
                   <span className="text-[10px] uppercase tracking-wider font-semibold text-amber-200">
                     Administrador

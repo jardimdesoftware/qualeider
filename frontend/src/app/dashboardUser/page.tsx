@@ -5,11 +5,35 @@ import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/layout";
 import { PageHeader } from "@/components/dashboard";
 import { MetricCard, EmptyState, ErrorModal } from "@/components/ui";
-import { Activity, Milk, Cat, Ruler, TrendingUp, ClipboardList, BarChart3 } from "lucide-react";
+import {
+  Activity,
+  Milk,
+  Cat,
+  Ruler,
+  TrendingUp,
+  ClipboardList,
+  BarChart3,
+} from "lucide-react";
 import dynamic from "next/dynamic";
 
-const AnimalDistributionChart = dynamic(() => import("@/components/dashboard/AnimalDistributionChart"), { ssr: false, loading: () => <p className="text-center py-10 text-slate-400">Carregando gráfico...</p> });
-const MilkLast7DaysChart = dynamic(() => import("@/components/dashboard/MilkLast7DaysChart"), { ssr: false, loading: () => <p className="text-center py-10 text-slate-400">Carregando gráfico...</p> });
+const AnimalDistributionChart = dynamic(
+  () => import("@/components/dashboard/AnimalDistributionChart"),
+  {
+    ssr: false,
+    loading: () => (
+      <p className="text-center py-10 text-slate-400">Carregando gráfico...</p>
+    ),
+  },
+);
+const MilkLast7DaysChart = dynamic(
+  () => import("@/components/dashboard/MilkLast7DaysChart"),
+  {
+    ssr: false,
+    loading: () => (
+      <p className="text-center py-10 text-slate-400">Carregando gráfico...</p>
+    ),
+  },
+);
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { ICON_SIZES } from "@/constants/ui";
@@ -19,137 +43,167 @@ import { useRespondInvite } from "@/hooks/queries/useInvites";
 export default function DashboardUser() {
   const router = useRouter();
   const { userId, isLoading: isAuthLoading } = useAuthGuard("user");
-  
-  const { animals, collections: dailyCollections, invites, isLoading: dataLoading } = useUserDashboard(userId);
+
+  const {
+    animals,
+    collections: dailyCollections,
+    invites,
+    isLoading: dataLoading,
+  } = useUserDashboard(userId);
   const respondInvite = useRespondInvite();
-  
+
   // Modal states
   const [modalState, setModalState] = useState({
-      isOpen: false,
-      title: "",
-      message: "",
-      type: "success" as "success" | "error" | "info"
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "success" as "success" | "error" | "info",
   });
 
-  const handleInviteResponse = async (token: string, response: 'Accept' | 'Decline') => {
-      try {
-          const result = await respondInvite.mutateAsync({ token, response });
-          if (response === 'Accept') {
-              setModalState({
-                  isOpen: true,
-                  title: "Bem-vindo!",
-                  message: result.message || "Você agora faz parte da associação.",
-                  type: "success"
-              });
-          }
-      } catch (err: any) {
-          console.error("Erro ao responder convite", err);
-          setModalState({
-              isOpen: true,
-              title: "Erro",
-              message: "Erro ao processar resposta: " + (err.response?.data?.message || err.message),
-              type: "error"
-          });
+  const handleInviteResponse = async (
+    token: string,
+    response: "Accept" | "Decline",
+  ) => {
+    try {
+      const result = await respondInvite.mutateAsync({ token, response });
+      if (response === "Accept") {
+        setModalState({
+          isOpen: true,
+          title: "Bem-vindo!",
+          message: result.message || "Você agora faz parte da associação.",
+          type: "success",
+        });
       }
+    } catch (err: any) {
+      console.error("Erro ao responder convite", err);
+      setModalState({
+        isOpen: true,
+        title: "Erro",
+        message:
+          "Erro ao processar resposta: " +
+          (err.response?.data?.message || err.message),
+        type: "error",
+      });
+    }
   };
 
   const handleCloseModal = () => {
-      setModalState(prev => ({ ...prev, isOpen: false }));
-      if (modalState.type === 'success') {
-          window.location.reload();
-      }
+    setModalState((prev) => ({ ...prev, isOpen: false }));
+    if (modalState.type === "success") {
+      window.location.reload();
+    }
   };
 
   const totalAnimals = useMemo(() => animals.length, [animals.length]);
 
-  const [thisMonthCollections, setThisMonthCollections] = useState<any[]>([]);
-  const [lineChartData, setLineChartData] = useState<any[]>([]);
   const [currentDate, setCurrentDate] = useState<string>("");
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- so calcula no client pra evitar mismatch de hidratacao (data depende do fuso do navegador)
     setCurrentDate(
       new Date().toLocaleDateString("pt-BR", {
         day: "2-digit",
         month: "short",
         year: "numeric",
-      })
+      }),
     );
   }, []);
 
-  useEffect(() => {
-    if (dailyCollections.length > 0) {
-      const today = new Date();
-      
-      // Filtra as coleções do mês atual
-      const filtered = dailyCollections.filter((collection) => {
-        const collectionDate = new Date(collection.collectionDate);
-        return (
-          collectionDate.getMonth() === today.getMonth() &&
-          collectionDate.getFullYear() === today.getFullYear()
-        );
-      });
-      setThisMonthCollections(filtered);
+  // Filtra as coleções do mês atual
+  const thisMonthCollections = useMemo(() => {
+    const today = new Date();
+    return dailyCollections.filter((collection) => {
+      const collectionDate = new Date(collection.collectionDate);
+      return (
+        collectionDate.getMonth() === today.getMonth() &&
+        collectionDate.getFullYear() === today.getFullYear()
+      );
+    });
+  }, [dailyCollections]);
 
-      // Dados para o gráfico histórico (últimos 7 dias) permanece usando dailyCollections
-      const milkByDayLast7Days = dailyCollections
-        .filter((collection: any) => {
-          const collectionDate = new Date(collection.collectionDate);
-          const t = new Date();
-          const sevenDaysAgo = new Date(t);
-          sevenDaysAgo.setDate(t.getDate() - 7);
-          return collectionDate >= sevenDaysAgo && collectionDate <= t;
-        })
-        .reduce((acc: any, collection: any) => {
-          const date = new Date(collection.collectionDate).toLocaleDateString("pt-BR", {
-            day: "2-digit",
-            month: "2-digit",
-          });
+  // Dados para o gráfico histórico (últimos 7 dias)
+  const lineChartData = useMemo(() => {
+    const milkByDayLast7Days = dailyCollections
+      .filter((collection: any) => {
+        const collectionDate = new Date(collection.collectionDate);
+        const t = new Date();
+        const sevenDaysAgo = new Date(t);
+        sevenDaysAgo.setDate(t.getDate() - 7);
+        return collectionDate >= sevenDaysAgo && collectionDate <= t;
+      })
+      .reduce(
+        (acc: any, collection: any) => {
+          const date = new Date(collection.collectionDate).toLocaleDateString(
+            "pt-BR",
+            {
+              day: "2-digit",
+              month: "2-digit",
+            },
+          );
           acc[date] = (acc[date] || 0) + collection.quantity;
           return acc;
-        }, {} as Record<string, number>);
+        },
+        {} as Record<string, number>,
+      );
 
-      setLineChartData(Object.entries(milkByDayLast7Days).map(([date, quantity]) => ({
+    return (Object.entries(milkByDayLast7Days) as [string, number][]).map(
+      ([date, quantity]) => ({
         date,
         quantity,
-      })));
-    }
+      }),
+    );
   }, [dailyCollections]);
 
   // --- MÉTRICAS REVISADAS (Usando thisMonthCollections ao invés de dailyCollections) ---
-  
-  const totalMilkThisMonth = useMemo(() => 
-    thisMonthCollections.reduce((sum, collection) => sum + collection.quantity, 0)
-  , [thisMonthCollections]);
 
-  const totalMilkingThisMonth = useMemo(() => 
-    thisMonthCollections.reduce((sum, collection) => sum + collection.numOrdens, 0)
-  , [thisMonthCollections]);
-
-  const averageAnimalAge = useMemo(() =>
-    animals.length > 0
-      ? animals.reduce((sum, animal) => sum + animal.age, 0) / animals.length
-      : 0,
-    [animals]
+  const totalMilkThisMonth = useMemo(
+    () =>
+      thisMonthCollections.reduce(
+        (sum, collection) => sum + collection.quantity,
+        0,
+      ),
+    [thisMonthCollections],
   );
 
-  const avgMilkPerAnimal = useMemo(() =>
-    animals.length > 0 && totalMilkThisMonth > 0
-      ? totalMilkThisMonth / animals.length
-      : 0,
-    [totalMilkThisMonth, animals.length]
+  const totalMilkingThisMonth = useMemo(
+    () =>
+      thisMonthCollections.reduce(
+        (sum, collection) => sum + collection.numOrdens,
+        0,
+      ),
+    [thisMonthCollections],
   );
 
-  const totalCollectionsThisMonth = useMemo(() =>
-    thisMonthCollections.length,
-    [thisMonthCollections]
+  const averageAnimalAge = useMemo(
+    () =>
+      animals.length > 0
+        ? animals.reduce((sum, animal) => sum + animal.age, 0) / animals.length
+        : 0,
+    [animals],
+  );
+
+  const avgMilkPerAnimal = useMemo(
+    () =>
+      animals.length > 0 && totalMilkThisMonth > 0
+        ? totalMilkThisMonth / animals.length
+        : 0,
+    [totalMilkThisMonth, animals.length],
+  );
+
+  const totalCollectionsThisMonth = useMemo(
+    () => thisMonthCollections.length,
+    [thisMonthCollections],
   );
 
   const pieChartData = useMemo(() => {
-    const animalTypeDistribution = animals.reduce((acc, animal) => {
-      const key = animal.animalSpecies?.name ?? animal.animalType ?? "Outro";
-      acc[key] = (acc[key] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const animalTypeDistribution = animals.reduce(
+      (acc, animal) => {
+        const key = animal.animalSpecies?.name ?? animal.animalType ?? "Outro";
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     return Object.entries(animalTypeDistribution).map(([type, count]) => ({
       name: type,
@@ -167,44 +221,55 @@ export default function DashboardUser() {
   return (
     <>
       <DashboardLayout>
-        <PageHeader
-          title="Painel de Controle"
-          subtitle="Bem-vindo de volta!"
-        />
+        <PageHeader title="Painel de Controle" subtitle="Bem-vindo de volta!" />
 
         {/* --- CORREÇÃO DE LAYOUT: bg e w-full aplicados no Container --- */}
         <div className="w-full min-h-screen bg-slate-50 p-4 md:p-6 lg:p-8 space-y-8">
-            
           {/* Pending Invites Section */}
           {invites.length > 0 && (
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                <h3 className="text-lg font-bold text-[#1e3a29] mb-4">Convites Pendentes</h3>
-                <div className="space-y-4">
-                    {invites.map((invite) => (
-                        <div key={invite.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-slate-50 rounded-lg border border-slate-200">
-                            <div>
-                                <p className="font-semibold text-slate-800">
-                                    Convite da Associação <span className="text-[#1e3a29]">{invite.association?.name}</span>
-                                </p>
-                                <p className="text-sm text-slate-600">{invite.message || "Gostaríamos que você fizesse parte da nossa associação."}</p>
-                            </div>
-                            <div className="flex gap-2 shrink-0">
-                                <button
-                                    onClick={() => handleInviteResponse(invite.token, 'Decline')}
-                                    className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
-                                >
-                                    Recusar
-                                </button>
-                                <button
-                                    onClick={() => handleInviteResponse(invite.token, 'Accept')}
-                                    className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium text-white bg-[#1e3a29] hover:bg-[#142920] rounded-lg transition-colors shadow-sm"
-                                >
-                                    Aceitar
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+              <h3 className="text-lg font-bold text-[#1e3a29] mb-4">
+                Convites Pendentes
+              </h3>
+              <div className="space-y-4">
+                {invites.map((invite) => (
+                  <div
+                    key={invite.id}
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-slate-50 rounded-lg border border-slate-200"
+                  >
+                    <div>
+                      <p className="font-semibold text-slate-800">
+                        Convite da Associação{" "}
+                        <span className="text-[#1e3a29]">
+                          {invite.association?.name}
+                        </span>
+                      </p>
+                      <p className="text-sm text-slate-600">
+                        {invite.message ||
+                          "Gostaríamos que você fizesse parte da nossa associação."}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        onClick={() =>
+                          handleInviteResponse(invite.token, "Decline")
+                        }
+                        className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                      >
+                        Recusar
+                      </button>
+                      <button
+                        onClick={() =>
+                          handleInviteResponse(invite.token, "Accept")
+                        }
+                        className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium text-white bg-[#1e3a29] hover:bg-[#142920] rounded-lg transition-colors shadow-sm"
+                      >
+                        Aceitar
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -312,7 +377,7 @@ export default function DashboardUser() {
           </section>
         </div>
       </DashboardLayout>
-      
+
       <ErrorModal
         isOpen={modalState.isOpen}
         onClose={handleCloseModal}

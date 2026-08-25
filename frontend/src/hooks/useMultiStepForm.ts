@@ -3,7 +3,7 @@ import { logger } from "@/utils/logger";
 
 /**
  * Custom hook for managing multistep form state
- * 
+ *
  * @param totalSteps - Total number of steps in the form
  * @param initialStep - Starting step (default: 0)
  * @returns Object with current step, navigation functions, and step info
@@ -11,11 +11,14 @@ import { logger } from "@/utils/logger";
 export function useMultiStepForm(totalSteps: number, initialStep: number = 0) {
   const [currentStep, setCurrentStep] = useState(initialStep);
 
-  const goToStep = useCallback((step: number) => {
-    if (step >= 0 && step < totalSteps) {
-      setCurrentStep(step);
-    }
-  }, [totalSteps]);
+  const goToStep = useCallback(
+    (step: number) => {
+      if (step >= 0 && step < totalSteps) {
+        setCurrentStep(step);
+      }
+    },
+    [totalSteps],
+  );
 
   const nextStep = useCallback(() => {
     setCurrentStep((prev) => Math.min(prev + 1, totalSteps - 1));
@@ -48,7 +51,7 @@ export function useMultiStepForm(totalSteps: number, initialStep: number = 0) {
 
 /**
  * Custom hook for managing form data across multiple steps
- * 
+ *
  * @param initialData - Initial form data object
  * @returns Object with form data and update function
  */
@@ -77,45 +80,45 @@ export function useFormData<T extends Record<string, any>>(initialData: T) {
 
 /**
  * Utility to validate a specific step's fields
- * 
+ *
  * @param data - Form data object
  * @param requiredFields - Array of required field names for this step
  * @returns True if all required fields are filled
  */
 export function validateStepFields<T extends Record<string, any>>(
   data: T,
-  requiredFields: (keyof T)[]
+  requiredFields: (keyof T)[],
 ): boolean {
   return requiredFields.every((field) => {
     const value = data[field];
-    
+
     // Check if value exists and is not empty
     if (value === undefined || value === null) return false;
     if (typeof value === "string" && value.trim() === "") return false;
     if (Array.isArray(value) && value.length === 0) return false;
-    
+
     return true;
   });
 }
 
 /**
  * Utility to get missing fields from a step validation
- * 
+ *
  * @param data - Form data object
  * @param requiredFields - Array of required field names
  * @returns Array of missing field names
  */
 export function getMissingFields<T extends Record<string, any>>(
   data: T,
-  requiredFields: (keyof T)[]
+  requiredFields: (keyof T)[],
 ): (keyof T)[] {
   return requiredFields.filter((field) => {
     const value = data[field];
-    
+
     if (value === undefined || value === null) return true;
     if (typeof value === "string" && value.trim() === "") return true;
     if (Array.isArray(value) && value.length === 0) return true;
-    
+
     return false;
   });
 }
@@ -133,7 +136,7 @@ export interface StepConfig<T> {
 }
 
 export function createStepConfig<T>(
-  steps: Omit<StepConfig<T>, 'validate'>[]
+  steps: Omit<StepConfig<T>, "validate">[],
 ): StepConfig<T>[] {
   return steps.map((step) => ({
     ...step,
@@ -147,7 +150,7 @@ export function createStepConfig<T>(
  */
 export function usePersistedFormData<T extends Record<string, any>>(
   key: string,
-  initialData: T
+  initialData: T,
 ) {
   const [formData, setFormData] = useState<T>(initialData);
 
@@ -156,35 +159,45 @@ export function usePersistedFormData<T extends Record<string, any>>(
       try {
         const stored = localStorage.getItem(key);
         if (stored) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage so existe no client
           setFormData(JSON.parse(stored));
         }
       } catch (error) {
-        logger.error("Error loading persisted form data", error, { storageKey: key });
+        logger.error("Error loading persisted form data", error, {
+          storageKey: key,
+        });
       }
     }
   }, [key]);
 
-  const updateFormData = useCallback((updates: Partial<T>) => {
-    setFormData((prev) => {
-      const newData = { ...prev, ...updates };
-      
-      // Persist to localStorage
-      try {
-        localStorage.setItem(key, JSON.stringify(newData));
-      } catch (error) {
-        logger.error("Error persisting form data", error, { storageKey: key });
-      }
-      
-      return newData;
-    });
-  }, [key]);
+  const updateFormData = useCallback(
+    (updates: Partial<T>) => {
+      setFormData((prev) => {
+        const newData = { ...prev, ...updates };
+
+        // Persist to localStorage
+        try {
+          localStorage.setItem(key, JSON.stringify(newData));
+        } catch (error) {
+          logger.error("Error persisting form data", error, {
+            storageKey: key,
+          });
+        }
+
+        return newData;
+      });
+    },
+    [key],
+  );
 
   const clearPersistedData = useCallback(() => {
     try {
       localStorage.removeItem(key);
       setFormData(initialData);
     } catch (error) {
-      logger.error("Error clearing persisted form data", error, { storageKey: key });
+      logger.error("Error clearing persisted form data", error, {
+        storageKey: key,
+      });
     }
   }, [key, initialData]);
 

@@ -33,10 +33,6 @@ export default function ReportsPage() {
     end: null,
   });
 
-  useEffect(() => {
-    fetchReports();
-  }, []);
-
   const fetchReports = async (startDate?: string, endDate?: string) => {
     setLoading(true);
     try {
@@ -60,6 +56,12 @@ export default function ReportsPage() {
     }
   };
 
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- busca dados via API e atualiza estado com o resultado
+    fetchReports();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- roda so uma vez no mount, fetchReports nao e memoizada
+  }, []);
+
   const handleFilterChange = (
     startDate: string | null,
     endDate: string | null,
@@ -75,6 +77,7 @@ export default function ReportsPage() {
   const [currentDate, setCurrentDate] = useState<string>("");
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- so calcula no client pra evitar mismatch de hidratacao
     setCurrentDate(
       new Date().toLocaleDateString("pt-BR", {
         day: "2-digit",
