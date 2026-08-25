@@ -51,6 +51,10 @@ make backend # roda o backend em modo watch
 make frontend # roda o frontend em modo dev
 ```
 
+## 📖 Documentação
+
+A documentação de arquitetura, modelagem de dados, plano de testes e outros documentos do projeto estão na [Wiki](https://github.com/jardimdesoftware/qualeider/wiki).
+
 ## 🔒 Segurança
 
 Política de segurança, triagem de alertas e escopo de disclosure em [SECURITY.md](SECURITY.md).
