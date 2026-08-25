@@ -1,0 +1,74 @@
+# =============================================================================
+# Formatar PR do Dependabot — Qualeider
+# =============================================================================
+# PRs abertos pelo Dependabot nao seguem o pull_request_template.md (sem os
+# checkboxes de "Tipo de mudanca"), entao o job `tag-creation` do backend-ci.yml
+# e do frontend-ci.yml nao encontra nenhuma opcao marcada e falha ao tentar
+# calcular a versao. Este workflow reescreve o corpo do PR do bot logo que ele
+# abre, marcando `outros` (nao gera nova tag de release, so mantem a atual).
+# =============================================================================
+
+name: Formatar PR do Dependabot
+
+on:
+  pull_request:
+    types: [opened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  formatar-pr:
+    name: Formatar corpo do PR do Dependabot
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Formatar corpo do PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY_ORIGINAL: ${{ github.event.pull_request.body }}
+          REPO: ${{ github.repository }}
+        run: |
+          BODY=$(cat <<EOF
+          ## Tipo de mudança
+
+          > Selecione **apenas uma** das opções abaixo, marcando com um \`x\`.
+
+          - [ ] novo-marco
+          - [ ] nova-feature-refactor
+          - [ ] bug-fix
+          - [x] outros
+
+          > A opção "outros" não gera nova tag de release.
+          > Preencha todos os campos de forma clara. Este template é lido automaticamente pela pipeline de CI/CD.
+
+          ---
+
+          ## Descrição
+
+          $PR_TITLE
+
+          Atualização automática de dependência aberta pelo Dependabot.
+
+          <details>
+          <summary>Corpo original do Dependabot</summary>
+
+          $PR_BODY_ORIGINAL
+
+          </details>
+
+          ---
+
+          > _Corpo reescrito automaticamente pelo workflow \`format-dependabot-pr.yml\` para que a pipeline de versionamento consiga ler o tipo de mudança._
+          EOF
+          )
+
+          gh api \
+            --method PATCH \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/$REPO/pulls/$PR_NUMBER" \
+            -f body="$BODY"

@@ -18,7 +18,10 @@ export type AppRole = "ADMIN" | "VAQUEIRO";
  * if (isChecking) return null; // evita "flash" de conteudo restrito
  * ```
  */
-export function useRoleGuard(allowedRoles: AppRole[], redirectTo = "/dashboardUser") {
+export function useRoleGuard(
+  allowedRoles: AppRole[],
+  redirectTo = "/dashboardUser",
+) {
   const router = useRouter();
   const [isChecking, setIsChecking] = useState(true);
 
@@ -34,6 +37,7 @@ export function useRoleGuard(allowedRoles: AppRole[], redirectTo = "/dashboardUs
       return;
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- role vem do token, so disponivel no client
     setIsChecking(false);
   }, [allowedRolesKey, redirectTo, router]);
 

@@ -20,12 +20,13 @@ export default function PageHeader({
 
   useEffect(() => {
     // Only compute date on client side to prevent hydration mismatch
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- ver comentario acima
     setCurrentDate(
       new Date().toLocaleDateString("pt-BR", {
         day: "2-digit",
         month: "short",
         year: "numeric",
-      })
+      }),
     );
   }, []);
 
@@ -36,19 +37,22 @@ export default function PageHeader({
           <h2 className="text-2xl md:text-3xl font-black text-[#1e3a29]">
             {title}
           </h2>
-          {subtitle && (
-            <p className="text-slate-500">{subtitle}</p>
-          )}
+          {subtitle && <p className="text-slate-500">{subtitle}</p>}
         </div>
-        
+
         <div className="flex items-center gap-4">
           {actions}
-          
+
           {showDate && (
             <div className="flex items-center gap-4 bg-[#fdfbf7] px-4 py-2 rounded-lg border border-slate-200">
               <div className="text-right hidden md:block">
-                <p className="text-xs text-slate-400 font-bold uppercase">Data de Hoje</p>
-                <p className="text-[#1e3a29] font-bold" suppressHydrationWarning>
+                <p className="text-xs text-slate-400 font-bold uppercase">
+                  Data de Hoje
+                </p>
+                <p
+                  className="text-[#1e3a29] font-bold"
+                  suppressHydrationWarning
+                >
                   {currentDate || "Carregando..."}
                 </p>
               </div>
