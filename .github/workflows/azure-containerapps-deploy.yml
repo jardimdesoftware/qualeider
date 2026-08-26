@@ -14,6 +14,10 @@ concurrency:
   group: qualeider-azure-deploy
   cancel-in-progress: false
 
+permissions:
+  contents: write
+  packages: read
+
 env:
   REGISTRY: ghcr.io
   GHCR_OWNER: jardimdesoftware
@@ -33,6 +37,61 @@ jobs:
       github.event.workflow_run.conclusion == 'success'
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prepare SBOM directory
+        run: mkdir -p sbom
+
+      - name: Generate backend SBOM with Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: "${{ env.REGISTRY }}/${{ env.GHCR_OWNER }}/qualeider-backend:${{ env.IMAGE_TAG }}"
+          format: "cyclonedx"
+          output: "sbom/qualeider-backend.cdx.json"
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate frontend SBOM with Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: "${{ env.REGISTRY }}/${{ env.GHCR_OWNER }}/qualeider-frontend:${{ env.IMAGE_TAG }}"
+          format: "cyclonedx"
+          output: "sbom/qualeider-frontend.cdx.json"
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-sbom-cyclonedx
+          path: sbom/*.cdx.json
+          retention-days: 90
+
+      - name: Commit SBOM files to repository
+        env:
+          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add sbom/*.cdx.json
+
+          if git diff --cached --quiet; then
+            echo "SBOM files are already up to date."
+            exit 0
+          fi
+
+          git commit -m "chore(sbom): update Trivy SBOM files" \
+            -m "Generated from deployment source ${DEPLOY_SHA}."
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
       - name: Azure login
         uses: azure/login@v2
         with:
