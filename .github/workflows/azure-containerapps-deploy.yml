@@ -8,6 +8,11 @@ on:
     types:
       - completed
 
+  schedule:
+    # GitHub Actions cron usa UTC.
+    # 03:00 e 15:00 UTC = 00:00 e 12:00 em America/Sao_Paulo na data atual.
+    - cron: "0 3,15 * * *"
+
   workflow_dispatch:
 
 concurrency:
@@ -34,6 +39,7 @@ jobs:
     timeout-minutes: 20
     if: >
       github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'schedule' ||
       github.event.workflow_run.conclusion == 'success'
 
     steps:
