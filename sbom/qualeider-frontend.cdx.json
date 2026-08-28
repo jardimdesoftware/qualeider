@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
-  "serialNumber": "urn:uuid:7171abd7-7af5-4914-b24e-3100f19f6d20",
+  "serialNumber": "urn:uuid:7816ae12-df46-4d16-9c37-8c51580137eb",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-08-27T18:37:04+00:00",
+    "timestamp": "2026-08-28T05:49:04+00:00",
     "tools": {
       "components": [
         {
@@ -126,7 +126,7 @@
   },
   "components": [
     {
-      "bom-ref": "1e2632cc-08c2-4b7f-a92c-0d2870d8749f",
+      "bom-ref": "6e9edffa-49e5-4bee-8cc8-09210f78faeb",
       "type": "operating-system",
       "name": "alpine",
       "version": "3.24.1",
@@ -2393,7 +2393,7 @@
   ],
   "dependencies": [
     {
-      "ref": "1e2632cc-08c2-4b7f-a92c-0d2870d8749f",
+      "ref": "6e9edffa-49e5-4bee-8cc8-09210f78faeb",
       "dependsOn": [
         "pkg:apk/alpine/alpine-baselayout@3.7.2-r1?arch=x86_64&distro=3.24.1",
         "pkg:apk/alpine/alpine-release@3.24.1-r0?arch=x86_64&distro=3.24.1",
@@ -2658,7 +2658,7 @@
     {
       "ref": "pkg:oci/qualeider-frontend@sha256:af2dc68a6f036755aa583ba57a1186f2e39bf2681a64d521afe62f86eb1db784?arch=amd64&repository_url=ghcr.io%2Fjardimdesoftware%2Fqualeider-frontend",
       "dependsOn": [
-        "1e2632cc-08c2-4b7f-a92c-0d2870d8749f",
+        "6e9edffa-49e5-4bee-8cc8-09210f78faeb",
         "pkg:npm/%40edge-runtime/cookies@6.0.0",
         "pkg:npm/%40edge-runtime/ponyfill@4.0.0",
         "pkg:npm/%40edge-runtime/primitives@6.0.0",
