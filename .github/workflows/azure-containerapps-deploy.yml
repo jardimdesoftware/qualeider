@@ -79,6 +79,8 @@ jobs:
           retention-days: 90
 
       - name: Commit SBOM files to repository
+        if: github.event_name != 'schedule'
+        continue-on-error: true
         env:
           DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
         run: |
