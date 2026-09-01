@@ -1,6 +1,6 @@
 import { PartialType, OmitType } from '@nestjs/mapped-types';
 import { CreateUserDto } from './create-user.dto';
-import { IsNotEmpty, IsString, IsEmail, IsEnum, IsOptional, MaxLength, Length } from 'class-validator';
+import { IsString, IsEmail, IsEnum, IsOptional, MaxLength, Length } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { UserType, UserCategory, Status } from '@/domain/enums/enums';
 import { ApiProperty } from '@nestjs/swagger';
@@ -17,17 +17,22 @@ import { ApiProperty } from '@nestjs/swagger';
 export class UpdatePartialUserDto extends PartialType(
   OmitType(CreateUserDto, ['email'] as const),
 ) {
-  @ApiProperty({ description: 'Nome do usuário', example: 'Silva Santos' })
-  @IsNotEmpty()
+  @ApiProperty({
+    description: 'Nome do usuário',
+    example: 'Silva Santos',
+    required: false,
+  })
+  @IsOptional()
   @IsString()
   @MaxLength(255, { message: 'O nome deve ter no máximo 255 caracteres.' })
-  name!: string;
+  name?: string;
 
   @ApiProperty({
     description: 'Email do usuário',
     example: 'silva.santos@example.com',
+    required: false,
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsEmail(
     { allow_display_name: false, require_tld: true },
     { message: 'O email fornecido não é válido.' },
@@ -36,13 +41,15 @@ export class UpdatePartialUserDto extends PartialType(
   @Transform(({ value }) =>
     typeof value === 'string' ? value.toLowerCase().trim() : value,
   )
-  email!: string;
+  email?: string;
 
   @ApiProperty({
     description: 'Tipo de usuário para o common',
     enum: UserType,
     example: UserType.Pecuarista,
+    required: false,
   })
+  @IsOptional()
   @IsEnum(UserType)
   userType?: UserType;
 
@@ -50,21 +57,30 @@ export class UpdatePartialUserDto extends PartialType(
     description: 'Pessoa física ou jurídica',
     enum: UserCategory,
     example: UserCategory.Fisica,
+    required: false,
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsEnum(UserCategory)
-  userCategory!: UserCategory;
+  userCategory?: UserCategory;
 
-  @ApiProperty({ description: 'Estado do usuário', example: 'PE' })
-  @IsNotEmpty()
+  @ApiProperty({
+    description: 'Estado do usuário',
+    example: 'PE',
+    required: false,
+  })
+  @IsOptional()
   @Length(2, 2, { message: 'O estado deve ser uma sigla de 2 caracteres (UF).' })
-  state!: string;
+  state?: string;
 
-  @ApiProperty({ description: 'Cidade do usuário', example: 'Belo Jardim' })
-  @IsNotEmpty()
+  @ApiProperty({
+    description: 'Cidade do usuário',
+    example: 'Belo Jardim',
+    required: false,
+  })
+  @IsOptional()
   @IsString()
   @MaxLength(100, { message: 'A cidade deve ter no máximo 100 caracteres.' })
-  city!: string;
+  city?: string;
 
   @ApiProperty({
     description: 'Status da conta (Active/Inactive)',

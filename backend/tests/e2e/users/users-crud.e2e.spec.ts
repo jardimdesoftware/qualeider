@@ -8,6 +8,12 @@ describe('E2E: Users - CRUD Operations', () => {
   let testApp: TestApp;
   let authHelper: AuthHelper;
   let adminToken: string;
+  // Segundo ADMIN (tenant/fazenda diferente) - usado para provar isolamento
+  // cross-tenant (regressao da correcao de escalada de privilegio).
+  let admin2Token: string;
+  // VAQUEIRO vinculado ao admin principal (adminToken) via POST /users/internal.
+  let vaqueiroToken: string;
+  let vaqueiroId: number;
 
   beforeAll(async () => {
     await setupE2ETests();
@@ -27,6 +33,30 @@ describe('E2E: Users - CRUD Operations', () => {
       password: 'User@1234',
     });
     await authHelper.createUserAndLogin(userData);
+
+    const admin2Data = UserFactory.buildAdmin({
+      email: 'admin2@example.com',
+      password: 'Admin2@1234',
+    });
+    const admin2 = await authHelper.createUserAndLogin(admin2Data);
+    admin2Token = admin2.token;
+
+    const vaqueiroData = UserFactory.build({
+      email: 'vaqueiro@example.com',
+      password: 'Vaqueiro@1234',
+      role: UserRole.VAQUEIRO,
+    });
+    const vaqueiroCreated = await testApp
+      .request()
+      .post('/users/internal')
+      .set(authHelper.authHeader(adminToken))
+      .send(vaqueiroData)
+      .expect(HttpStatus.CREATED);
+    vaqueiroId = vaqueiroCreated.body.data.id;
+    vaqueiroToken = await authHelper.login(
+      vaqueiroData.email!,
+      vaqueiroData.password!,
+    );
   }, E2E_TIMEOUT);
 
   afterAll(async () => {
@@ -126,6 +156,14 @@ describe('E2E: Users - CRUD Operations', () => {
         .set('Authorization', 'Bearer invalid-token')
         .expect(HttpStatus.UNAUTHORIZED);
     });
+
+    it('deve retornar 403 quando quem pede é VAQUEIRO (não-admin)', async () => {
+      await testApp
+        .request()
+        .get('/users')
+        .set(authHelper.authHeader(vaqueiroToken))
+        .expect(HttpStatus.FORBIDDEN);
+    });
   });
 
   describe('GET /users/:id (Find One)', () => {
@@ -167,6 +205,40 @@ describe('E2E: Users - CRUD Operations', () => {
 
     it('deve retornar 401 sem autenticação', async () => {
       await testApp.request().get('/users/1').expect(HttpStatus.UNAUTHORIZED);
+    });
+
+    it('deve retornar 403 quando quem pede é VAQUEIRO (não-admin)', async () => {
+      await testApp
+        .request()
+        .get(`/users/${vaqueiroId}`)
+        .set(authHelper.authHeader(vaqueiroToken))
+        .expect(HttpStatus.FORBIDDEN);
+    });
+  });
+
+  describe('POST /users/internal (Criação interna de funcionário)', () => {
+    it('deve retornar 403 quando quem cria não é ADMIN', async () => {
+      const newVaqueiroData = UserFactory.build({
+        email: 'nao-deveria-existir@example.com',
+        role: UserRole.VAQUEIRO,
+      });
+
+      await testApp
+        .request()
+        .post('/users/internal')
+        .set(authHelper.authHeader(vaqueiroToken))
+        .send(newVaqueiroData)
+        .expect(HttpStatus.FORBIDDEN);
+    });
+
+    it('deve retornar 401 sem autenticação', async () => {
+      const newVaqueiroData = UserFactory.build({ role: UserRole.VAQUEIRO });
+
+      await testApp
+        .request()
+        .post('/users/internal')
+        .send(newVaqueiroData)
+        .expect(HttpStatus.UNAUTHORIZED);
     });
   });
 
@@ -232,6 +304,24 @@ describe('E2E: Users - CRUD Operations', () => {
         .put('/users/1')
         .send({ name: 'Test' })
         .expect(HttpStatus.UNAUTHORIZED);
+    });
+
+    it('regressão IDOR: deve retornar 403 quando VAQUEIRO tenta editar outro usuário', async () => {
+      await testApp
+        .request()
+        .put(`/users/${vaqueiroId}`)
+        .set(authHelper.authHeader(vaqueiroToken))
+        .send({ name: 'Tentativa de edição' })
+        .expect(HttpStatus.FORBIDDEN);
+    });
+
+    it('regressão IDOR: deve retornar 403 quando ADMIN tenta editar funcionário de outro ADMIN (cross-tenant)', async () => {
+      await testApp
+        .request()
+        .put(`/users/${vaqueiroId}`)
+        .set(authHelper.authHeader(admin2Token))
+        .send({ name: 'Tentativa de edição cross-tenant' })
+        .expect(HttpStatus.FORBIDDEN);
     });
 
     it('deve retornar 400 (BusinessException) com email duplicado', async () => {
@@ -369,6 +459,66 @@ describe('E2E: Users - CRUD Operations', () => {
     });
   });
 
+  describe('PATCH /users/:id (Atualização parcial)', () => {
+    it('deve atualizar parcialmente um usuário com dados válidos', async () => {
+      const createData = UserFactory.build({
+        email: 'patch@example.com',
+        role: UserRole.VAQUEIRO,
+      });
+
+      const created = await testApp
+        .request()
+        .post('/users/internal')
+        .set(authHelper.authHeader(adminToken))
+        .send(createData)
+        .expect(HttpStatus.CREATED);
+
+      const response = await testApp
+        .request()
+        .patch(`/users/${created.body.data.id}`)
+        .set(authHelper.authHeader(adminToken))
+        .send({ city: 'Fortaleza' })
+        .expect(HttpStatus.OK);
+
+      expect(response.body.data.city).toBe('Fortaleza');
+    });
+
+    it('deve retornar 404 ao atualizar ID inexistente', async () => {
+      await testApp
+        .request()
+        .patch('/users/99999')
+        .set(authHelper.authHeader(adminToken))
+        .send({ city: 'Teste' })
+        .expect(HttpStatus.NOT_FOUND);
+    });
+
+    it('deve retornar 401 sem autenticação', async () => {
+      await testApp
+        .request()
+        .patch('/users/1')
+        .send({ city: 'Teste' })
+        .expect(HttpStatus.UNAUTHORIZED);
+    });
+
+    it('regressão IDOR: deve retornar 403 quando VAQUEIRO tenta editar outro usuário', async () => {
+      await testApp
+        .request()
+        .patch(`/users/${vaqueiroId}`)
+        .set(authHelper.authHeader(vaqueiroToken))
+        .send({ city: 'Tentativa de edição' })
+        .expect(HttpStatus.FORBIDDEN);
+    });
+
+    it('regressão IDOR: deve retornar 403 quando ADMIN tenta editar funcionário de outro ADMIN (cross-tenant)', async () => {
+      await testApp
+        .request()
+        .patch(`/users/${vaqueiroId}`)
+        .set(authHelper.authHeader(admin2Token))
+        .send({ city: 'Tentativa de edição cross-tenant' })
+        .expect(HttpStatus.FORBIDDEN);
+    });
+  });
+
   describe('DELETE /users/:id (Soft Delete)', () => {
     it('deve fazer soft delete de usuário', async () => {
       const deleteData = UserFactory.build({
@@ -409,6 +559,14 @@ describe('E2E: Users - CRUD Operations', () => {
         .request()
         .delete('/users/1')
         .expect(HttpStatus.UNAUTHORIZED);
+    });
+
+    it('deve retornar 403 quando quem pede é VAQUEIRO (não-admin)', async () => {
+      await testApp
+        .request()
+        .delete(`/users/${vaqueiroId}`)
+        .set(authHelper.authHeader(vaqueiroToken))
+        .expect(HttpStatus.FORBIDDEN);
     });
   });
 
