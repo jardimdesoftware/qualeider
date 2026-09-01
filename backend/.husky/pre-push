@@ -1,13 +1,13 @@
 #!/usr/bin/env sh
 
-echo "Executando lint e build do frontend antes do push..."
+echo "Executando lint, testes e build do frontend antes do push..."
 
 # core.hooksPath aponta pra backend/.husky (repo inteiro usa este diretorio),
 # entao este hook tambem cobre o frontend.
-(cd frontend && npm run lint && npm run build)
+(cd frontend && npm run lint && npm run test && npm run build)
 
 if [ $? -ne 0 ]; then
-  echo "Lint ou build do frontend falhou! Push bloqueado."
+  echo "Lint, teste ou build do frontend falhou! Push bloqueado."
   exit 1
 fi
 
