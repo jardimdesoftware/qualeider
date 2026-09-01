@@ -58,6 +58,12 @@ export class UsersService {
     return this.performUpdate(id, updatePartialUserDto);
   }
 
+  private assertAdmin(requester: RequesterContext, message: string): void {
+    if (requester.role !== UserRole.ADMIN) {
+      throw new ForbiddenException(message);
+    }
+  }
+
   /**
    * Garante que o requisitante pode editar o usuario alvo: precisa ser ADMIN
    * e o alvo precisa estar no escopo dele (mesma associacao, funcionario
@@ -88,7 +94,11 @@ export class UsersService {
     }
   }
 
-  async remove(id: number) {
+  async remove(id: number, requester?: RequesterContext) {
+    if (requester) {
+      this.assertAdmin(requester, 'Você não tem permissão para excluir este usuário.');
+    }
+
     const deactivated = await this.userRepository.softDelete(id);
     this.logger.log(`Usuário removido (soft delete): ID ${id}`);
     return this.removePassword(deactivated);
@@ -99,7 +109,11 @@ export class UsersService {
     return this.userRepository.findByEmail(email);
   }
 
-  async findAll(criteria?: UserCriteria) {
+  async findAll(criteria?: UserCriteria, requester?: RequesterContext) {
+    if (requester) {
+      this.assertAdmin(requester, 'Você não tem permissão para listar usuários.');
+    }
+
     const result = await this.userRepository.findAll(criteria);
     return {
       ...result,
@@ -115,6 +129,11 @@ export class UsersService {
       );
     }
     return this.removePassword(user);
+  }
+
+  async findOneForRequester(id: number, requester: RequesterContext) {
+    this.assertAdmin(requester, 'Você não tem permissão para buscar este usuário.');
+    return this.findOne(id);
   }
 
   async exists(id: number): Promise<boolean> {

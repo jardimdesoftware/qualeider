@@ -16,6 +16,8 @@ describe('UsersService', () => {
   let service: UsersService;
   let userRepository: IUserRepository;
   let hashService: IHashService;
+  const adminRequester = { id: 1, role: UserRole.ADMIN, associationId: null };
+  const vaqueiroRequester = { id: 2, role: UserRole.VAQUEIRO, associationId: null };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -191,7 +193,7 @@ describe('UsersService', () => {
 
       (userRepository.findAll as jest.Mock).mockResolvedValue(mockPaginatedResult);
 
-      const result = await service.findAll();
+      const result = await service.findAll({}, adminRequester);
 
       expect(userRepository.findAll).toHaveBeenCalled();
       expect(result.data).toHaveLength(2);
@@ -211,9 +213,17 @@ describe('UsersService', () => {
       };
       (userRepository.findAll as jest.Mock).mockResolvedValue(mockPaginatedResult);
 
-      await service.findAll({ associationId: 10 });
+      await service.findAll({ associationId: 10 }, adminRequester);
 
       expect(userRepository.findAll).toHaveBeenCalledWith({ associationId: 10 });
+    });
+
+    it('deve negar listagem quando o requisitante nao e ADMIN', async () => {
+      await expect(service.findAll({}, vaqueiroRequester)).rejects.toThrow(
+        ForbiddenException,
+      );
+
+      expect(userRepository.findAll).not.toHaveBeenCalled();
     });
   });
 
@@ -240,6 +250,23 @@ describe('UsersService', () => {
       (userRepository.findById as jest.Mock).mockResolvedValue(null);
 
       await expect(service.findOne(1)).rejects.toThrow(EntityNotFoundException);
+    });
+    it('deve negar busca por ID quando o requisitante nao e ADMIN', async () => {
+      await expect(
+        service.findOneForRequester(1, vaqueiroRequester),
+      ).rejects.toThrow(ForbiddenException);
+
+      expect(userRepository.findById).not.toHaveBeenCalled();
+    });
+
+    it('deve permitir busca por ID quando o requisitante e ADMIN', async () => {
+      const mockUser = createUser({ id: 1, status: Status.Active });
+      (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
+
+      const result = await service.findOneForRequester(1, adminRequester);
+
+      expect(userRepository.findById).toHaveBeenCalledWith(1);
+      expect(result.id).toBe(1);
     });
   });
 
@@ -496,7 +523,7 @@ describe('UsersService', () => {
       (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
       (userRepository.softDelete as jest.Mock).mockResolvedValue(mockDeactivatedUser);
 
-      const result = await service.remove(1);
+      const result = await service.remove(1, adminRequester);
 
       expect(userRepository.softDelete).toHaveBeenCalledWith(1);
       expect(result.status).toBe(Status.Inactive);
@@ -506,9 +533,17 @@ describe('UsersService', () => {
       const error = new EntityNotFoundException('Usuário não encontrado');
       (userRepository.softDelete as jest.Mock).mockRejectedValue(error);
 
-      await expect(service.remove(999)).rejects.toThrow(
+      await expect(service.remove(999, adminRequester)).rejects.toThrow(
         EntityNotFoundException,
       );
+    });
+
+    it('deve negar remocao quando o requisitante nao e ADMIN', async () => {
+      await expect(service.remove(1, vaqueiroRequester)).rejects.toThrow(
+        ForbiddenException,
+      );
+
+      expect(userRepository.softDelete).not.toHaveBeenCalled();
     });
   });
 
