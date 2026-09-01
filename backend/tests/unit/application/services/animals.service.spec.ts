@@ -10,6 +10,7 @@ import { IAnimalRepository, IAnimalRepository as IAnimalRepositorySymbol } from 
 import { IUserRepository, IUserRepository as IUserRepositorySymbol } from '@/domain/repositories/user.repository';
 import { IDailyCollectionRepository, IDailyCollectionRepository as IDailyCollectionRepositorySymbol } from '@/domain/repositories/daily-collection.repository';
 import { BusinessException } from '@/common/exceptions/business.exception';
+import { ForbiddenException } from '@nestjs/common';
 
 describe('AnimalsService', () => {
   let service: AnimalsService;
@@ -81,6 +82,32 @@ describe('AnimalsService', () => {
       expect(result).toEqual(mockAnimal);
       expect(userRepository.findById).toHaveBeenCalledWith(userId);
       expect(animalRepository.create).toHaveBeenCalledWith(createDto);
+    });
+
+    it('deve negar quando um VAQUEIRO tenta cadastrar animal para outro usuario', async () => {
+      const requesterId = 5;
+      const otherUserId = 6;
+      const otherUser = createUser({ id: otherUserId, role: UserRole.VAQUEIRO, adminId: 1 });
+      const createDto: CreateAnimalDto = {
+        name: 'Mimosa',
+        animalType: AnimalType.Vaca,
+        breed: 'Holandesa',
+        age: 5,
+        userId: otherUserId,
+      };
+
+      userRepository.findById.mockResolvedValue(otherUser);
+
+      await expect(
+        service.create(createDto, {
+          id: requesterId,
+          role: UserRole.VAQUEIRO,
+          associationId: null,
+          adminId: 1,
+        }),
+      ).rejects.toThrow(ForbiddenException);
+
+      expect(animalRepository.create).not.toHaveBeenCalled();
     });
 
     it('deve lançar NotFoundException se usuário não existe', async () => {
@@ -319,6 +346,26 @@ describe('AnimalsService', () => {
       expect(result).toEqual(mockUpdatedAnimal);
       expect(animalRepository.findConflictingTagNumber).not.toHaveBeenCalled();
     });
+
+    it('deve negar atualizacao quando o animal pertence a outro rebanho', async () => {
+      const existingAnimal = createAnimal({ id: 1, userId: 10 });
+      const animalOwner = createUser({ id: 10, role: UserRole.ADMIN, associationId: 99 });
+      const updateDto: Partial<UpdateAnimalDto> = { name: 'Tentativa' };
+
+      animalRepository.findById.mockResolvedValue(existingAnimal);
+      userRepository.findById.mockResolvedValue(animalOwner);
+
+      await expect(
+        service.update(1, updateDto as any, {
+          id: 1,
+          role: UserRole.ADMIN,
+          associationId: 10,
+          adminId: null,
+        }),
+      ).rejects.toThrow(ForbiddenException);
+
+      expect(animalRepository.update).not.toHaveBeenCalled();
+    });
   });
 
   describe('remove', () => {
@@ -367,6 +414,82 @@ describe('AnimalsService', () => {
       expect(animalRepository.findById).toHaveBeenCalledWith(1);
       expect(dailyCollectionRepository.countItemsByAnimalId).toHaveBeenCalledWith(1);
       expect(animalRepository.softDelete).toHaveBeenCalledWith(1);
+    });
+
+    it('deve negar remocao quando o animal pertence a outro rebanho', async () => {
+      const mockAnimal = createAnimal({ id: 1, userId: 10 });
+      const animalOwner = createUser({ id: 10, role: UserRole.ADMIN, associationId: 99 });
+
+      animalRepository.findById.mockResolvedValue(mockAnimal);
+      userRepository.findById.mockResolvedValue(animalOwner);
+
+      await expect(
+        service.remove(1, {
+          id: 1,
+          role: UserRole.ADMIN,
+          associationId: 10,
+          adminId: null,
+        }),
+      ).rejects.toThrow(ForbiddenException);
+
+      expect(dailyCollectionRepository.countItemsByAnimalId).not.toHaveBeenCalled();
+      expect(animalRepository.softDelete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('inativar', () => {
+    it('deve inativar um animal quando o solicitante for ADMIN', async () => {
+      const mockAnimal = createAnimal({ id: 1, status: Status.Active });
+      const mockInactiveAnimal = createAnimal({ id: 1, status: Status.Inactive });
+
+      animalRepository.findById.mockResolvedValue(mockAnimal);
+      animalRepository.softDelete.mockResolvedValue(mockInactiveAnimal);
+
+      userRepository.findById.mockResolvedValue(createUser({ id: 1, role: UserRole.ADMIN }));
+
+      const result = await service.inativar(1, {
+        id: 1,
+        role: UserRole.ADMIN,
+        associationId: null,
+        adminId: null,
+      });
+
+      expect(animalRepository.findById).toHaveBeenCalledWith(1);
+      expect(animalRepository.softDelete).toHaveBeenCalledWith(1);
+      expect(result.status).toBe(Status.Inactive);
+    });
+
+    it('deve negar quando um VAQUEIRO tenta inativar uma vaca', async () => {
+      await expect(
+        service.inativar(1, {
+          id: 5,
+          role: UserRole.VAQUEIRO,
+          associationId: null,
+          adminId: 1,
+        }),
+      ).rejects.toThrow(ForbiddenException);
+
+      expect(animalRepository.findById).not.toHaveBeenCalled();
+      expect(animalRepository.softDelete).not.toHaveBeenCalled();
+    });
+
+    it('deve negar quando ADMIN tenta inativar animal de outro rebanho', async () => {
+      const mockAnimal = createAnimal({ id: 1, userId: 10 });
+      const animalOwner = createUser({ id: 10, role: UserRole.ADMIN, associationId: 99 });
+
+      animalRepository.findById.mockResolvedValue(mockAnimal);
+      userRepository.findById.mockResolvedValue(animalOwner);
+
+      await expect(
+        service.inativar(1, {
+          id: 1,
+          role: UserRole.ADMIN,
+          associationId: 10,
+          adminId: null,
+        }),
+      ).rejects.toThrow(ForbiddenException);
+
+      expect(animalRepository.softDelete).not.toHaveBeenCalled();
     });
   });
 

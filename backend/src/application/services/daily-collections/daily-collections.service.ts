@@ -1,4 +1,4 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { ForbiddenException, Injectable, Inject, Logger } from '@nestjs/common';
 import { IDailyCollectionRepository } from '@/domain/repositories/daily-collection.repository';
 import { IUserRepository } from '@/domain/repositories/user.repository';
 import { IAnimalRepository } from '@/domain/repositories/animal.repository';
@@ -9,6 +9,14 @@ import { BusinessException } from '@/common/exceptions/business.exception';
 import { DailyCollectionCriteria } from '@/domain/criteria/daily-collection.criteria';
 import { COLLECTION_BUSINESS_RULES } from '@/common/constants/business.constants';
 import { isSameHerd } from '@/domain/utils/herd-scope.util';
+import { UserRole } from '@/domain/enums/enums';
+
+export interface DailyCollectionRequesterContext {
+  id: number;
+  role?: UserRole;
+  associationId?: number | null;
+  adminId?: number | null;
+}
 
 @Injectable()
 export class DailyCollectionsService {
@@ -28,8 +36,38 @@ export class DailyCollectionsService {
     return user;
   }
 
-  async create(createDailyCollectionDto: CreateDailyCollectionDto) {
+  private assertCanCreateForOwner(
+    owner: Awaited<ReturnType<typeof this.validateUser>>,
+    requester?: DailyCollectionRequesterContext,
+  ) {
+    if (!requester) return;
+
+    if (requester.role === UserRole.VAQUEIRO && requester.id !== owner.id) {
+      throw new ForbiddenException('Você não tem permissão para registrar coletas para outro usuário.');
+    }
+
+    if (!isSameHerd(requester as any, owner)) {
+      throw new ForbiddenException('Você não tem permissão para gerenciar coletas deste rebanho.');
+    }
+  }
+
+  private assertCanManageOwner(
+    owner: Awaited<ReturnType<typeof this.validateUser>>,
+    requester?: DailyCollectionRequesterContext,
+  ) {
+    if (!requester) return;
+
+    if (!isSameHerd(requester as any, owner)) {
+      throw new ForbiddenException('Você não tem permissão para gerenciar coletas deste rebanho.');
+    }
+  }
+
+  async create(
+    createDailyCollectionDto: CreateDailyCollectionDto,
+    requester?: DailyCollectionRequesterContext,
+  ) {
     const owner = await this.validateUser(createDailyCollectionDto.userId);
+    this.assertCanCreateForOwner(owner, requester);
 
     this.validateCollectionDate(createDailyCollectionDto.collectionDate);
 
@@ -113,8 +151,18 @@ export class DailyCollectionsService {
     return dailyCollection;
   }
 
-  async update(id: number, updateDailyCollectionDto: UpdateDailyCollectionDto) {
-    await this.findOne(id);
+  async update(
+    id: number,
+    updateDailyCollectionDto: UpdateDailyCollectionDto,
+    requester?: DailyCollectionRequesterContext,
+  ) {
+    const existing = await this.findOne(id);
+    const needsOwner = Boolean(requester || updateDailyCollectionDto.items?.length);
+    const owner = needsOwner ? await this.validateUser(existing.userId as number) : undefined;
+
+    if (owner) {
+      this.assertCanManageOwner(owner, requester);
+    }
     
     if (updateDailyCollectionDto.collectionDate) {
       this.validateCollectionDate(updateDailyCollectionDto.collectionDate);
@@ -122,8 +170,11 @@ export class DailyCollectionsService {
     
     const { items, ...collectionData } = updateDailyCollectionDto;
     
-    if (items?.length && updateDailyCollectionDto.quantity) {
-      this.validateItemsSum(updateDailyCollectionDto.quantity, items);
+    if (items?.length) {
+      if (updateDailyCollectionDto.quantity !== undefined) {
+        this.validateItemsSum(updateDailyCollectionDto.quantity, items);
+      }
+      await this.validateAnimalsOwnership(owner!, items);
     }
     
     await this.dailyCollectionRepository.update(id, collectionData);
@@ -135,8 +186,14 @@ export class DailyCollectionsService {
     return this.dailyCollectionRepository.findById(id);
   }
 
-  async remove(id: number) {
-    await this.findOne(id);
+  async remove(id: number, requester?: DailyCollectionRequesterContext) {
+    const existing = await this.findOne(id);
+
+    if (requester) {
+      const owner = await this.validateUser(existing.userId as number);
+      this.assertCanManageOwner(owner, requester);
+    }
+
     return this.dailyCollectionRepository.softDelete(id);
   }
   async findHistoryByAnimal(animalId: number) {

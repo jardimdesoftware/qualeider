@@ -1,6 +1,13 @@
 "use client";
 
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 import { EmptyState } from "@/components/ui";
 import { Cat } from "lucide-react";
 
@@ -46,7 +53,9 @@ export default function AnimalDistributionChart({
                 outerRadius={CHART_DIMENSIONS.OUTER_RADIUS}
                 fill="#8884d8"
                 dataKey="value"
-                label={({ percent }) => `(${(percent * 100).toFixed(0)}%)`}
+                label={({ percent }) =>
+                  `(${((percent ?? 0) * 100).toFixed(0)}%)`
+                }
               >
                 {data.map((entry, index) => (
                   <Cell

@@ -9,6 +9,7 @@ import {
   Delete,
   Query,
   ParseIntPipe,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { THROTTLE_TTL } from '@/common/throttler/throttler.config';
@@ -75,13 +76,14 @@ export class UsersController {
     @Body() createUserDto: CreateUserDto,
     @GetUser('id') creatorId?: number,
     @GetUser('role') creatorRole?: UserRole,
-    @GetUser('adminId') creatorAdminId?: number | null,
   ) {
+    if (creatorRole !== UserRole.ADMIN) {
+      throw new ForbiddenException('Você não tem permissão para cadastrar funcionários.');
+    }
+
     const isCreatingVaqueiro = createUserDto.role === UserRole.VAQUEIRO;
     const adminId = isCreatingVaqueiro
-      ? creatorRole === UserRole.ADMIN
-        ? creatorId
-        : (creatorAdminId ?? undefined)
+      ? creatorId
       : undefined;
 
     return this.usersService.create({ ...createUserDto, adminId });
@@ -108,14 +110,21 @@ export class UsersController {
     status: 200,
     description: 'Lista de usuários obtida com sucesso',
   })
-  async findAll(@Query() query: FindUsersDto) {
+  async findAll(
+    @Query() query: FindUsersDto,
+    @GetUser('id') requesterId: number,
+    @GetUser('role') requesterRole: UserRole,
+  ) {
     const criteria: UserCriteria = {
       associationId: query.associationId,
       status: query.status,
       emailContains: query.emailContains,
     };
-    
-    return this.usersService.findAll(criteria);
+
+    return this.usersService.findAll(criteria, {
+      id: requesterId,
+      role: requesterRole,
+    });
   }
 
   @Get(':id')
@@ -125,8 +134,15 @@ export class UsersController {
   @ApiParam({ name: 'id', description: 'ID do usuário', type: Number })
   @ApiResponse({ status: 200, description: 'Usuário encontrado' })
   @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
-  async findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.usersService.findOne(id);
+  async findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @GetUser('id') requesterId: number,
+    @GetUser('role') requesterRole: UserRole,
+  ) {
+    return this.usersService.findOneForRequester(id, {
+      id: requesterId,
+      role: requesterRole,
+    });
   }
 
   @ApiOperation({ summary: 'Atualizar todos os dados de um usuário pelo ID' })
@@ -178,7 +194,14 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
   @Delete(':id')
   @ResponseMessage('Usuário excluído com sucesso')
-  async remove(@Param('id', ParseIntPipe) id: number) {
-    return this.usersService.remove(id);
+  async remove(
+    @Param('id', ParseIntPipe) id: number,
+    @GetUser('id') requesterId: number,
+    @GetUser('role') requesterRole: UserRole,
+  ) {
+    return this.usersService.remove(id, {
+      id: requesterId,
+      role: requesterRole,
+    });
   }
 }

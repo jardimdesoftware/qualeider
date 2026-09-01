@@ -42,8 +42,19 @@ export class AnimalsController {
   @Post()
   @UsePipes(new ValidationPipe({ transform: true }))
   @ResponseMessage('Animal criado com sucesso')
-  async create(@Body() createAnimalDto: CreateAnimalDto) {
-    return this.animalsService.create(createAnimalDto);
+  async create(
+    @Body() createAnimalDto: CreateAnimalDto,
+    @GetUser('id') requesterId: number,
+    @GetUser('role') requesterRole?: UserRole,
+    @GetUser('associationId') requesterAssociationId?: number | null,
+    @GetUser('adminId') requesterAdminId?: number | null,
+  ) {
+    return this.animalsService.create(createAnimalDto, {
+      id: requesterId,
+      role: requesterRole,
+      associationId: requesterAssociationId,
+      adminId: requesterAdminId,
+    });
   }
 
   @ApiOperation({ summary: 'Listar todos os animais' })
@@ -82,8 +93,17 @@ export class AnimalsController {
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateAnimalDto: UpdateAnimalDto,
+    @GetUser('id') requesterId: number,
+    @GetUser('role') requesterRole?: UserRole,
+    @GetUser('associationId') requesterAssociationId?: number | null,
+    @GetUser('adminId') requesterAdminId?: number | null,
   ) {
-    return this.animalsService.update(id, updateAnimalDto);
+    return this.animalsService.update(id, updateAnimalDto, {
+      id: requesterId,
+      role: requesterRole,
+      associationId: requesterAssociationId,
+      adminId: requesterAdminId,
+    });
   }
 
   @ApiOperation({ summary: 'Excluir (desativar) um animal' })
@@ -93,8 +113,19 @@ export class AnimalsController {
   @ApiResponse({ status: 404, description: 'Animal nao encontrado' })
   @Delete(':id')
   @ResponseMessage('Animal excluido com sucesso')
-  async remove(@Param('id', ParseIntPipe) id: number) {
-    return this.animalsService.remove(id);
+  async remove(
+    @Param('id', ParseIntPipe) id: number,
+    @GetUser('id') requesterId: number,
+    @GetUser('role') requesterRole?: UserRole,
+    @GetUser('associationId') requesterAssociationId?: number | null,
+    @GetUser('adminId') requesterAdminId?: number | null,
+  ) {
+    return this.animalsService.remove(id, {
+      id: requesterId,
+      role: requesterRole,
+      associationId: requesterAssociationId,
+      adminId: requesterAdminId,
+    });
   }
 
   @ApiOperation({ summary: 'Inativar um animal (preserva historico de coletas)' })
@@ -104,8 +135,19 @@ export class AnimalsController {
   @ApiResponse({ status: 404, description: 'Animal nao encontrado' })
   @Patch(':id/inativar')
   @ResponseMessage('Animal inativado com sucesso')
-  async inativar(@Param('id', ParseIntPipe) id: number) {
-    return this.animalsService.inativar(id);
+  async inativar(
+    @Param('id', ParseIntPipe) id: number,
+    @GetUser('id') requesterId: number,
+    @GetUser('role') requesterRole?: UserRole,
+    @GetUser('associationId') requesterAssociationId?: number | null,
+    @GetUser('adminId') requesterAdminId?: number | null,
+  ) {
+    return this.animalsService.inativar(id, {
+      id: requesterId,
+      role: requesterRole,
+      associationId: requesterAssociationId,
+      adminId: requesterAdminId,
+    });
   }
 
   @ApiOperation({
