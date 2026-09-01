@@ -2,7 +2,7 @@
 # Dockerfile — Frontend Qualeider (Multi-arch)
 # =============================================================================
 # Multi-stage build para Next.js com suporte a AMD64 + ARM64 (via buildx)
-# - Versões de imagem fixadas (node:24.19-alpine3.24)
+# - Versões de imagem fixadas (node:26.8-alpine3.24)
 # - Usuário não-root
 # - Build standalone do Next.js
 # =============================================================================
@@ -10,7 +10,7 @@
 # ---------------------------------------------------------------------------
 # Stage 1: Instalar dependências
 # ---------------------------------------------------------------------------
-FROM node:26.7-alpine3.24 AS deps
+FROM node:26.8-alpine3.24 AS deps
 
 # Argumentos de build para multi-arch (informativo)
 ARG TARGETPLATFORM
@@ -27,7 +27,7 @@ RUN npm ci
 # ---------------------------------------------------------------------------
 # Stage 2: Build da aplicação
 # ---------------------------------------------------------------------------
-FROM node:26.7-alpine3.24 AS builder
+FROM node:26.8-alpine3.24 AS builder
 
 WORKDIR /usr/appFrontend
 
@@ -48,7 +48,7 @@ RUN npm run build
 # ---------------------------------------------------------------------------
 # Stage 3: Imagem de produção
 # ---------------------------------------------------------------------------
-FROM node:26.7-alpine3.24 AS runner
+FROM node:26.8-alpine3.24 AS runner
 
 WORKDIR /usr/appFrontend
 

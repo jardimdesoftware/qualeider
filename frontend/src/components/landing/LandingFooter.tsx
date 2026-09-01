@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Instagram, Facebook, Youtube, Phone, Mail } from "lucide-react";
+import { Camera, Mail, MessageCircle, Phone, PlayCircle } from "lucide-react";
 import AppVersionBadge from "@/components/global/AppVersionBadge";
 
 export function LandingFooter() {
@@ -18,13 +18,13 @@ export function LandingFooter() {
           </p>
           <div className="flex gap-4">
             <a href="#" className="hover:text-white transition">
-              <Instagram className="w-6 h-6" />
+              <Camera className="w-6 h-6" />
             </a>
             <a href="#" className="hover:text-white transition">
-              <Facebook className="w-6 h-6" />
+              <MessageCircle className="w-6 h-6" />
             </a>
             <a href="#" className="hover:text-white transition">
-              <Youtube className="w-6 h-6" />
+              <PlayCircle className="w-6 h-6" />
             </a>
           </div>
         </div>
