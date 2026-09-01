@@ -9,6 +9,7 @@ import {
   Delete,
   Query,
   ParseIntPipe,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { THROTTLE_TTL } from '@/common/throttler/throttler.config';
@@ -75,13 +76,14 @@ export class UsersController {
     @Body() createUserDto: CreateUserDto,
     @GetUser('id') creatorId?: number,
     @GetUser('role') creatorRole?: UserRole,
-    @GetUser('adminId') creatorAdminId?: number | null,
   ) {
+    if (creatorRole !== UserRole.ADMIN) {
+      throw new ForbiddenException('Você não tem permissão para cadastrar funcionários.');
+    }
+
     const isCreatingVaqueiro = createUserDto.role === UserRole.VAQUEIRO;
     const adminId = isCreatingVaqueiro
-      ? creatorRole === UserRole.ADMIN
-        ? creatorId
-        : (creatorAdminId ?? undefined)
+      ? creatorId
       : undefined;
 
     return this.usersService.create({ ...createUserDto, adminId });

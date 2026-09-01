@@ -8,6 +8,7 @@ import { createUser } from '../../../factories/user.factory';
 import { UserRole } from '@/domain/enums/enums';
 import { BusinessException } from '@/common/exceptions/business.exception';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
+import { ForbiddenException } from '@nestjs/common';
 
 describe('UsersController', () => {
   let controller: UsersController;
@@ -64,6 +65,24 @@ describe('UsersController', () => {
 
       await expect(controller.create(createDto)).rejects.toThrow(BusinessException);
     });
+
+    it('deve ignorar role VAQUEIRO no cadastro publico e criar ADMIN', async () => {
+      const createDto: CreateUserDto = {
+        name: 'Funcionario',
+        email: 'funcionario@example.com',
+        role: UserRole.VAQUEIRO,
+      } as any;
+      const createdUser = createUser({ ...createDto, id: 8, role: UserRole.ADMIN });
+      mockUsersService.create.mockResolvedValue(createdUser);
+
+      const result = await controller.create(createDto);
+
+      expect(usersService.create).toHaveBeenCalledWith({
+        ...createDto,
+        role: UserRole.ADMIN,
+      });
+      expect(result.role).toBe(UserRole.ADMIN);
+    });
   });
 
   describe('createInternal', () => {
@@ -76,25 +95,38 @@ describe('UsersController', () => {
       const createdUser = createUser({ ...createDto, id: 5 });
       mockUsersService.create.mockResolvedValue(createdUser);
 
-      const result = await controller.createInternal(createDto, 1, UserRole.ADMIN, null);
+      const result = await controller.createInternal(createDto, 1, UserRole.ADMIN);
 
       expect(usersService.create).toHaveBeenCalledWith({ ...createDto, adminId: 1 });
       expect(result).toEqual(createdUser);
     });
 
-    it('deve propagar o adminId do criador quando um VAQUEIRO (ja vinculado) cadastra outro VAQUEIRO', async () => {
+    it('deve negar cadastro interno quando um VAQUEIRO tenta cadastrar outro usuario', async () => {
       const createDto: CreateUserDto = {
         name: 'Vaqueiro Novo',
         email: 'vaqueiro2@example.com',
         role: UserRole.VAQUEIRO,
       } as any;
-      const createdUser = createUser({ ...createDto, id: 6 });
-      mockUsersService.create.mockResolvedValue(createdUser);
 
-      const result = await controller.createInternal(createDto, 5, UserRole.VAQUEIRO, 1);
+      await expect(
+        controller.createInternal(createDto, 5, UserRole.VAQUEIRO),
+      ).rejects.toThrow(ForbiddenException);
 
-      expect(usersService.create).toHaveBeenCalledWith({ ...createDto, adminId: 1 });
-      expect(result).toEqual(createdUser);
+      expect(usersService.create).not.toHaveBeenCalled();
+    });
+
+    it('deve negar cadastro interno quando um VAQUEIRO tenta fazer o proprio cadastro', async () => {
+      const createDto: CreateUserDto = {
+        name: 'Vaqueiro Novo',
+        email: 'vaqueiro@example.com',
+        role: UserRole.VAQUEIRO,
+      } as any;
+
+      await expect(
+        controller.createInternal(createDto, undefined, UserRole.VAQUEIRO),
+      ).rejects.toThrow(ForbiddenException);
+
+      expect(usersService.create).not.toHaveBeenCalled();
     });
 
     it('nao deve setar adminId ao cadastrar um novo ADMIN', async () => {
@@ -106,7 +138,7 @@ describe('UsersController', () => {
       const createdUser = createUser({ ...createDto, id: 7 });
       mockUsersService.create.mockResolvedValue(createdUser);
 
-      const result = await controller.createInternal(createDto, 1, UserRole.ADMIN, null);
+      const result = await controller.createInternal(createDto, 1, UserRole.ADMIN);
 
       expect(usersService.create).toHaveBeenCalledWith({ ...createDto, adminId: undefined });
       expect(result).toEqual(createdUser);

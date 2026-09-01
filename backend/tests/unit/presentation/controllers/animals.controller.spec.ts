@@ -8,6 +8,7 @@ import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.ex
 import { BusinessException } from '@/common/exceptions/business.exception';
 import { UserRole } from '@/domain/enums/enums';
 import { MAX_LIMIT } from '@/domain/common/pagination.interface';
+import { ForbiddenException } from '@nestjs/common';
 
 describe('AnimalsController', () => {
   let controller: AnimalsController;
@@ -53,9 +54,14 @@ describe('AnimalsController', () => {
       const created = createAnimal({ id: 1, ...createDto });
       mockAnimalsService.create.mockResolvedValue(created);
 
-      const result = await controller.create(createDto);
+      const result = await controller.create(createDto, 1, UserRole.ADMIN, null, null);
 
-      expect(animalsService.create).toHaveBeenCalledWith(createDto);
+      expect(animalsService.create).toHaveBeenCalledWith(createDto, {
+        id: 1,
+        role: UserRole.ADMIN,
+        associationId: null,
+        adminId: null,
+      });
       expect(result).toEqual(created);
     });
 
@@ -65,7 +71,9 @@ describe('AnimalsController', () => {
       
       mockAnimalsService.create.mockRejectedValue(error);
 
-      await expect(controller.create(createDto)).rejects.toThrow(EntityNotFoundException);
+      await expect(
+        controller.create(createDto, 1, UserRole.ADMIN, null, null),
+      ).rejects.toThrow(EntityNotFoundException);
     });
 
     it('deve propagar BusinessException se o service lançar', async () => {
@@ -74,7 +82,9 @@ describe('AnimalsController', () => {
         
         mockAnimalsService.create.mockRejectedValue(error);
   
-        await expect(controller.create(createDto)).rejects.toThrow(BusinessException);
+        await expect(
+          controller.create(createDto, 1, UserRole.ADMIN, null, null),
+        ).rejects.toThrow(BusinessException);
     });
   });
 
@@ -133,9 +143,14 @@ describe('AnimalsController', () => {
       
       mockAnimalsService.update.mockResolvedValue(updated);
 
-      const result = await controller.update(1, updateDto);
+      const result = await controller.update(1, updateDto, 1, UserRole.ADMIN, null, null);
 
-      expect(animalsService.update).toHaveBeenCalledWith(1, updateDto);
+      expect(animalsService.update).toHaveBeenCalledWith(1, updateDto, {
+        id: 1,
+        role: UserRole.ADMIN,
+        associationId: null,
+        adminId: null,
+      });
       expect(result).toEqual(updated);
     });
 
@@ -145,7 +160,9 @@ describe('AnimalsController', () => {
       
       mockAnimalsService.update.mockRejectedValue(error);
 
-      await expect(controller.update(1, updateDto)).rejects.toThrow('Database failure');
+      await expect(
+        controller.update(1, updateDto, 1, UserRole.ADMIN, null, null),
+      ).rejects.toThrow('Database failure');
     });
   });
 
@@ -154,9 +171,14 @@ describe('AnimalsController', () => {
       const response = { id: 1, status: 'Inactive' };
       mockAnimalsService.remove.mockResolvedValue(response);
 
-      const result = await controller.remove(1);
+      const result = await controller.remove(1, 1, UserRole.ADMIN, null, null);
 
-      expect(animalsService.remove).toHaveBeenCalledWith(1);
+      expect(animalsService.remove).toHaveBeenCalledWith(1, {
+        id: 1,
+        role: UserRole.ADMIN,
+        associationId: null,
+        adminId: null,
+      });
       expect(result).toEqual(response);
     });
 
@@ -164,7 +186,35 @@ describe('AnimalsController', () => {
       const error = new EntityNotFoundException('Animal não encontrado.');
       mockAnimalsService.remove.mockRejectedValue(error);
 
-      await expect(controller.remove(999)).rejects.toThrow(EntityNotFoundException);
+      await expect(
+        controller.remove(999, 1, UserRole.ADMIN, null, null),
+      ).rejects.toThrow(EntityNotFoundException);
+    });
+  });
+
+  describe('inativar', () => {
+    it('deve inativar animal passando o perfil do solicitante para o service', async () => {
+      const response = { id: 1, status: 'Inactive' };
+      mockAnimalsService.inativar.mockResolvedValue(response);
+
+      const result = await controller.inativar(1, 1, UserRole.ADMIN, null, null);
+
+      expect(animalsService.inativar).toHaveBeenCalledWith(1, {
+        id: 1,
+        role: UserRole.ADMIN,
+        associationId: null,
+        adminId: null,
+      });
+      expect(result).toEqual(response);
+    });
+
+    it('deve propagar ForbiddenException quando um VAQUEIRO tenta inativar uma vaca', async () => {
+      const error = new ForbiddenException('Você não tem permissão para inativar animais.');
+      mockAnimalsService.inativar.mockRejectedValue(error);
+
+      await expect(
+        controller.inativar(1, 5, UserRole.VAQUEIRO, null, 1),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 

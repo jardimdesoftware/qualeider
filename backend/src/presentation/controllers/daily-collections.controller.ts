@@ -46,8 +46,19 @@ export class DailyCollectionsController {
   @Post()
   @UsePipes(new ValidationPipe({ transform: true }))
   @ResponseMessage('Coleta criada com sucesso')
-  async create(@Body() createDailyCollectionDto: CreateDailyCollectionDto) {
-    return this.dailyCollectionsService.create(createDailyCollectionDto);
+  async create(
+    @Body() createDailyCollectionDto: CreateDailyCollectionDto,
+    @GetUser('id') requesterId: number,
+    @GetUser('role') requesterRole?: UserRole,
+    @GetUser('associationId') requesterAssociationId?: number | null,
+    @GetUser('adminId') requesterAdminId?: number | null,
+  ) {
+    return this.dailyCollectionsService.create(createDailyCollectionDto, {
+      id: requesterId,
+      role: requesterRole,
+      associationId: requesterAssociationId,
+      adminId: requesterAdminId,
+    });
   }
 
   @ApiOperation({ summary: 'Listar todos os formulários cadastrados' })
@@ -98,8 +109,17 @@ export class DailyCollectionsController {
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateDailyCollectionDto: UpdateDailyCollectionDto,
+    @GetUser('id') requesterId: number,
+    @GetUser('role') requesterRole?: UserRole,
+    @GetUser('associationId') requesterAssociationId?: number | null,
+    @GetUser('adminId') requesterAdminId?: number | null,
   ) {
-    return this.dailyCollectionsService.update(id, updateDailyCollectionDto);
+    return this.dailyCollectionsService.update(id, updateDailyCollectionDto, {
+      id: requesterId,
+      role: requesterRole,
+      associationId: requesterAssociationId,
+      adminId: requesterAdminId,
+    });
   }
 
   @ApiOperation({ summary: 'Excluir formulário pelo ID' })
@@ -109,8 +129,19 @@ export class DailyCollectionsController {
   @ApiResponse({ status: 404, description: 'Formulário não encontrado' })
   @Delete(':id')
   @ResponseMessage('Coleta excluída com sucesso')
-  async remove(@Param('id', ParseIntPipe) id: number) {
-    return this.dailyCollectionsService.remove(id);
+  async remove(
+    @Param('id', ParseIntPipe) id: number,
+    @GetUser('id') requesterId: number,
+    @GetUser('role') requesterRole?: UserRole,
+    @GetUser('associationId') requesterAssociationId?: number | null,
+    @GetUser('adminId') requesterAdminId?: number | null,
+  ) {
+    return this.dailyCollectionsService.remove(id, {
+      id: requesterId,
+      role: requesterRole,
+      associationId: requesterAssociationId,
+      adminId: requesterAdminId,
+    });
   }
 
   @ApiOperation({

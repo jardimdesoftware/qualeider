@@ -1,4 +1,4 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { ForbiddenException, Injectable, Inject, Logger } from '@nestjs/common';
 import { IAnimalRepository } from '@/domain/repositories/animal.repository';
 import { IUserRepository } from '@/domain/repositories/user.repository';
 import { IDailyCollectionRepository } from '@/domain/repositories/daily-collection.repository';
@@ -7,7 +7,15 @@ import { UpdateAnimalDto } from '@/application/dtos/animals/update-animal.dto';
 import { AnimalCriteria } from '@/domain/criteria/animal.criteria';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 import { BusinessException } from '@/common/exceptions/business.exception';
-import { resolveHerdScope } from '@/domain/utils/herd-scope.util';
+import { isSameHerd, resolveHerdScope } from '@/domain/utils/herd-scope.util';
+import { UserRole } from '@/domain/enums/enums';
+
+export interface AnimalRequesterContext {
+  id: number;
+  role?: UserRole;
+  associationId?: number | null;
+  adminId?: number | null;
+}
 
 @Injectable()
 export class AnimalsService {
@@ -25,6 +33,32 @@ export class AnimalsService {
       throw new EntityNotFoundException(`Usuário com ID ${userId} não encontrado.`);
     }
     return user;
+  }
+
+  private assertCanCreateForOwner(
+    owner: Awaited<ReturnType<typeof this.validateUser>>,
+    requester?: AnimalRequesterContext,
+  ) {
+    if (!requester) return;
+
+    if (requester.role === UserRole.VAQUEIRO && requester.id !== owner.id) {
+      throw new ForbiddenException('Você não tem permissão para cadastrar animais para outro usuário.');
+    }
+
+    if (!isSameHerd(requester as any, owner)) {
+      throw new ForbiddenException('Você não tem permissão para gerenciar animais deste rebanho.');
+    }
+  }
+
+  private assertCanManageOwner(
+    owner: Awaited<ReturnType<typeof this.validateUser>>,
+    requester?: AnimalRequesterContext,
+  ) {
+    if (!requester) return;
+
+    if (!isSameHerd(requester as any, owner)) {
+      throw new ForbiddenException('Você não tem permissão para gerenciar animais deste rebanho.');
+    }
   }
 
   private async assertTagNumberAvailable(
@@ -56,8 +90,9 @@ export class AnimalsService {
     return parent;
   }
 
-  async create(createAnimalDto: CreateAnimalDto) {
+  async create(createAnimalDto: CreateAnimalDto, requester?: AnimalRequesterContext) {
     const owner = await this.validateUser(createAnimalDto.userId);
+    this.assertCanCreateForOwner(owner, requester);
 
     if (createAnimalDto.tagNumber) {
       await this.assertTagNumberAvailable(owner, createAnimalDto.tagNumber);
@@ -95,12 +130,19 @@ export class AnimalsService {
     return animal;
   }
 
-  async update(id: number, updateAnimalDto: UpdateAnimalDto) {
+  async update(id: number, updateAnimalDto: UpdateAnimalDto, requester?: AnimalRequesterContext) {
     const existing = await this.findOne(id);
+    const needsOwner = Boolean(
+      requester || (updateAnimalDto.tagNumber && updateAnimalDto.tagNumber !== existing.tagNumber),
+    );
+    const owner = needsOwner ? await this.validateUser(existing.userId as number) : undefined;
+
+    if (owner) {
+      this.assertCanManageOwner(owner, requester);
+    }
 
     if (updateAnimalDto.tagNumber && updateAnimalDto.tagNumber !== existing.tagNumber) {
-      const owner = await this.validateUser(existing.userId as number);
-      await this.assertTagNumberAvailable(owner, updateAnimalDto.tagNumber, id);
+      await this.assertTagNumberAvailable(owner!, updateAnimalDto.tagNumber, id);
     }
 
     if (updateAnimalDto.motherId) {
@@ -121,13 +163,24 @@ export class AnimalsService {
     return updated;
   }
 
-  async inativar(id: number) {
-    await this.findOne(id);
+  async inativar(id: number, requester?: AnimalRequesterContext) {
+    if (requester?.role !== UserRole.ADMIN) {
+      throw new ForbiddenException('Você não tem permissão para inativar animais.');
+    }
+
+    const existing = await this.findOne(id);
+    const owner = await this.validateUser(existing.userId as number);
+    this.assertCanManageOwner(owner, requester);
     return this.animalRepository.softDelete(id);
   }
 
-  async remove(id: number) {
-    await this.findOne(id);
+  async remove(id: number, requester?: AnimalRequesterContext) {
+    const existing = await this.findOne(id);
+
+    if (requester) {
+      const owner = await this.validateUser(existing.userId as number);
+      this.assertCanManageOwner(owner, requester);
+    }
 
     const hasCollections = await this.hasCollectionHistory(id);
     if (hasCollections) {
