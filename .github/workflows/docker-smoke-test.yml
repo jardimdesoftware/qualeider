@@ -1,0 +1,159 @@
+# =============================================================================
+# Docker Smoke Test — Qualeider
+# =============================================================================
+# Ate aqui a CI so tinha scan de vulnerabilidade (Trivy) nas imagens, nunca um
+# teste funcional: nada garantia que "docker compose up" realmente sobe uma
+# stack que conversa entre si, nem que os .yml sao sintaticamente validos.
+#
+# Este workflow cobre isso com 3 jobs:
+#   1. validate-compose  - valida a sintaxe dos 4 docker-compose*.yml
+#   2. smoke-test        - sobe a stack completa (postgres+backend+frontend)
+#      e confere que os healthchecks respondem de verdade
+#   3. negative-missing-env - garante que subir SEM as variaveis obrigatorias
+#      (JWT_SECRET, POSTGRES_PASSWORD) falha alto e claro, em vez de subir
+#      quebrado silenciosamente
+# =============================================================================
+
+name: Docker Smoke Test
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "docker-compose*.yml"
+      - "backend/Dockerfile"
+      - "frontend/Dockerfile"
+      - "backend/**"
+      - "frontend/**"
+      - ".github/workflows/docker-smoke-test.yml"
+  push:
+    branches: [main]
+    paths:
+      - "docker-compose*.yml"
+      - "backend/Dockerfile"
+      - "frontend/Dockerfile"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-smoke-test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ===========================================================================
+  # 1) Validar sintaxe dos docker-compose (rapido, pega erro de YAML cedo)
+  # ===========================================================================
+  validate-compose:
+    name: 🔍 Validar docker-compose*.yml
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      # Valores fake so pra permitir a interpolacao das vars obrigatorias
+      # (:?) resolver sem falhar - "config" so valida sintaxe, nao sobe nada.
+      POSTGRES_PASSWORD: fake-password-for-config-validation
+      JWT_SECRET: fake-jwt-secret-for-config-validation
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validar docker-compose.dev.yml
+        run: docker compose -f docker-compose.dev.yml config --quiet
+
+      - name: Validar docker-compose.yml
+        run: docker compose -f docker-compose.yml config --quiet
+
+      - name: Validar docker-compose.local.yml
+        run: docker compose -f docker-compose.local.yml config --quiet
+
+      - name: Validar docker-compose.prod.yml
+        run: docker compose -f docker-compose.prod.yml config --quiet
+
+  # ===========================================================================
+  # 2) Smoke test - sobe a stack de verdade e confere os healthchecks
+  # ===========================================================================
+  smoke-test:
+    name: 🚀 Smoke test da stack completa
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: validate-compose
+    env:
+      POSTGRES_PASSWORD: smoke-test-password
+      JWT_SECRET: smoke-test-jwt-secret-nao-usar-em-producao
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Subir a stack (build local)
+        run: docker compose -f docker-compose.yml up -d --build
+
+      - name: Esperar o backend responder saudavel em /api/health
+        run: |
+          echo "Aguardando backend ficar healthy..."
+          for i in $(seq 1 30); do
+            status=$(docker inspect --format='{{.State.Health.Status}}' qualeider-backend 2>/dev/null || echo "starting")
+            echo "Tentativa $i: backend está '$status'"
+            if [ "$status" = "healthy" ]; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Backend não ficou healthy a tempo."
+          exit 1
+
+      - name: Esperar o frontend responder saudavel
+        run: |
+          echo "Aguardando frontend ficar healthy..."
+          for i in $(seq 1 30); do
+            status=$(docker inspect --format='{{.State.Health.Status}}' qualeider-frontend 2>/dev/null || echo "starting")
+            echo "Tentativa $i: frontend está '$status'"
+            if [ "$status" = "healthy" ]; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Frontend não ficou healthy a tempo."
+          exit 1
+
+      - name: Conferir resposta real do backend (não só o healthcheck do Docker)
+        run: |
+          curl --fail --silent --show-error http://localhost:3000/api/health | tee /dev/stderr | grep -qi '"status"' \
+            || (echo "Resposta de /api/health nao contem o campo esperado 'status'" && exit 1)
+
+      - name: Conferir resposta real do frontend
+        run: curl --fail --silent --show-error --output /dev/null http://localhost:3001
+
+      - name: Logs dos containers (em caso de falha)
+        if: failure()
+        run: docker compose -f docker-compose.yml logs
+
+      - name: Derrubar a stack
+        if: always()
+        run: docker compose -f docker-compose.yml down -v
+
+  # ===========================================================================
+  # 3) Caso negativo - sem as variaveis obrigatorias, tem que falhar claro
+  # ===========================================================================
+  negative-missing-env:
+    name: 🚫 Negativo — falha sem variaveis obrigatorias
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: validate-compose
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: docker compose config deve falhar sem JWT_SECRET/POSTGRES_PASSWORD
+        run: |
+          unset JWT_SECRET POSTGRES_PASSWORD
+          if docker compose -f docker-compose.yml config > /tmp/compose-config-output.txt 2>&1; then
+            echo "ERRO: 'docker compose config' deveria falhar sem as variaveis obrigatorias, mas passou."
+            cat /tmp/compose-config-output.txt
+            exit 1
+          fi
+          echo "OK: subir sem POSTGRES_PASSWORD/JWT_SECRET falha como esperado:"
+          cat /tmp/compose-config-output.txt
