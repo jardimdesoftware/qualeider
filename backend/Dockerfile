@@ -14,13 +14,15 @@
 # ---------------------------------------------------------------------------
 # Stage 1: Builder
 # ---------------------------------------------------------------------------
-FROM node:26.8-alpine3.24 AS builder
+FROM node:24-alpine AS builder
 
 # Argumentos de build para multi-arch (informativo)
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 
 WORKDIR /usr/appBackend
+
+RUN apk upgrade --no-cache
 
 # Copiar apenas arquivos necessários para install (cache de camada)
 COPY package.json package-lock.json ./
@@ -43,10 +45,11 @@ RUN npm run build
 # ---------------------------------------------------------------------------
 # Stage 2: Production
 # ---------------------------------------------------------------------------
-FROM node:26.8-alpine3.24 AS production
+FROM node:24-alpine AS production
 
 # Instalar dumb-init (init process correto para PID 1) e wget para healthcheck
-RUN apk add --no-cache dumb-init wget && \
+RUN apk upgrade --no-cache && \
+    apk add --no-cache dumb-init wget && \
     rm -rf /var/cache/apk/*
 
 # Criar usuário não-root
