@@ -17,14 +17,14 @@ export default function Button({
   ...props
 }: ButtonProps) {
   const baseClasses =
-    "font-bold py-3 px-6 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed";
+    "inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-bold transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gov-blue disabled:cursor-not-allowed disabled:opacity-50";
 
   const variantClasses = {
-    primary: "bg-brand-primary hover:bg-brand-primary-hover text-white",
+    primary: "bg-brand-primary text-white hover:bg-brand-primary-hover",
     secondary:
-      "bg-white hover:bg-gray-50 text-brand-primary border-2 border-brand-secondary",
+      "border-2 border-brand-primary bg-white text-brand-primary hover:bg-brand-accent",
     outline:
-      "bg-transparent hover:bg-brand-primary/5 text-brand-primary border-2 border-brand-primary",
+      "border-2 border-brand-primary bg-transparent text-brand-primary hover:bg-brand-accent",
   };
 
   const widthClass = fullWidth ? "w-full" : "";

@@ -1,31 +1,75 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
-  Menu,
-  X,
-  Users,
-  FileText,
-  PieChart,
-  LogOut,
-  Milk,
   Dna,
+  FileText,
+  LogOut,
+  Menu,
+  Milk,
+  PieChart,
+  Users,
+  X,
 } from "lucide-react";
 import {
-  getUserTypeFromToken,
-  getUserRoleFromToken,
   clearAuthToken,
+  getUserRoleFromToken,
+  getUserTypeFromToken,
 } from "@/utils/auth";
 import { debounce } from "@/utils/debounce";
 import { BREAKPOINTS, ICON_SIZES, LOGO_SIZES, TIMING } from "@/constants/ui";
 import AppVersionBadge from "@/components/global/AppVersionBadge";
+import { IfpeBrand } from "@/components/ui";
+
+const menuItemsBase = [
+  {
+    name: "Inicio",
+    link: "/dashboardUser",
+    icon: <PieChart size={ICON_SIZES.SM} />,
+    adminOnly: false,
+  },
+  {
+    name: "Dados diarios",
+    link: "/dailyForm",
+    icon: <Milk size={ICON_SIZES.SM} />,
+    adminOnly: false,
+  },
+  {
+    name: "Meus Animais",
+    link: "/manageMyAnimals",
+    icon: <FileText size={ICON_SIZES.SM} />,
+    adminOnly: false,
+  },
+  {
+    name: "Racas",
+    link: "/dashboardUser/breeds",
+    icon: <Dna size={ICON_SIZES.SM} />,
+    adminOnly: true,
+  },
+  {
+    name: "Tipos de Animal",
+    link: "/dashboardUser/animalSpecies",
+    icon: <Dna size={ICON_SIZES.SM} />,
+    adminOnly: true,
+  },
+  {
+    name: "Funcionarios",
+    link: "/manageUsers",
+    icon: <Users size={ICON_SIZES.SM} />,
+    adminOnly: true,
+  },
+];
 
 export default function Sidebar() {
+  const router = useRouter();
   const [isMobile, setIsMobile] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [userRole, setUserRole] = useState<"association" | "user" | null>(null);
+  const [userRole, setUserRole] = useState<"association" | "user" | null>(
+    null,
+  );
   const [userPermRole, setUserPermRole] = useState<"ADMIN" | "VAQUEIRO" | null>(
     null,
   );
@@ -44,218 +88,141 @@ export default function Sidebar() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- window/token so existem no client, roda 1x no mount
     setMounted(true);
     setPathname(window.location.pathname);
-
-    const role = getUserTypeFromToken();
-    setUserRole(role);
-
-    const permRole = getUserRoleFromToken();
-    setUserPermRole(permRole);
-
+    setUserRole(getUserTypeFromToken());
+    setUserPermRole(getUserRoleFromToken());
     debouncedCheckScreenSize();
     window.addEventListener("resize", debouncedCheckScreenSize);
 
     return () => window.removeEventListener("resize", debouncedCheckScreenSize);
   }, [debouncedCheckScreenSize]);
 
-  const toggleMenu = () => setMenuOpen(!menuOpen);
-
   const handleLogout = () => {
     clearAuthToken();
-    window.location.href = "/login";
+    router.push("/login");
   };
 
   const isAdmin = userPermRole === "ADMIN";
+  const menuItems = menuItemsBase.filter((item) => !item.adminOnly || isAdmin);
+  const activeClasses = isAdmin
+    ? "border-gov-blue bg-blue-50 text-gov-blue"
+    : "border-brand-primary bg-brand-accent text-brand-primary";
 
-  // Identidade visual: Admin usa tom ambar/dourado, Vaqueiro mantem o verde padrao
-  const sidebarBg = isAdmin ? "bg-admin-background" : "bg-green-background";
+  if (!mounted) return <div className="w-72" />;
 
-  /**
-   * Menu do usuário logado.
-   * Vaqueiro tem acesso restrito: apenas Início, Dados diários e Meus Animais.
-   * Raças, Tipos de Animal e Funcionários são exclusivos do ADMIN.
-   */
-  const allMenuItems = [
-    {
-      name: "Início",
-      link: "/dashboardUser",
-      icon: <PieChart size={ICON_SIZES.SM} />,
-      adminOnly: false,
-    },
-    {
-      name: "Dados diários",
-      link: "/dailyForm",
-      icon: <Milk size={ICON_SIZES.SM} />,
-      adminOnly: false,
-    },
-    {
-      name: "Meus Animais",
-      link: "/manageMyAnimals",
-      icon: <FileText size={ICON_SIZES.SM} />,
-      adminOnly: false,
-    },
-    {
-      name: "Raças",
-      link: "/dashboardUser/breeds",
-      icon: <Dna size={ICON_SIZES.SM} />,
-      adminOnly: true,
-    },
-    {
-      name: "Tipos de Animal",
-      link: "/dashboardUser/animalSpecies",
-      icon: <Dna size={ICON_SIZES.SM} />,
-      adminOnly: true,
-    },
-    {
-      name: "Funcionários",
-      link: "/manageUsers",
-      icon: <Users size={ICON_SIZES.SM} />,
-      adminOnly: true,
-    },
-  ];
+  const brandBlock = (
+    <div className="p-4">
+      <IfpeBrand />
+      <div className="mt-5 flex items-center gap-3 border-t border-brand-border pt-5">
+        <Image
+          src="/logo_icon.svg"
+          alt="Logo QuaLeiDer"
+          className="h-10 w-10 rounded-md border border-brand-border bg-white p-1"
+          width={LOGO_SIZES.MD}
+          height={LOGO_SIZES.MD}
+        />
+        <div>
+          <h2 className="text-lg font-extrabold leading-tight text-gray-950">
+            QuaLeiDer
+          </h2>
+          <p className="text-[11px] font-semibold text-brand-muted">
+            {userRole === "association" ? "Associacao" : "Sistema pecuario"}
+          </p>
+          {isAdmin && (
+            <span className="text-[10px] font-bold uppercase tracking-wider text-gov-blue">
+              Administrador
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 
-  const menuItems = allMenuItems.filter((item) => !item.adminOnly || isAdmin);
+  const nav = (
+    <nav className="mt-4 space-y-2">
+      {menuItems.map((item) => (
+        <Link
+          key={item.link}
+          href={item.link}
+          onClick={() => setMenuOpen(false)}
+          className={`flex items-center gap-2 rounded-md border-l-4 px-3 py-3 text-sm font-semibold transition-colors duration-200 ${
+            pathname === item.link
+              ? activeClasses
+              : "border-transparent text-brand-muted hover:bg-gray-50 hover:text-brand-primary"
+          }`}
+        >
+          {item.icon}
+          {item.name}
+        </Link>
+      ))}
+    </nav>
+  );
 
-  if (!mounted) return <div className="w-64" />;
+  const footer = (
+    <div className="space-y-1 p-4">
+      <button
+        onClick={handleLogout}
+        className="flex w-full items-center gap-2 rounded-md p-3 text-sm font-semibold text-brand-secondary transition-colors hover:bg-red-50"
+      >
+        <LogOut size={ICON_SIZES.SM} />
+        Sair
+      </button>
+      <p className="px-3 text-[10px] text-brand-muted">
+        <AppVersionBadge />
+      </p>
+    </div>
+  );
+
+  if (isMobile) {
+    return (
+      <div className="relative">
+        <div className="fixed left-0 right-0 top-0 z-40 flex items-center justify-between border-b border-brand-border bg-white px-4 py-3 shadow-sm">
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="rounded-full border border-brand-border p-2 text-brand-muted"
+            aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
+          >
+            {menuOpen ? <X size={ICON_SIZES.MD} /> : <Menu size={ICON_SIZES.MD} />}
+          </button>
+          <IfpeBrand compact />
+        </div>
+
+        {menuOpen && (
+          <button
+            className="fixed inset-0 z-40 bg-black/30"
+            aria-label="Fechar menu"
+            onClick={() => setMenuOpen(false)}
+          />
+        )}
+
+        <aside
+          className={`fixed left-0 top-0 z-50 flex h-screen w-72 flex-col justify-between border-r border-brand-border bg-white shadow-lg transition-transform duration-300 ${
+            menuOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          <button
+            onClick={() => setMenuOpen(false)}
+            className="absolute right-4 top-4 rounded-full border border-brand-border p-2 text-brand-muted"
+            aria-label="Fechar menu"
+          >
+            <X size={ICON_SIZES.MD} />
+          </button>
+          <div>
+            {brandBlock}
+            {nav}
+          </div>
+          {footer}
+        </aside>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      {isMobile ? (
-        <div className="relative">
-          {/* Barra superior mobile */}
-          <div
-            className={`fixed top-0 left-0 right-0 ${sidebarBg} p-4 flex justify-between items-center z-40 shadow-md`}
-          >
-            <button onClick={toggleMenu} className="text-white">
-              {menuOpen ? (
-                <X size={ICON_SIZES.MD} />
-              ) : (
-                <Menu size={ICON_SIZES.MD} />
-              )}
-            </button>
-            <h2 className="text-white font-bold text-lg">QualeiDer</h2>
-          </div>
-
-          {/* Gaveta lateral mobile */}
-          <div
-            className={`fixed top-0 left-0 h-screen w-64 ${sidebarBg} shadow-lg p-4 transition-transform duration-300 z-50 ${
-              menuOpen ? "translate-x-0" : "-translate-x-full"
-            }`}
-          >
-            <button
-              onClick={toggleMenu}
-              className="absolute top-4 right-4 text-white"
-            >
-              <X size={ICON_SIZES.MD} />
-            </button>
-
-            <div className="flex items-center gap-2 p-4">
-              <Image
-                src="/logo_icon.svg"
-                alt="Logo"
-                className="w-10 h-10"
-                width={LOGO_SIZES.MD}
-                height={LOGO_SIZES.MD}
-              />
-              <div>
-                <h2 className="text-white font-bold text-lg leading-tight">
-                  QualeiDer
-                </h2>
-                {isAdmin && (
-                  <span className="text-[10px] uppercase tracking-wider font-semibold text-amber-200">
-                    Administrador
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <nav className="mt-6 space-y-4">
-              {menuItems.map((item) => (
-                <Link
-                  key={item.link}
-                  href={item.link}
-                  className={`flex items-center gap-2 p-3 rounded-lg transition-colors duration-200 ${
-                    pathname === item.link
-                      ? "text-gray-900 bg-white"
-                      : "text-white hover:bg-gray-200 hover:text-gray-900"
-                  }`}
-                >
-                  {item.icon}
-                  {item.name}
-                </Link>
-              ))}
-            </nav>
-
-            <div className="absolute bottom-4 left-4 space-y-1">
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 text-white p-3 rounded-lg hover:bg-red-600"
-              >
-                <LogOut size={ICON_SIZES.SM} />
-                Sair
-              </button>
-              <p className="text-[10px] text-white/60 px-3">
-                <AppVersionBadge />
-              </p>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <aside
-          className={`h-screen w-64 ${sidebarBg} shadow-lg p-4 flex flex-col justify-between`}
-        >
-          <div>
-            <div className="flex items-center gap-2 p-4">
-              <Image
-                src="/logo_icon.svg"
-                alt="Logo"
-                className="w-10 h-10"
-                width={LOGO_SIZES.MD}
-                height={LOGO_SIZES.MD}
-              />
-              <div>
-                <h2 className="text-white font-bold text-lg leading-tight">
-                  QualeiDer
-                </h2>
-                {isAdmin && (
-                  <span className="text-[10px] uppercase tracking-wider font-semibold text-amber-200">
-                    Administrador
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <nav className="mt-6 space-y-4">
-              {menuItems.map((item) => (
-                <Link
-                  key={item.link}
-                  href={item.link}
-                  className={`flex items-center gap-2 p-3 rounded-lg transition-colors duration-200 ${
-                    pathname === item.link
-                      ? "text-gray-900 bg-white"
-                      : "text-white hover:bg-gray-200 hover:text-gray-900"
-                  }`}
-                >
-                  {item.icon}
-                  {item.name}
-                </Link>
-              ))}
-            </nav>
-          </div>
-
-          <div className="p-4 space-y-1">
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 text-white p-3 rounded-lg hover:bg-red-600 hover:text-white w-full transition-colors duration-200"
-            >
-              <LogOut size={ICON_SIZES.SM} />
-              Sair
-            </button>
-            <p className="text-[10px] text-white/60 px-3">
-              <AppVersionBadge />
-            </p>
-          </div>
-        </aside>
-      )}
-    </div>
+    <aside className="flex h-screen w-72 flex-col justify-between border-r border-brand-border bg-white shadow-[0_1px_3px_rgba(16,24,16,0.06)]">
+      <div>
+        {brandBlock}
+        {nav}
+      </div>
+      {footer}
+    </aside>
   );
 }

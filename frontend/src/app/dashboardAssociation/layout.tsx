@@ -6,11 +6,9 @@ export default function AssociationDashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col md:flex-row bg-[#fdfbf7] min-h-screen">
+    <div className="campus-page-shell flex min-h-screen flex-col md:flex-row">
       <AssociationSidebar />
-      <div className="flex-1 h-screen overflow-y-auto w-full">
-        {children}
-      </div>
+      <div className="h-screen w-full flex-1 overflow-y-auto pt-16 md:pt-0">{children}</div>
     </div>
   );
 }

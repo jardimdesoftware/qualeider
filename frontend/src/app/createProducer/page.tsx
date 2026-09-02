@@ -124,7 +124,7 @@ export default function CreateProducer() {
   const isSubmitting = isPending;
 
   return (
-    <main className="flex justify-center items-center min-h-screen bg-gray-100 p-4">
+    <main className="campus-page-shell flex min-h-screen items-center justify-center px-4 py-10">
       <ErrorModal
         isOpen={modalState.isOpen}
         onClose={handleModalClose}
@@ -139,7 +139,7 @@ export default function CreateProducer() {
           subtitle="Cadastro do Administrador da Fazenda"
         />
 
-        <div className="px-6 py-6 md:px-8 md:py-8 pb-4 max-h-[80vh] overflow-y-auto">
+        <div className="max-h-[80vh] overflow-y-auto px-6 pb-4 pt-6 md:px-8 md:py-8">
           <MultiStepForm
             steps={formSteps}
             currentStep={currentStep}

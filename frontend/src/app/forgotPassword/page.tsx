@@ -69,7 +69,7 @@ export default function ForgotPassword() {
   };
 
   return (
-    <main className="flex justify-center items-center min-h-screen bg-gray-100 p-4">
+    <main className="campus-page-shell flex min-h-screen items-center justify-center px-4 py-10">
       <ErrorModal
         isOpen={modalState.isOpen}
         onClose={handleModalClose}

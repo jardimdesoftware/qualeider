@@ -1,6 +1,6 @@
-import Link from "next/link";
 import Image from "next/image";
 import { LOGO_SIZES } from "@/constants/ui";
+import { IfpeBrand } from "@/components/ui";
 
 interface InfoItem {
   title: string;
@@ -19,19 +19,20 @@ export default function InfoSidebar({
   items,
 }: InfoSidebarProps) {
   return (
-    <div className="hidden md:flex w-full md:w-1/2 bg-green-background p-12 flex-col justify-start relative">
+    <div className="relative hidden w-full flex-col justify-start border-r border-brand-border bg-white p-12 md:flex md:w-1/2">
       <div className="flex-1 flex flex-col justify-center">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl text-white font-bold mb-4">{title}</h1>
-          <p className="text-white text-base opacity-90">{subtitle}</p>
+        <div className="mb-8">
+          <IfpeBrand className="mb-8" />
+          <h1 className="mb-4 text-3xl font-extrabold text-gray-950">{title}</h1>
+          <p className="text-base text-brand-muted">{subtitle}</p>
         </div>
 
-        <div className="text-white space-y-6">
+        <div className="space-y-6 text-gray-800">
           {items.map((item, index) => (
             <div key={index} className="flex items-start space-x-3">
-              <div className="bg-white bg-opacity-20 rounded-full p-2 mt-1 flex-shrink-0">
+              <div className="mt-1 flex-shrink-0 rounded-full bg-brand-accent p-2 text-brand-primary">
                 <svg
-                  className="w-4 h-4 text-white"
+                  className="h-4 w-4"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -44,7 +45,7 @@ export default function InfoSidebar({
               </div>
               <div>
                 <h3 className="font-semibold mb-1 text-base">{item.title}</h3>
-                <p className="text-sm opacity-90">{item.description}</p>
+                <p className="text-sm text-brand-muted">{item.description}</p>
               </div>
             </div>
           ))}
@@ -53,7 +54,13 @@ export default function InfoSidebar({
 
       {/* Logo no canto inferior direito */}
       <div className="mt-auto flex justify-end pt-8">
-        <Image src="/logo_icon.svg" alt="Logo QualeIDer" className="w-20 h-20" width={LOGO_SIZES.XL} height={LOGO_SIZES.XL} />
+        <Image
+          src="/logo_icon.svg"
+          alt="Logo QualeIDer"
+          className="h-20 w-20 rounded-md border border-brand-border bg-white p-2"
+          width={LOGO_SIZES.XL}
+          height={LOGO_SIZES.XL}
+        />
       </div>
     </div>
   );
