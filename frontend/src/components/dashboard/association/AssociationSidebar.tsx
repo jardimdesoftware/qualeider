@@ -76,7 +76,7 @@ export function AssociationSidebar() {
       <IfpeBrand />
       <div className="mt-5 flex items-center gap-3 border-t border-brand-border pt-5">
         <Image
-          src="/logo_icon.svg"
+          src="/logo_cow.png"
           alt="Logo QuaLeiDer"
           className="h-10 w-10 rounded-md border border-brand-border bg-white p-1"
           width={40}
