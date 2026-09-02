@@ -1,40 +1,40 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { DashboardLayout } from "@/components/layout";
-import { PageHeader } from "@/components/dashboard";
-import { EmptyState, MetricCard } from "@/components/ui";
+import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import {
   Activity,
+  BarChart3,
+  Droplet,
   Milk,
-  Cat,
+  PawPrint,
   Ruler,
   TrendingUp,
-  Droplet,
-  BarChart3,
 } from "lucide-react";
-import dynamic from "next/dynamic";
+import { DashboardLoading, PageHeader } from "@/components/dashboard";
+import { EmptyState, MetricCard } from "@/components/ui";
+import { associationService } from "@/services/associationService";
+import { HerdStats } from "@/interfaces/association";
+
 const AnimalDistributionChart = dynamic(
   () => import("@/components/dashboard/AnimalDistributionChart"),
   {
     ssr: false,
     loading: () => (
-      <p className="text-center py-10 text-slate-400">Carregando gráfico...</p>
+      <p className="py-10 text-center text-brand-muted">Carregando gráfico...</p>
     ),
   },
 );
+
 const MilkLast7DaysChart = dynamic(
   () => import("@/components/dashboard/MilkLast7DaysChart"),
   {
     ssr: false,
     loading: () => (
-      <p className="text-center py-10 text-slate-400">Carregando gráfico...</p>
+      <p className="py-10 text-center text-brand-muted">Carregando gráfico...</p>
     ),
   },
 );
-import DashboardLoading from "@/components/dashboard/DashboardLoading";
-import { associationService } from "@/services/associationService";
-import { HerdStats } from "@/interfaces/association";
 
 export default function DashboardAssociation() {
   const [stats, setStats] = useState<HerdStats | null>(null);
@@ -55,19 +55,6 @@ export default function DashboardAssociation() {
     fetchData();
   }, []);
 
-  const [currentDate, setCurrentDate] = useState<string>("");
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- so calcula no client pra evitar mismatch de hidratacao (data depende do fuso do navegador)
-    setCurrentDate(
-      new Date().toLocaleDateString("pt-BR", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      }),
-    );
-  }, []);
-
   const totalAnimals = stats?.totalAnimals || 0;
   const totalMilkThisMonth = useMemo(() => stats?.totalMilkDay || 0, [stats]);
   const pieChartData = useMemo(() => stats?.breedDistribution || [], [stats]);
@@ -85,18 +72,20 @@ export default function DashboardAssociation() {
   }
 
   return (
-    <DashboardLayout>
-      <PageHeader title="Painel de Controle" subtitle="Bem-vindo de volta!" />
+    <>
+      <PageHeader
+        title="Painel da associação"
+        subtitle="Visão regional da produção, do rebanho e dos associados."
+      />
 
-      <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8">
-        {/* Empty States */}
+      <main className="mx-auto w-full max-w-7xl space-y-8 p-4 md:p-6 lg:p-8">
         {(!hasAnimals || !hasCollections) && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <section className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {!hasAnimals && (
               <EmptyState
-                icon={<Cat size={40} />}
+                icon={<PawPrint size={40} />}
                 title="Nenhum animal cadastrado"
-                description="Cadastre seu primeiro animal para ver métricas e gráficos."
+                description="Cadastre animais para visualizar métricas e gráficos."
                 actionHref="/manageMyAnimals"
                 actionLabel="Cadastrar animal"
               />
@@ -105,91 +94,86 @@ export default function DashboardAssociation() {
               <EmptyState
                 icon={<Milk size={40} />}
                 title="Nenhuma coleta diária registrada"
-                description="Registre sua primeira coleta para visualizar o histórico."
+                description="Registre coletas para visualizar o histórico."
                 actionHref="/dailyForm"
                 actionLabel="Registrar coleta"
               />
             )}
-          </div>
+          </section>
         )}
 
-        {/* Seção 1: Resumo do Mês */}
         <section>
-          <div className="flex items-center gap-2 mb-4">
-            <BarChart3 className="w-5 h-5 text-[#d97706]" />
-            <h3 className="text-lg font-bold text-[#1e3a29] uppercase tracking-wide">
-              Resumo do Mês
+          <div className="mb-4 flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-brand-primary" />
+            <h3 className="text-lg font-extrabold text-gray-950">
+              Resumo regional
             </h3>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
             <MetricCard
-              icon={<Cat size={24} />}
-              iconColor="text-green-600"
-              iconBgColor="bg-green-50"
-              borderColor="border-[#1e3a29]"
-              title="Total de Animais"
+              icon={<PawPrint size={24} />}
+              iconColor="text-brand-primary"
+              iconBgColor="bg-brand-accent"
+              title="Total de animais"
               value={totalAnimals}
             />
 
             <MetricCard
               icon={<Milk size={24} />}
-              iconColor="text-blue-600"
+              iconColor="text-gov-blue"
               iconBgColor="bg-blue-50"
-              borderColor="border-[#1e3a29]"
-              title="Leite Coletado"
+              borderColor="border-gov-blue"
+              title="Leite coletado"
               value={totalMilkThisMonth.toFixed(0)}
-              unit="Litros"
+              unit="litros"
             />
 
             <MetricCard
               icon={<Ruler size={24} />}
-              iconColor="text-purple-600"
-              iconBgColor="bg-purple-50"
-              borderColor="border-[#d97706]"
-              title="Idade Média"
+              iconColor="text-brand-secondary"
+              iconBgColor="bg-red-50"
+              borderColor="border-brand-secondary"
+              title="Idade média"
               value={averageAnimalAge.toFixed(1)}
               unit="anos"
             />
 
             <MetricCard
               icon={<TrendingUp size={24} />}
-              iconColor="text-amber-600"
-              iconBgColor="bg-amber-50"
-              borderColor="border-[#d97706]"
-              title="Média por Animal"
+              iconColor="text-brand-primary"
+              iconBgColor="bg-brand-accent"
+              title="Média por animal"
               value={avgProduction.toFixed(1)}
               unit="L/animal"
             />
 
             <MetricCard
               icon={<Activity size={24} />}
-              iconColor="text-green-700"
-              iconBgColor="bg-green-50"
-              borderColor="border-[#1e3a29]"
-              title="Total Ordenhas"
+              iconColor="text-brand-primary"
+              iconBgColor="bg-brand-accent"
+              title="Total de ordenhas"
               value={totalMilkingThisMonth}
-              unit="Realizadas"
+              unit="realizadas"
             />
 
             <MetricCard
               icon={<Droplet size={24} />}
-              iconColor="text-blue-600"
+              iconColor="text-gov-blue"
               iconBgColor="bg-blue-50"
-              borderColor="border-blue-400"
-              title="Vacas em Lactação"
+              borderColor="border-gov-blue"
+              title="Vacas em lactação"
               value={lactatingCows}
               unit="animais"
             />
           </div>
         </section>
 
-        {/* Seção 2: Gráficos */}
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <section className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           <AnimalDistributionChart data={pieChartData} />
           <MilkLast7DaysChart data={lineChartData} />
         </section>
-      </div>
-    </DashboardLayout>
+      </main>
+    </>
   );
 }

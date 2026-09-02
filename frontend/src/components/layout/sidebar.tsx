@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Dna,
   FileText,
@@ -26,13 +26,13 @@ import { IfpeBrand } from "@/components/ui";
 
 const menuItemsBase = [
   {
-    name: "Inicio",
+    name: "Início",
     link: "/dashboardUser",
     icon: <PieChart size={ICON_SIZES.SM} />,
     adminOnly: false,
   },
   {
-    name: "Dados diarios",
+    name: "Dados diários",
     link: "/dailyForm",
     icon: <Milk size={ICON_SIZES.SM} />,
     adminOnly: false,
@@ -44,7 +44,7 @@ const menuItemsBase = [
     adminOnly: false,
   },
   {
-    name: "Racas",
+    name: "Raças",
     link: "/dashboardUser/breeds",
     icon: <Dna size={ICON_SIZES.SM} />,
     adminOnly: true,
@@ -56,7 +56,7 @@ const menuItemsBase = [
     adminOnly: true,
   },
   {
-    name: "Funcionarios",
+    name: "Funcionários",
     link: "/manageUsers",
     icon: <Users size={ICON_SIZES.SM} />,
     adminOnly: true,
@@ -65,6 +65,7 @@ const menuItemsBase = [
 
 export default function Sidebar() {
   const router = useRouter();
+  const pathname = usePathname();
   const [isMobile, setIsMobile] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [userRole, setUserRole] = useState<"association" | "user" | null>(
@@ -73,7 +74,6 @@ export default function Sidebar() {
   const [userPermRole, setUserPermRole] = useState<"ADMIN" | "VAQUEIRO" | null>(
     null,
   );
-  const [pathname, setPathname] = useState("");
   const [mounted, setMounted] = useState(false);
 
   const debouncedCheckScreenSize = useMemo(
@@ -87,7 +87,6 @@ export default function Sidebar() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- window/token so existem no client, roda 1x no mount
     setMounted(true);
-    setPathname(window.location.pathname);
     setUserRole(getUserTypeFromToken());
     setUserPermRole(getUserRoleFromToken());
     debouncedCheckScreenSize();
@@ -114,7 +113,7 @@ export default function Sidebar() {
       <IfpeBrand />
       <div className="mt-5 flex items-center gap-3 border-t border-brand-border pt-5">
         <Image
-          src="/logo_icon.svg"
+          src="/logo_cow.png"
           alt="Logo QuaLeiDer"
           className="h-10 w-10 rounded-md border border-brand-border bg-white p-1"
           width={LOGO_SIZES.MD}
@@ -125,7 +124,7 @@ export default function Sidebar() {
             QuaLeiDer
           </h2>
           <p className="text-[11px] font-semibold text-brand-muted">
-            {userRole === "association" ? "Associacao" : "Sistema pecuario"}
+            {userRole === "association" ? "Associação" : "Sistema pecuário"}
           </p>
           {isAdmin && (
             <span className="text-[10px] font-bold uppercase tracking-wider text-gov-blue">

@@ -12,7 +12,7 @@ interface BrandHeaderProps {
 export default function BrandHeader({
   title,
   subtitle,
-  logoSrc = "/logo_icon.svg",
+  logoSrc = "/logo_cow.png",
   className = "bg-white",
 }: BrandHeaderProps) {
   return (

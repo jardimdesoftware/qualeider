@@ -55,7 +55,7 @@ export default function InfoSidebar({
       {/* Logo no canto inferior direito */}
       <div className="mt-auto flex justify-end pt-8">
         <Image
-          src="/logo_icon.svg"
+          src="/logo_cow.png"
           alt="Logo QualeIDer"
           className="h-20 w-20 rounded-md border border-brand-border bg-white p-2"
           width={LOGO_SIZES.XL}

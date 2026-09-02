@@ -7,10 +7,10 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   BarChart3,
   Bell,
-  Cat,
   LayoutDashboard,
   LogOut,
   Menu,
+  PawPrint,
   Settings,
   Users,
   X,
@@ -22,7 +22,7 @@ import { IfpeBrand } from "@/components/ui";
 const links = [
   {
     href: "/dashboardAssociation",
-    label: "Visao Regional",
+    label: "Visão regional",
     icon: LayoutDashboard,
   },
   {
@@ -32,22 +32,22 @@ const links = [
   },
   {
     href: "/dashboardAssociation/herd",
-    label: "Rebanho Regional",
-    icon: Cat,
+    label: "Rebanho regional",
+    icon: PawPrint,
   },
   {
     href: "/dashboardAssociation/reports",
-    label: "Relatorios",
+    label: "Relatórios",
     icon: BarChart3,
   },
   {
     href: "/dashboardAssociation/notifications",
-    label: "Notificacoes",
+    label: "Notificações",
     icon: Bell,
   },
   {
     href: "/settings",
-    label: "Configuracoes",
+    label: "Configurações",
     icon: Settings,
   },
 ];
@@ -76,7 +76,7 @@ export function AssociationSidebar() {
       <IfpeBrand />
       <div className="mt-5 flex items-center gap-3 border-t border-brand-border pt-5">
         <Image
-          src="/logo_icon.svg"
+          src="/logo_cow.png"
           alt="Logo QuaLeiDer"
           className="h-10 w-10 rounded-md border border-brand-border bg-white p-1"
           width={40}
@@ -84,7 +84,7 @@ export function AssociationSidebar() {
         />
         <div className="min-w-0">
           <h1 className="truncate text-base font-extrabold text-gray-950">
-            {isLoading ? "Carregando..." : association?.name || "Associacao"}
+            {isLoading ? "Carregando..." : association?.name || "Associação"}
           </h1>
           <p className="text-[10px] font-bold uppercase tracking-wider text-gov-blue">
             Administrador

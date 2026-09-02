@@ -1,48 +1,82 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { DashboardLayout } from "@/components/layout";
-import { PageHeader } from "@/components/dashboard";
-import { MetricCard, EmptyState, ErrorModal } from "@/components/ui";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import {
   Activity,
-  Milk,
-  Cat,
-  Ruler,
-  TrendingUp,
-  ClipboardList,
   BarChart3,
+  ClipboardList,
+  Dna,
+  Milk,
+  PawPrint,
+  Ruler,
+  ShieldCheck,
+  TrendingUp,
+  UserPlus,
+  Users,
 } from "lucide-react";
-import dynamic from "next/dynamic";
+import { DashboardLayout } from "@/components/layout";
+import { DashboardLoading, PageHeader } from "@/components/dashboard";
+import { EmptyState, ErrorModal, MetricCard } from "@/components/ui";
+import { ICON_SIZES } from "@/constants/ui";
+import { useUserDashboard } from "@/hooks/queries/useDashboard";
+import { useRespondInvite } from "@/hooks/queries/useInvites";
+import { useAuthGuard } from "@/hooks/useAuthGuard";
+import { getUserRoleFromToken } from "@/utils/auth";
 
 const AnimalDistributionChart = dynamic(
   () => import("@/components/dashboard/AnimalDistributionChart"),
   {
     ssr: false,
     loading: () => (
-      <p className="text-center py-10 text-slate-400">Carregando gráfico...</p>
+      <p className="py-10 text-center text-brand-muted">Carregando gráfico...</p>
     ),
   },
 );
+
 const MilkLast7DaysChart = dynamic(
   () => import("@/components/dashboard/MilkLast7DaysChart"),
   {
     ssr: false,
     loading: () => (
-      <p className="text-center py-10 text-slate-400">Carregando gráfico...</p>
+      <p className="py-10 text-center text-brand-muted">Carregando gráfico...</p>
     ),
   },
 );
-import DashboardLoading from "@/components/dashboard/DashboardLoading";
-import { useAuthGuard } from "@/hooks/useAuthGuard";
-import { ICON_SIZES } from "@/constants/ui";
-import { useUserDashboard } from "@/hooks/queries/useDashboard";
-import { useRespondInvite } from "@/hooks/queries/useInvites";
+
+const adminActions = [
+  {
+    href: "/manageUsers",
+    title: "Funcionários",
+    description: "Gerencie permissões e acessos da equipe.",
+    icon: Users,
+  },
+  {
+    href: "/dashboardUser/breeds",
+    title: "Raças",
+    description: "Mantenha as classificações do rebanho atualizadas.",
+    icon: Dna,
+  },
+  {
+    href: "/dashboardUser/animalSpecies",
+    title: "Tipos de animal",
+    description: "Organize os tipos usados nos cadastros.",
+    icon: PawPrint,
+  },
+  {
+    href: "/manageMyAnimals/addAnimal",
+    title: "Novo animal",
+    description: "Cadastre rapidamente um animal no sistema.",
+    icon: UserPlus,
+  },
+];
 
 export default function DashboardUser() {
-  const router = useRouter();
   const { userId, isLoading: isAuthLoading } = useAuthGuard("user");
+  const [userPermRole, setUserPermRole] = useState<"ADMIN" | "VAQUEIRO" | null>(
+    null,
+  );
 
   const {
     animals,
@@ -52,13 +86,20 @@ export default function DashboardUser() {
   } = useUserDashboard(userId);
   const respondInvite = useRespondInvite();
 
-  // Modal states
   const [modalState, setModalState] = useState({
     isOpen: false,
     title: "",
     message: "",
     type: "success" as "success" | "error" | "info",
   });
+
+  useEffect(() => {
+    // Token is only available in the browser.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setUserPermRole(getUserRoleFromToken());
+  }, []);
+
+  const isAdmin = userPermRole === "ADMIN";
 
   const handleInviteResponse = async (
     token: string,
@@ -96,20 +137,6 @@ export default function DashboardUser() {
 
   const totalAnimals = useMemo(() => animals.length, [animals.length]);
 
-  const [currentDate, setCurrentDate] = useState<string>("");
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- so calcula no client pra evitar mismatch de hidratacao (data depende do fuso do navegador)
-    setCurrentDate(
-      new Date().toLocaleDateString("pt-BR", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      }),
-    );
-  }, []);
-
-  // Filtra as coleções do mês atual
   const thisMonthCollections = useMemo(() => {
     const today = new Date();
     return dailyCollections.filter((collection) => {
@@ -121,18 +148,17 @@ export default function DashboardUser() {
     });
   }, [dailyCollections]);
 
-  // Dados para o gráfico histórico (últimos 7 dias)
   const lineChartData = useMemo(() => {
     const milkByDayLast7Days = dailyCollections
       .filter((collection: any) => {
         const collectionDate = new Date(collection.collectionDate);
-        const t = new Date();
-        const sevenDaysAgo = new Date(t);
-        sevenDaysAgo.setDate(t.getDate() - 7);
-        return collectionDate >= sevenDaysAgo && collectionDate <= t;
+        const today = new Date();
+        const sevenDaysAgo = new Date(today);
+        sevenDaysAgo.setDate(today.getDate() - 7);
+        return collectionDate >= sevenDaysAgo && collectionDate <= today;
       })
       .reduce(
-        (acc: any, collection: any) => {
+        (acc: Record<string, number>, collection: any) => {
           const date = new Date(collection.collectionDate).toLocaleDateString(
             "pt-BR",
             {
@@ -146,15 +172,11 @@ export default function DashboardUser() {
         {} as Record<string, number>,
       );
 
-    return (Object.entries(milkByDayLast7Days) as [string, number][]).map(
-      ([date, quantity]) => ({
-        date,
-        quantity,
-      }),
-    );
+    return Object.entries(milkByDayLast7Days).map(([date, quantity]) => ({
+      date,
+      quantity,
+    }));
   }, [dailyCollections]);
-
-  // --- MÉTRICAS REVISADAS (Usando thisMonthCollections ao invés de dailyCollections) ---
 
   const totalMilkThisMonth = useMemo(
     () =>
@@ -221,40 +243,76 @@ export default function DashboardUser() {
   return (
     <>
       <DashboardLayout>
-        <PageHeader title="Painel de Controle" subtitle="Bem-vindo de volta!" />
+        <PageHeader
+          title={isAdmin ? "Painel do administrador" : "Painel de controle"}
+          subtitle={
+            isAdmin
+              ? "Acompanhe a produção e gerencie os dados da propriedade."
+              : "Acompanhe as coletas e a evolução do rebanho."
+          }
+        />
 
-        {/* --- CORREÇÃO DE LAYOUT: bg e w-full aplicados no Container --- */}
-        <div className="w-full min-h-screen bg-slate-50 p-4 md:p-6 lg:p-8 space-y-8">
-          {/* Pending Invites Section */}
+        <main className="mx-auto w-full max-w-7xl space-y-8 p-4 md:p-6 lg:p-8">
+          {isAdmin && (
+            <section className="campus-card overflow-hidden">
+              <div className="border-b border-brand-border bg-white px-5 py-4">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="h-5 w-5 text-gov-blue" />
+                  <h3 className="text-lg font-extrabold text-gray-950">
+                    Gestão administrativa
+                  </h3>
+                </div>
+                <p className="mt-1 text-sm text-brand-muted">
+                  Acesso rápido às rotinas que exigem perfil de administrador.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 xl:grid-cols-4">
+                {adminActions.map(({ href, title, description, icon: Icon }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="rounded-md border border-brand-border bg-gray-50 p-4 transition hover:border-brand-primary hover:bg-brand-accent"
+                  >
+                    <Icon className="mb-3 h-6 w-6 text-brand-primary" />
+                    <h4 className="font-bold text-gray-950">{title}</h4>
+                    <p className="mt-1 text-sm text-brand-muted">
+                      {description}
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+
           {invites.length > 0 && (
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-              <h3 className="text-lg font-bold text-[#1e3a29] mb-4">
-                Convites Pendentes
+            <section className="campus-card p-5">
+              <h3 className="text-lg font-extrabold text-gray-950">
+                Convites pendentes
               </h3>
-              <div className="space-y-4">
+              <div className="mt-4 space-y-3">
                 {invites.map((invite) => (
                   <div
                     key={invite.id}
-                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-slate-50 rounded-lg border border-slate-200"
+                    className="flex flex-col gap-3 rounded-md border border-brand-border bg-gray-50 p-4 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div>
-                      <p className="font-semibold text-slate-800">
-                        Convite da Associação{" "}
-                        <span className="text-[#1e3a29]">
+                      <p className="font-semibold text-gray-950">
+                        Convite da associação{" "}
+                        <span className="text-brand-primary">
                           {invite.association?.name}
                         </span>
                       </p>
-                      <p className="text-sm text-slate-600">
+                      <p className="text-sm text-brand-muted">
                         {invite.message ||
                           "Gostaríamos que você fizesse parte da nossa associação."}
                       </p>
                     </div>
-                    <div className="flex gap-2 shrink-0">
+                    <div className="flex shrink-0 gap-2">
                       <button
                         onClick={() =>
                           handleInviteResponse(invite.token, "Decline")
                         }
-                        className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                        className="flex-1 rounded-full border border-red-200 bg-white px-4 py-2 text-sm font-bold text-brand-secondary transition hover:bg-red-50 sm:flex-none"
                       >
                         Recusar
                       </button>
@@ -262,7 +320,7 @@ export default function DashboardUser() {
                         onClick={() =>
                           handleInviteResponse(invite.token, "Accept")
                         }
-                        className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium text-white bg-[#1e3a29] hover:bg-[#142920] rounded-lg transition-colors shadow-sm"
+                        className="flex-1 rounded-full bg-brand-primary px-4 py-2 text-sm font-bold text-white transition hover:bg-brand-primary-hover sm:flex-none"
                       >
                         Aceitar
                       </button>
@@ -270,15 +328,14 @@ export default function DashboardUser() {
                   </div>
                 ))}
               </div>
-            </div>
+            </section>
           )}
 
-          {/* Empty States */}
           {(!hasAnimals || !hasCollections) && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <section className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {!hasAnimals && (
                 <EmptyState
-                  icon={<Cat size={ICON_SIZES.XL} />}
+                  icon={<PawPrint size={ICON_SIZES.XL} />}
                   title="Nenhum animal cadastrado"
                   description="Cadastre seu primeiro animal para ver métricas e gráficos."
                   actionHref="/manageMyAnimals"
@@ -294,88 +351,81 @@ export default function DashboardUser() {
                   actionLabel="Registrar coleta"
                 />
               )}
-            </div>
+            </section>
           )}
 
-          {/* Seção 1: Resumo do Mês */}
           <section>
-            <div className="flex items-center gap-2 mb-4">
-              <BarChart3 className="w-5 h-5 text-[#d97706]" />
-              <h3 className="text-lg font-bold text-[#1e3a29] uppercase tracking-wide">
-                Resumo do Mês
+            <div className="mb-4 flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-brand-primary" />
+              <h3 className="text-lg font-extrabold text-gray-950">
+                Resumo do mês
               </h3>
             </div>
 
-            {/* --- CORREÇÃO DE GRID DOS CARDS --- */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
               <MetricCard
-                icon={<Cat size={ICON_SIZES.MD} />}
-                iconColor="text-green-600"
-                iconBgColor="bg-green-50"
-                borderColor="border-[#1e3a29]"
-                title="Total de Animais"
+                icon={<PawPrint size={ICON_SIZES.MD} />}
+                iconColor="text-brand-primary"
+                iconBgColor="bg-brand-accent"
+                title="Total de animais"
                 value={totalAnimals}
               />
 
               <MetricCard
                 icon={<Milk size={ICON_SIZES.MD} />}
-                iconColor="text-blue-600"
+                iconColor="text-gov-blue"
                 iconBgColor="bg-blue-50"
-                borderColor="border-[#1e3a29]"
-                title="Leite Coletado"
+                borderColor="border-gov-blue"
+                title="Leite coletado"
                 value={totalMilkThisMonth.toFixed(0)}
-                unit="Litros"
+                unit="litros"
               />
 
               <MetricCard
                 icon={<Ruler size={ICON_SIZES.MD} />}
-                iconColor="text-purple-600"
-                iconBgColor="bg-purple-50"
-                borderColor="border-[#d97706]"
-                title="Idade Média"
+                iconColor="text-brand-secondary"
+                iconBgColor="bg-red-50"
+                borderColor="border-brand-secondary"
+                title="Idade média"
                 value={averageAnimalAge.toFixed(1)}
                 unit="anos"
               />
 
               <MetricCard
                 icon={<TrendingUp size={ICON_SIZES.MD} />}
-                iconColor="text-amber-600"
-                iconBgColor="bg-amber-50"
-                borderColor="border-[#d97706]"
-                title="Média por Animal"
+                iconColor="text-brand-primary"
+                iconBgColor="bg-brand-accent"
+                title="Média por animal"
                 value={avgMilkPerAnimal.toFixed(1)}
                 unit="L/animal"
               />
 
               <MetricCard
                 icon={<Activity size={ICON_SIZES.MD} />}
-                iconColor="text-green-700"
-                iconBgColor="bg-green-50"
-                borderColor="border-[#1e3a29]"
-                title="Total Ordenhas"
+                iconColor="text-brand-primary"
+                iconBgColor="bg-brand-accent"
+                title="Total de ordenhas"
                 value={totalMilkingThisMonth}
-                unit="Realizadas"
+                unit="realizadas"
               />
 
               <MetricCard
                 icon={<ClipboardList size={ICON_SIZES.MD} />}
-                iconColor="text-sky-600"
-                iconBgColor="bg-sky-50"
-                borderColor="border-sky-400"
-                title="Coletas no Mês"
+                iconColor="text-gov-blue"
+                iconBgColor="bg-blue-50"
+                borderColor="border-gov-blue"
+                title="Coletas no mês"
                 value={totalCollectionsThisMonth}
-                unit="Registros"
+                unit="registros"
               />
             </div>
           </section>
 
-          {/* Seção 2: Gráficos */}
-          {/* Os componentes de gráfico já possuem seu próprio card (fundo, borda e altura) */}
-          <section className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
+          <section className="grid grid-cols-1 items-start gap-5 xl:grid-cols-2">
             <AnimalDistributionChart data={pieChartData} />
             <MilkLast7DaysChart data={lineChartData} />
           </section>
-        </div>
+        </main>
       </DashboardLayout>
 
       <ErrorModal

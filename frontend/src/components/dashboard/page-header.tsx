@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useState, useEffect } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { Calendar } from "lucide-react";
 
 interface PageHeaderProps {
@@ -19,8 +19,8 @@ export default function PageHeader({
   const [currentDate, setCurrentDate] = useState<string>("");
 
   useEffect(() => {
-    // Only compute date on client side to prevent hydration mismatch
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- ver comentario acima
+    // Calculated on the client to avoid timezone hydration mismatch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentDate(
       new Date().toLocaleDateString("pt-BR", {
         day: "2-digit",
@@ -31,32 +31,33 @@ export default function PageHeader({
   }, []);
 
   return (
-    <header className="bg-white shadow-sm border-b border-slate-200 px-6 md:px-8 py-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <header className="border-b border-brand-border bg-white/95 px-4 py-5 shadow-[0_1px_2px_rgba(12,50,111,0.04)] md:px-8 md:py-6">
+      <div className="mx-auto flex max-w-7xl flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
-          <h2 className="text-2xl md:text-3xl font-black text-[#1e3a29]">
+          <p className="campus-section-label mb-1">QuaLeiDer</p>
+          <h2 className="text-2xl font-extrabold tracking-normal text-gray-950 md:text-3xl">
             {title}
           </h2>
-          {subtitle && <p className="text-slate-500">{subtitle}</p>}
+          {subtitle && <p className="mt-1 text-sm text-brand-muted">{subtitle}</p>}
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-3">
           {actions}
 
           {showDate && (
-            <div className="flex items-center gap-4 bg-[#fdfbf7] px-4 py-2 rounded-lg border border-slate-200">
-              <div className="text-right hidden md:block">
-                <p className="text-xs text-slate-400 font-bold uppercase">
-                  Data de Hoje
+            <div className="flex items-center gap-3 rounded-md border border-brand-border bg-gray-50 px-3 py-2">
+              <div className="hidden text-right md:block">
+                <p className="text-[10px] font-bold uppercase text-brand-muted">
+                  Data de hoje
                 </p>
                 <p
-                  className="text-[#1e3a29] font-bold"
+                  className="text-sm font-bold text-gray-950"
                   suppressHydrationWarning
                 >
                   {currentDate || "Carregando..."}
                 </p>
               </div>
-              <Calendar className="w-8 h-8 text-[#d97706]" />
+              <Calendar className="h-6 w-6 text-brand-primary" />
             </div>
           )}
         </div>
