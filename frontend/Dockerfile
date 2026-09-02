@@ -2,7 +2,7 @@
 # Dockerfile — Frontend Qualeider (Multi-arch)
 # =============================================================================
 # Multi-stage build para Next.js com suporte a AMD64 + ARM64 (via buildx)
-# - Versões de imagem fixadas (node:26.8-alpine3.24)
+# - Versões de imagem alinhadas ao Node usado no CI (node:24-alpine)
 # - Usuário não-root
 # - Build standalone do Next.js
 # =============================================================================
@@ -10,13 +10,15 @@
 # ---------------------------------------------------------------------------
 # Stage 1: Instalar dependências
 # ---------------------------------------------------------------------------
-FROM node:26.8-alpine3.24 AS deps
+FROM node:24-alpine AS deps
 
 # Argumentos de build para multi-arch (informativo)
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 
 WORKDIR /usr/appFrontend
+
+RUN apk upgrade --no-cache
 
 # Copiar arquivos de dependência
 COPY package.json package-lock.json ./
@@ -27,9 +29,11 @@ RUN npm ci
 # ---------------------------------------------------------------------------
 # Stage 2: Build da aplicação
 # ---------------------------------------------------------------------------
-FROM node:26.8-alpine3.24 AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /usr/appFrontend
+
+RUN apk upgrade --no-cache
 
 # Copiar dependências do stage anterior
 COPY --from=deps /usr/appFrontend/node_modules ./node_modules
@@ -48,14 +52,15 @@ RUN npm run build
 # ---------------------------------------------------------------------------
 # Stage 3: Imagem de produção
 # ---------------------------------------------------------------------------
-FROM node:26.8-alpine3.24 AS runner
+FROM node:24-alpine AS runner
 
 WORKDIR /usr/appFrontend
 
 ENV NODE_ENV=production
 
 # Instalar wget para o healthcheck
-RUN apk add --no-cache wget && \
+RUN apk upgrade --no-cache && \
+    apk add --no-cache wget && \
     rm -rf /var/cache/apk/*
 
 # Criar usuário não-root
