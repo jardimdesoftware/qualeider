@@ -1,18 +1,12 @@
 <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Círculo Fundo Verde Escuro -->
-  <circle cx="60" cy="60" r="58" fill="#1e3a29"/>
-  
-  <!-- Círculo Borda Laranja -->
-  <circle cx="60" cy="60" r="52" stroke="#d97706" stroke-width="3" fill="none"/>
-  
-  <!-- Sol/Horizonte ao fundo -->
-  <path d="M20 70 Q 60 30 100 70" fill="#d97706"/>
-  
-  <!-- Vaca (Desenho Sólido e Claro) -->
-  <path d="M35 55 C30 45 35 30 40 30 L45 35 H75 L80 30 C85 30 90 45 85 55 L85 85 C85 95 60 95 60 95 C60 95 35 95 35 85 Z" fill="white"/>
-  
-  <!-- Detalhes da Vaca -->
-  <path d="M40 85 L80 85" stroke="#1e3a29" stroke-width="2"/>
-  <circle cx="48" cy="50" r="3" fill="#1e3a29"/>
-  <circle cx="72" cy="50" r="3" fill="#1e3a29"/>
+  <rect width="120" height="120" rx="28" fill="#F8F8F8"/>
+  <path d="M0 28C0 12.536 12.536 0 28 0h64c15.464 0 28 12.536 28 28v9H0v-9Z" fill="#2F9E41"/>
+  <path d="M0 28C0 12.536 12.536 0 28 0h8v37H0v-9Z" fill="#CD191E"/>
+  <rect x="15" y="15" width="90" height="90" rx="22" fill="white" stroke="#E0E0E0" stroke-width="2"/>
+  <path d="M36 51c-5-6-8-13-6-17 6-1 13 4 17 10h26c4-6 11-11 17-10 2 4-1 11-6 17 3 5 5 12 5 20 0 18-12 29-29 29S31 89 31 71c0-8 2-15 5-20Z" fill="#E1F5E6"/>
+  <path d="M43 47c5-4 12-6 17-6s12 2 17 6c6 5 9 13 9 24 0 16-10 25-26 25s-26-9-26-25c0-11 3-19 9-24Z" fill="#FFFFFF" stroke="#2F9E41" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M50 71c2 4 5 6 10 6s8-2 10-6" stroke="#0C326F" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="50" cy="59" r="4" fill="#0C326F"/>
+  <circle cx="70" cy="59" r="4" fill="#0C326F"/>
+  <path d="M54 68h12" stroke="#CD191E" stroke-width="3" stroke-linecap="round"/>
 </svg>
