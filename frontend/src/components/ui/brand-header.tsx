@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { LOGO_SIZES } from "@/constants/ui";
+import IfpeBrand from "./ifpe-brand";
 
 interface BrandHeaderProps {
   title: string;
@@ -12,29 +13,31 @@ export default function BrandHeader({
   title,
   subtitle,
   logoSrc = "/logo_icon.svg",
-  className = "bg-brand-primary", // Default color
+  className = "bg-white",
 }: BrandHeaderProps) {
   return (
-    <div className={`${className} pt-12 pb-8 px-8 relative`}>
-      <div className="flex justify-center mb-6">
+    <div className={`${className} relative border-t-4 border-brand-primary px-6 pb-7 pt-8 md:px-8`}>
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <IfpeBrand />
         <Image
           src={logoSrc}
           alt={`${title} Logo`}
-          className="w-24 h-24"
-          width={LOGO_SIZES.XXL}
-          height={LOGO_SIZES.XXL}
+          className="h-14 w-14 rounded-md border border-brand-border bg-white p-1"
+          width={LOGO_SIZES.LG}
+          height={LOGO_SIZES.LG}
         />
       </div>
 
-      <h1 className="text-white text-4xl font-bold text-center mb-2">
+      <h1 className="mb-2 text-left text-2xl font-extrabold text-gray-950 md:text-3xl">
         {title}
       </h1>
 
-      <p className="text-brand-accent text-center text-sm font-semibold tracking-wide">
+      <p className="text-left text-sm font-semibold text-brand-muted">
         {subtitle}
       </p>
 
-      <div className="absolute bottom-0 left-0 right-0 h-1 bg-brand-secondary"></div>
+      <div className="absolute bottom-0 left-0 h-1 w-[6%] bg-brand-secondary" />
+      <div className="absolute bottom-0 left-[6%] right-0 h-1 bg-brand-primary" />
     </div>
   );
 }

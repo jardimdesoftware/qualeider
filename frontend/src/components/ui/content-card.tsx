@@ -11,7 +11,7 @@ export default function ContentCard({
 }: ContentCardProps) {
   return (
     <div
-      className={`w-full max-w-md bg-white shadow-2xl rounded-2xl overflow-hidden ${className}`}
+      className={`w-full max-w-md overflow-hidden rounded-lg border border-brand-border bg-white shadow-[0_1px_3px_rgba(16,24,16,0.06)] ${className}`}
     >
       {children}
     </div>

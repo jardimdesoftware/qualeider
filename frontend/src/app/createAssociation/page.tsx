@@ -202,7 +202,7 @@ export default function CreateAssociation() {
   const cidadeOptions = cidades.map((c) => ({ value: c.nome, label: c.nome }));
 
   return (
-    <main className="flex justify-center items-center min-h-screen bg-gray-100 p-4">
+    <main className="campus-page-shell flex min-h-screen items-center justify-center px-4 py-10">
       <ErrorModal
         isOpen={modalState.isOpen}
         onClose={handleModalClose}
@@ -215,10 +215,9 @@ export default function CreateAssociation() {
         <BrandHeader
           title="Cadastro de Associação"
           subtitle="Registre sua associação"
-          className="bg-brand-secondary"
         />
 
-        <div className="p-8 pb-6 max-h-[75vh] overflow-y-auto">
+        <div className="max-h-[75vh] overflow-y-auto p-6 pb-6 md:p-8">
           <MultiStepForm
             steps={formSteps}
             currentStep={currentStep}

@@ -46,7 +46,7 @@ export default function Login() {
   };
 
   return (
-    <main className="flex justify-center items-center min-h-screen bg-gray-100 p-4">
+    <main className="campus-page-shell flex min-h-screen items-center justify-center px-4 py-10">
       <ErrorModal
         isOpen={showErrorModal}
         onClose={() => setShowErrorModal(false)}
@@ -59,8 +59,8 @@ export default function Login() {
           subtitle="Controle de sua produção leiteira"
         />
 
-        <div className="px-6 py-6 md:px-8 md:py-8 pb-6">
-          <h2 className="text-brand-primary text-2xl font-bold text-center mb-6">
+        <div className="px-6 pb-6 pt-6 md:px-8 md:py-8">
+          <h2 className="mb-6 text-center text-2xl font-extrabold text-gray-950">
             Entrar
           </h2>
 
