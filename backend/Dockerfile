@@ -14,7 +14,7 @@
 # ---------------------------------------------------------------------------
 # Stage 1: Builder
 # ---------------------------------------------------------------------------
-FROM node:24-alpine AS builder
+FROM node:26-alpine AS builder
 
 # Argumentos de build para multi-arch (informativo)
 ARG TARGETPLATFORM
@@ -45,7 +45,7 @@ RUN npm run build
 # ---------------------------------------------------------------------------
 # Stage 2: Production
 # ---------------------------------------------------------------------------
-FROM node:24-alpine AS production
+FROM node:26-alpine AS production
 
 # Instalar dumb-init (init process correto para PID 1) e wget para healthcheck
 RUN apk upgrade --no-cache && \
