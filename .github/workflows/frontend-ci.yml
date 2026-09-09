@@ -82,9 +82,13 @@ jobs:
       - name: Write PR body and log context
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
           echo "Event: ${{ github.event_name }}"
           echo "PR merged: ${{ github.event.pull_request.merged }}"
+          echo "PR title: $PR_TITLE"
+          echo "PR author: $PR_AUTHOR"
           printf '%s' "$PR_BODY" > body.txt
           echo "--- PR body ---"
           cat body.txt
@@ -92,6 +96,9 @@ jobs:
 
       - name: Extract type of change from PR
         id: change_type
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             echo "change_type=${{ inputs.change_type }}" >> "$GITHUB_OUTPUT"
@@ -107,6 +114,9 @@ jobs:
             change_type="bug-fix"
           elif grep -qiE "\[x\]\s*\`?outros\`?" body.txt; then
             change_type="outros"
+          elif [[ "$PR_AUTHOR" == "dependabot[bot]" || "$PR_TITLE" =~ ^chore\(deps.*\): || "$PR_TITLE" =~ ^Bump[[:space:]] ]]; then
+            echo "PR automatico de dependencias sem template detectado. Usando change_type=bug-fix."
+            change_type="bug-fix"
           else
             echo "Nenhuma opção marcada corretamente no corpo do PR. Conteúdo:"
             cat body.txt
