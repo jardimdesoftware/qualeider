@@ -31,9 +31,9 @@ on:
   workflow_dispatch:
     inputs:
       change_type:
-        description: 'Tipo de mudança (novo-marco, nova-feature-refactor, bug-fix, outros)'
+        description: "Tipo de mudança (novo-marco, nova-feature-refactor, bug-fix, outros)"
         required: true
-        default: 'bug-fix'
+        default: "bug-fix"
         type: choice
         options:
           - novo-marco
@@ -279,28 +279,35 @@ jobs:
 
       # --- Trivy Image Scan (bloqueia CRITICAL/HIGH em main e PRs para main) ---
       - name: Trivy — Docker Image Scan
+        if: always() && steps.push.outcome == 'success'
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.tag-creation.outputs.created_tag }}"
+          image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}"
           format: "table"
           exit-code: ${{ env.TRIVY_BLOCKING_EXIT_CODE }}
           severity: "CRITICAL,HIGH"
           ignore-unfixed: true
           trivyignores: "frontend/.trivyignore"
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
 
       # --- Trivy Image SARIF ---
       - name: Trivy — Image SARIF Report
-        if: always()
+        if: always() && steps.push.outcome == 'success'
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.tag-creation.outputs.created_tag }}"
+          image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}"
           format: "sarif"
           output: "trivy-frontend-image.sarif"
           severity: "CRITICAL,HIGH,MEDIUM"
           trivyignores: "frontend/.trivyignore"
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Image SARIF to GitHub Security
-        if: always()
+        if: always() && steps.push.outcome == 'success'
         continue-on-error: true
         uses: github/codeql-action/upload-sarif@v4
         with:
