@@ -164,7 +164,7 @@ describe('Auth DTOs', () => {
       it('deve aceitar token válido', async () => {
         const dto = plainToInstance(ResetPasswordDto, {
           email: 'user@example.com',
-          token: 'abc123-token',
+          token: '123456',
           newPassword: 'newPassword123',
         });
 
@@ -218,7 +218,7 @@ describe('Auth DTOs', () => {
       it('deve validar DTO completo sem erros', async () => {
         const dto = plainToInstance(ResetPasswordDto, {
           email: 'silva.santos@example.com',
-          token: 'abc123-reset-token',
+          token: '123456',
           newPassword: 'NovaSenha@2024',
         });
 

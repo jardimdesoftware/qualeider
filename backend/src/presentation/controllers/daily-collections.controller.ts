@@ -46,8 +46,19 @@ export class DailyCollectionsController {
   @Post()
   @UsePipes(new ValidationPipe({ transform: true }))
   @ResponseMessage('Coleta criada com sucesso')
-  async create(@Body() createDailyCollectionDto: CreateDailyCollectionDto) {
-    return this.dailyCollectionsService.create(createDailyCollectionDto);
+  async create(
+    @Body() createDailyCollectionDto: CreateDailyCollectionDto,
+    @GetUser('id') requesterId: number,
+    @GetUser('role') requesterRole?: UserRole,
+    @GetUser('associationId') requesterAssociationId?: number | null,
+    @GetUser('adminId') requesterAdminId?: number | null,
+  ) {
+    return this.dailyCollectionsService.create(createDailyCollectionDto, {
+      id: requesterId,
+      role: requesterRole,
+      associationId: requesterAssociationId,
+      adminId: requesterAdminId,
+    });
   }
 
   @ApiOperation({ summary: 'Listar todos os formulários cadastrados' })
@@ -98,8 +109,17 @@ export class DailyCollectionsController {
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateDailyCollectionDto: UpdateDailyCollectionDto,
+    @GetUser('id') requesterId: number,
+    @GetUser('role') requesterRole?: UserRole,
+    @GetUser('associationId') requesterAssociationId?: number | null,
+    @GetUser('adminId') requesterAdminId?: number | null,
   ) {
-    return this.dailyCollectionsService.update(id, updateDailyCollectionDto);
+    return this.dailyCollectionsService.update(id, updateDailyCollectionDto, {
+      id: requesterId,
+      role: requesterRole,
+      associationId: requesterAssociationId,
+      adminId: requesterAdminId,
+    });
   }
 
   @ApiOperation({ summary: 'Excluir formulário pelo ID' })
@@ -109,8 +129,19 @@ export class DailyCollectionsController {
   @ApiResponse({ status: 404, description: 'Formulário não encontrado' })
   @Delete(':id')
   @ResponseMessage('Coleta excluída com sucesso')
-  async remove(@Param('id', ParseIntPipe) id: number) {
-    return this.dailyCollectionsService.remove(id);
+  async remove(
+    @Param('id', ParseIntPipe) id: number,
+    @GetUser('id') requesterId: number,
+    @GetUser('role') requesterRole?: UserRole,
+    @GetUser('associationId') requesterAssociationId?: number | null,
+    @GetUser('adminId') requesterAdminId?: number | null,
+  ) {
+    return this.dailyCollectionsService.remove(id, {
+      id: requesterId,
+      role: requesterRole,
+      associationId: requesterAssociationId,
+      adminId: requesterAdminId,
+    });
   }
 
   @ApiOperation({
@@ -128,17 +159,27 @@ export class DailyCollectionsController {
     @Param('userId', ParseIntPipe) userId: number,
     @GetUser('role') role?: UserRole,
     @GetUser('associationId') associationId?: number | null,
+    @GetUser('adminId') requesterAdminId?: number | null,
   ) {
+    if (associationId) {
+      // Todo usuario (ADMIN ou VAQUEIRO) vinculado a uma associacao
+      // (cooperativa) enxerga as mesmas coletas: elas pertencem a
+      // associacao, nao a quem as registrou individualmente.
+      return this.dailyCollectionsService.findAll({ associationId, limit: MAX_LIMIT });
+    }
     if (role === UserRole.ADMIN) {
-      // Se o admin pertence a uma associacao (cooperativa), restringe aos
-      // produtores dessa associacao. Caso contrario (cenario padrao atual,
-      // sem cooperativa), o admin enxerga as coletas de todos os produtores
-      // cadastrados no sistema - assim como ja ocorre em "Gerenciar Usuarios".
-      if (associationId) {
-        return this.dailyCollectionsService.findAll({ associationId, limit: MAX_LIMIT });
-      }
+      // Cenario padrao atual, sem cooperativa: o admin enxerga as coletas
+      // de todos os produtores cadastrados no sistema - assim como ja
+      // ocorre em "Gerenciar Usuarios".
       return this.dailyCollectionsService.findAll({ limit: MAX_LIMIT });
     }
+    if (requesterAdminId) {
+      // Vaqueiro vinculado a um Admin (dono da fazenda) via "Adicionar
+      // Funcionario": enxerga as mesmas coletas desse Admin.
+      return this.dailyCollectionsService.findAll({ adminGroupId: requesterAdminId, limit: MAX_LIMIT });
+    }
+    // Vaqueiro sem nenhum vinculo (legado): ve apenas as coletas que ele
+    // proprio registrou.
     return this.dailyCollectionsService.findAll({ userId });
   }
 

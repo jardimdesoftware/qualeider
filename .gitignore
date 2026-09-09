@@ -1,0 +1,22 @@
+# dotenv environment variable files
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs e editores
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+
+# Logs
+*.log
+
+# Coverage (backend/frontend ja tem os proprios .gitignore, isso cobre o resto)
+coverage/

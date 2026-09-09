@@ -2,6 +2,7 @@ import { setupE2ETests, teardownE2ETests, E2E_TIMEOUT } from '../setup';
 import { TestApp, AuthHelper } from '../helpers';
 import { UserFactory } from '../factories';
 import { HttpStatus } from '@nestjs/common';
+import { Status } from '@/domain/enums/enums';
 
 describe('E2E: Auth - Login', () => {
   let testApp: TestApp;
@@ -106,6 +107,29 @@ describe('E2E: Auth - Login', () => {
           password: 'Test@1234',
         })
         .expect(HttpStatus.BAD_REQUEST);
+    });
+
+    it('regressão #169: deve retornar 401 ao logar com conta inativa, mesmo com credenciais corretas', async () => {
+      const userData = UserFactory.build({
+        email: 'inativo@example.com',
+        password: 'Test@1234',
+      });
+
+      const user = await authHelper.createTestUser({
+        ...userData,
+        status: Status.Inactive,
+      });
+
+      const response = await testApp
+        .request()
+        .post('/auth/login')
+        .send({
+          email: user.email,
+          password: user.password,
+        })
+        .expect(HttpStatus.UNAUTHORIZED);
+
+      expect(JSON.stringify(response.body)).toContain('Conta inativa');
     });
   });
 

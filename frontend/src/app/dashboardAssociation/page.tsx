@@ -1,16 +1,40 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { DashboardLayout } from "@/components/layout";
-import { PageHeader } from "@/components/dashboard";
-import { EmptyState, MetricCard } from "@/components/ui";
-import { Activity, Milk, Cat, Ruler, TrendingUp, Droplet, BarChart3 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-const AnimalDistributionChart = dynamic(() => import("@/components/dashboard/AnimalDistributionChart"), { ssr: false, loading: () => <p className="text-center py-10 text-slate-400">Carregando gráfico...</p> });
-const MilkLast7DaysChart = dynamic(() => import("@/components/dashboard/MilkLast7DaysChart"), { ssr: false, loading: () => <p className="text-center py-10 text-slate-400">Carregando gráfico...</p> });
-import DashboardLoading from "@/components/dashboard/DashboardLoading";
+import {
+  Activity,
+  BarChart3,
+  Droplet,
+  Milk,
+  PawPrint,
+  Ruler,
+  TrendingUp,
+} from "lucide-react";
+import { DashboardLoading, PageHeader } from "@/components/dashboard";
+import { EmptyState, MetricCard } from "@/components/ui";
 import { associationService } from "@/services/associationService";
 import { HerdStats } from "@/interfaces/association";
+
+const AnimalDistributionChart = dynamic(
+  () => import("@/components/dashboard/AnimalDistributionChart"),
+  {
+    ssr: false,
+    loading: () => (
+      <p className="py-10 text-center text-brand-muted">Carregando gráfico...</p>
+    ),
+  },
+);
+
+const MilkLast7DaysChart = dynamic(
+  () => import("@/components/dashboard/MilkLast7DaysChart"),
+  {
+    ssr: false,
+    loading: () => (
+      <p className="py-10 text-center text-brand-muted">Carregando gráfico...</p>
+    ),
+  },
+);
 
 export default function DashboardAssociation() {
   const [stats, setStats] = useState<HerdStats | null>(null);
@@ -31,30 +55,10 @@ export default function DashboardAssociation() {
     fetchData();
   }, []);
 
-  const [currentDate, setCurrentDate] = useState<string>("");
-
-  useEffect(() => {
-    setCurrentDate(
-      new Date().toLocaleDateString("pt-BR", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      })
-    );
-  }, []);
-
   const totalAnimals = stats?.totalAnimals || 0;
-  const [totalMilkThisMonth, setTotalMilkThisMonth] = useState(0);
-  const [pieChartData, setPieChartData] = useState<any[]>([]);
-  const [lineChartData, setLineChartData] = useState<any[]>([]);
-
-  useEffect(() => {
-    if (stats) {
-      setTotalMilkThisMonth(stats.totalMilkDay || 0);
-      setPieChartData(stats.breedDistribution || []);
-      setLineChartData(stats.productionHistory || []);
-    }
-  }, [stats]);
+  const totalMilkThisMonth = useMemo(() => stats?.totalMilkDay || 0, [stats]);
+  const pieChartData = useMemo(() => stats?.breedDistribution || [], [stats]);
+  const lineChartData = useMemo(() => stats?.productionHistory || [], [stats]);
 
   const hasAnimals = totalAnimals > 0;
   const hasCollections = lineChartData.length > 0;
@@ -68,114 +72,108 @@ export default function DashboardAssociation() {
   }
 
   return (
-    <DashboardLayout>
+    <>
       <PageHeader
-        title="Painel de Controle"
-        subtitle="Bem-vindo de volta!"
+        title="Painel da associação"
+        subtitle="Visão regional da produção, do rebanho e dos associados."
       />
 
-        <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8">
-          {/* Empty States */}
-          {(!hasAnimals || !hasCollections) && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-              {!hasAnimals && (
-                <EmptyState
-                  icon={<Cat size={40} />}
-                  title="Nenhum animal cadastrado"
-                  description="Cadastre seu primeiro animal para ver métricas e gráficos."
-                  actionHref="/manageMyAnimals"
-                  actionLabel="Cadastrar animal"
-                />
-              )}
-              {!hasCollections && (
-                <EmptyState
-                  icon={<Milk size={40} />}
-                  title="Nenhuma coleta diária registrada"
-                  description="Registre sua primeira coleta para visualizar o histórico."
-                  actionHref="/dailyForm"
-                  actionLabel="Registrar coleta"
-                />
-              )}
-            </div>
-          )}
-
-          {/* Seção 1: Resumo do Mês */}
-          <section>
-            <div className="flex items-center gap-2 mb-4">
-              <BarChart3 className="w-5 h-5 text-[#d97706]" />
-              <h3 className="text-lg font-bold text-[#1e3a29] uppercase tracking-wide">
-                Resumo do Mês
-              </h3>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <MetricCard
-                icon={<Cat size={24} />}
-                iconColor="text-green-600"
-                iconBgColor="bg-green-50"
-                borderColor="border-[#1e3a29]"
-                title="Total de Animais"
-                value={totalAnimals}
+      <main className="mx-auto w-full max-w-7xl space-y-8 p-4 md:p-6 lg:p-8">
+        {(!hasAnimals || !hasCollections) && (
+          <section className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {!hasAnimals && (
+              <EmptyState
+                icon={<PawPrint size={40} />}
+                title="Nenhum animal cadastrado"
+                description="Cadastre animais para visualizar métricas e gráficos."
+                actionHref="/manageMyAnimals"
+                actionLabel="Cadastrar animal"
               />
-
-              <MetricCard
-                icon={<Milk size={24} />}
-                iconColor="text-blue-600"
-                iconBgColor="bg-blue-50"
-                borderColor="border-[#1e3a29]"
-                title="Leite Coletado"
-                value={totalMilkThisMonth.toFixed(0)}
-                unit="Litros"
+            )}
+            {!hasCollections && (
+              <EmptyState
+                icon={<Milk size={40} />}
+                title="Nenhuma coleta diária registrada"
+                description="Registre coletas para visualizar o histórico."
+                actionHref="/dailyForm"
+                actionLabel="Registrar coleta"
               />
-
-              <MetricCard
-                icon={<Ruler size={24} />}
-                iconColor="text-purple-600"
-                iconBgColor="bg-purple-50"
-                borderColor="border-[#d97706]"
-                title="Idade Média"
-                value={averageAnimalAge.toFixed(1)}
-                unit="anos"
-              />
-
-              <MetricCard
-                icon={<TrendingUp size={24} />}
-                iconColor="text-amber-600"
-                iconBgColor="bg-amber-50"
-                borderColor="border-[#d97706]"
-                title="Média por Animal"
-                value={avgProduction.toFixed(1)}
-                unit="L/animal"
-              />
-
-              <MetricCard
-                icon={<Activity size={24} />}
-                iconColor="text-green-700"
-                iconBgColor="bg-green-50"
-                borderColor="border-[#1e3a29]"
-                title="Total Ordenhas"
-                value={totalMilkingThisMonth}
-                unit="Realizadas"
-              />
-
-              <MetricCard
-                icon={<Droplet size={24} />}
-                iconColor="text-blue-600"
-                iconBgColor="bg-blue-50"
-                borderColor="border-blue-400"
-                title="Vacas em Lactação"
-                value={lactatingCows}
-                unit="animais"
-              />
-            </div>
+            )}
           </section>
+        )}
 
-          {/* Seção 2: Gráficos */}
-          <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <AnimalDistributionChart data={pieChartData} />
-            <MilkLast7DaysChart data={lineChartData} />
-          </section>
-      </div>
-    </DashboardLayout>
+        <section>
+          <div className="mb-4 flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-brand-primary" />
+            <h3 className="text-lg font-extrabold text-gray-950">
+              Resumo regional
+            </h3>
+          </div>
+
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+            <MetricCard
+              icon={<PawPrint size={24} />}
+              iconColor="text-brand-primary"
+              iconBgColor="bg-brand-accent"
+              title="Total de animais"
+              value={totalAnimals}
+            />
+
+            <MetricCard
+              icon={<Milk size={24} />}
+              iconColor="text-gov-blue"
+              iconBgColor="bg-blue-50"
+              borderColor="border-gov-blue"
+              title="Leite coletado"
+              value={totalMilkThisMonth.toFixed(0)}
+              unit="litros"
+            />
+
+            <MetricCard
+              icon={<Ruler size={24} />}
+              iconColor="text-brand-secondary"
+              iconBgColor="bg-red-50"
+              borderColor="border-brand-secondary"
+              title="Idade média"
+              value={averageAnimalAge.toFixed(1)}
+              unit="anos"
+            />
+
+            <MetricCard
+              icon={<TrendingUp size={24} />}
+              iconColor="text-brand-primary"
+              iconBgColor="bg-brand-accent"
+              title="Média por animal"
+              value={avgProduction.toFixed(1)}
+              unit="L/animal"
+            />
+
+            <MetricCard
+              icon={<Activity size={24} />}
+              iconColor="text-brand-primary"
+              iconBgColor="bg-brand-accent"
+              title="Total de ordenhas"
+              value={totalMilkingThisMonth}
+              unit="realizadas"
+            />
+
+            <MetricCard
+              icon={<Droplet size={24} />}
+              iconColor="text-gov-blue"
+              iconBgColor="bg-blue-50"
+              borderColor="border-gov-blue"
+              title="Vacas em lactação"
+              value={lactatingCows}
+              unit="animais"
+            />
+          </div>
+        </section>
+
+        <section className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <AnimalDistributionChart data={pieChartData} />
+          <MilkLast7DaysChart data={lineChartData} />
+        </section>
+      </main>
+    </>
   );
 }

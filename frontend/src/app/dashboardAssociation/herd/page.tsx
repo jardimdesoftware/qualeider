@@ -49,6 +49,7 @@ export default function RegionalHerdPage() {
   const [currentDate, setCurrentDate] = useState<string>("");
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- so calcula no client pra evitar mismatch de hidratacao
     setCurrentDate(
       new Date().toLocaleDateString("pt-BR", {
         day: "2-digit",

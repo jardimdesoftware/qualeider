@@ -12,7 +12,14 @@ import { IHashService as IHashServiceSymbol, type IHashService } from '@/applica
 import { createUser } from '../../../factories';
 
 import { IAssociationRepository } from '@/domain/repositories/association.repository';
-import { BCRYPT_ROUNDS_RESET_PASSWORD } from '@/common/constants/security.constants';
+import { IFailedEmailRepository } from '@/domain/repositories/failed-email.repository';
+import { IAllowedEmailRepository } from '@/domain/repositories/allowed-email.repository';
+import { ConfigService } from '@nestjs/config';
+import {
+  BCRYPT_ROUNDS_RESET_PASSWORD,
+  BCRYPT_ROUNDS_USER_CREATION,
+} from '@/common/constants/security.constants';
+import { Status, UserCategory, UserRole } from '@/domain/enums/enums';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -21,6 +28,9 @@ describe('AuthService', () => {
   let mailService: jest.Mocked<MailService>;
   let hashService: jest.Mocked<IHashService>;
   let associationRepository: IAssociationRepository;
+  let failedEmailRepository: jest.Mocked<IFailedEmailRepository>;
+  let allowedEmailRepository: jest.Mocked<IAllowedEmailRepository>;
+  let configService: jest.Mocked<ConfigService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -36,9 +46,11 @@ describe('AuthService', () => {
         {
           provide: IUserRepositorySymbol,
           useValue: {
+            create: jest.fn(),
             findByEmail: jest.fn(),
             update: jest.fn(),
             findById: jest.fn(),
+            findFirstAdmin: jest.fn(),
           },
         },
         {
@@ -63,6 +75,27 @@ describe('AuthService', () => {
             compare: jest.fn(),
           },
         },
+        {
+          provide: IFailedEmailRepository,
+          useValue: {
+            create: jest.fn(),
+          },
+        },
+        {
+          provide: IAllowedEmailRepository,
+          useValue: {
+            create: jest.fn(),
+            findAll: jest.fn(),
+            findByEmail: jest.fn(),
+            delete: jest.fn(),
+          },
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -72,6 +105,9 @@ describe('AuthService', () => {
     mailService = module.get(MailService);
     hashService = module.get(IHashServiceSymbol) as any;
     associationRepository = module.get<IAssociationRepository>(IAssociationRepository) as any;
+    failedEmailRepository = module.get(IFailedEmailRepository);
+    allowedEmailRepository = module.get(IAllowedEmailRepository);
+    configService = module.get(ConfigService);
   });
 
   afterEach(() => {
@@ -120,6 +156,24 @@ describe('AuthService', () => {
 
       const result = await service.validateUser('test@example.com', 'wrongPassword');
       expect(result).toBeNull();
+    });
+
+    it('regressão #169: deve rejeitar login com UnauthorizedException quando a conta esta inativa (credenciais corretas)', async () => {
+      const mockUser = createUser({
+        email: 'vaqueiro@example.com',
+        password: 'hashedPassword',
+        status: Status.Inactive,
+      });
+
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(mockUser);
+      (hashService.compare as jest.Mock).mockResolvedValue(true);
+
+      await expect(
+        service.validateUser('vaqueiro@example.com', 'password123'),
+      ).rejects.toThrow(UnauthorizedException);
+      await expect(
+        service.validateUser('vaqueiro@example.com', 'password123'),
+      ).rejects.toThrow('Conta inativa. Entre em contato com o administrador.');
     });
   });
 
@@ -229,6 +283,21 @@ describe('AuthService', () => {
         UnauthorizedException,
       );
     });
+
+    it('regressão #169: propaga o erro de conta inativa sem cair no fallback de Associação', async () => {
+      const loginDto = { email: 'vaqueiro@example.com', password: 'password123' };
+      const inactiveError = new UnauthorizedException(
+        'Conta inativa. Entre em contato com o administrador.',
+      );
+
+      jest.spyOn(service, 'validateUser').mockRejectedValue(inactiveError);
+      jest.spyOn(service, 'validateAssociation');
+
+      await expect(service.executeLogin(loginDto)).rejects.toThrow(
+        'Conta inativa. Entre em contato com o administrador.',
+      );
+      expect(service.validateAssociation).not.toHaveBeenCalled();
+    });
   });
 
   describe('login', () => {
@@ -272,6 +341,176 @@ describe('AuthService', () => {
         role: null,
       });
       expect(result.access_token).toBe('mock-jwt-token-2');
+    });
+  });
+
+  describe('Google OAuth', () => {
+    it('deve montar URL de autenticação do Google com os parâmetros esperados', () => {
+      (configService.get as jest.Mock).mockImplementation((key: string) => {
+        const values: Record<string, string> = {
+          GOOGLE_CLIENT_ID: 'google-client-id',
+          GOOGLE_CALLBACK_URL: 'https://example.com/auth/google/callback',
+        };
+        return values[key];
+      });
+
+      const url = service.getGoogleAuthUrl();
+      const parsed = new URL(url);
+
+      expect(parsed.origin + parsed.pathname).toBe(
+        'https://accounts.google.com/o/oauth2/v2/auth',
+      );
+      expect(parsed.searchParams.get('client_id')).toBe('google-client-id');
+      expect(parsed.searchParams.get('redirect_uri')).toBe(
+        'https://example.com/auth/google/callback',
+      );
+      expect(parsed.searchParams.get('response_type')).toBe('code');
+      expect(parsed.searchParams.get('scope')).toBe('openid email profile');
+      expect(parsed.searchParams.get('prompt')).toBe('select_account');
+    });
+
+    it('deve lançar UnauthorizedException quando a troca de code por token falhar', async () => {
+      jest.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+      } as Response);
+
+      await expect(service.handleGoogleCallback('invalid-code')).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('deve lançar UnauthorizedException quando email do Google não estiver verificado', async () => {
+      const payload = {
+        sub: 'sub-1',
+        email: 'test@ifpe.edu.br',
+        email_verified: false,
+        name: 'Test User',
+      };
+      const idToken = `header.${Buffer.from(JSON.stringify(payload)).toString('base64url')}.signature`;
+
+      jest.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id_token: idToken }),
+      } as Response);
+
+      await expect(service.handleGoogleCallback('valid-code')).rejects.toThrow(
+        'Email do Google não verificado.',
+      );
+    });
+
+    it('deve autenticar com sucesso ao receber id_token válido e email verificado', async () => {
+      const payload = {
+        sub: 'sub-1',
+        email: 'valid@ifpe.edu.br',
+        email_verified: true,
+        name: 'Valid User',
+      };
+      const idToken = `header.${Buffer.from(JSON.stringify(payload)).toString('base64url')}.signature`;
+      const loginResult = { access_token: 'google-token' };
+
+      jest.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id_token: idToken }),
+      } as Response);
+      jest.spyOn(service, 'loginWithGoogle').mockResolvedValue(loginResult as any);
+
+      const result = await service.handleGoogleCallback('valid-code');
+
+      expect(service.loginWithGoogle).toHaveBeenCalledWith({
+        email: 'valid@ifpe.edu.br',
+        name: 'Valid User',
+      });
+      expect(result).toEqual(loginResult);
+    });
+
+    it('deve rejeitar login com Google para email não autorizado', async () => {
+      (allowedEmailRepository.findByEmail as jest.Mock).mockResolvedValue(null);
+
+      await expect(
+        service.loginWithGoogle({ email: 'outside@example.com' }),
+      ).rejects.toThrow(
+        'Este email não tem acesso. Peça para um administrador liberar seu email na tela de Funcionários.',
+      );
+    });
+
+    it('deve rejeitar usuário existente inativo no login com Google', async () => {
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(
+        createUser({
+          email: 'user@ifpe.edu.br',
+          status: Status.Inactive,
+        }),
+      );
+
+      await expect(
+        service.loginWithGoogle({ email: 'user@ifpe.edu.br' }),
+      ).rejects.toThrow('Conta inativa. Entre em contato com o administrador.');
+    });
+
+    it('deve autenticar usuário existente ativo no login com Google', async () => {
+      const existingUser = createUser({
+        email: 'active@ifpe.edu.br',
+        status: Status.Active,
+      });
+      const loginResult = { access_token: 'existing-user-token' };
+
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(existingUser);
+      jest.spyOn(service, 'loginEntity').mockResolvedValue(loginResult);
+
+      const result = await service.loginWithGoogle({
+        email: 'active@ifpe.edu.br',
+      });
+
+      expect(service.loginEntity).toHaveBeenCalledWith(existingUser, 'user');
+      expect(result).toEqual(loginResult);
+    });
+
+    it('deve rejeitar criação de conta via Google quando não existir administrador', async () => {
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(null);
+      (userRepository.findFirstAdmin as jest.Mock).mockResolvedValue(null);
+
+      await expect(
+        service.loginWithGoogle({ email: 'new@ifpe.edu.br' }),
+      ).rejects.toThrow('Ainda não há um administrador cadastrado no sistema.');
+    });
+
+    it('deve criar usuário no primeiro login via Google e autenticar', async () => {
+      const admin = createUser({ id: 77, role: UserRole.ADMIN });
+      const createdUser = createUser({
+        id: 88,
+        email: 'new@ifpe.edu.br',
+        role: UserRole.VAQUEIRO,
+      });
+      const loginResult = { access_token: 'new-user-token' };
+
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(null);
+      (userRepository.findFirstAdmin as jest.Mock).mockResolvedValue(admin);
+      (hashService.hash as jest.Mock).mockResolvedValue('hashed-random-password');
+      (userRepository.create as jest.Mock).mockResolvedValue(createdUser);
+      jest.spyOn(service, 'loginEntity').mockResolvedValue(loginResult);
+
+      const result = await service.loginWithGoogle({
+        email: 'NEW@IFPE.EDU.BR',
+      });
+
+      expect(hashService.hash).toHaveBeenCalledWith(
+        expect.any(String),
+        BCRYPT_ROUNDS_USER_CREATION,
+      );
+      expect(userRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'new',
+          email: 'new@ifpe.edu.br',
+          role: UserRole.VAQUEIRO,
+          userCategory: UserCategory.Fisica,
+          city: 'Não informado',
+          state: 'PE',
+          adminId: 77,
+          password: 'hashed-random-password',
+        }),
+      );
+      expect(service.loginEntity).toHaveBeenCalledWith(createdUser, 'user');
+      expect(result).toEqual(loginResult);
     });
   });
 
@@ -363,6 +602,59 @@ describe('AuthService', () => {
 
       expect(loggerErrorSpy).toHaveBeenCalledWith(
         'Erro ao processar reset de senha:',
+        expect.any(Error),
+      );
+
+      loggerErrorSpy.mockRestore();
+    });
+
+    it('regressão #168: nao deve retornar 500 quando o envio do email falha (ex: SMTP fora do ar)', async () => {
+      const loggerErrorSpy = jest.spyOn(Logger.prototype, 'error');
+      const mockUser = createUser({ id: 1, email: 'test@example.com', name: 'Test User' });
+
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(mockUser);
+      (userRepository.update as jest.Mock).mockResolvedValue({
+        ...mockUser,
+        resetToken: '123456',
+        resetTokenExpiry: new Date(),
+      });
+      mailService.sendResetPasswordEmail.mockRejectedValue(
+        new Error('connect ETIMEDOUT: SMTP indisponível'),
+      );
+      (failedEmailRepository.create as jest.Mock).mockResolvedValue({});
+
+      // O token ja foi persistido; a requisicao nao deve lancar/virar 500.
+      const result = await service.forgotPassword('test@example.com');
+
+      expect(result.message).toContain('enviado com sucesso');
+      expect(failedEmailRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          payload: expect.objectContaining({ to: 'test@example.com' }),
+          errorReason: expect.stringContaining('SMTP indisponível'),
+        }),
+      );
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Falha ao enviar e-mail de redefinição de senha'),
+        expect.any(Error),
+      );
+
+      loggerErrorSpy.mockRestore();
+    });
+
+    it('regressão #168: registra falha na DLQ mesmo se o proprio salvamento na DLQ falhar (nao deve quebrar a requisicao)', async () => {
+      const loggerErrorSpy = jest.spyOn(Logger.prototype, 'error');
+      const mockUser = createUser({ id: 1, email: 'test@example.com', name: 'Test User' });
+
+      (userRepository.findByEmail as jest.Mock).mockResolvedValue(mockUser);
+      (userRepository.update as jest.Mock).mockResolvedValue(mockUser);
+      mailService.sendResetPasswordEmail.mockRejectedValue(new Error('SMTP indisponível'));
+      (failedEmailRepository.create as jest.Mock).mockRejectedValue(new Error('DB indisponível'));
+
+      const result = await service.forgotPassword('test@example.com');
+
+      expect(result.message).toContain('enviado com sucesso');
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        'CRÍTICO: Falha ao salvar e-mail de redefinição de senha na DLQ!',
         expect.any(Error),
       );
 

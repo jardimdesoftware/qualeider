@@ -57,9 +57,14 @@ describe('DailyCollectionsController', () => {
       const created = createDailyCollection({ id: 1, userId: 1, quantity: 10 });
       mockService.create.mockResolvedValue(created);
 
-      const result = await controller.create(dto);
+      const result = await controller.create(dto, 1, UserRole.ADMIN, null, null);
 
-      expect(service.create).toHaveBeenCalledWith(dto);
+      expect(service.create).toHaveBeenCalledWith(dto, {
+        id: 1,
+        role: UserRole.ADMIN,
+        associationId: null,
+        adminId: null,
+      });
       expect(result).toEqual(created);
     });
 
@@ -69,7 +74,7 @@ describe('DailyCollectionsController', () => {
 
       mockService.create.mockRejectedValue(error);
 
-      await expect(controller.create(dto)).rejects.toThrow(
+      await expect(controller.create(dto, 1, UserRole.ADMIN, null, null)).rejects.toThrow(
         EntityNotFoundException,
       );
     });
@@ -80,7 +85,7 @@ describe('DailyCollectionsController', () => {
 
       mockService.create.mockRejectedValue(error);
 
-      await expect(controller.create(dto)).rejects.toThrow(
+      await expect(controller.create(dto, 1, UserRole.ADMIN, null, null)).rejects.toThrow(
         'Unique constraint violation',
       );
     });
@@ -147,9 +152,14 @@ describe('DailyCollectionsController', () => {
 
       mockService.update.mockResolvedValue(updated);
 
-      const result = await controller.update(1, updateDto);
+      const result = await controller.update(1, updateDto, 1, UserRole.ADMIN, null, null);
 
-      expect(service.update).toHaveBeenCalledWith(1, updateDto);
+      expect(service.update).toHaveBeenCalledWith(1, updateDto, {
+        id: 1,
+        role: UserRole.ADMIN,
+        associationId: null,
+        adminId: null,
+      });
       expect(result).toEqual(updated);
     });
 
@@ -159,7 +169,7 @@ describe('DailyCollectionsController', () => {
 
       mockService.update.mockRejectedValue(error);
 
-      await expect(controller.update(999, updateDto)).rejects.toThrow(
+      await expect(controller.update(999, updateDto, 1, UserRole.ADMIN, null, null)).rejects.toThrow(
         EntityNotFoundException,
       );
     });
@@ -170,9 +180,14 @@ describe('DailyCollectionsController', () => {
       const deleted = createDailyCollection({ id: 1 });
       mockService.remove.mockResolvedValue(deleted);
 
-      const result = await controller.remove(1);
+      const result = await controller.remove(1, 1, UserRole.ADMIN, null, null);
 
-      expect(service.remove).toHaveBeenCalledWith(1);
+      expect(service.remove).toHaveBeenCalledWith(1, {
+        id: 1,
+        role: UserRole.ADMIN,
+        associationId: null,
+        adminId: null,
+      });
       expect(result).toEqual(deleted);
     });
 
@@ -180,7 +195,7 @@ describe('DailyCollectionsController', () => {
       const error = new EntityNotFoundException('Formulário não encontrado.');
       mockService.remove.mockRejectedValue(error);
 
-      await expect(controller.remove(999)).rejects.toThrow(
+      await expect(controller.remove(999, 1, UserRole.ADMIN, null, null)).rejects.toThrow(
         EntityNotFoundException,
       );
     });
@@ -214,6 +229,19 @@ describe('DailyCollectionsController', () => {
       const result = await controller.findAllByUserId(1, UserRole.ADMIN, 10);
 
       expect(service.findAll).toHaveBeenCalledWith({ associationId: 10, limit: MAX_LIMIT });
+      expect(result).toEqual(items);
+    });
+
+    it('deve retornar coletas do Admin quando VAQUEIRO foi cadastrado por ele (sem associacao/cooperativa)', async () => {
+      const items: any[] = [
+        { id: 1, userId: 1 }, // coleta do Admin
+        { id: 2, userId: 5 }, // coleta do proprio Vaqueiro
+      ];
+      mockService.findAll.mockResolvedValue(items);
+
+      const result = await controller.findAllByUserId(5, UserRole.VAQUEIRO, null, 1);
+
+      expect(service.findAll).toHaveBeenCalledWith({ adminGroupId: 1, limit: MAX_LIMIT });
       expect(result).toEqual(items);
     });
   });

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ITokenService, TokenPayload } from '@/application/ports/token.service';
-import { JwtService } from '@nestjs/jwt';
+import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 
 @Injectable()
 export class JwtTokenService implements ITokenService {
@@ -10,8 +10,10 @@ export class JwtTokenService implements ITokenService {
     payload: TokenPayload,
     options?: { expiresIn?: string | number },
   ): Promise<string> {
+    const expiresIn = (options?.expiresIn ?? '1d') as JwtSignOptions['expiresIn'];
+
     return this.jwt.signAsync(payload, {
-      expiresIn: options?.expiresIn ?? '1d',
+      expiresIn,
     });
   }
 }

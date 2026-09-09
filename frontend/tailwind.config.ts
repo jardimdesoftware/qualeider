@@ -9,21 +9,26 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        'bricolage': ['Bricolage Grotesque', 'sans-serif'],
+        'bricolage': ['Rawline', 'Arial', 'sans-serif'],
+        'rawline': ['Rawline', 'Arial', 'sans-serif'],
       },
       colors: {
         // Legacy (manter para compatibilidade)
-        'green-background': "#20732D",
+        'green-background': "#2f9e41",
 
         // Brand Colors (novo sistema de design)
-        'brand-primary': '#1e3a29',
-        'brand-primary-hover': '#2d5a42',
-        'brand-secondary': '#d97706',
-        'brand-accent': '#fbbf24',
+        'brand-primary': '#2f9e41',
+        'brand-primary-hover': '#1f7a30',
+        'brand-secondary': '#cd191e',
+        'brand-accent': '#e1f5e6',
+        'brand-surface': '#ffffff',
+        'brand-border': '#e0e0e0',
+        'brand-muted': '#4b5563',
+        'gov-blue': '#1351b4',
 
         // Identidade visual do Admin (diferencia da area do Vaqueiro)
-        'admin-background': '#1E293B',
-        'admin-background-hover': '#0F172A',
+        'admin-background': '#0c326f',
+        'admin-background-hover': '#071d41',
       }
     },
   },

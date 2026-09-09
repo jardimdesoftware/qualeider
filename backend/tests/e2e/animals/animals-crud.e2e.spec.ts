@@ -9,6 +9,10 @@ describe('E2E: Animais - Operações CRUD', () => {
   let authHelper: AuthHelper;
   let userId: number;
   let userToken: string;
+  // Segundo produtor, rebanho totalmente nao relacionado - usado pra provar
+  // isolamento entre rebanhos (cross-herd) nas operacoes de gerenciamento.
+  let outroUserId: number;
+  let outroUserToken: string;
 
   beforeAll(async () => {
     await setupE2ETests();
@@ -23,7 +27,15 @@ describe('E2E: Animais - Operações CRUD', () => {
 
     const loginResult = await authHelper.createUserAndLogin(userData);
     userId = loginResult.user.id!;
-    userToken = loginResult.token; 
+    userToken = loginResult.token;
+
+    const outroUserData = UserFactory.buildProducer({
+      email: 'outro-producer@animals.com',
+      password: 'OutroProducer@1234',
+    });
+    const outroLoginResult = await authHelper.createUserAndLogin(outroUserData);
+    outroUserId = outroLoginResult.user.id!;
+    outroUserToken = outroLoginResult.token;
   }, E2E_TIMEOUT);
 
   afterAll(async () => {
@@ -115,6 +127,27 @@ describe('E2E: Animais - Operações CRUD', () => {
         .set('Authorization', `Bearer ${userToken}`)
         .send({})
         .expect(HttpStatus.BAD_REQUEST);
+    });
+
+    it('deve retornar 401 sem autenticação', async () => {
+      const animalData = AnimalFactory.build({ userId });
+
+      await testApp
+        .request()
+        .post('/animals')
+        .send(animalData)
+        .expect(HttpStatus.UNAUTHORIZED);
+    });
+
+    it('regressão IDOR: deve retornar 403 ao cadastrar animal para produtor de outro rebanho', async () => {
+      const animalData = AnimalFactory.build({ userId: outroUserId });
+
+      await testApp
+        .request()
+        .post('/animals')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send(animalData)
+        .expect(HttpStatus.FORBIDDEN);
     });
   });
 
@@ -248,6 +281,75 @@ describe('E2E: Animais - Operações CRUD', () => {
         .send({ name: 'Test' })
         .expect(HttpStatus.NOT_FOUND);
     });
+
+    it('deve retornar 401 sem autenticação', async () => {
+      await testApp
+        .request()
+        .put('/animals/1')
+        .send({ name: 'Test' })
+        .expect(HttpStatus.UNAUTHORIZED);
+    });
+
+    it('regressão IDOR: deve retornar 403 ao atualizar animal de outro rebanho', async () => {
+      const animalData = AnimalFactory.build({ userId, name: 'De outro dono' });
+      const created = await testApp
+        .request()
+        .post('/animals')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send(animalData)
+        .expect(HttpStatus.CREATED);
+
+      await testApp
+        .request()
+        .put(`/animals/${created.body.data.id}`)
+        .set('Authorization', `Bearer ${outroUserToken}`)
+        .send({ name: 'Invasão' })
+        .expect(HttpStatus.FORBIDDEN);
+    });
+  });
+
+  describe('PATCH /animals/:id/inativar (Inativar)', () => {
+    it('deve inativar animal preservando histórico', async () => {
+      const animalData = AnimalFactory.build({ userId, name: 'Para Inativar' });
+      const created = await testApp
+        .request()
+        .post('/animals')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send(animalData)
+        .expect(HttpStatus.CREATED);
+
+      const response = await testApp
+        .request()
+        .patch(`/animals/${created.body.data.id}/inativar`)
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(HttpStatus.OK);
+
+      expect(response.body.data).toHaveProperty('status', 'Inactive');
+    });
+
+    it('deve retornar 404 ao inativar ID inexistente', async () => {
+      await testApp
+        .request()
+        .patch('/animals/99999/inativar')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(HttpStatus.NOT_FOUND);
+    });
+
+    it('regressão IDOR: deve retornar 403 ao inativar animal de outro rebanho', async () => {
+      const animalData = AnimalFactory.build({ userId, name: 'Para Invadir' });
+      const created = await testApp
+        .request()
+        .post('/animals')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send(animalData)
+        .expect(HttpStatus.CREATED);
+
+      await testApp
+        .request()
+        .patch(`/animals/${created.body.data.id}/inativar`)
+        .set('Authorization', `Bearer ${outroUserToken}`)
+        .expect(HttpStatus.FORBIDDEN);
+    });
   });
 
   describe('DELETE /animals/:id (Deletar)', () => {
@@ -289,6 +391,29 @@ describe('E2E: Animais - Operações CRUD', () => {
         .delete('/animals/99999')
         .set('Authorization', `Bearer ${userToken}`)
         .expect(HttpStatus.NOT_FOUND);
+    });
+
+    it('deve retornar 401 sem autenticação', async () => {
+      await testApp
+        .request()
+        .delete('/animals/1')
+        .expect(HttpStatus.UNAUTHORIZED);
+    });
+
+    it('regressão IDOR: deve retornar 403 ao deletar animal de outro rebanho', async () => {
+      const animalData = AnimalFactory.build({ userId, name: 'Para Não Deletar' });
+      const created = await testApp
+        .request()
+        .post('/animals')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send(animalData)
+        .expect(HttpStatus.CREATED);
+
+      await testApp
+        .request()
+        .delete(`/animals/${created.body.data.id}`)
+        .set('Authorization', `Bearer ${outroUserToken}`)
+        .expect(HttpStatus.FORBIDDEN);
     });
   });
 });

@@ -60,6 +60,7 @@ export class CreateAssociationDto {
   })
   @IsOptional()
   @IsString({ message: 'A inscrição estadual deve ser uma string.' })
+  @MaxLength(20, { message: 'A inscrição estadual deve ter no máximo 20 caracteres.' })
   stateRegistration?: string;
 
   @ApiProperty({
@@ -84,6 +85,7 @@ export class CreateAssociationDto {
   @IsNotEmpty({ message: 'A senha não pode ser vazia.' })
   @IsString()
   @MinLength(8, { message: 'A senha deve ter no mínimo 8 caracteres.' })
+  @MaxLength(72, { message: 'A senha deve ter no máximo 72 caracteres.' })
   @Matches(
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/,
     {
@@ -99,9 +101,12 @@ export class CreateAssociationDto {
   })
   @IsNotEmpty({ message: 'O telefone não pode ser vazio.' })
   @IsString({ message: 'O telefone deve ser uma string.' })
+  @MaxLength(20, { message: 'O telefone deve ter no máximo 20 caracteres.' })
   phone!: string; // Frontend envia 'phone'
 
   @IsOptional()
+  @IsString({ message: 'O telefone deve ser uma string.' })
+  @MaxLength(20, { message: 'O telefone deve ter no máximo 20 caracteres.' })
   landlinePhone?: string; // Trocado para opcional pois vem como 'phone'
 
   @ApiProperty({
@@ -111,12 +116,17 @@ export class CreateAssociationDto {
   })
   @IsOptional()
   @IsString({ message: 'O telefone celular deve ser uma string.' })
+  @MaxLength(20, { message: 'O telefone celular deve ter no máximo 20 caracteres.' })
   mobilePhone?: string;
 
   @IsOptional()
+  @IsString({ message: 'O site deve ser uma string.' })
+  @MaxLength(255, { message: 'O site deve ter no máximo 255 caracteres.' })
   website?: string;
 
   @IsOptional()
+  @IsString({ message: 'O CEP deve ser uma string.' })
+  @MaxLength(9, { message: 'O CEP deve ter no máximo 9 caracteres.' })
   zipCode?: string;
 
   @ApiProperty({
@@ -136,21 +146,32 @@ export class CreateAssociationDto {
   })
   @IsNotEmpty({ message: 'A cidade não pode ser vazia.' })
   @IsString()
+  @MaxLength(100, { message: 'A cidade deve ter no máximo 100 caracteres.' })
   city!: string;
 
   @IsOptional()
+  @IsString({ message: 'A rua deve ser uma string.' })
+  @MaxLength(255, { message: 'A rua deve ter no máximo 255 caracteres.' })
   street?: string;
 
   @IsOptional()
+  @IsString({ message: 'O número deve ser uma string.' })
+  @MaxLength(20, { message: 'O número deve ter no máximo 20 caracteres.' })
   number?: string;
 
   @IsOptional()
+  @IsString({ message: 'O complemento deve ser uma string.' })
+  @MaxLength(100, { message: 'O complemento deve ter no máximo 100 caracteres.' })
   complement?: string;
 
   @IsOptional()
+  @IsString({ message: 'O bairro deve ser uma string.' })
+  @MaxLength(100, { message: 'O bairro deve ter no máximo 100 caracteres.' })
   neighborhood?: string;
 
   @IsOptional()
+  @IsString({ message: 'A data de fundação deve ser uma string.' })
+  @MaxLength(20, { message: 'A data de fundação deve ter no máximo 20 caracteres.' })
   foundationDate?: string;
 
   @IsOptional()
@@ -168,14 +189,25 @@ export class CreateAssociationDto {
   coverageArea!: CoverageArea;
 
   @IsOptional()
+  @IsString({ message: 'O nome do presidente deve ser uma string.' })
+  @MaxLength(255, { message: 'O nome do presidente deve ter no máximo 255 caracteres.' })
   presidentName?: string;
 
   @IsOptional()
+  @IsString({ message: 'O CPF do presidente deve ser uma string.' })
+  @MaxLength(20, { message: 'O CPF do presidente deve ter no máximo 20 caracteres.' })
   presidentCpf?: string;
 
   @IsOptional()
+  @IsEmail(
+    { allow_display_name: false, require_tld: true },
+    { message: 'O email do presidente fornecido não é válido.' },
+  )
+  @MaxLength(254, { message: 'O email do presidente deve ter no máximo 254 caracteres.' })
   presidentEmail?: string;
 
   @IsOptional()
+  @IsString({ message: 'O telefone do presidente deve ser uma string.' })
+  @MaxLength(20, { message: 'O telefone do presidente deve ter no máximo 20 caracteres.' })
   presidentPhone?: string;
 }

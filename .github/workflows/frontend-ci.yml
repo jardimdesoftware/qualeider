@@ -8,7 +8,7 @@
 #        │
 # ┌──────▼──────────────────────┐
 # │  frontend-docker            │  ← buildx multi-arch AMD64 + ARM64 → GHCR
-# │  (lint + build + trivy)     │    Trivy: apenas reporta, não bloqueia
+# │  (lint + build + trivy)     │    Trivy bloqueia CRITICAL/HIGH em main
 # └──────┬──────────────────────┘
 #        │
 # ┌──────▼──────────┐
@@ -26,14 +26,14 @@ on:
       - closed
     paths:
       - "frontend/**"
-      - ".github/workflows/frontend-cicd.yml"
+      - ".github/workflows/frontend-ci.yml"
 
   workflow_dispatch:
     inputs:
       change_type:
-        description: 'Tipo de mudança (novo-marco, nova-feature-refactor, bug-fix, outros)'
+        description: "Tipo de mudança (novo-marco, nova-feature-refactor, bug-fix, outros)"
         required: true
-        default: 'bug-fix'
+        default: "bug-fix"
         type: choice
         options:
           - novo-marco
@@ -53,7 +53,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: "20"
+  NODE_VERSION: "24"
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository_owner }}/qualeider-frontend
 
@@ -72,7 +72,7 @@ jobs:
       change_type: ${{ steps.change_type.outputs.change_type }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -82,9 +82,13 @@ jobs:
       - name: Write PR body and log context
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
           echo "Event: ${{ github.event_name }}"
           echo "PR merged: ${{ github.event.pull_request.merged }}"
+          echo "PR title: $PR_TITLE"
+          echo "PR author: $PR_AUTHOR"
           printf '%s' "$PR_BODY" > body.txt
           echo "--- PR body ---"
           cat body.txt
@@ -92,6 +96,9 @@ jobs:
 
       - name: Extract type of change from PR
         id: change_type
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             echo "change_type=${{ inputs.change_type }}" >> "$GITHUB_OUTPUT"
@@ -107,6 +114,9 @@ jobs:
             change_type="bug-fix"
           elif grep -qiE "\[x\]\s*\`?outros\`?" body.txt; then
             change_type="outros"
+          elif [[ "$PR_AUTHOR" == "dependabot[bot]" || "$PR_TITLE" =~ ^chore\(deps.*\): || "$PR_TITLE" =~ ^Bump[[:space:]] ]]; then
+            echo "PR automatico de dependencias sem template detectado. Usando change_type=bug-fix."
+            change_type="bug-fix"
           else
             echo "Nenhuma opção marcada corretamente no corpo do PR. Conteúdo:"
             cat body.txt
@@ -180,18 +190,21 @@ jobs:
       contents: read
       packages: write
       security-events: write
+    env:
+      # Se for um push/dispatch em `main` ou PR alvo `main`, Trivy deve falhar em CRITICAL/HIGH
+      TRIVY_BLOCKING_EXIT_CODE: ${{ ((github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main') || startsWith(github.ref, 'refs/heads/main')) && '1' || '0' }}
     defaults:
       run:
         working-directory: frontend
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
@@ -204,16 +217,17 @@ jobs:
         run: npm run lint
         continue-on-error: true
 
-      # --- Trivy FS Scan (apenas reporta, não bloqueia) ---
+      # --- Trivy FS Scan (bloqueia CRITICAL/HIGH em main e PRs para main) ---
       - name: Trivy — Filesystem Scan
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: "fs"
           scan-ref: "frontend"
           format: "table"
-          exit-code: "0"            # ← Não bloqueia o pipeline
+          exit-code: ${{ env.TRIVY_BLOCKING_EXIT_CODE }}
           severity: "CRITICAL,HIGH"
           ignore-unfixed: true
+          trivyignores: "frontend/.trivyignore"
 
       # --- Trivy SARIF para GitHub Security tab ---
       - name: Trivy — SARIF Report
@@ -225,24 +239,25 @@ jobs:
           format: "sarif"
           output: "trivy-frontend-fs.sarif"
           severity: "CRITICAL,HIGH,MEDIUM"
+          trivyignores: "frontend/.trivyignore"
 
       - name: Upload Trivy SARIF to GitHub Security
         if: always()
         continue-on-error: true
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: "trivy-frontend-fs.sarif"
           category: "trivy-frontend-fs"
 
       # --- Docker Setup (QEMU para emulação ARM64) ---
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -251,7 +266,7 @@ jobs:
       # --- Build & Push Multi-arch (AMD64 + ARM64) ---
       - name: Build and Push Multi-arch Docker image
         id: push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: frontend
           file: frontend/Dockerfile
@@ -270,32 +285,41 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.version=${{ needs.tag-creation.outputs.created_tag }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=max,ignore-error=true
 
-      # --- Trivy Image Scan (apenas reporta, não bloqueia) ---
+      # --- Trivy Image Scan (bloqueia CRITICAL/HIGH em main e PRs para main) ---
       - name: Trivy — Docker Image Scan
+        if: always() && steps.push.outcome == 'success'
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.tag-creation.outputs.created_tag }}"
+          image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}"
           format: "table"
-          exit-code: "0"            # ← Não bloqueia o pipeline
+          exit-code: ${{ env.TRIVY_BLOCKING_EXIT_CODE }}
           severity: "CRITICAL,HIGH"
           ignore-unfixed: true
+          trivyignores: "frontend/.trivyignore"
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
 
       # --- Trivy Image SARIF ---
       - name: Trivy — Image SARIF Report
-        if: always()
+        if: always() && steps.push.outcome == 'success'
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.tag-creation.outputs.created_tag }}"
+          image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}"
           format: "sarif"
           output: "trivy-frontend-image.sarif"
           severity: "CRITICAL,HIGH,MEDIUM"
+          trivyignores: "frontend/.trivyignore"
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Image SARIF to GitHub Security
-        if: always()
+        if: always() && steps.push.outcome == 'success'
         continue-on-error: true
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: "trivy-frontend-image.sarif"
           category: "trivy-frontend-image"
@@ -312,10 +336,10 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Release Publication
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.tag-creation.outputs.created_tag }}
           name: Release ${{ needs.tag-creation.outputs.created_tag }}

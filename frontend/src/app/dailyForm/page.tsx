@@ -2,7 +2,15 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Save, Search, ChevronDown, ChevronUp, Check, Milk, Loader2 } from "lucide-react";
+import {
+  Save,
+  Search,
+  ChevronDown,
+  ChevronUp,
+  Check,
+  Milk,
+  Loader2,
+} from "lucide-react";
 import { DashboardLayout } from "@/components/layout";
 import { PageHeader } from "@/components/dashboard";
 import { ErrorModal } from "@/components/ui";
@@ -10,7 +18,10 @@ import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { MilkingPlace } from "@/interfaces/daily-collection";
 import { CollectionItem } from "@/schemas/collection";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
-import { useDailyCollection, ConfirmedItemMap } from "@/hooks/useDailyCollection";
+import {
+  useDailyCollection,
+  ConfirmedItemMap,
+} from "@/hooks/useDailyCollection";
 import { useUserAnimals } from "@/hooks/queries/useAnimals";
 import { useCreateCollection } from "@/hooks/queries/useCollections";
 import { getLocalDate, formatDateLongBR } from "@/utils/date";
@@ -31,9 +42,11 @@ function animalLabel(a: Animal): string {
 export default function DailyForm() {
   const router = useRouter();
   const { userId, isLoading: isAuthLoading } = useAuthGuard("user");
-  const { validateCollectionItems, transformConfirmedItemsToPayload } = useDailyCollection();
+  const { validateCollectionItems, transformConfirmedItemsToPayload } =
+    useDailyCollection();
 
-  const { data: animals = [], isLoading: isLoadingAnimals } = useUserAnimals(userId);
+  const { data: animals = [], isLoading: isLoadingAnimals } =
+    useUserAnimals(userId);
   const createCollection = useCreateCollection();
 
   const [confirmedItems, setConfirmedItems] = useState<ConfirmedItemMap>({});
@@ -50,16 +63,19 @@ export default function DailyForm() {
     message: "",
   });
 
-  useEffect(() => { setDisplayDate(formatDateLongBR(new Date())); }, []);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- so calcula no client pra evitar mismatch de hidratacao
+    setDisplayDate(formatDateLongBR(new Date()));
+  }, []);
 
   const activeAnimals = useMemo(
     () => animals.filter((a) => a.status === Status.Active),
-    [animals]
+    [animals],
   );
 
   const unconfirmedAnimals = useMemo(
     () => activeAnimals.filter((a) => !confirmedItems[a.id]),
-    [activeAnimals, confirmedItems]
+    [activeAnimals, confirmedItems],
   );
 
   const filteredDropdown = useMemo(() => {
@@ -68,13 +84,13 @@ export default function DailyForm() {
     return unconfirmedAnimals.filter(
       (a) =>
         a.name?.toLowerCase().includes(q) ||
-        a.tagNumber?.toLowerCase().includes(q)
+        a.tagNumber?.toLowerCase().includes(q),
     );
   }, [unconfirmedAnimals, searchQuery]);
 
   const selectedAnimal = useMemo(
     () => animals.find((a) => a.id === selectedAnimalId) ?? null,
-    [animals, selectedAnimalId]
+    [animals, selectedAnimalId],
   );
 
   const totals = useMemo(() => {
@@ -119,10 +135,15 @@ export default function DailyForm() {
 
   const handleFinalize = async () => {
     if (!userId || isSubmitting) return;
-    const items: CollectionItem[] = transformConfirmedItemsToPayload(confirmedItems);
+    const items: CollectionItem[] =
+      transformConfirmedItemsToPayload(confirmedItems);
     const validation = validateCollectionItems(items);
     if (!validation.isValid) {
-      setModalState({ isOpen: true, type: "error", message: validation.errors[0].message });
+      setModalState({
+        isOpen: true,
+        type: "error",
+        message: validation.errors[0].message,
+      });
       return;
     }
     setIsSubmitting(true);
@@ -139,10 +160,18 @@ export default function DailyForm() {
         items,
       };
       await createCollection.mutateAsync({ data: payload, userId });
-      setModalState({ isOpen: true, type: "success", message: "Coleta registrada com sucesso!" });
+      setModalState({
+        isOpen: true,
+        type: "success",
+        message: "Coleta registrada com sucesso!",
+      });
     } catch (err) {
       console.error(err);
-      setModalState({ isOpen: true, type: "error", message: getFriendlyErrorMessage(err) });
+      setModalState({
+        isOpen: true,
+        type: "error",
+        message: getFriendlyErrorMessage(err),
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -151,7 +180,8 @@ export default function DailyForm() {
   if (isAuthLoading || isLoadingAnimals) return <DashboardLoading />;
 
   const totalActive = activeAnimals.length;
-  const progress = totalActive > 0 ? (totals.milkedCows / totalActive) * 100 : 0;
+  const progress =
+    totalActive > 0 ? (totals.milkedCows / totalActive) * 100 : 0;
 
   return (
     <>
@@ -164,11 +194,12 @@ export default function DailyForm() {
         {/* Sem overflow-hidden no container para nao cortar o dropdown */}
         <div className="flex-1 overflow-y-auto">
           <div className="p-4 pb-32 max-w-2xl mx-auto space-y-4">
-
             {/* Barra de progresso */}
             <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-semibold text-slate-600">Progresso da ordenha</span>
+                <span className="text-sm font-semibold text-slate-600">
+                  Progresso da ordenha
+                </span>
                 <span className="text-sm font-black text-[#1e3a29]">
                   {totals.milkedCows} / {totalActive} vacas
                 </span>
@@ -181,7 +212,10 @@ export default function DailyForm() {
               </div>
               {totals.totalMilk > 0 && (
                 <p className="text-xs text-slate-500 mt-2 text-right font-semibold">
-                  Total: <span className="text-[#1e3a29]">{totals.totalMilk.toFixed(1)} L</span>
+                  Total:{" "}
+                  <span className="text-[#1e3a29]">
+                    {totals.totalMilk.toFixed(1)} L
+                  </span>
                 </p>
               )}
             </div>
@@ -190,7 +224,9 @@ export default function DailyForm() {
               <div className="text-center text-slate-500 py-10 bg-white rounded-xl border border-slate-200">
                 <Milk className="w-10 h-10 mx-auto mb-3 text-slate-300" />
                 <p className="font-semibold">Nenhum animal ativo cadastrado.</p>
-                <p className="text-sm mt-1">Adicione animais para registrar a coleta.</p>
+                <p className="text-sm mt-1">
+                  Adicione animais para registrar a coleta.
+                </p>
               </div>
             ) : (
               <>
@@ -206,15 +242,21 @@ export default function DailyForm() {
                       <div className="flex items-center gap-3">
                         <Milk className="w-5 h-5 text-slate-400 flex-shrink-0" />
                         <div>
-                          <p className="text-sm font-bold text-slate-700">Selecionar vaca para ordenhar</p>
+                          <p className="text-sm font-bold text-slate-700">
+                            Selecionar vaca para ordenhar
+                          </p>
                           <p className="text-xs text-slate-400">
-                            {unconfirmedAnimals.length} vaca{unconfirmedAnimals.length !== 1 ? "s" : ""} restante{unconfirmedAnimals.length !== 1 ? "s" : ""}
+                            {unconfirmedAnimals.length} vaca
+                            {unconfirmedAnimals.length !== 1 ? "s" : ""}{" "}
+                            restante{unconfirmedAnimals.length !== 1 ? "s" : ""}
                           </p>
                         </div>
                       </div>
-                      {dropdownOpen
-                        ? <ChevronUp className="w-5 h-5 text-slate-400 flex-shrink-0" />
-                        : <ChevronDown className="w-5 h-5 text-slate-400 flex-shrink-0" />}
+                      {dropdownOpen ? (
+                        <ChevronUp className="w-5 h-5 text-slate-400 flex-shrink-0" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5 text-slate-400 flex-shrink-0" />
+                      )}
                     </button>
 
                     {/* Lista expandida inline */}
@@ -256,7 +298,9 @@ export default function DailyForm() {
                                       {animalLabel(animal)}
                                     </p>
                                     {animal.breed && (
-                                      <p className="text-xs text-slate-400 truncate">{animal.breed}</p>
+                                      <p className="text-xs text-slate-400 truncate">
+                                        {animal.breed}
+                                      </p>
                                     )}
                                   </div>
                                   {animal.tagNumber && (
@@ -278,7 +322,9 @@ export default function DailyForm() {
                 {unconfirmedAnimals.length === 0 && !selectedAnimalId && (
                   <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl p-4">
                     <Check className="w-6 h-6 text-green-600 flex-shrink-0" />
-                    <p className="font-semibold text-green-800">Todas as vacas foram ordenhadas!</p>
+                    <p className="font-semibold text-green-800">
+                      Todas as vacas foram ordenhadas!
+                    </p>
                   </div>
                 )}
 
@@ -323,7 +369,9 @@ export default function DailyForm() {
             className="w-full max-w-2xl mx-auto block bg-[#d97706] hover:bg-[#b45309] disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white p-4 rounded-xl font-bold text-lg flex justify-center items-center gap-2 transform active:scale-95 transition-all"
           >
             {isSubmitting ? (
-              <><Loader2 className="w-6 h-6 animate-spin" /> Salvando...</>
+              <>
+                <Loader2 className="w-6 h-6 animate-spin" /> Salvando...
+              </>
             ) : (
               <>
                 <Save className="w-6 h-6" />

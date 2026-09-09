@@ -1,4 +1,4 @@
-import { UserCategory } from '@/domain/enums/enums';
+import { UserCategory, UserRole } from '@/domain/enums/enums';
 
 export interface UserFactoryData {
   id?: number;
@@ -9,6 +9,7 @@ export interface UserFactoryData {
   city?: string;
   state?: string;
   associationId?: number;
+  role?: UserRole;
 }
 
 /**

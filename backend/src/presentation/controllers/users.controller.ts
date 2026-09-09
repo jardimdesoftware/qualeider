@@ -9,6 +9,7 @@ import {
   Delete,
   Query,
   ParseIntPipe,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { THROTTLE_TTL } from '@/common/throttler/throttler.config';
@@ -29,6 +30,7 @@ import { BusinessException } from '@/common/exceptions/business.exception';
 import { UserCriteria } from '@/domain/criteria/user.criteria';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
 import { Public } from '@/common/decorators/public.decorator';
+import { GetUser } from '@/common/decorators/get-user.decorator';
 import { UserRole } from '@/domain/enums/enums';
 
 @ApiTags('Users')
@@ -56,6 +58,10 @@ export class UsersController {
   /**
    * Criação interna — usado pelo Admin logado para cadastrar funcionários (Vaqueiros).
    * Requer autenticação JWT. Aceita qualquer role (ADMIN ou VAQUEIRO).
+   *
+   * Quando o novo usuário é um VAQUEIRO, ele é automaticamente vinculado
+   * (via `adminId`) ao Admin (dono da fazenda) que o cadastrou, para que
+   * ambos enxerguem o mesmo rebanho (ver AnimalsController.findAllByUserId).
    */
   @Throttle({ default: { limit: 20, ttl: THROTTLE_TTL.LONG } })
   @Post('internal')
@@ -66,8 +72,21 @@ export class UsersController {
   @ApiResponse({ status: 401, description: 'Não autorizado' })
   @ApiResponse({ status: 409, description: 'Email já cadastrado' })
   @ResponseMessage('Usuário criado com sucesso')
-  async createInternal(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.create(createUserDto);
+  async createInternal(
+    @Body() createUserDto: CreateUserDto,
+    @GetUser('id') creatorId?: number,
+    @GetUser('role') creatorRole?: UserRole,
+  ) {
+    if (creatorRole !== UserRole.ADMIN) {
+      throw new ForbiddenException('Você não tem permissão para cadastrar funcionários.');
+    }
+
+    const isCreatingVaqueiro = createUserDto.role === UserRole.VAQUEIRO;
+    const adminId = isCreatingVaqueiro
+      ? creatorId
+      : undefined;
+
+    return this.usersService.create({ ...createUserDto, adminId });
   }
 
   @Get('check-email')
@@ -91,14 +110,21 @@ export class UsersController {
     status: 200,
     description: 'Lista de usuários obtida com sucesso',
   })
-  async findAll(@Query() query: FindUsersDto) {
+  async findAll(
+    @Query() query: FindUsersDto,
+    @GetUser('id') requesterId: number,
+    @GetUser('role') requesterRole: UserRole,
+  ) {
     const criteria: UserCriteria = {
       associationId: query.associationId,
       status: query.status,
       emailContains: query.emailContains,
     };
-    
-    return this.usersService.findAll(criteria);
+
+    return this.usersService.findAll(criteria, {
+      id: requesterId,
+      role: requesterRole,
+    });
   }
 
   @Get(':id')
@@ -108,8 +134,15 @@ export class UsersController {
   @ApiParam({ name: 'id', description: 'ID do usuário', type: Number })
   @ApiResponse({ status: 200, description: 'Usuário encontrado' })
   @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
-  async findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.usersService.findOne(id);
+  async findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @GetUser('id') requesterId: number,
+    @GetUser('role') requesterRole: UserRole,
+  ) {
+    return this.usersService.findOneForRequester(id, {
+      id: requesterId,
+      role: requesterRole,
+    });
   }
 
   @ApiOperation({ summary: 'Atualizar todos os dados de um usuário pelo ID' })
@@ -121,9 +154,16 @@ export class UsersController {
   @ResponseMessage('Usuário atualizado com sucesso')
   async update(
     @Param('id', ParseIntPipe) id: number,
-    @Body() updateUserDto: UpdateUserDto
+    @Body() updateUserDto: UpdateUserDto,
+    @GetUser('id') requesterId: number,
+    @GetUser('role') requesterRole: UserRole,
+    @GetUser('associationId') requesterAssociationId: number | null,
   ) {
-    return this.usersService.update(id, updateUserDto);
+    return this.usersService.update(id, updateUserDto, {
+      id: requesterId,
+      role: requesterRole,
+      associationId: requesterAssociationId,
+    });
   }
 
   @ApiOperation({ summary: 'Atualizar alguns dados de um usuário pelo ID' })
@@ -136,8 +176,15 @@ export class UsersController {
   async partialUpdate(
     @Param('id', ParseIntPipe) id: number,
     @Body() updatePartialUserDto: UpdatePartialUserDto,
+    @GetUser('id') requesterId: number,
+    @GetUser('role') requesterRole: UserRole,
+    @GetUser('associationId') requesterAssociationId: number | null,
   ) {
-    return this.usersService.partialUpdate(id, updatePartialUserDto);
+    return this.usersService.partialUpdate(id, updatePartialUserDto, {
+      id: requesterId,
+      role: requesterRole,
+      associationId: requesterAssociationId,
+    });
   }
 
   @ApiOperation({ summary: 'Excluir um usuário pelo ID' })
@@ -147,7 +194,14 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
   @Delete(':id')
   @ResponseMessage('Usuário excluído com sucesso')
-  async remove(@Param('id', ParseIntPipe) id: number) {
-    return this.usersService.remove(id);
+  async remove(
+    @Param('id', ParseIntPipe) id: number,
+    @GetUser('id') requesterId: number,
+    @GetUser('role') requesterRole: UserRole,
+  ) {
+    return this.usersService.remove(id, {
+      id: requesterId,
+      role: requesterRole,
+    });
   }
 }

@@ -1,13 +1,17 @@
+import AppVersionBadge from "@/components/global/AppVersionBadge";
+
 interface PageFooterProps {
   text?: string;
 }
 
 export default function PageFooter({
-  text = "© 2025 IFPE - Campus Belo Jardim",
+  text = "(c) 2025 IFPE - Campus Belo Jardim",
 }: PageFooterProps) {
   return (
-    <div className="bg-gray-50 py-4 px-8 border-t border-gray-200">
-      <p className="text-center text-gray-500 text-xs">{text}</p>
+    <div className="border-t border-brand-border bg-gray-50 px-6 py-4">
+      <p className="text-center text-xs text-brand-muted">
+        {text} - <AppVersionBadge className="text-gray-400" />
+      </p>
     </div>
   );
 }

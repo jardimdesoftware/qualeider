@@ -33,6 +33,7 @@ export class PrismaUserRepository implements IUserRepository {
           city: data.city,
           state: data.state,
           associationId: data.associationId,
+          adminId: data.adminId,
 
           // Conversão segura de Enum Domínio -> Enum Prisma
           role: (data.role as unknown as PrismaUserRole) ?? PrismaUserRole.ADMIN,
@@ -107,6 +108,13 @@ export class PrismaUserRepository implements IUserRepository {
     return UserMapper.toDomain(rawUser);
   }
 
+  async findByIdAny(id: ID): Promise<Omit<UserEntity, 'password'> | null> {
+    const rawUser = await this.prisma.user.findUnique({ where: { id } });
+    if (!rawUser) return null;
+
+    return UserMapper.toDomain(rawUser);
+  }
+
   async update(id: ID, data: Partial<UserEntity>): Promise<Omit<UserEntity, 'password'>> {
     return this.performUpdate(id, data);
   }
@@ -138,8 +146,11 @@ export class PrismaUserRepository implements IUserRepository {
       if (data.userCategory) updateData.userCategory = data.userCategory as unknown as PrismaUserCategory;
       if (data.status) updateData.status = data.status as unknown as PrismaStatus;
 
+      // Sem filtro de status no where: o update precisa funcionar tanto para
+      // inativar (Active -> Inactive) quanto para reativar (Inactive -> Active)
+      // um usuario existente.
       const updated = await this.prisma.user.update({
-        where: { id, status: PrismaStatus.Active },
+        where: { id },
         data: updateData,
       });
       
@@ -168,6 +179,15 @@ export class PrismaUserRepository implements IUserRepository {
 
   async findByEmail(email: string): Promise<UserEntity | null> {
     const rawUser = await this.prisma.user.findUnique({ where: { email } });
+    if (!rawUser) return null;
+    return UserMapper.toDomain(rawUser);
+  }
+
+  async findFirstAdmin(): Promise<UserEntity | null> {
+    const rawUser = await this.prisma.user.findFirst({
+      where: { role: PrismaUserRole.ADMIN, status: PrismaStatus.Active },
+      orderBy: { createdAt: 'asc' },
+    });
     if (!rawUser) return null;
     return UserMapper.toDomain(rawUser);
   }

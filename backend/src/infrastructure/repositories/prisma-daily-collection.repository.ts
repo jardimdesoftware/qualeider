@@ -60,6 +60,14 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
       };
     }
 
+    if (criteria.adminGroupId) {
+      // Coletas do grupo Admin+Vaqueiros: do proprio Admin ou de qualquer
+      // Vaqueiro cadastrado por ele (User.adminId).
+      where.user = {
+        OR: [{ id: criteria.adminGroupId }, { adminId: criteria.adminGroupId }],
+      };
+    }
+
     if (criteria.dateRange) {
       where.collectionDate = {
         gte: criteria.dateRange.start,

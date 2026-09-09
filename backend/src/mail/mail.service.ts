@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { MailerService } from '@nestjs-modules/mailer';
+import { TemplateMailerService } from './template-mailer.service';
 
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
-  constructor(private readonly mailerService: MailerService) {}
+  constructor(private readonly mailerService: TemplateMailerService) {}
 
   async sendResetPasswordEmail(
     to: string,

@@ -1,6 +1,6 @@
 import { setupE2ETests, teardownE2ETests, E2E_TIMEOUT } from '../setup';
 import { TestApp, AuthHelper } from '../helpers';
-import { UserCategory } from '@/domain/enums/enums';
+import { UserCategory, UserRole, Status } from '@/domain/enums/enums';
 import { UserFactory } from '../factories';
 import { HttpStatus } from '@nestjs/common';
 
@@ -8,6 +8,12 @@ describe('E2E: Users - CRUD Operations', () => {
   let testApp: TestApp;
   let authHelper: AuthHelper;
   let adminToken: string;
+  // Segundo ADMIN (tenant/fazenda diferente) - usado para provar isolamento
+  // cross-tenant (regressao da correcao de escalada de privilegio).
+  let admin2Token: string;
+  // VAQUEIRO vinculado ao admin principal (adminToken) via POST /users/internal.
+  let vaqueiroToken: string;
+  let vaqueiroId: number;
 
   beforeAll(async () => {
     await setupE2ETests();
@@ -27,6 +33,30 @@ describe('E2E: Users - CRUD Operations', () => {
       password: 'User@1234',
     });
     await authHelper.createUserAndLogin(userData);
+
+    const admin2Data = UserFactory.buildAdmin({
+      email: 'admin2@example.com',
+      password: 'Admin2@1234',
+    });
+    const admin2 = await authHelper.createUserAndLogin(admin2Data);
+    admin2Token = admin2.token;
+
+    const vaqueiroData = UserFactory.build({
+      email: 'vaqueiro@example.com',
+      password: 'Vaqueiro@1234',
+      role: UserRole.VAQUEIRO,
+    });
+    const vaqueiroCreated = await testApp
+      .request()
+      .post('/users/internal')
+      .set(authHelper.authHeader(adminToken))
+      .send(vaqueiroData)
+      .expect(HttpStatus.CREATED);
+    vaqueiroId = vaqueiroCreated.body.data.id;
+    vaqueiroToken = await authHelper.login(
+      vaqueiroData.email!,
+      vaqueiroData.password!,
+    );
   }, E2E_TIMEOUT);
 
   afterAll(async () => {
@@ -126,6 +156,14 @@ describe('E2E: Users - CRUD Operations', () => {
         .set('Authorization', 'Bearer invalid-token')
         .expect(HttpStatus.UNAUTHORIZED);
     });
+
+    it('deve retornar 403 quando quem pede é VAQUEIRO (não-admin)', async () => {
+      await testApp
+        .request()
+        .get('/users')
+        .set(authHelper.authHeader(vaqueiroToken))
+        .expect(HttpStatus.FORBIDDEN);
+    });
   });
 
   describe('GET /users/:id (Find One)', () => {
@@ -168,20 +206,65 @@ describe('E2E: Users - CRUD Operations', () => {
     it('deve retornar 401 sem autenticação', async () => {
       await testApp.request().get('/users/1').expect(HttpStatus.UNAUTHORIZED);
     });
+
+    it('deve retornar 403 quando quem pede é VAQUEIRO (não-admin)', async () => {
+      await testApp
+        .request()
+        .get(`/users/${vaqueiroId}`)
+        .set(authHelper.authHeader(vaqueiroToken))
+        .expect(HttpStatus.FORBIDDEN);
+    });
+  });
+
+  describe('POST /users/internal (Criação interna de funcionário)', () => {
+    it('deve retornar 403 quando quem cria não é ADMIN', async () => {
+      const newVaqueiroData = UserFactory.build({
+        email: 'nao-deveria-existir@example.com',
+        role: UserRole.VAQUEIRO,
+      });
+
+      await testApp
+        .request()
+        .post('/users/internal')
+        .set(authHelper.authHeader(vaqueiroToken))
+        .send(newVaqueiroData)
+        .expect(HttpStatus.FORBIDDEN);
+    });
+
+    it('deve retornar 401 sem autenticação', async () => {
+      const newVaqueiroData = UserFactory.build({ role: UserRole.VAQUEIRO });
+
+      await testApp
+        .request()
+        .post('/users/internal')
+        .send(newVaqueiroData)
+        .expect(HttpStatus.UNAUTHORIZED);
+    });
   });
 
   describe('PUT /users/:id (Update)', () => {
+    /**
+     * Correcao da escalada de privilegio: PUT/PATCH /users/:id agora exige
+     * que o requisitante seja ADMIN e gerencie o usuario alvo (mesma
+     * associacao ou funcionario vinculado via adminId). Por isso os
+     * "funcionarios" editados aqui precisam ser criados via POST
+     * /users/internal (autenticado como adminToken), que vincula o novo
+     * usuario ao admin criador via adminId - e nao mais via POST /users
+     * publico, que sempre cria uma conta ADMIN independente.
+     */
     it('deve atualizar usuário com dados válidos', async () => {
       const createData = UserFactory.build({
         email: 'update@example.com',
         name: 'Update User',
         city: 'Porto Alegre',
         state: 'RS',
+        role: UserRole.VAQUEIRO,
       });
 
       const created = await testApp
         .request()
-        .post('/users')
+        .post('/users/internal')
+        .set(authHelper.authHeader(adminToken))
         .send(createData)
         .expect(HttpStatus.CREATED);
 
@@ -223,17 +306,37 @@ describe('E2E: Users - CRUD Operations', () => {
         .expect(HttpStatus.UNAUTHORIZED);
     });
 
+    it('regressão IDOR: deve retornar 403 quando VAQUEIRO tenta editar outro usuário', async () => {
+      await testApp
+        .request()
+        .put(`/users/${vaqueiroId}`)
+        .set(authHelper.authHeader(vaqueiroToken))
+        .send({ name: 'Tentativa de edição' })
+        .expect(HttpStatus.FORBIDDEN);
+    });
+
+    it('regressão IDOR: deve retornar 403 quando ADMIN tenta editar funcionário de outro ADMIN (cross-tenant)', async () => {
+      await testApp
+        .request()
+        .put(`/users/${vaqueiroId}`)
+        .set(authHelper.authHeader(admin2Token))
+        .send({ name: 'Tentativa de edição cross-tenant' })
+        .expect(HttpStatus.FORBIDDEN);
+    });
+
     it('deve retornar 400 (BusinessException) com email duplicado', async () => {
       const createData = UserFactory.build({
         email: 'unique@example.com',
         name: 'Unique User',
         city: 'Salvador',
         state: 'BA',
+        role: UserRole.VAQUEIRO,
       });
 
       const created = await testApp
         .request()
-        .post('/users')
+        .post('/users/internal')
+        .set(authHelper.authHeader(adminToken))
         .send(createData)
         .expect(HttpStatus.CREATED);
 
@@ -245,6 +348,174 @@ describe('E2E: Users - CRUD Operations', () => {
           email: 'admin@example.com',
         })
         .expect(HttpStatus.BAD_REQUEST);
+    });
+
+    it('regressão #166: deve permitir reenviar o proprio email do usuario ao editar outros campos', async () => {
+      const createData = UserFactory.build({
+        email: 'mesmo-email@example.com',
+        name: 'Nome Original',
+        city: 'Recife',
+        state: 'PE',
+        role: UserRole.VAQUEIRO,
+      });
+
+      const created = await testApp
+        .request()
+        .post('/users/internal')
+        .set(authHelper.authHeader(adminToken))
+        .send(createData)
+        .expect(HttpStatus.CREATED);
+
+      const response = await testApp
+        .request()
+        .put(`/users/${created.body.data.id}`)
+        .set(authHelper.authHeader(adminToken))
+        .send({
+          name: 'Nome Atualizado',
+          email: 'mesmo-email@example.com',
+        })
+        .expect(HttpStatus.OK);
+
+      expect(response.body.data.name).toBe('Nome Atualizado');
+      expect(response.body.data.email).toBe('mesmo-email@example.com');
+    });
+
+    it('regressão #167: deve permitir inativar um funcionário via update', async () => {
+      const createData = UserFactory.build({
+        email: 'inativar-update@example.com',
+        role: UserRole.VAQUEIRO,
+      });
+
+      const created = await testApp
+        .request()
+        .post('/users/internal')
+        .set(authHelper.authHeader(adminToken))
+        .send(createData)
+        .expect(HttpStatus.CREATED);
+
+      const response = await testApp
+        .request()
+        .put(`/users/${created.body.data.id}`)
+        .set(authHelper.authHeader(adminToken))
+        .send({ status: Status.Inactive })
+        .expect(HttpStatus.OK);
+
+      expect(response.body.data.status).toBe(Status.Inactive);
+    });
+
+    it('regressão #167: deve permitir reativar um funcionário previamente inativado', async () => {
+      const createData = UserFactory.build({
+        email: 'reativar-update@example.com',
+        role: UserRole.VAQUEIRO,
+      });
+
+      const created = await testApp
+        .request()
+        .post('/users/internal')
+        .set(authHelper.authHeader(adminToken))
+        .send(createData)
+        .expect(HttpStatus.CREATED);
+
+      const userId = created.body.data.id;
+
+      await testApp
+        .request()
+        .put(`/users/${userId}`)
+        .set(authHelper.authHeader(adminToken))
+        .send({ status: Status.Inactive })
+        .expect(HttpStatus.OK);
+
+      const reactivated = await testApp
+        .request()
+        .put(`/users/${userId}`)
+        .set(authHelper.authHeader(adminToken))
+        .send({ status: Status.Active })
+        .expect(HttpStatus.OK);
+
+      expect(reactivated.body.data.status).toBe(Status.Active);
+    });
+
+    it('deve permitir alterar o cargo/perfil (role) de um funcionário', async () => {
+      const createData = UserFactory.build({
+        email: 'trocar-role@example.com',
+        role: UserRole.VAQUEIRO,
+      });
+
+      const created = await testApp
+        .request()
+        .post('/users/internal')
+        .set(authHelper.authHeader(adminToken))
+        .send(createData)
+        .expect(HttpStatus.CREATED);
+
+      const response = await testApp
+        .request()
+        .put(`/users/${created.body.data.id}`)
+        .set(authHelper.authHeader(adminToken))
+        .send({ role: UserRole.VAQUEIRO })
+        .expect(HttpStatus.OK);
+
+      expect(response.body.data.role).toBe(UserRole.VAQUEIRO);
+    });
+  });
+
+  describe('PATCH /users/:id (Atualização parcial)', () => {
+    it('deve atualizar parcialmente um usuário com dados válidos', async () => {
+      const createData = UserFactory.build({
+        email: 'patch@example.com',
+        role: UserRole.VAQUEIRO,
+      });
+
+      const created = await testApp
+        .request()
+        .post('/users/internal')
+        .set(authHelper.authHeader(adminToken))
+        .send(createData)
+        .expect(HttpStatus.CREATED);
+
+      const response = await testApp
+        .request()
+        .patch(`/users/${created.body.data.id}`)
+        .set(authHelper.authHeader(adminToken))
+        .send({ city: 'Fortaleza' })
+        .expect(HttpStatus.OK);
+
+      expect(response.body.data.city).toBe('Fortaleza');
+    });
+
+    it('deve retornar 404 ao atualizar ID inexistente', async () => {
+      await testApp
+        .request()
+        .patch('/users/99999')
+        .set(authHelper.authHeader(adminToken))
+        .send({ city: 'Teste' })
+        .expect(HttpStatus.NOT_FOUND);
+    });
+
+    it('deve retornar 401 sem autenticação', async () => {
+      await testApp
+        .request()
+        .patch('/users/1')
+        .send({ city: 'Teste' })
+        .expect(HttpStatus.UNAUTHORIZED);
+    });
+
+    it('regressão IDOR: deve retornar 403 quando VAQUEIRO tenta editar outro usuário', async () => {
+      await testApp
+        .request()
+        .patch(`/users/${vaqueiroId}`)
+        .set(authHelper.authHeader(vaqueiroToken))
+        .send({ city: 'Tentativa de edição' })
+        .expect(HttpStatus.FORBIDDEN);
+    });
+
+    it('regressão IDOR: deve retornar 403 quando ADMIN tenta editar funcionário de outro ADMIN (cross-tenant)', async () => {
+      await testApp
+        .request()
+        .patch(`/users/${vaqueiroId}`)
+        .set(authHelper.authHeader(admin2Token))
+        .send({ city: 'Tentativa de edição cross-tenant' })
+        .expect(HttpStatus.FORBIDDEN);
     });
   });
 
@@ -289,13 +560,22 @@ describe('E2E: Users - CRUD Operations', () => {
         .delete('/users/1')
         .expect(HttpStatus.UNAUTHORIZED);
     });
+
+    it('deve retornar 403 quando quem pede é VAQUEIRO (não-admin)', async () => {
+      await testApp
+        .request()
+        .delete(`/users/${vaqueiroId}`)
+        .set(authHelper.authHeader(vaqueiroToken))
+        .expect(HttpStatus.FORBIDDEN);
+    });
   });
 
   describe('Fluxo completo (Create → Read → Update → Delete)', () => {
     it('deve executar CRUD completo com sucesso', async () => {
       const created = await testApp
         .request()
-        .post('/users')
+        .post('/users/internal')
+        .set(authHelper.authHeader(adminToken))
         .send({
           email: 'fullcrud@example.com',
           password: 'FullCRUD@1234',
@@ -303,6 +583,7 @@ describe('E2E: Users - CRUD Operations', () => {
           userCategory: UserCategory.Fisica,
           city: 'Belo Horizonte',
           state: 'MG',
+          role: UserRole.VAQUEIRO,
         })
         .expect(HttpStatus.CREATED);
 

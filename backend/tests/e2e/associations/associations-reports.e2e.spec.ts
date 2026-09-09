@@ -20,14 +20,22 @@ describe('E2E: Associations - Relatórios', () => {
     testApp = new TestApp();
     await testApp.setup();
 
-    globalToday = new Date();
+    const now = new Date();
+    globalToday = new Date(now);
+    globalToday.setDate(now.getDate() - 1);
     globalToday.setHours(12, 0, 0, 0);
-    
-    // Garante que globalYesterday fica no mesmo mes que globalToday e nao e data futura.
-    // Se hoje e dia 1, usa a mesma data (ambas as coletas no mesmo dia, porem sao registros distintos).
+
     globalYesterday = new Date(globalToday);
-    if (globalToday.getDate() > 1) {
-      globalYesterday.setDate(globalYesterday.getDate() - 1);
+    globalYesterday.setDate(globalToday.getDate() - 1);
+    globalYesterday.setHours(12, 0, 0, 0);
+
+    if (globalYesterday.getMonth() !== globalToday.getMonth()) {
+      globalToday = new Date(now.getFullYear(), now.getMonth(), 1, 12, 0, 0, 0);
+      globalToday.setDate(0);
+
+      globalYesterday = new Date(globalToday);
+      globalYesterday.setDate(globalToday.getDate() - 1);
+      globalYesterday.setHours(12, 0, 0, 0);
     }
 
     const association = AssociationFactory.build();

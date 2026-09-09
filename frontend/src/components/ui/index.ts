@@ -1,4 +1,5 @@
 export { default as BrandHeader } from "./brand-header";
+export { default as IfpeBrand } from "./ifpe-brand";
 export { default as ActionButton } from "./action-button";
 export { default as Divider } from "./divider";
 export { default as ContentCard } from "./content-card";

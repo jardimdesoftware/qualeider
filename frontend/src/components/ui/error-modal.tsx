@@ -19,8 +19,8 @@ export default function ErrorModal({
   const isInfo = type === "info";
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
-      <div className="bg-white p-6 rounded-2xl shadow-2xl text-center max-w-sm w-full">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="campus-card w-full max-w-sm p-6 text-center">
         <div className="mb-4 flex justify-center">
           <div className={`w-12 h-12 ${isSuccess ? 'bg-green-100' : isInfo ? 'bg-blue-100' : 'bg-red-100'} rounded-full flex items-center justify-center`}>
             {isSuccess ? (
@@ -63,7 +63,7 @@ export default function ErrorModal({
         <p className="text-gray-600 mb-6">{message}</p>
         <button
           onClick={onClose}
-          className="w-full bg-brand-primary hover:bg-brand-primary-hover text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+          className="w-full rounded-full bg-brand-primary px-4 py-2 font-semibold text-white transition-colors hover:bg-brand-primary-hover"
         >
           Fechar
         </button>

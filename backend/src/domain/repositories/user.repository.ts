@@ -18,9 +18,15 @@ export interface IUserRepository {
   ): Promise<UserEntity>;
   findAll(criteria?: UserCriteria): Promise<PaginatedResult<Omit<UserEntity, 'password'>>>;
   findById(
-    id: ID, 
+    id: ID,
     options?: UserFindOneOptions
   ): Promise<Omit<UserEntity, 'password'> | null>;
+  /**
+   * Busca por ID sem filtrar por status (ativo/inativo). Usado para
+   * checagens de autorizacao (ex.: um ADMIN reativando um funcionario
+   * inativo) onde `findById` filtraria o registro incorretamente.
+   */
+  findByIdAny(id: ID): Promise<Omit<UserEntity, 'password'> | null>;
   update(
     id: ID,
     data: Partial<UserEntity>,
@@ -31,4 +37,10 @@ export interface IUserRepository {
   ): Promise<Omit<UserEntity, 'password'>>;
   softDelete(id: ID): Promise<UserEntity>;
   findByEmail(email: string): Promise<UserEntity | null>;
+  /**
+   * Retorna o Admin mais antigo (dono da fazenda) cadastrado no sistema.
+   * Usado para vincular automaticamente (via adminId) um Vaqueiro criado
+   * pelo primeiro login via Google — ver AuthService.loginWithGoogle.
+   */
+  findFirstAdmin(): Promise<UserEntity | null>;
 }

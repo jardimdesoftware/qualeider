@@ -19,12 +19,13 @@ export default function InviteProducerPage() {
     // Get Association ID from token
     const token = localStorage.getItem("authToken");
     if (token) {
-        try {
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            setAssociationId(payload.sub);
-        } catch (e) {
-            console.error("Error decoding token", e);
-        }
+      try {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- token so existe no localStorage do client
+        setAssociationId(payload.sub);
+      } catch (e) {
+        console.error("Error decoding token", e);
+      }
     }
 
     const fetchProducers = async () => {
@@ -44,13 +45,17 @@ export default function InviteProducerPage() {
 
   const handleInvite = async (userId: number) => {
     if (!associationId) {
-        setError("Erro de autenticação. Recarregue a página.");
-        return;
+      setError("Erro de autenticação. Recarregue a página.");
+      return;
     }
 
     setInviting(userId);
     try {
-      await inviteService.createInvite(associationId, userId, "Você foi convidado para participar da nossa associação.");
+      await inviteService.createInvite(
+        associationId,
+        userId,
+        "Você foi convidado para participar da nossa associação.",
+      );
       // Remove from list or show success
       // setProducers(prev => prev.filter(p => p.id !== userId)); // Optional: remove if we want to prevent double invite immediately
       alert("Convite enviado com sucesso!");
@@ -68,12 +73,19 @@ export default function InviteProducerPage() {
   return (
     <main className="p-6 md:p-8 max-w-7xl mx-auto">
       <div className="flex items-center gap-4 mb-8">
-        <Link href="/dashboardAssociation/associates" className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+        <Link
+          href="/dashboardAssociation/associates"
+          className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+        >
           <ArrowLeft className="w-6 h-6 text-slate-600" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-[#1e3a29]">Convidar Produtor</h1>
-          <p className="text-slate-500">Envie convites para produtores participarem da sua associação</p>
+          <h1 className="text-2xl font-bold text-[#1e3a29]">
+            Convidar Produtor
+          </h1>
+          <p className="text-slate-500">
+            Envie convites para produtores participarem da sua associação
+          </p>
         </div>
       </div>
 
@@ -85,7 +97,9 @@ export default function InviteProducerPage() {
 
       {producers.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-xl border border-slate-200 shadow-sm">
-          <p className="text-slate-500">Nenhum produtor disponível encontrado para convite.</p>
+          <p className="text-slate-500">
+            Nenhum produtor disponível encontrado para convite.
+          </p>
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -93,16 +107,27 @@ export default function InviteProducerPage() {
             <thead className="bg-[#f8fafc] border-b border-slate-200">
               <tr>
                 <th className="px-6 py-4 font-semibold text-[#1e3a29]">Nome</th>
-                <th className="px-6 py-4 font-semibold text-[#1e3a29]">Cidade/UF</th>
-                <th className="px-6 py-4 font-semibold text-[#1e3a29]">Fazenda</th>
-                <th className="px-6 py-4 font-semibold text-[#1e3a29] text-right">Ação</th>
+                <th className="px-6 py-4 font-semibold text-[#1e3a29]">
+                  Cidade/UF
+                </th>
+                <th className="px-6 py-4 font-semibold text-[#1e3a29]">
+                  Fazenda
+                </th>
+                <th className="px-6 py-4 font-semibold text-[#1e3a29] text-right">
+                  Ação
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {producers.map((producer) => (
-                <tr key={producer.id} className="hover:bg-slate-50 transition-colors">
+                <tr
+                  key={producer.id}
+                  className="hover:bg-slate-50 transition-colors"
+                >
                   <td className="px-6 py-4">
-                    <div className="font-medium text-slate-800">{producer.name}</div>
+                    <div className="font-medium text-slate-800">
+                      {producer.name}
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-slate-600">
                     {producer.city} - {producer.state}
@@ -126,8 +151,12 @@ export default function InviteProducerPage() {
           </table>
         </div>
       )}
-      
-      <ErrorModal isOpen={!!error && false} onClose={() => setError(null)} message={error || ''} />
+
+      <ErrorModal
+        isOpen={!!error && false}
+        onClose={() => setError(null)}
+        message={error || ""}
+      />
     </main>
   );
 }

@@ -4,6 +4,7 @@ import { IAnimalRepository, AnimalFindOneOptions } from '@/domain/repositories/a
 import { ID } from '@/domain/enums/enums';
 import { AnimalEntity } from '@/domain/entities/animal.entity';
 import { AnimalCriteria } from '@/domain/criteria/animal.criteria';
+import { HerdScope } from '@/domain/utils/herd-scope.util';
 import { handlePrismaError, PrismaErrorCode } from '@/common/utils/prisma-error-handler';
 import { AnimalMapper } from '@/infrastructure/mappers/animal.mapper';
 import { Status as PrismaStatus } from '@prisma/client';
@@ -61,6 +62,14 @@ export class PrismaAnimalRepository implements IAnimalRepository {
 
     if (criteria.associationId) {
       where.user = { associationId: criteria.associationId };
+    }
+
+    if (criteria.adminGroupId) {
+      // Rebanho do grupo Admin+Vaqueiros: animais do proprio Admin ou de
+      // qualquer Vaqueiro cadastrado por ele (User.adminId).
+      where.user = {
+        OR: [{ id: criteria.adminGroupId }, { adminId: criteria.adminGroupId }],
+      };
     }
 
     if (criteria.animalType) {
@@ -130,11 +139,27 @@ export class PrismaAnimalRepository implements IAnimalRepository {
     return animals.map(AnimalMapper.toDomain);
   }
 
-  async findByTagNumber(userId: ID, tagNumber: string): Promise<AnimalEntity | null> {
-    const raw = await (this.prisma.animal.findUnique as any)({
-      where: {
-        userId_tagNumber: { userId, tagNumber },
-      },
+  async findConflictingTagNumber(
+    scope: HerdScope,
+    tagNumber: string,
+    excludeAnimalId?: ID,
+  ): Promise<AnimalEntity | null> {
+    const where: any = { tagNumber };
+
+    if (scope.associationId) {
+      where.user = { associationId: scope.associationId };
+    } else if (scope.adminGroupId) {
+      where.user = { OR: [{ id: scope.adminGroupId }, { adminId: scope.adminGroupId }] };
+    } else if (scope.userId) {
+      where.userId = scope.userId;
+    }
+
+    if (excludeAnimalId) {
+      where.id = { not: excludeAnimalId };
+    }
+
+    const raw = await (this.prisma.animal.findFirst as any)({
+      where,
       include: ANIMAL_INCLUDE,
     });
 

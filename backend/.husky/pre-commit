@@ -1,5 +1,18 @@
 #!/usr/bin/env sh
 
+echo "🔍 Executando lint-staged no frontend..."
+
+# core.hooksPath aponta pra backend/.husky (repo inteiro usa este diretorio),
+# entao este hook tambem cobre o frontend em vez de ter um frontend/.husky
+# proprio — dois diretorios de hooks nao podem coexistir (git so aceita um
+# core.hooksPath por repositorio).
+(cd frontend && npx lint-staged)
+
+if [ $? -ne 0 ]; then
+  echo "❌ Lint/format do frontend falhou! Corrija os erros antes de fazer commit."
+  exit 1
+fi
+
 echo "🔍 Executando testes unitários antes do commit..."
 
 # Mudar para diretório backend
@@ -14,4 +27,4 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-echo "✅ Testes passaram! Commit permitido."ai
+echo "✅ Testes passaram! Commit permitido."

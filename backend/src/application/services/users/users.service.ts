@@ -1,4 +1,4 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
+import { Injectable, Logger, Inject, ForbiddenException } from '@nestjs/common';
 import { IUserRepository } from '@/domain/repositories/user.repository';
 import { IHashService } from '@/application/ports/hash.service';
 import { CreateUserDto } from '@/application/dtos/users/create-user.dto';
@@ -9,6 +9,16 @@ import { BCRYPT_ROUNDS_USER_CREATION } from '@/common/constants/security.constan
 import { UserCriteria } from '@/domain/criteria/user.criteria';
 import { UserRole } from '@/domain/enums/enums';
 
+/**
+ * Identidade de quem esta fazendo a requisicao (extraida do JWT), usada para
+ * checar se o requisitante tem permissao para gerenciar o usuario alvo.
+ */
+export interface RequesterContext {
+  id: number;
+  role?: UserRole;
+  associationId?: number | null;
+}
+
 @Injectable()
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
@@ -18,7 +28,7 @@ export class UsersService {
     @Inject(IHashService) private readonly hashService: IHashService,
   ) {}
 
-  async create(createUserDto: CreateUserDto) {
+  async create(createUserDto: CreateUserDto & { adminId?: number }) {
     const { password, ...rest } = createUserDto;
 
     const hashedPassword = await this.hashPasswordIfNeeded(password);
@@ -34,15 +44,61 @@ export class UsersService {
     return this.removePassword(user);
   }
 
-  async update(id: number, updateUserDto: UpdateUserDto) {
+  async update(id: number, updateUserDto: UpdateUserDto, requester: RequesterContext) {
+    await this.assertCanManage(id, requester);
     return this.performUpdate(id, updateUserDto);
   }
 
-  async partialUpdate(id: number, updatePartialUserDto: UpdatePartialUserDto) {
+  async partialUpdate(
+    id: number,
+    updatePartialUserDto: UpdatePartialUserDto,
+    requester: RequesterContext,
+  ) {
+    await this.assertCanManage(id, requester);
     return this.performUpdate(id, updatePartialUserDto);
   }
 
-  async remove(id: number) {
+  private assertAdmin(requester: RequesterContext, message: string): void {
+    if (requester.role !== UserRole.ADMIN) {
+      throw new ForbiddenException(message);
+    }
+  }
+
+  /**
+   * Garante que o requisitante pode editar o usuario alvo: precisa ser ADMIN
+   * e o alvo precisa estar no escopo dele (mesma associacao, funcionario
+   * vinculado via adminId, ou ele mesmo). Sem isso, qualquer usuario
+   * autenticado conseguia editar role/associationId de qualquer conta do
+   * sistema via PUT/PATCH /users/:id (escalada de privilegio).
+   */
+  private async assertCanManage(targetId: number, requester: RequesterContext): Promise<void> {
+    if (requester.role !== UserRole.ADMIN) {
+      throw new ForbiddenException('Você não tem permissão para editar este usuário.');
+    }
+
+    if (requester.id === targetId) {
+      return;
+    }
+
+    const target = await this.userRepository.findByIdAny(targetId);
+    if (!target) {
+      throw new EntityNotFoundException(`Usuário com ID ${targetId} não encontrado.`);
+    }
+
+    const managesTarget =
+      target.adminId === requester.id ||
+      (requester.associationId != null && target.associationId === requester.associationId);
+
+    if (!managesTarget) {
+      throw new ForbiddenException('Você não tem permissão para editar este usuário.');
+    }
+  }
+
+  async remove(id: number, requester?: RequesterContext) {
+    if (requester) {
+      this.assertAdmin(requester, 'Você não tem permissão para excluir este usuário.');
+    }
+
     const deactivated = await this.userRepository.softDelete(id);
     this.logger.log(`Usuário removido (soft delete): ID ${id}`);
     return this.removePassword(deactivated);
@@ -53,7 +109,11 @@ export class UsersService {
     return this.userRepository.findByEmail(email);
   }
 
-  async findAll(criteria?: UserCriteria) {
+  async findAll(criteria?: UserCriteria, requester?: RequesterContext) {
+    if (requester) {
+      this.assertAdmin(requester, 'Você não tem permissão para listar usuários.');
+    }
+
     const result = await this.userRepository.findAll(criteria);
     return {
       ...result,
@@ -69,6 +129,11 @@ export class UsersService {
       );
     }
     return this.removePassword(user);
+  }
+
+  async findOneForRequester(id: number, requester: RequesterContext) {
+    this.assertAdmin(requester, 'Você não tem permissão para buscar este usuário.');
+    return this.findOne(id);
   }
 
   async exists(id: number): Promise<boolean> {

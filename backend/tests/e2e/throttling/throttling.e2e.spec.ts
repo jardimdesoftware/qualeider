@@ -71,8 +71,13 @@ describe('E2E: Rate Limiting (Throttling)', () => {
 
       expect(response.status).toBe(HttpStatus.TOO_MANY_REQUESTS);
       expect(response.body.statusCode).toBe(429);
-      
+
       expect(response.headers).toHaveProperty('retry-after');
+
+      // [#158] A mensagem exposta ao usuário não deve conter detalhes técnicos da exceção
+      expect(response.body.error).toBe('TooManyRequests');
+      expect(JSON.stringify(response.body.message)).not.toMatch(/ThrottlerException/i);
+      expect(response.body.retryAfter).toBeGreaterThan(0);
     });
 
     it('deve resetar limite após TTL (2 segundos em test)', async () => {

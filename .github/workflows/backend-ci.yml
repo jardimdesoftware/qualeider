@@ -35,6 +35,9 @@ on:
       - "backend/**"
       - ".github/workflows/backend-ci.yml"
     types:
+      - opened
+      - synchronize
+      - reopened
       - closed
 
   workflow_dispatch:
@@ -65,7 +68,7 @@ concurrency:
 # Variáveis de ambiente reutilizadas
 # ---------------------------------------------------------------------------
 env:
-  NODE_VERSION: "20"
+  NODE_VERSION: "24"
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository_owner }}/qualeider-backend
 
@@ -86,7 +89,7 @@ jobs:
       change_type: ${{ steps.change_type.outputs.change_type }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -191,10 +194,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
@@ -221,10 +224,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
@@ -243,7 +246,7 @@ jobs:
 
       - name: Upload Unit Test Coverage
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-unit
           path: backend/coverage/unit/
@@ -277,10 +280,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
@@ -309,7 +312,7 @@ jobs:
 
       - name: Upload Integration Test Coverage
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-integration
           path: backend/coverage/integration/
@@ -343,10 +346,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
@@ -380,14 +383,14 @@ jobs:
 
       - name: Upload E2E Test Coverage
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-e2e
           path: backend/coverage/e2e/
           retention-days: 7
 
   # =========================================================================
-  # 5) SECURITY SCAN (Trivy FS — apenas reporta, não bloqueia)
+  # 5) SECURITY SCAN (Trivy FS — bloqueia CRITICAL/HIGH em main e PRs para main)
   # =========================================================================
   security-scan:
     name: 🛡️ Security Scan
@@ -396,10 +399,13 @@ jobs:
     permissions:
       contents: read
       security-events: write
+    env:
+      # Falhar em CRITICAL/HIGH quando for push/dispatch em `main` ou PR cujo alvo é `main`
+      TRIVY_BLOCKING_EXIT_CODE: ${{ ((github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main') || startsWith(github.ref, 'refs/heads/main')) && '1' || '0' }}
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # --- Trivy Filesystem Scan (dependências + vulnerabilidades) ---
       - name: Trivy — Filesystem Scan
@@ -408,7 +414,7 @@ jobs:
           scan-type: "fs"
           scan-ref: "backend"
           format: "table"
-          exit-code: "0"            # ← Não bloqueia o pipeline
+          exit-code: ${{ env.TRIVY_BLOCKING_EXIT_CODE }}
           severity: "CRITICAL,HIGH"
           ignore-unfixed: true
           trivyignores: "backend/.trivyignore"
@@ -430,8 +436,8 @@ jobs:
           scan-type: "config"
           scan-ref: "."
           format: "table"
-          exit-code: "0"
-          severity: "CRITICAL,HIGH,MEDIUM"
+          exit-code: ${{ env.TRIVY_BLOCKING_EXIT_CODE }}
+          severity: "CRITICAL,HIGH"
           trivyignores: "backend/.trivyignore"
 
       # --- Trivy SARIF para GitHub Security tab ---
@@ -444,14 +450,76 @@ jobs:
           format: "sarif"
           output: "trivy-results.sarif"
           severity: "CRITICAL,HIGH,MEDIUM"
+          ignore-unfixed: true
+          trivyignores: "backend/.trivyignore"
 
       - name: Upload Trivy SARIF to GitHub Security
         if: always()
         continue-on-error: true
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: "trivy-results.sarif"
           category: "trivy-fs"
+
+  # =========================================================================
+  # CONTAINER VALIDATION (open pull requests)
+  # =========================================================================
+  container-validation:
+    name: Container Build and Security Scan
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build test image
+        uses: docker/build-push-action@v7
+        with:
+          context: backend
+          file: backend/Dockerfile
+          platforms: linux/amd64
+          load: true
+          push: false
+          tags: qualeider-backend:pr-security
+          cache-from: type=gha
+          cache-to: type=gha,mode=max,ignore-error=true
+
+      - name: Scan test image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: "qualeider-backend:pr-security"
+          format: "table"
+          exit-code: "1"
+          severity: "CRITICAL,HIGH"
+          ignore-unfixed: true
+          trivyignores: "backend/.trivyignore"
+
+      - name: Create image SARIF report
+        if: always()
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: "qualeider-backend:pr-security"
+          format: "sarif"
+          output: "trivy-pr-image.sarif"
+          severity: "CRITICAL,HIGH,MEDIUM"
+          ignore-unfixed: true
+          trivyignores: "backend/.trivyignore"
+
+      - name: Upload image SARIF report
+        if: always()
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: "trivy-pr-image.sarif"
+          category: "trivy-image-pr"
 
   # =========================================================================
   # 1) BACKEND BUILD MULTI-ARCH & PUBLISH → GHCR (apenas na main)
@@ -483,7 +551,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -501,13 +569,13 @@ jobs:
 
       # --- Docker Setup (QEMU para emulação ARM64) ---
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -516,7 +584,7 @@ jobs:
       # --- Build & Push Multi-arch (AMD64 + ARM64) ---
       - name: Build and Push Multi-arch Docker image
         id: push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: backend
           file: backend/Dockerfile
@@ -532,16 +600,16 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.version=${{ steps.resolve_tag.outputs.image_tag }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=max,ignore-error=true
 
-      # --- Trivy Image Scan (apenas reporta, não bloqueia) ---
+      # --- Trivy Image Scan (bloqueia CRITICAL/HIGH em main e PRs para main) ---
       - name: Trivy — Docker Image Scan
         if: steps.push.outcome == 'success'
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }}"
+          image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}"
           format: "table"
-          exit-code: "0"            # ← Não bloqueia o pipeline
+          exit-code: ${{ ((github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main') || startsWith(github.ref, 'refs/heads/main')) && '1' || '0' }}
           severity: "CRITICAL,HIGH"
           ignore-unfixed: true
           trivyignores: "backend/.trivyignore"
@@ -554,10 +622,12 @@ jobs:
         if: steps.push.outcome == 'success'
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }}"
+          image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}"
           format: "sarif"
           output: "trivy-image.sarif"
           severity: "CRITICAL,HIGH,MEDIUM"
+          ignore-unfixed: true
+          trivyignores: "backend/.trivyignore"
         env:
           TRIVY_USERNAME: ${{ github.actor }}
           TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
@@ -565,7 +635,7 @@ jobs:
       - name: Upload Image SARIF to GitHub Security
         if: steps.push.outcome == 'success'
         continue-on-error: true
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: "trivy-image.sarif"
           category: "trivy-image"
@@ -584,7 +654,7 @@ jobs:
 
       - name: Upload SBOM
         if: steps.push.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sbom-cyclonedx
           path: sbom.cdx.json
@@ -624,15 +694,15 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Download SBOM
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: sbom-cyclonedx
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.tag-creation.outputs.created_tag }}
           name: Release ${{ needs.tag-creation.outputs.created_tag }}

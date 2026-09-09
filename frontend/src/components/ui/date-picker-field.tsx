@@ -26,8 +26,8 @@ export default function DatePickerField({
   const minDateStr = minDate ? formatDateForInput(minDate) : undefined;
 
   return (
-    <div className="space-y-1">
-      <label className="text-brand-primary font-medium text-sm">
+    <div className="space-y-1.5">
+      <label className="text-xs font-bold uppercase tracking-[0.03em] text-brand-muted">
         {label}
       </label>
       
@@ -36,8 +36,8 @@ export default function DatePickerField({
           type="date"
           max={maxDateStr}
           min={minDateStr}
-          className={`w-full h-11 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm shadow-sm 
-            focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent
+          className={`h-11 w-full rounded border border-[#cfcfcf] bg-white px-3 py-2 text-sm text-gray-900 shadow-sm
+            focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary
             disabled:bg-gray-100 disabled:cursor-not-allowed
             [&::-webkit-calendar-picker-indicator]:cursor-pointer
             ${error ? "border-red-500" : ""}

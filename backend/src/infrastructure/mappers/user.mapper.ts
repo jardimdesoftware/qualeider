@@ -6,6 +6,8 @@ export class UserMapper {
     static toDomain(raw: PrismaUser): UserEntity {
         return new UserEntity({
             id: raw.id,
+            associationId: raw.associationId,
+            adminId: raw.adminId,
             name: raw.name,
             email: raw.email,
             password: raw.password,
@@ -26,6 +28,8 @@ export class UserMapper {
     static toPrisma(user: UserEntity): PrismaUser {
         return {
             id: user.id,
+            associationId: user.associationId,
+            adminId: user.adminId,
             name: user.name,
             email: user.email,
             password: user.password,
