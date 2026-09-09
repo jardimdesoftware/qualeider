@@ -37,4 +37,10 @@ export interface IUserRepository {
   ): Promise<Omit<UserEntity, 'password'>>;
   softDelete(id: ID): Promise<UserEntity>;
   findByEmail(email: string): Promise<UserEntity | null>;
+  /**
+   * Retorna o Admin mais antigo (dono da fazenda) cadastrado no sistema.
+   * Usado para vincular automaticamente (via adminId) um Vaqueiro criado
+   * pelo primeiro login via Google — ver AuthService.loginWithGoogle.
+   */
+  findFirstAdmin(): Promise<UserEntity | null>;
 }

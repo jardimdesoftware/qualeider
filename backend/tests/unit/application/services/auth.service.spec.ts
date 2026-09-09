@@ -13,6 +13,8 @@ import { createUser } from '../../../factories';
 
 import { IAssociationRepository } from '@/domain/repositories/association.repository';
 import { IFailedEmailRepository } from '@/domain/repositories/failed-email.repository';
+import { IAllowedEmailRepository } from '@/domain/repositories/allowed-email.repository';
+import { ConfigService } from '@nestjs/config';
 import { BCRYPT_ROUNDS_RESET_PASSWORD } from '@/common/constants/security.constants';
 import { Status } from '@/domain/enums/enums';
 
@@ -70,6 +72,21 @@ describe('AuthService', () => {
           provide: IFailedEmailRepository,
           useValue: {
             create: jest.fn(),
+          },
+        },
+        {
+          provide: IAllowedEmailRepository,
+          useValue: {
+            create: jest.fn(),
+            findAll: jest.fn(),
+            findByEmail: jest.fn(),
+            delete: jest.fn(),
+          },
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn(),
           },
         },
       ],

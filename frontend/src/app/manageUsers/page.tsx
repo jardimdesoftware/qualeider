@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/layout";
-import { PageHeader } from "@/components/dashboard";
+import { PageHeader, AllowedEmailsPanel } from "@/components/dashboard";
 import { UserPlus, Users, Search } from "lucide-react";
 import { ICON_SIZES, LOGO_SIZES } from "@/constants/ui";
 import { useUsers } from "@/hooks/queries/useUsers";
@@ -18,10 +18,8 @@ const ROLE_LABELS: Record<UserRole, string> = {
 };
 
 const ROLE_BADGE_CLASSES: Record<UserRole, string> = {
-  [UserRole.ADMIN]:
-    "bg-blue-100 text-blue-800 border border-blue-200",
-  [UserRole.VAQUEIRO]:
-    "bg-amber-100 text-amber-800 border border-amber-200",
+  [UserRole.ADMIN]: "bg-blue-100 text-blue-800 border border-blue-200",
+  [UserRole.VAQUEIRO]: "bg-amber-100 text-amber-800 border border-amber-200",
 };
 
 export default function ManageUsers() {
@@ -38,9 +36,10 @@ export default function ManageUsers() {
 
   const { data: users = [], isLoading, isError } = useUsers();
 
-  const filtered = users.filter((u) =>
-    u.name.toLowerCase().includes(search.toLowerCase()) ||
-    u.email.toLowerCase().includes(search.toLowerCase())
+  const filtered = users.filter(
+    (u) =>
+      u.name.toLowerCase().includes(search.toLowerCase()) ||
+      u.email.toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
@@ -186,6 +185,8 @@ export default function ManageUsers() {
             </div>
           </div>
         )}
+
+        <AllowedEmailsPanel />
       </div>
     </DashboardLayout>
   );
