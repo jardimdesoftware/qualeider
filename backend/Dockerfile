@@ -1,110 +1,78 @@
 # =============================================================================
-# Dockerfile — Backend Qualeider (Hardened, Multi-arch)
-# =============================================================================
-# Multi-stage build com boas práticas de segurança:
-# - Versões de imagem fixadas (sem :latest)
-# - Usuário não-root (appuser, UID 1001)
-# - dumb-init como processo PID 1
-# - Mínimo de pacotes instalados
-# - HEALTHCHECK embutido
-# - Labels OCI padronizados
-# - Suporte multi-arch: AMD64 + ARM64 (via buildx)
+# Backend Qualeider - hardened multi-arch image
 # =============================================================================
 
-# ---------------------------------------------------------------------------
-# Stage 1: Builder
-# ---------------------------------------------------------------------------
-FROM node:24-alpine AS builder
+FROM node:24-slim AS builder
 
-# Argumentos de build para multi-arch (informativo)
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 
 WORKDIR /usr/appBackend
 
-RUN apk upgrade --no-cache
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends openssl ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 
-# Copiar apenas arquivos necessários para install (cache de camada)
 COPY package.json package-lock.json ./
 COPY prisma ./prisma/
 COPY tsconfig*.json ./
 
 ENV HUSKY=0
 
-# Instalar dependências (inclui devDependencies para build)
 RUN npm ci --ignore-scripts && \
+    node node_modules/prisma/build/index.js generate && \
     npm cache clean --force
 
-# Gerar Prisma Client
-RUN node node_modules/prisma/build/index.js generate
-
-# Copiar código-fonte e compilar
 COPY . .
 RUN npm run build
 
-# ---------------------------------------------------------------------------
-# Stage 2: Production
-# ---------------------------------------------------------------------------
-FROM node:24-alpine AS production
+# Prepare production dependencies outside the final image so package managers
+# and build utilities do not become part of the runtime attack surface.
+FROM node:24-slim AS production-dependencies
 
-# Instalar dumb-init (init process correto para PID 1) e wget para healthcheck
-RUN apk upgrade --no-cache && \
-    apk add --no-cache dumb-init wget && \
-    rm -rf /var/cache/apk/*
+WORKDIR /usr/appBackend
 
-# Criar usuário não-root
-RUN addgroup -g 1001 -S appgroup && \
-    adduser -u 1001 -S appuser -G appgroup
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends openssl ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY package.json package-lock.json ./
+COPY prisma ./prisma/
+
+ENV HUSKY=0
+
+RUN npm ci --omit=dev --ignore-scripts && \
+    node node_modules/prisma/build/index.js generate && \
+    npm cache clean --force && \
+    rm -rf /root/.npm /tmp/*
+
+# Distroless contains Node and only its required runtime libraries. It has no
+# shell, package manager, wget, Perl or util-linux.
+FROM gcr.io/distroless/nodejs24-debian13:nonroot AS production
 
 WORKDIR /usr/appBackend
 
 ENV NODE_ENV=production \
     HUSKY=0
 
-# Copiar arquivos de dependência
-COPY --chown=appuser:appgroup package.json package-lock.json ./
-COPY --chown=appuser:appgroup prisma ./prisma/
+COPY --from=production-dependencies --chown=nonroot:nonroot /usr/appBackend/node_modules ./node_modules
+COPY --from=production-dependencies --chown=nonroot:nonroot /usr/appBackend/package.json ./package.json
+COPY --from=production-dependencies --chown=nonroot:nonroot /usr/appBackend/prisma ./prisma
+COPY --from=builder --chown=nonroot:nonroot /usr/appBackend/dist ./dist
+COPY --from=builder --chown=nonroot:nonroot /usr/appBackend/src/templates ./src/templates
+COPY --chown=nonroot:nonroot scripts ./scripts
 
-# Instalar apenas dependências de produção
-RUN npm ci --omit=dev --ignore-scripts && \
-    npm cache clean --force && \
-    rm -rf /root/.npm /tmp/*
+USER nonroot:nonroot
 
-# Gerar Prisma Client para produção
-RUN node node_modules/prisma/build/index.js generate
-
-# Copiar artefatos de build
-COPY --from=builder --chown=appuser:appgroup /usr/appBackend/dist ./dist
-COPY --from=builder --chown=appuser:appgroup /usr/appBackend/src/templates ./src/templates
-
-# Remover gerenciadores de pacote do runtime; o container usa o Prisma local e o app via node.
-RUN rm -rf /usr/local/lib/node_modules/npm \
-    /usr/local/lib/node_modules/corepack \
-    /opt/yarn-* \
-    /usr/local/bin/npm \
-    /usr/local/bin/npx \
-    /usr/local/bin/corepack \
-    /usr/local/bin/yarn \
-    /usr/local/bin/yarnpkg
-
-# Mudar para usuário não-root
-USER appuser
-
-# Expor porta da aplicação
 EXPOSE 3000
 
-# Healthcheck embutido — verifica se a API responde
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
+    CMD ["/nodejs/bin/node", "scripts/healthcheck.mjs"]
 
-# Labels OCI padronizados
 LABEL org.opencontainers.image.title="Qualeider Backend" \
       org.opencontainers.image.description="Backend API for Qualeider platform" \
       org.opencontainers.image.vendor="Qualeider" \
       org.opencontainers.image.licenses="UNLICENSED"
 
-# Usar dumb-init como entrypoint (trata sinais corretamente)
-ENTRYPOINT ["dumb-init", "--"]
-
-# Executar migrations e iniciar servidor
-CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && node dist/src/presentation/main.js"]
+# The distroless Node image already uses Node as its entrypoint.
+CMD ["scripts/start-production.mjs"]
