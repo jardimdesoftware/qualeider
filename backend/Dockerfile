@@ -14,7 +14,7 @@
 # ---------------------------------------------------------------------------
 # Stage 1: Builder
 # ---------------------------------------------------------------------------
-FROM node:26-alpine AS builder
+FROM node:24-slim AS builder
 
 # Argumentos de build para multi-arch (informativo)
 ARG TARGETPLATFORM
@@ -22,7 +22,10 @@ ARG BUILDPLATFORM
 
 WORKDIR /usr/appBackend
 
-RUN apk upgrade --no-cache
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends openssl ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 
 # Copiar apenas arquivos necessários para install (cache de camada)
 COPY package.json package-lock.json ./
@@ -45,16 +48,17 @@ RUN npm run build
 # ---------------------------------------------------------------------------
 # Stage 2: Production
 # ---------------------------------------------------------------------------
-FROM node:26-alpine AS production
+FROM node:24-slim AS production
 
 # Instalar dumb-init (init process correto para PID 1) e wget para healthcheck
-RUN apk upgrade --no-cache && \
-    apk add --no-cache dumb-init wget && \
-    rm -rf /var/cache/apk/*
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends dumb-init wget openssl ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 
 # Criar usuário não-root
-RUN addgroup -g 1001 -S appgroup && \
-    adduser -u 1001 -S appuser -G appgroup
+RUN groupadd --system --gid 1001 appgroup && \
+    useradd --system --uid 1001 --gid appgroup --home-dir /usr/appBackend --shell /usr/sbin/nologin appuser
 
 WORKDIR /usr/appBackend
 
