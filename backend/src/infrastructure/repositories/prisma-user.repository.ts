@@ -182,4 +182,13 @@ export class PrismaUserRepository implements IUserRepository {
     if (!rawUser) return null;
     return UserMapper.toDomain(rawUser);
   }
+
+  async findFirstAdmin(): Promise<UserEntity | null> {
+    const rawUser = await this.prisma.user.findFirst({
+      where: { role: PrismaUserRole.ADMIN, status: PrismaStatus.Active },
+      orderBy: { createdAt: 'asc' },
+    });
+    if (!rawUser) return null;
+    return UserMapper.toDomain(rawUser);
+  }
 }
