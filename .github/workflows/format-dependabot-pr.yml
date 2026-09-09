@@ -5,7 +5,7 @@
 # checkboxes de "Tipo de mudanca"), entao o job `tag-creation` do backend-ci.yml
 # e do frontend-ci.yml nao encontra nenhuma opcao marcada e falha ao tentar
 # calcular a versao. Este workflow reescreve o corpo do PR do bot logo que ele
-# abre, marcando `outros` (nao gera nova tag de release, so mantem a atual).
+# abre, marcando `bug-fix` para gerar uma release patch ao ser mergeado.
 # =============================================================================
 
 name: Formatar PR do Dependabot
@@ -40,10 +40,10 @@ jobs:
 
           - [ ] novo-marco
           - [ ] nova-feature-refactor
-          - [ ] bug-fix
-          - [x] outros
+          - [x] bug-fix
+          - [ ] outros
 
-          > A opção "outros" não gera nova tag de release.
+          > PRs automaticos de dependencia geram release patch quando sao mergeados.
           > Preencha todos os campos de forma clara. Este template é lido automaticamente pela pipeline de CI/CD.
 
           ---

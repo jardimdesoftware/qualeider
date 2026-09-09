@@ -167,7 +167,7 @@ jobs:
               patch=0
               ;;
             outros)
-              # Mantém a tag atual
+              patch=$((patch + 1))
               ;;
           esac
 
