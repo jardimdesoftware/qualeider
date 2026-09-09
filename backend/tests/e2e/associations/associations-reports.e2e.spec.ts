@@ -20,33 +20,23 @@ describe('E2E: Associations - Relatórios', () => {
     testApp = new TestApp();
     await testApp.setup();
 
-    // Ancora nos dias 9 e 10 do MES ANTERIOR (em vez do dia real de hoje).
-    // Isso garante, independente de quando os testes rodam: (1) nunca cai
-    // em data futura - "collectionDate" no futuro e rejeitado com
-    // BusinessException; (2) "hoje" e "ontem" nunca caem no mesmo dia nem
-    // cruzam virada de mes - o que quebrava os testes sempre que rodados
-    // no dia 1 (ver regressao original: globalYesterday colapsava para o
-    // mesmo dia que globalToday).
     const now = new Date();
-    const refMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    globalToday = new Date(
-      refMonth.getFullYear(),
-      refMonth.getMonth(),
-      10,
-      12,
-      0,
-      0,
-      0,
-    );
-    globalYesterday = new Date(
-      refMonth.getFullYear(),
-      refMonth.getMonth(),
-      9,
-      12,
-      0,
-      0,
-      0,
-    );
+    globalToday = new Date(now);
+    globalToday.setDate(now.getDate() - 1);
+    globalToday.setHours(12, 0, 0, 0);
+
+    globalYesterday = new Date(globalToday);
+    globalYesterday.setDate(globalToday.getDate() - 1);
+    globalYesterday.setHours(12, 0, 0, 0);
+
+    if (globalYesterday.getMonth() !== globalToday.getMonth()) {
+      globalToday = new Date(now.getFullYear(), now.getMonth(), 1, 12, 0, 0, 0);
+      globalToday.setDate(0);
+
+      globalYesterday = new Date(globalToday);
+      globalYesterday.setDate(globalToday.getDate() - 1);
+      globalYesterday.setHours(12, 0, 0, 0);
+    }
 
     const association = AssociationFactory.build();
     const createResponse = await testApp
