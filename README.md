@@ -11,6 +11,7 @@
 ![Backend CI/CD](https://github.com/jardimdesoftware/qualeider/actions/workflows/backend-ci.yml/badge.svg)
 ![Frontend CI/CD](https://github.com/jardimdesoftware/qualeider/actions/workflows/frontend-ci.yml/badge.svg)
 ![CodeQL](https://github.com/jardimdesoftware/qualeider/actions/workflows/codeql.yml/badge.svg)
+![OWASP ZAP](https://github.com/jardimdesoftware/qualeider/actions/workflows/owasp-zap.yml/badge.svg)
 ![Vulnerabilidades](badges/vulnerabilidades.svg)
 
 # 🐄🥛 QuaLeiDer

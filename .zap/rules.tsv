@@ -1,0 +1,5 @@
+# zap-baseline rule configuration file
+# ID	Ação	Comentário
+10202	WARN	(Ausência de token Anti-CSRF requer revisão)
+10038	WARN	(CSP Header ausente em endpoints específicos de teste)
+10010	WARN	(Cookie sem HttpOnly requer revisão)
