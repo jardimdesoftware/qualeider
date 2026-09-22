@@ -2,7 +2,7 @@
 # Backend Qualeider - hardened multi-arch image
 # =============================================================================
 
-FROM node:24-slim AS builder
+FROM node:25-slim AS builder
 
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
@@ -28,7 +28,7 @@ RUN npm run build
 
 # Prepare production dependencies outside the final image so package managers
 # and build utilities do not become part of the runtime attack surface.
-FROM node:24-slim AS production-dependencies
+FROM node:25-slim AS production-dependencies
 
 WORKDIR /usr/appBackend
 
