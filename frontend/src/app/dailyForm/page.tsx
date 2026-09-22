@@ -192,7 +192,7 @@ export default function DailyForm() {
         />
 
         {/* Sem overflow-hidden no container para nao cortar o dropdown */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto">
           <div className="p-4 pb-32 max-w-2xl mx-auto space-y-4">
             {/* Barra de progresso */}
             <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
@@ -200,20 +200,20 @@ export default function DailyForm() {
                 <span className="text-sm font-semibold text-slate-600">
                   Progresso da ordenha
                 </span>
-                <span className="text-sm font-black text-[#1e3a29]">
+                <span className="text-sm font-black text-slate-800">
                   {totals.milkedCows} / {totalActive} vacas
                 </span>
               </div>
               <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-[#1e3a29] rounded-full transition-all duration-500"
+                  className="h-full bg-[#2f9e41] rounded-full transition-all duration-500"
                   style={{ width: `${progress}%` }}
                 />
               </div>
               {totals.totalMilk > 0 && (
                 <p className="text-xs text-slate-500 mt-2 text-right font-semibold">
                   Total:{" "}
-                  <span className="text-[#1e3a29]">
+                  <span className="text-slate-800">
                     {totals.totalMilk.toFixed(1)} L
                   </span>
                 </p>
@@ -294,7 +294,7 @@ export default function DailyForm() {
                                     <Milk className="w-4 h-4 text-slate-500" />
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <p className="font-bold text-[#1e3a29] text-sm truncate">
+                                    <p className="font-bold text-slate-800 text-sm truncate">
                                       {animalLabel(animal)}
                                     </p>
                                     {animal.breed && (
