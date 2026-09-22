@@ -9,11 +9,13 @@ import { JwtStrategy } from './jwt.strategy';
 import { MailModule } from '@/mail/mail.module';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
 import { InfrastructureModule } from '@/infrastructure/infrastructure.module';
+import { ActivityLogsApplicationModule } from '@/application/services/activity-logs/activity-logs.module';
 
 @Module({
   imports: [
     UsersApplicationModule,
     AssociationsApplicationModule,
+    ActivityLogsApplicationModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

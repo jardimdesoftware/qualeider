@@ -12,6 +12,7 @@ import { NotificationsPresentationModule } from './modules/notifications.module'
 import { BreedsPresentationModule } from './modules/breeds.module';
 import { AnimalSpeciesPresentationModule } from './modules/animal-species.module';
 import { AllowedEmailsPresentationModule } from './modules/allowed-emails.module';
+import { ActivityLogsPresentationModule } from './modules/activity-logs.module';
 import { MailModule } from '@/mail/mail.module';
 import { WinstonModule } from 'nest-winston';
 import { winstonConfig } from '@/common/logger/logger.config';
@@ -60,6 +61,7 @@ import { HealthController } from './controllers/health.controller';
     BreedsPresentationModule,
     AnimalSpeciesPresentationModule,
     AllowedEmailsPresentationModule,
+    ActivityLogsPresentationModule,
     MailModule,
   ],
   controllers: [HealthController],

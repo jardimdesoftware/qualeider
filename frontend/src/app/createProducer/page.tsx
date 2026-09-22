@@ -8,14 +8,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { User, Phone } from "lucide-react";
 
 import {
-  BrandHeader,
-  ContentCard,
   InputField,
   MultiStepForm,
   ErrorModal,
   PasswordStrength,
 } from "@/components/ui";
-import { PageFooter } from "@/components/layout";
+import { AuthLayout } from "@/components/layout";
 import {
   producerStep1Schema,
   producerStep2Schema,
@@ -124,7 +122,11 @@ export default function CreateProducer() {
   const isSubmitting = isPending;
 
   return (
-    <main className="campus-page-shell flex min-h-screen items-center justify-center px-4 py-10">
+    <AuthLayout
+      title="Criar minha conta"
+      subtitle="Cadastro do Administrador da Fazenda"
+      contentWidth="lg"
+    >
       <ErrorModal
         isOpen={modalState.isOpen}
         onClose={handleModalClose}
@@ -133,112 +135,101 @@ export default function CreateProducer() {
         type={modalState.type}
       />
 
-      <ContentCard className="max-w-2xl w-full">
-        <BrandHeader
-          title="Criar minha conta"
-          subtitle="Cadastro do Administrador da Fazenda"
-        />
+      <MultiStepForm
+        steps={formSteps}
+        currentStep={currentStep}
+        onStepChange={handleStepChange}
+        onSubmit={handleFinalSubmit}
+        isSubmitting={isSubmitting}
+        canGoNext={true}
+      >
+        {/* Step 1: Dados Básicos */}
+        {currentStep === 0 && (
+          <div className="space-y-4">
+            <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <User className="w-5 h-5 text-slate-800" />
+              Credenciais de Acesso
+            </h3>
 
-        <div className="max-h-[80vh] overflow-y-auto px-6 pb-4 pt-6 md:px-8 md:py-8">
-          <MultiStepForm
-            steps={formSteps}
-            currentStep={currentStep}
-            onStepChange={handleStepChange}
-            onSubmit={handleFinalSubmit}
-            isSubmitting={isSubmitting}
-            canGoNext={true}
-          >
-            {/* Step 1: Dados Básicos */}
-            {currentStep === 0 && (
-              <div className="space-y-4">
-                <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <User className="w-5 h-5 text-brand-primary" />
-                  Credenciais de Acesso
-                </h3>
+            <InputField
+              label="Nome Completo"
+              disabled={isSubmitting}
+              error={step1Form.formState.errors.name?.message}
+              {...step1Form.register("name")}
+            />
 
-                <InputField
-                  label="Nome Completo"
-                  disabled={isSubmitting}
-                  error={step1Form.formState.errors.name?.message}
-                  {...step1Form.register("name")}
-                />
+            <InputField
+              label="E-mail"
+              type="email"
+              disabled={isSubmitting}
+              helperText="Será usado para fazer login na plataforma"
+              error={step1Form.formState.errors.email?.message}
+              {...step1Form.register("email")}
+            />
 
-                <InputField
-                  label="E-mail"
-                  type="email"
-                  disabled={isSubmitting}
-                  helperText="Será usado para fazer login na plataforma"
-                  error={step1Form.formState.errors.email?.message}
-                  {...step1Form.register("email")}
-                />
+            <div className="space-y-2">
+              <InputField
+                label="Senha"
+                showPasswordToggle
+                disabled={isSubmitting}
+                error={step1Form.formState.errors.password?.message}
+                {...step1Form.register("password")}
+              />
+              <PasswordStrength password={step1Form.watch("password") || ""} />
+            </div>
 
-                <div className="space-y-2">
-                  <InputField
-                    label="Senha"
-                    showPasswordToggle
-                    disabled={isSubmitting}
-                    error={step1Form.formState.errors.password?.message}
-                    {...step1Form.register("password")}
-                  />
-                  <PasswordStrength password={step1Form.watch("password") || ""} />
-                </div>
+            <InputField
+              label="Confirmar Senha"
+              showPasswordToggle
+              disabled={isSubmitting}
+              helperText="Você pode colar sua senha aqui para confirmar"
+              error={step1Form.formState.errors.confirmPassword?.message}
+              {...step1Form.register("confirmPassword")}
+            />
+          </div>
+        )}
 
-                <InputField
-                  label="Confirmar Senha"
-                  showPasswordToggle
-                  disabled={isSubmitting}
-                  helperText="Você pode colar sua senha aqui para confirmar"
-                  error={step1Form.formState.errors.confirmPassword?.message}
-                  {...step1Form.register("confirmPassword")}
-                />
-              </div>
-            )}
+        {/* Step 2: Contato */}
+        {currentStep === 1 && (
+          <div className="space-y-4">
+            <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Phone className="w-5 h-5 text-slate-800" />
+              Dados de Contato
+            </h3>
 
-            {/* Step 2: Contato */}
-            {currentStep === 1 && (
-              <div className="space-y-4">
-                <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <Phone className="w-5 h-5 text-brand-primary" />
-                  Dados de Contato
-                </h3>
+            <InputField
+              label="CPF"
+              disabled={isSubmitting}
+              helperText="Seu CPF é usado apenas para identificação"
+              error={step2Form.formState.errors.cpf?.message}
+              {...step2Form.register("cpf")}
+              onChange={(e) =>
+                step2Form.setValue("cpf", maskCPF(e.target.value))
+              }
+            />
 
-                <InputField
-                  label="CPF"
-                  disabled={isSubmitting}
-                  helperText="Seu CPF é usado apenas para identificação"
-                  error={step2Form.formState.errors.cpf?.message}
-                  {...step2Form.register("cpf")}
-                  onChange={(e) =>
-                    step2Form.setValue("cpf", maskCPF(e.target.value))
-                  }
-                />
+            <InputField
+              label="Telefone"
+              disabled={isSubmitting}
+              error={step2Form.formState.errors.phone?.message}
+              {...step2Form.register("phone")}
+              onChange={(e) =>
+                step2Form.setValue("phone", maskPhone(e.target.value))
+              }
+            />
+          </div>
+        )}
+      </MultiStepForm>
 
-                <InputField
-                  label="Telefone"
-                  disabled={isSubmitting}
-                  error={step2Form.formState.errors.phone?.message}
-                  {...step2Form.register("phone")}
-                  onChange={(e) =>
-                    step2Form.setValue("phone", maskPhone(e.target.value))
-                  }
-                />
-              </div>
-            )}
-          </MultiStepForm>
-
-          <p className="text-center text-gray-600 text-sm mt-6">
-            Já tem uma conta?{" "}
-            <Link
-              href="/login"
-              className="text-brand-primary hover:text-brand-primary-hover font-semibold transition-colors"
-            >
-              Fazer Login
-            </Link>
-          </p>
-        </div>
-
-        <PageFooter />
-      </ContentCard>
-    </main>
+      <p className="text-center text-gray-600 text-sm mt-6">
+        Já tem uma conta?{" "}
+        <Link
+          href="/login"
+          className="text-slate-800 hover:text-slate-900 font-semibold transition-colors"
+        >
+          Fazer Login
+        </Link>
+      </p>
+    </AuthLayout>
   );
 }

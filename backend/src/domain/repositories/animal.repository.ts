@@ -10,6 +10,15 @@ export interface AnimalFindOneOptions {
   includeUser?: boolean;
 }
 
+export interface AnimalProductionSummary {
+  animalId: number;
+  name: string | null;
+  tagNumber: string | null;
+  totalProduction: number;
+  collectionsCount: number;
+  avgProduction: number;
+}
+
 export interface IAnimalRepository {
   create(
     data: Omit<AnimalEntity, 'id' | 'createdAt' | 'updatedAt' | 'status'> & {
@@ -32,4 +41,15 @@ export interface IAnimalRepository {
   findPendingByParentCode(userId: ID, tagNumber: string): Promise<AnimalEntity[]>;
   update(id: ID, data: Partial<AnimalEntity>): Promise<AnimalEntity>;
   softDelete(id: ID): Promise<AnimalEntity>;
+  /**
+   * Producao total (litros) de cada animal ativo do escopo de rebanho
+   * informado, opcionalmente filtrada por periodo. Usado no relatorio geral
+   * (visao "todas as vacas") em vez de um ranking entre produtores, ja que
+   * o produto so tem uma fazenda por Admin (sem multiplos produtores).
+   */
+  findProductionSummary(
+    scope: HerdScope,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<AnimalProductionSummary[]>;
 }

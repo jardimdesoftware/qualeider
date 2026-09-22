@@ -9,7 +9,8 @@ import { BusinessException } from '@/common/exceptions/business.exception';
 import { DailyCollectionCriteria } from '@/domain/criteria/daily-collection.criteria';
 import { COLLECTION_BUSINESS_RULES } from '@/common/constants/business.constants';
 import { isSameHerd } from '@/domain/utils/herd-scope.util';
-import { UserRole } from '@/domain/enums/enums';
+import { UserRole, ActivityEventType } from '@/domain/enums/enums';
+import { ActivityLogService } from '@/application/services/activity-logs/activity-logs.service';
 
 export interface DailyCollectionRequesterContext {
   id: number;
@@ -26,6 +27,7 @@ export class DailyCollectionsService {
     @Inject(IUserRepository) private userRepository: IUserRepository,
     @Inject(IDailyCollectionRepository) private dailyCollectionRepository: IDailyCollectionRepository,
     @Inject(IAnimalRepository) private animalRepository: IAnimalRepository,
+    private activityLogService: ActivityLogService,
   ) {}
 
   private async validateUser(userId: number) {
@@ -80,6 +82,11 @@ export class DailyCollectionsService {
     const dailyCollection = await this.dailyCollectionRepository.create(createDailyCollectionDto);
 
     this.logger.log(`Coleta diária criada (ID: ${dailyCollection.id})`);
+    await this.activityLogService.record(
+      requester?.id ?? owner.id,
+      ActivityEventType.DAILY_COLLECTION_CREATED,
+      { collectionId: dailyCollection.id },
+    );
     return dailyCollection;
   }
 
@@ -182,7 +189,13 @@ export class DailyCollectionsService {
     if (items && items.length > 0) {
       await this.dailyCollectionRepository.updateItems(id, items);
     }
-    
+
+    await this.activityLogService.record(
+      requester?.id ?? (existing.userId as number),
+      ActivityEventType.DAILY_COLLECTION_UPDATED,
+      { collectionId: id },
+    );
+
     return this.dailyCollectionRepository.findById(id);
   }
 

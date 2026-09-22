@@ -17,6 +17,7 @@ import { IAllowedEmailRepository } from '@/domain/repositories/allowed-email.rep
 import { ConfigService } from '@nestjs/config';
 import { BCRYPT_ROUNDS_RESET_PASSWORD } from '@/common/constants/security.constants';
 import { Status } from '@/domain/enums/enums';
+import { ActivityLogService } from '@/application/services/activity-logs/activity-logs.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -87,6 +88,12 @@ describe('AuthService', () => {
           provide: ConfigService,
           useValue: {
             get: jest.fn(),
+          },
+        },
+        {
+          provide: ActivityLogService,
+          useValue: {
+            record: jest.fn(),
           },
         },
       ],

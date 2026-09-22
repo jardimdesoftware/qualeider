@@ -3,7 +3,11 @@
 import { useState } from "react";
 
 interface ReportFiltersProps {
-  onFilterChange: (startDate: string | null, endDate: string | null, period: string) => void;
+  onFilterChange: (
+    startDate: string | null,
+    endDate: string | null,
+    period: string,
+  ) => void;
 }
 
 export default function ReportFilters({ onFilterChange }: ReportFiltersProps) {
@@ -13,7 +17,7 @@ export default function ReportFilters({ onFilterChange }: ReportFiltersProps) {
 
   const handlePeriodChange = (selectedPeriod: string) => {
     setPeriod(selectedPeriod);
-    
+
     const now = new Date();
     let start: Date, end: Date;
 
@@ -41,8 +45,8 @@ export default function ReportFilters({ onFilterChange }: ReportFiltersProps) {
         end = new Date();
     }
 
-    setStartDate(start.toISOString().split('T')[0]);
-    setEndDate(end.toISOString().split('T')[0]);
+    setStartDate(start.toISOString().split("T")[0]);
+    setEndDate(end.toISOString().split("T")[0]);
     onFilterChange(start.toISOString(), end.toISOString(), selectedPeriod);
   };
 
@@ -51,15 +55,17 @@ export default function ReportFilters({ onFilterChange }: ReportFiltersProps) {
       onFilterChange(
         new Date(startDate).toISOString(),
         new Date(endDate).toISOString(),
-        "custom"
+        "custom",
       );
     }
   };
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
-      <h3 className="text-lg font-bold text-[#1e3a29] mb-4">Filtros de Período</h3>
-      
+      <h3 className="text-lg font-bold text-slate-800 mb-4">
+        Filtros de Período
+      </h3>
+
       <div className="flex flex-wrap gap-4">
         {/* Botões de período rápido */}
         <div className="flex flex-wrap gap-2">
@@ -67,7 +73,7 @@ export default function ReportFilters({ onFilterChange }: ReportFiltersProps) {
             onClick={() => handlePeriodChange("today")}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               period === "today"
-                ? "bg-[#1e3a29] text-white"
+                ? "bg-[#2f9e41] text-white"
                 : "bg-slate-100 text-slate-700 hover:bg-slate-200"
             }`}
           >
@@ -77,7 +83,7 @@ export default function ReportFilters({ onFilterChange }: ReportFiltersProps) {
             onClick={() => handlePeriodChange("week")}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               period === "week"
-                ? "bg-[#1e3a29] text-white"
+                ? "bg-[#2f9e41] text-white"
                 : "bg-slate-100 text-slate-700 hover:bg-slate-200"
             }`}
           >
@@ -87,7 +93,7 @@ export default function ReportFilters({ onFilterChange }: ReportFiltersProps) {
             onClick={() => handlePeriodChange("month")}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               period === "month"
-                ? "bg-[#1e3a29] text-white"
+                ? "bg-[#2f9e41] text-white"
                 : "bg-slate-100 text-slate-700 hover:bg-slate-200"
             }`}
           >
@@ -100,7 +106,7 @@ export default function ReportFilters({ onFilterChange }: ReportFiltersProps) {
             }}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               period === "custom"
-                ? "bg-[#1e3a29] text-white"
+                ? "bg-[#2f9e41] text-white"
                 : "bg-slate-100 text-slate-700 hover:bg-slate-200"
             }`}
           >
@@ -119,7 +125,7 @@ export default function ReportFilters({ onFilterChange }: ReportFiltersProps) {
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#1e3a29] focus:border-transparent"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#2f9e41] focus:border-transparent"
               />
             </div>
             <div className="flex-1 min-w-[200px]">
@@ -130,7 +136,7 @@ export default function ReportFilters({ onFilterChange }: ReportFiltersProps) {
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#1e3a29] focus:border-transparent"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#2f9e41] focus:border-transparent"
               />
             </div>
             <div className="flex items-end">

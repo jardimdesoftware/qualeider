@@ -25,33 +25,6 @@ export const producerSidebarData = {
   ],
 };
 
-export const associationSidebarData = {
-  title: "Sistema para Associações",
-  subtitle: "Gerencie múltiplos produtores e análise dados regionais",
-  items: [
-    {
-      title: "Gestão de Produtores",
-      description:
-        "Cadastre e gerencie todos os produtores associados em uma plataforma centralizada e organizada.",
-    },
-    {
-      title: "Relatórios Agregados",
-      description:
-        "Visualize dados consolidados de produção de todos os associados com relatórios completos e customizáveis.",
-    },
-    {
-      title: "Análises Regionais",
-      description:
-        "Acompanhe métricas de desempenho por região, identifique padrões e otimize a gestão da associação.",
-    },
-    {
-      title: "Comunicação Integrada",
-      description:
-        "Mantenha contato direto com os produtores, envie notificações e compartilhe informações importantes.",
-    },
-  ],
-};
-
 export const accountSelectionSidebarData = {
   title: "Sistema de Gestão Completo",
   subtitle: "A solução ideal para produção leiteira em qualquer escala",

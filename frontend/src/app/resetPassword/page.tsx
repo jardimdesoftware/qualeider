@@ -3,8 +3,8 @@
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { BrandHeader, ContentCard, ErrorModal } from "@/components/ui";
-import { PageFooter } from "@/components/layout";
+import { ErrorModal } from "@/components/ui";
+import { AuthLayout } from "@/components/layout";
 import { getFriendlyErrorMessage } from "@/utils/errorMessage";
 import { VerifyCodeStep } from "./_components/VerifyCodeStep";
 import { NewPasswordStep } from "./_components/NewPasswordStep";
@@ -17,7 +17,7 @@ function ResetPasswordForm() {
   const emailParam = rawEmail ? rawEmail.trim() : "";
 
   const [step, setStep] = useState<"verify-code" | "reset-password">(
-    "verify-code"
+    "verify-code",
   );
   const [resetData, setResetData] = useState<{ email: string; code: string }>({
     email: "",
@@ -60,7 +60,14 @@ function ResetPasswordForm() {
   };
 
   return (
-    <main className="campus-page-shell flex min-h-screen items-center justify-center px-4 py-10">
+    <AuthLayout
+      title={step === "verify-code" ? "Verificar Código" : "Nova Senha"}
+      subtitle={
+        step === "verify-code"
+          ? "Confirme o código recebido"
+          : "Crie uma nova senha"
+      }
+    >
       <ErrorModal
         isOpen={modalState.isOpen}
         onClose={handleModalClose}
@@ -69,47 +76,32 @@ function ResetPasswordForm() {
         type={modalState.type}
       />
 
-      <ContentCard className="max-w-md w-full">
-        <BrandHeader
-          title={step === "verify-code" ? "Verificar Código" : "Nova Senha"}
-          subtitle={
-            step === "verify-code"
-              ? "Confirme o código recebido"
-              : "Crie uma nova senha"
-          }
+      {step === "verify-code" && (
+        <VerifyCodeStep
+          emailParam={emailParam}
+          onVerifySuccess={handleVerifySuccess}
+          onError={handleError}
         />
+      )}
 
-        <div className="p-8 pb-6">
-          {step === "verify-code" && (
-            <VerifyCodeStep
-              emailParam={emailParam}
-              onVerifySuccess={handleVerifySuccess}
-              onError={handleError}
-            />
-          )}
+      {step === "reset-password" && (
+        <NewPasswordStep
+          email={resetData.email}
+          code={resetData.code}
+          onResetSuccess={handleResetSuccess}
+          onError={handleError}
+        />
+      )}
 
-          {step === "reset-password" && (
-            <NewPasswordStep
-              email={resetData.email}
-              code={resetData.code}
-              onResetSuccess={handleResetSuccess}
-              onError={handleError}
-            />
-          )}
-
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => router.push("/login")}
-              className="text-brand-primary hover:text-brand-primary-hover font-semibold text-sm transition-colors"
-            >
-              Voltar ao Login
-            </button>
-          </div>
-        </div>
-
-        <PageFooter />
-      </ContentCard>
-    </main>
+      <div className="mt-6 text-center">
+        <button
+          onClick={() => router.push("/login")}
+          className="text-slate-800 hover:text-slate-900 font-semibold text-sm transition-colors"
+        >
+          Voltar ao Login
+        </button>
+      </div>
+    </AuthLayout>
   );
 }
 

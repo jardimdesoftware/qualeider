@@ -1,17 +1,18 @@
 "use client";
 
 import {
-  Area,
   AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
+  Area,
   XAxis,
   YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
 } from "recharts";
 import { EmptyState } from "@/components/ui";
 import { Milk } from "lucide-react";
 import { ICON_SIZES } from "@/constants/ui";
+import ChartCard from "./ChartCard";
 
 interface LineChartData {
   date: string;
@@ -20,35 +21,35 @@ interface LineChartData {
 
 interface MilkLast7DaysChartProps {
   data: LineChartData[];
+  emptyDescription?: string;
+  showEmptyAction?: boolean;
 }
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="rounded-md border border-brand-border bg-white p-3 text-sm shadow-lg">
-        <p className="mb-1 font-bold text-gray-900">{label}</p>
-        <p className="font-semibold text-gov-blue">{payload[0].value} litros</p>
+      <div className="bg-white p-3 border border-slate-100 shadow-lg rounded-xl text-sm">
+        <p className="font-bold text-slate-700 mb-1">{label}</p>
+        <p className="font-semibold text-slate-800">
+          {payload[0].value} Litros
+        </p>
       </div>
     );
   }
-
   return null;
 };
 
-export default function MilkLast7DaysChart({ data }: MilkLast7DaysChartProps) {
+export default function MilkLast7DaysChart({
+  data,
+  emptyDescription = "Registre coletas para ver o gráfico.",
+  showEmptyAction = true,
+}: MilkLast7DaysChartProps) {
   const hasCollections = data.length > 0;
 
   return (
-    <div className="campus-card flex h-[400px] flex-col p-5 md:p-6">
-      <div className="mb-6">
-        <h2 className="text-lg font-extrabold text-gray-950">
-          Leite coletado
-        </h2>
-        <p className="text-sm text-brand-muted">Evolução dos últimos 7 dias</p>
-      </div>
-
+    <ChartCard title="Leite Coletado" subtitle="Evolução dos últimos 7 dias">
       {hasCollections ? (
-        <div className="min-h-0 w-full flex-1">
+        <div className="flex-1 w-full min-h-0">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
               data={data}
@@ -56,51 +57,51 @@ export default function MilkLast7DaysChart({ data }: MilkLast7DaysChartProps) {
             >
               <defs>
                 <linearGradient id="colorMilk" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#1351B4" stopOpacity={0.18} />
-                  <stop offset="95%" stopColor="#1351B4" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#2f9e41" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="#2f9e41" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid
-                stroke="#E0E0E0"
                 strokeDasharray="3 3"
                 vertical={false}
+                stroke="#f1f5f9"
               />
               <XAxis
                 dataKey="date"
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: "#4B5563", fontSize: 12 }}
+                tick={{ fill: "#64748b", fontSize: 12 }}
                 tickMargin={10}
               />
               <YAxis
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: "#4B5563", fontSize: 12 }}
+                tick={{ fill: "#64748b", fontSize: 12 }}
               />
               <Tooltip content={<CustomTooltip />} />
               <Area
                 type="monotone"
                 dataKey="quantity"
-                stroke="#1351B4"
+                stroke="#2f9e41"
                 strokeWidth={3}
                 fillOpacity={1}
                 fill="url(#colorMilk)"
-                activeDot={{ r: 6, strokeWidth: 0, fill: "#1351B4" }}
+                activeDot={{ r: 6, strokeWidth: 0, fill: "#2f9e41" }}
               />
             </AreaChart>
           </ResponsiveContainer>
         </div>
       ) : (
-        <div className="flex flex-1 items-center justify-center">
+        <div className="flex-1 flex items-center justify-center">
           <EmptyState
             icon={<Milk size={ICON_SIZES.LG} />}
             title="Sem dados recentes"
-            description="Registre coletas para ver o gráfico."
-            actionHref="/dailyForm"
-            actionLabel="Registrar coleta"
+            description={emptyDescription}
+            actionHref={showEmptyAction ? "/dailyForm" : undefined}
+            actionLabel={showEmptyAction ? "Registrar coleta" : undefined}
           />
         </div>
       )}
-    </div>
+    </ChartCard>
   );
 }

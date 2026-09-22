@@ -3,7 +3,7 @@ import { User } from "lucide-react";
 
 export function LandingNavbar() {
   return (
-    <nav className="fixed w-full z-50 bg-[#1e3a29]/95 backdrop-blur-sm border-b border-[#ffffff10] shadow-lg">
+    <nav className="fixed w-full z-50 bg-[#2f9e41]/95 backdrop-blur-sm border-b border-[#ffffff10] shadow-lg">
       <div className="container mx-auto px-6 py-4 flex justify-between items-center">
         {/* Logo */}
         <div className="flex items-center gap-3">
@@ -12,7 +12,7 @@ export function LandingNavbar() {
               cx="50"
               cy="50"
               r="48"
-              fill="#1e3a29"
+              fill="#2f9e41"
               stroke="#fceeb5"
               strokeWidth="4"
             />
