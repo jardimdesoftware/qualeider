@@ -4,7 +4,12 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { DashboardLayout } from "@/components/layout";
 import { PageHeader } from "@/components/dashboard";
-import { Button, EmptyState, ErrorModal, ConfirmationModal } from "@/components/ui";
+import {
+  Button,
+  EmptyState,
+  ErrorModal,
+  ConfirmationModal,
+} from "@/components/ui";
 import InputField from "@/components/ui/input-field";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { useRoleGuard } from "@/hooks/useRoleGuard";
@@ -16,14 +21,7 @@ import {
   useDeleteBreed,
 } from "@/hooks/queries/useBreeds";
 import { Breed, CreateBreedDto } from "@/interfaces/breed";
-import {
-  Plus,
-  Pencil,
-  Trash2,
-  X,
-  Tag,
-  Loader2,
-} from "lucide-react";
+import { Plus, Pencil, Trash2, X, Tag, Loader2 } from "lucide-react";
 
 // ─── Modal de Criar / Editar ────────────────────────────────────────────────
 
@@ -81,8 +79,7 @@ function BreedModal({
       onClose();
     } catch (err: any) {
       const msg =
-        err?.response?.data?.message ||
-        "Ocorreu um erro. Tente novamente.";
+        err?.response?.data?.message || "Ocorreu um erro. Tente novamente.";
       onError(msg);
     }
   };
@@ -134,7 +131,9 @@ function BreedModal({
               })}
             />
             {errors.description && (
-              <p className="text-red-500 text-xs">{errors.description.message}</p>
+              <p className="text-red-500 text-xs">
+                {errors.description.message}
+              </p>
             )}
           </div>
 
@@ -148,7 +147,12 @@ function BreedModal({
             >
               Cancelar
             </Button>
-            <Button type="submit" variant="primary" fullWidth loading={isPending}>
+            <Button
+              type="submit"
+              variant="primary"
+              fullWidth
+              loading={isPending}
+            >
               {isEditing ? "Salvar Alterações" : "Cadastrar"}
             </Button>
           </div>
@@ -161,7 +165,7 @@ function BreedModal({
 // ─── Página Principal ────────────────────────────────────────────────────────
 
 export default function BreedsPage() {
-  useAuthGuard("user");
+  useAuthGuard();
   const { isChecking } = useRoleGuard(["ADMIN"]);
 
   const { data: breeds = [], isLoading, isError } = useBreeds();
@@ -219,7 +223,7 @@ export default function BreedsPage() {
     } catch (err: any) {
       setConfirmDelete(null);
       handleError(
-        err?.response?.data?.message || "Não foi possível excluir a raça."
+        err?.response?.data?.message || "Não foi possível excluir a raça.",
       );
     }
   };
@@ -277,11 +281,15 @@ export default function BreedsPage() {
                   <thead>
                     <tr className="bg-[#1e3a29] text-white">
                       <th className="px-6 py-4 text-left font-semibold">#</th>
-                      <th className="px-6 py-4 text-left font-semibold">Nome</th>
+                      <th className="px-6 py-4 text-left font-semibold">
+                        Nome
+                      </th>
                       <th className="px-6 py-4 text-left font-semibold hidden md:table-cell">
                         Descrição
                       </th>
-                      <th className="px-6 py-4 text-right font-semibold">Ações</th>
+                      <th className="px-6 py-4 text-right font-semibold">
+                        Ações
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -332,7 +340,8 @@ export default function BreedsPage() {
               </div>
 
               <div className="px-6 py-3 border-t border-slate-100 bg-slate-50 text-xs text-slate-400">
-                {breeds.length} {breeds.length === 1 ? "raça cadastrada" : "raças cadastradas"}
+                {breeds.length}{" "}
+                {breeds.length === 1 ? "raça cadastrada" : "raças cadastradas"}
               </div>
             </div>
           )}

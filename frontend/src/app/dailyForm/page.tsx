@@ -41,7 +41,7 @@ function animalLabel(a: Animal): string {
 
 export default function DailyForm() {
   const router = useRouter();
-  const { userId, isLoading: isAuthLoading } = useAuthGuard("user");
+  const { userId, isLoading: isAuthLoading } = useAuthGuard();
   const { validateCollectionItems, transformConfirmedItemsToPayload } =
     useDailyCollection();
 

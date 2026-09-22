@@ -8,25 +8,37 @@ import { useAuthGuard } from "@/hooks/useAuthGuard";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { CollectionDetailsModal } from "./_components/CollectionDetailsModal";
 import { EditCollectionModal } from "./_components/EditCollectionModal";
-import { useUserCollections, useUpdateCollection, useDeleteCollection } from "@/hooks/queries/useCollections";
+import {
+  useUserCollections,
+  useUpdateCollection,
+  useDeleteCollection,
+} from "@/hooks/queries/useCollections";
 import { DailyCollection } from "@/interfaces/daily-collection";
 import { getFriendlyErrorMessage } from "@/utils/errorMessage";
 
 export default function CollectionHistory() {
-  const { userId, isLoading: authLoading } = useAuthGuard("user");
-  const { data: rawCollections = [], isLoading: loading } = useUserCollections(userId);
+  const { userId, isLoading: authLoading } = useAuthGuard();
+  const { data: rawCollections = [], isLoading: loading } =
+    useUserCollections(userId);
 
-  const [selectedCollection, setSelectedCollection] = useState<DailyCollection | null>(null);
-  const [editingCollection, setEditingCollection] = useState<DailyCollection | null>(null);
+  const [selectedCollection, setSelectedCollection] =
+    useState<DailyCollection | null>(null);
+  const [editingCollection, setEditingCollection] =
+    useState<DailyCollection | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [feedback, setFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   const collections = useMemo(
     () =>
       [...rawCollections].sort(
-        (a, b) => new Date(b.collectionDate).getTime() - new Date(a.collectionDate).getTime()
+        (a, b) =>
+          new Date(b.collectionDate).getTime() -
+          new Date(a.collectionDate).getTime(),
       ),
-    [rawCollections]
+    [rawCollections],
   );
 
   const updateCollection = useUpdateCollection(userId);
@@ -38,14 +50,17 @@ export default function CollectionHistory() {
       {
         onSuccess: () => {
           setEditingCollection(null);
-          setFeedback({ type: "success", message: "Coleta atualizada com sucesso!" });
+          setFeedback({
+            type: "success",
+            message: "Coleta atualizada com sucesso!",
+          });
           setTimeout(() => setFeedback(null), 3000);
         },
         onError: (err: any) => {
           setFeedback({ type: "error", message: getFriendlyErrorMessage(err) });
           setTimeout(() => setFeedback(null), 4000);
         },
-      }
+      },
     );
   };
 
@@ -54,7 +69,10 @@ export default function CollectionHistory() {
     deleteCollection.mutate(id, {
       onSuccess: () => {
         setDeletingId(null);
-        setFeedback({ type: "success", message: "Coleta excluída com sucesso!" });
+        setFeedback({
+          type: "success",
+          message: "Coleta excluída com sucesso!",
+        });
         setTimeout(() => setFeedback(null), 3000);
       },
       onError: (err: any) => {
@@ -104,22 +122,33 @@ export default function CollectionHistory() {
                 <tbody className="divide-y divide-gray-100">
                   {collections.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                      <td
+                        colSpan={5}
+                        className="px-6 py-8 text-center text-gray-500"
+                      >
                         Nenhuma coleta registrada.
                       </td>
                     </tr>
                   ) : (
                     collections.map((item) => (
-                      <tr key={item.id} className="hover:bg-[#fdfbf7] transition-colors">
+                      <tr
+                        key={item.id}
+                        className="hover:bg-[#fdfbf7] transition-colors"
+                      >
                         <td className="px-6 py-4 text-gray-900 font-medium">
-                          {new Date(item.collectionDate).toLocaleDateString("pt-BR", {
-                            timeZone: "UTC",
-                          })}
+                          {new Date(item.collectionDate).toLocaleDateString(
+                            "pt-BR",
+                            {
+                              timeZone: "UTC",
+                            },
+                          )}
                         </td>
                         <td className="px-6 py-4 text-brand-primary font-bold">
                           {item.quantity} L
                         </td>
-                        <td className="px-6 py-4 text-gray-600">{item.numAnimals}</td>
+                        <td className="px-6 py-4 text-gray-600">
+                          {item.numAnimals}
+                        </td>
                         <td className="px-6 py-4">
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                             Recebido
