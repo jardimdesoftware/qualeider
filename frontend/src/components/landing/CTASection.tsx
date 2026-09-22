@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export function CTASection() {
   return (
-    <section className="bg-[#1e3a29] py-20 text-white relative overflow-hidden">
+    <section className="bg-[#2f9e41] py-20 text-white relative overflow-hidden">
       {/* Elementos de Fundo */}
       <div
         className="absolute top-0 left-0 w-full h-full opacity-10"
