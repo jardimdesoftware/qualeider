@@ -1,21 +1,27 @@
 "use client";
 
 import { useState } from "react";
-import { FileDown, Loader2 } from "lucide-react";
-import { ProducerRanking, MonthlyReport } from "@/interfaces/report";
+import { FileDown, FileSpreadsheet, Loader2 } from "lucide-react";
+import { MonthlyReport } from "@/interfaces/report";
+import { AnimalProductionSummary } from "@/interfaces/animal";
+import { downloadCSV } from "@/utils/csvExport";
 
 interface ReportExportButtonProps {
-  ranking: ProducerRanking[];
+  animalProduction: AnimalProductionSummary[];
   monthlyReport: MonthlyReport | null;
-  associationName?: string;
 }
 
-export default function ReportExportButton({ 
-  ranking, 
+function animalLabel(a: AnimalProductionSummary): string {
+  if (a.tagNumber) return `#${a.tagNumber}${a.name ? ` - ${a.name}` : ""}`;
+  return a.name || `Animal ID ${a.animalId}`;
+}
+
+export default function ReportExportButton({
+  animalProduction,
   monthlyReport,
-  associationName = "Associação" 
 }: ReportExportButtonProps) {
   const [exporting, setExporting] = useState(false);
+  const [exportingCsv, setExportingCsv] = useState(false);
 
   const generatePDF = async () => {
     setExporting(true);
@@ -23,7 +29,7 @@ export default function ReportExportButton({
     try {
       const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
         import("jspdf"),
-        import("jspdf-autotable")
+        import("jspdf-autotable"),
       ]);
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
@@ -31,14 +37,11 @@ export default function ReportExportButton({
 
       // Cabeçalho
       doc.setFontSize(20);
-      doc.setTextColor(30, 58, 41); // #1e3a29
-      doc.text("Relatório de Produção", pageWidth / 2, yPosition, { align: "center" });
+      doc.setTextColor(30, 58, 41); // #2f9e41
+      doc.text("Relatório de Produção", pageWidth / 2, yPosition, {
+        align: "center",
+      });
       yPosition += 10;
-
-      doc.setFontSize(12);
-      doc.setTextColor(100, 100, 100);
-      doc.text(associationName, pageWidth / 2, yPosition, { align: "center" });
-      yPosition += 6;
 
       const currentDate = new Date().toLocaleDateString("pt-BR", {
         day: "2-digit",
@@ -46,7 +49,10 @@ export default function ReportExportButton({
         year: "numeric",
       });
       doc.setFontSize(10);
-      doc.text(`Gerado em: ${currentDate}`, pageWidth / 2, yPosition, { align: "center" });
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Gerado em: ${currentDate}`, pageWidth / 2, yPosition, {
+        align: "center",
+      });
       yPosition += 15;
 
       // Seção: Resumo Mensal
@@ -60,19 +66,29 @@ export default function ReportExportButton({
         doc.setTextColor(60, 60, 60);
 
         const metrics = [
-          { label: "Produção Total", value: `${monthlyReport.totalProduction.toFixed(0)} Litros` },
-          { label: "Produtores Ativos", value: `${monthlyReport.totalProducers} Produtores` },
-          { label: "Média por Produtor", value: `${monthlyReport.averagePerProducer.toFixed(1)} Litros` },
-          { label: "Total de Animais", value: `${monthlyReport.totalAnimals} Animais` },
-          { label: "Total de Coletas", value: `${monthlyReport.totalCollections} Registros` },
-          { label: "Média por Animal", value: `${monthlyReport.avgPerAnimal.toFixed(1)} Litros` },
+          {
+            label: "Produção Total",
+            value: `${monthlyReport.totalProduction.toFixed(0)} Litros`,
+          },
+          {
+            label: "Total de Animais",
+            value: `${monthlyReport.totalAnimals} Animais`,
+          },
+          {
+            label: "Total de Coletas",
+            value: `${monthlyReport.totalCollections} Registros`,
+          },
+          {
+            label: "Média por Animal",
+            value: `${monthlyReport.avgPerAnimal.toFixed(1)} Litros`,
+          },
         ];
 
         metrics.forEach((metric, index) => {
           const col = index % 2;
           const row = Math.floor(index / 2);
-          const xPos = 14 + (col * 95);
-          const yPos = yPosition + (row * 8);
+          const xPos = 14 + col * 95;
+          const yPos = yPosition + row * 8;
 
           doc.setFont("helvetica", "bold");
           doc.text(`${metric.label}:`, xPos, yPos);
@@ -80,34 +96,30 @@ export default function ReportExportButton({
           doc.text(metric.value, xPos + 50, yPos);
         });
 
-        yPosition += (Math.ceil(metrics.length / 2) * 8) + 12;
+        yPosition += Math.ceil(metrics.length / 2) * 8 + 12;
       }
 
-      // Seção: Ranking de Produtores
-      if (ranking && ranking.length > 0) {
+      // Seção: Produção por Animal
+      if (animalProduction && animalProduction.length > 0) {
         doc.setFontSize(14);
         doc.setTextColor(30, 58, 41);
-        doc.text("Ranking de Produtores", 14, yPosition);
+        doc.text("Produção por Animal", 14, yPosition);
         yPosition += 5;
 
-        // Preparar dados para a tabela
-        const tableData = ranking.map((producer) => [
-          `${producer.rank}º`,
-          producer.name,
-          producer.city && producer.state ? `${producer.city}, ${producer.state}` : "-",
-          producer.animalsCount.toString(),
-          producer.totalProduction.toFixed(1),
-          producer.avgProductionPerDay.toFixed(1),
+        const tableData = animalProduction.map((animal) => [
+          animalLabel(animal),
+          animal.collectionsCount.toString(),
+          animal.totalProduction.toFixed(1),
+          animal.avgProduction.toFixed(1),
         ]);
 
-        // Gerar tabela com autoTable
         autoTable(doc, {
           startY: yPosition,
-          head: [["Pos.", "Produtor", "Localização", "Animais", "Total (L)", "Média/Dia (L)"]],
+          head: [["Animal", "Coletas", "Total (L)", "Média/Coleta (L)"]],
           body: tableData,
           theme: "grid",
           headStyles: {
-            fillColor: [30, 58, 41], // #1e3a29
+            fillColor: [30, 58, 41], // #2f9e41
             textColor: [255, 255, 255],
             fontStyle: "bold",
             fontSize: 9,
@@ -120,21 +132,10 @@ export default function ReportExportButton({
             fillColor: [250, 250, 250],
           },
           columnStyles: {
-            0: { cellWidth: 15, halign: "center" },
-            1: { cellWidth: 50 },
-            2: { cellWidth: 40 },
-            3: { cellWidth: 20, halign: "center" },
-            4: { cellWidth: 25, halign: "right" },
-            5: { cellWidth: 30, halign: "right" },
-          },
-          didDrawCell: (data) => {
-            // Destacar top 3
-            if (data.section === "body" && data.column.index === 0) {
-              const rank = parseInt(data.cell.text[0]);
-              if (rank <= 3) {
-                doc.setFillColor(255, 251, 235); // Amarelo claro
-              }
-            }
+            0: { cellWidth: 70 },
+            1: { cellWidth: 30, halign: "center" },
+            2: { cellWidth: 35, halign: "right" },
+            3: { cellWidth: 45, halign: "right" },
           },
         });
       }
@@ -149,7 +150,7 @@ export default function ReportExportButton({
           `Página ${i} de ${pageCount}`,
           pageWidth / 2,
           doc.internal.pageSize.getHeight() - 10,
-          { align: "center" }
+          { align: "center" },
         );
       }
 
@@ -164,23 +165,94 @@ export default function ReportExportButton({
     }
   };
 
+  const generateCSV = () => {
+    setExportingCsv(true);
+
+    try {
+      const currentDate = new Date().toLocaleDateString("pt-BR");
+      const rows: string[][] = [
+        ["Relatório de Produção"],
+        [`Gerado em: ${currentDate}`],
+        [],
+      ];
+
+      if (monthlyReport) {
+        rows.push([`Resumo Mensal - ${monthlyReport.month}`]);
+        rows.push([
+          "Produção Total (L)",
+          monthlyReport.totalProduction.toFixed(0),
+        ]);
+        rows.push(["Total de Animais", String(monthlyReport.totalAnimals)]);
+        rows.push(["Total de Coletas", String(monthlyReport.totalCollections)]);
+        rows.push([
+          "Média por Animal (L)",
+          monthlyReport.avgPerAnimal.toFixed(1),
+        ]);
+        rows.push([]);
+      }
+
+      if (animalProduction && animalProduction.length > 0) {
+        rows.push(["Produção por Animal"]);
+        rows.push(["Animal", "Coletas", "Total (L)", "Média/Coleta (L)"]);
+        animalProduction.forEach((animal) => {
+          rows.push([
+            animalLabel(animal),
+            animal.collectionsCount.toString(),
+            animal.totalProduction.toFixed(1),
+            animal.avgProduction.toFixed(1),
+          ]);
+        });
+      }
+
+      const fileName = `relatorio_${new Date().toISOString().split("T")[0]}.csv`;
+      downloadCSV(fileName, rows);
+    } catch (error) {
+      console.error("Erro ao gerar CSV:", error);
+      alert("Erro ao gerar CSV. Tente novamente.");
+    } finally {
+      setExportingCsv(false);
+    }
+  };
+
+  const hasData = animalProduction && animalProduction.length > 0;
+
   return (
-    <button
-      onClick={generatePDF}
-      disabled={exporting || !ranking || ranking.length === 0}
-      className="flex items-center gap-2 px-6 py-3 bg-[#d97706] text-white rounded-lg font-medium hover:bg-[#b85c00] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
-    >
-      {exporting ? (
-        <>
-          <Loader2 className="w-5 h-5 animate-spin" />
-          Gerando PDF...
-        </>
-      ) : (
-        <>
-          <FileDown className="w-5 h-5" />
-          Exportar PDF
-        </>
-      )}
-    </button>
+    <div className="flex items-center gap-3">
+      <button
+        onClick={generatePDF}
+        disabled={exporting || !hasData}
+        className="flex items-center gap-2 px-6 py-3 bg-[#d97706] text-white rounded-lg font-medium hover:bg-[#b85c00] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+      >
+        {exporting ? (
+          <>
+            <Loader2 className="w-5 h-5 animate-spin" />
+            Gerando PDF...
+          </>
+        ) : (
+          <>
+            <FileDown className="w-5 h-5" />
+            Exportar PDF
+          </>
+        )}
+      </button>
+
+      <button
+        onClick={generateCSV}
+        disabled={exportingCsv || !hasData}
+        className="flex items-center gap-2 px-6 py-3 bg-[#d97706] text-white rounded-lg font-medium hover:bg-[#b85c00] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+      >
+        {exportingCsv ? (
+          <>
+            <Loader2 className="w-5 h-5 animate-spin" />
+            Gerando CSV...
+          </>
+        ) : (
+          <>
+            <FileSpreadsheet className="w-5 h-5" />
+            Exportar CSV
+          </>
+        )}
+      </button>
+    </div>
   );
 }
