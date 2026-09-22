@@ -88,7 +88,7 @@ export function EditCollectionModal({
         <header className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-[#fdfbf7]">
           <div className="flex items-center gap-2">
             <Milk className="text-[#d97706]" size={ICON_SIZES.MD} />
-            <h3 className="text-lg font-bold text-[#1e3a29]">Editar Coleta</h3>
+            <h3 className="text-lg font-bold text-slate-800">Editar Coleta</h3>
           </div>
           <button
             type="button"

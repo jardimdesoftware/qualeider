@@ -21,15 +21,13 @@ export default function ActionButton({
   const isPrimary = variant === "primary";
 
   const baseClasses =
-    "w-full rounded-lg border px-6 py-4 font-bold shadow-[0_1px_3px_rgba(16,24,16,0.05)] transition-colors duration-200";
-  
-  const variantClasses = isPrimary
-    ? "border-brand-primary bg-brand-primary text-white hover:bg-brand-primary-hover"
-    : "border-brand-primary bg-white text-brand-primary hover:bg-brand-accent";
+    "w-full font-bold py-4 px-6 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg";
 
-  const subtitleClasses = isPrimary
-    ? "text-white/85"
-    : "text-gray-600";
+  const variantClasses = isPrimary
+    ? "bg-brand-primary hover:bg-brand-primary-hover text-white"
+    : "bg-white hover:bg-gray-50 text-slate-800 border-4 border-brand-secondary";
+
+  const subtitleClasses = isPrimary ? "text-brand-accent" : "text-gray-600";
 
   return (
     <Link href={href}>
