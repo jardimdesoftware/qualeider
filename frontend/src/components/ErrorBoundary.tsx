@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import React, { Component, ReactNode } from 'react';
-import { logger } from '@/utils/logger';
+import React, { Component, ReactNode } from "react";
+import { logger } from "@/utils/logger";
 
 interface Props {
   children: ReactNode;
@@ -29,7 +29,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // Log do erro com contexto completo
-    logger.error('React Error Boundary caught an error', error, {
+    logger.error("React Error Boundary caught an error", error, {
       componentStack: errorInfo.componentStack,
       errorBoundary: true,
     });
@@ -54,20 +54,20 @@ export class ErrorBoundary extends Component<Props, State> {
               </p>
               <button
                 onClick={() => window.location.reload()}
-                className="bg-[#1e3a29] text-white px-6 py-2 rounded-lg hover:bg-[#2d5a3e] transition-colors"
+                className="bg-[#2f9e41] text-white px-6 py-2 rounded-lg hover:bg-[#2d5a3e] transition-colors"
               >
                 Recarregar página
               </button>
             </div>
-            
-            {process.env.NODE_ENV === 'development' && this.state.error && (
+
+            {process.env.NODE_ENV === "development" && this.state.error && (
               <details className="mt-4 text-xs text-left">
                 <summary className="cursor-pointer text-gray-700 font-semibold">
                   Detalhes do erro (dev only)
                 </summary>
                 <pre className="mt-2 p-2 bg-gray-100 rounded overflow-auto max-h-48">
                   {this.state.error.toString()}
-                  {'\n\n'}
+                  {"\n\n"}
                   {this.state.error.stack}
                 </pre>
               </details>
