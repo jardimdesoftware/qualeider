@@ -1,12 +1,12 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/layout";
 import { PageHeader, AllowedEmailsPanel } from "@/components/dashboard";
-import { UserPlus, Users, Search } from "lucide-react";
-import { ICON_SIZES, LOGO_SIZES } from "@/constants/ui";
+import { UserPlus, Users, Search, MapPin } from "lucide-react";
+import { LOGO_SIZES } from "@/constants/ui";
 import { useUsers } from "@/hooks/queries/useUsers";
 import { User, UserRole, Status } from "@/interfaces/user";
 import { EmptyState } from "@/components/ui";
@@ -21,6 +21,88 @@ const ROLE_BADGE_CLASSES: Record<UserRole, string> = {
   [UserRole.ADMIN]: "bg-blue-100 text-blue-800 border border-blue-200",
   [UserRole.VAQUEIRO]: "bg-amber-100 text-amber-800 border border-amber-200",
 };
+
+const ROLE_AVATAR_CLASSES: Record<UserRole, string> = {
+  [UserRole.ADMIN]: "bg-slate-700",
+  [UserRole.VAQUEIRO]: "bg-amber-600",
+};
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  return parts.length > 1
+    ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+    : name.slice(0, 2).toUpperCase();
+}
+
+function UserRow({ user }: { user: User }) {
+  return (
+    <tr className="hover:bg-slate-50 transition-colors">
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <div
+            className={`w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-white text-xs font-bold ${
+              ROLE_AVATAR_CLASSES[user.role] ?? "bg-slate-400"
+            }`}
+          >
+            {initials(user.name)}
+          </div>
+          <div className="min-w-0">
+            <p className="font-semibold text-slate-800 truncate">{user.name}</p>
+            <p className="text-xs text-slate-500 truncate">{user.email}</p>
+          </div>
+        </div>
+      </td>
+      <td className="px-6 py-4">
+        <span
+          className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${
+            ROLE_BADGE_CLASSES[user.role] ?? "bg-gray-100 text-gray-700"
+          }`}
+        >
+          {ROLE_LABELS[user.role] ?? user.role}
+        </span>
+      </td>
+      <td className="px-6 py-4 hidden md:table-cell">
+        <span
+          className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${
+            user.status === Status.Active
+              ? "bg-green-100 text-green-700"
+              : "bg-red-100 text-red-700"
+          }`}
+        >
+          {user.status === Status.Active ? "Ativo" : "Inativo"}
+        </span>
+      </td>
+      <td className="px-6 py-4 text-slate-500 hidden lg:table-cell">
+        {user.city || user.state ? (
+          <span className="inline-flex items-center gap-1 text-xs">
+            <MapPin size={12} />
+            {user.city}
+            {user.city && user.state ? " / " : ""}
+            {user.state}
+          </span>
+        ) : (
+          <span className="text-slate-300">—</span>
+        )}
+      </td>
+      <td className="px-6 py-4">
+        <div className="flex items-center justify-end gap-4">
+          <Link
+            href={`/manageUsers/activity?id=${user.id}`}
+            className="text-xs font-semibold text-slate-500 hover:text-slate-800 hover:underline"
+          >
+            Ver atividade
+          </Link>
+          <Link
+            href={`/manageUsers/editUser?id=${user.id}`}
+            className="text-xs font-semibold text-slate-800 hover:underline"
+          >
+            Editar
+          </Link>
+        </div>
+      </td>
+    </tr>
+  );
+}
 
 export default function ManageUsers() {
   const router = useRouter();
@@ -49,7 +131,7 @@ export default function ManageUsers() {
         subtitle="Gerencie os membros da sua fazenda"
       />
 
-      <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
+      <div className="flex-1 min-h-0 flex flex-col w-full p-4 md:p-6 max-w-5xl mx-auto gap-4">
         {/* Barra de ações */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="relative w-full sm:max-w-xs">
@@ -107,83 +189,43 @@ export default function ManageUsers() {
         )}
 
         {!isLoading && !isError && filtered.length > 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
-                    <th className="text-left px-4 py-3 font-semibold text-gray-600">
-                      Nome
-                    </th>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-600">
-                      E-mail
-                    </th>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-600">
-                      Cargo / Perfil
-                    </th>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-600">
-                      Cidade / Estado
-                    </th>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-600">
-                      Status
-                    </th>
-                    <th className="px-4 py-3" />
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {filtered.map((user) => (
-                    <tr
-                      key={user.id}
-                      className="hover:bg-gray-50 transition-colors"
-                    >
-                      <td className="px-4 py-3 font-medium text-gray-900">
-                        {user.name}
-                      </td>
-                      <td className="px-4 py-3 text-gray-600">{user.email}</td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${
-                            ROLE_BADGE_CLASSES[user.role] ??
-                            "bg-gray-100 text-gray-700"
-                          }`}
-                        >
-                          {ROLE_LABELS[user.role] ?? user.role}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-600">
-                        {user.city} / {user.state}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${
-                            user.status === Status.Active
-                              ? "bg-green-100 text-green-700"
-                              : "bg-red-100 text-red-700"
-                          }`}
-                        >
-                          {user.status === Status.Active ? "Ativo" : "Inativo"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <Link
-                          href={`/manageUsers/editUser?id=${user.id}`}
-                          className="text-brand-primary hover:underline text-xs font-semibold"
-                        >
-                          Editar
-                        </Link>
-                      </td>
+          <>
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col min-h-0 flex-1">
+              <div className="overflow-auto min-h-0 flex-1">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 z-10 bg-gray-50">
+                    <tr className="bg-gray-50 border-b border-gray-200">
+                      <th className="px-6 py-4 text-left font-semibold text-gray-600">
+                        Funcionário
+                      </th>
+                      <th className="px-6 py-4 text-left font-semibold text-gray-600">
+                        Função
+                      </th>
+                      <th className="px-6 py-4 text-left font-semibold text-gray-600 hidden md:table-cell">
+                        Status
+                      </th>
+                      <th className="px-6 py-4 text-left font-semibold text-gray-600 hidden lg:table-cell">
+                        Local
+                      </th>
+                      <th className="px-6 py-4 text-right font-semibold text-gray-600">
+                        Ações
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filtered.map((user) => (
+                      <UserRow key={user.id} user={user} />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-
-            <div className="px-4 py-3 border-t border-gray-100 text-xs text-gray-500">
+            <p className="text-xs text-slate-400">
               {filtered.length} funcionário{filtered.length !== 1 ? "s" : ""}{" "}
               {search ? "encontrado" : "cadastrado"}
               {filtered.length !== 1 ? "s" : ""}
-            </div>
-          </div>
+            </p>
+          </>
         )}
 
         <AllowedEmailsPanel />
