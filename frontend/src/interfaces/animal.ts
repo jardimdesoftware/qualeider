@@ -1,4 +1,4 @@
-import { AnimalSpecies } from './animalSpecies';
+import { AnimalSpecies } from "./animalSpecies";
 
 export enum AnimalType {
   Vaca = "Vaca",
@@ -15,9 +15,9 @@ export enum Status {
 
 export interface Animal {
   id: number;
-  tagNumber?: string | null;       // número de identificação/brinco
+  tagNumber?: string | null; // número de identificação/brinco
   name?: string | null;
-  animalType?: AnimalType | null;  // legado
+  animalType?: AnimalType | null; // legado
   animalSpeciesId?: number | null;
   animalSpecies?: AnimalSpecies | null;
   breed?: string | null;
@@ -40,5 +40,20 @@ export interface Animal {
 
 export type CreateAnimalDto = Omit<
   Animal,
-  "id" | "status" | "createdAt" | "updatedAt" | "mother" | "father" | "animalSpecies"
+  | "id"
+  | "status"
+  | "createdAt"
+  | "updatedAt"
+  | "mother"
+  | "father"
+  | "animalSpecies"
 >;
+
+export interface AnimalProductionSummary {
+  animalId: number;
+  name: string | null;
+  tagNumber: string | null;
+  totalProduction: number;
+  collectionsCount: number;
+  avgProduction: number;
+}
