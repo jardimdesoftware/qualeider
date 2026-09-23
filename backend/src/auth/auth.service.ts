@@ -6,21 +6,36 @@ import {
   Inject,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { randomBytes } from 'crypto';
 import { IHashService } from '@/application/ports/hash.service';
 import { IUserRepository } from '@/domain/repositories/user.repository';
 import { IAssociationRepository } from '@/domain/repositories/association.repository';
 import { IFailedEmailRepository } from '@/domain/repositories/failed-email.repository';
+import { IAllowedEmailRepository } from '@/domain/repositories/allowed-email.repository';
 import { MailService } from '@/mail/mail.service';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 import {
   BCRYPT_ROUNDS_RESET_PASSWORD,
+  BCRYPT_ROUNDS_USER_CREATION,
   RESET_TOKEN_MIN_VALUE,
   RESET_TOKEN_MAX_VALUE,
   RESET_TOKEN_EXPIRY_MINUTES,
 } from '@/common/constants/security.constants';
+import { isIfpeEmail } from '@/common/utils/email-domain.util';
 import { UserEntity } from '@/domain/entities/user.entity';
 import { AssociationEntity } from '@/domain/entities/association.entity';
-import { Status } from '@/domain/enums/enums';
+import { Status, UserRole, UserCategory } from '@/domain/enums/enums';
+
+const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
+const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
+
+interface GoogleIdTokenPayload {
+  sub: string;
+  email: string;
+  email_verified: boolean;
+  name?: string;
+}
 
 @Injectable()
 export class AuthService {
@@ -29,10 +44,12 @@ export class AuthService {
   constructor(
     @Inject(IUserRepository) private userRepository: IUserRepository,
     @Inject(IAssociationRepository) private associationRepository: IAssociationRepository,
+    @Inject(IAllowedEmailRepository) private allowedEmailRepository: IAllowedEmailRepository,
     private jwtService: JwtService,
     private mailService: MailService,
     @Inject(IHashService) private hashService: IHashService,
     @Inject(IFailedEmailRepository) private failedEmailRepository: IFailedEmailRepository,
+    private configService: ConfigService,
   ) {}
 
   async validateUser(
@@ -106,6 +123,122 @@ export class AuthService {
 
   async login(user: any) {
     return this.loginEntity(user, 'user');
+  }
+
+  /** Monta a URL de consentimento do Google para a qual GET /auth/google redireciona. */
+  getGoogleAuthUrl(): string {
+    const params = new URLSearchParams({
+      client_id: this.configService.get<string>('GOOGLE_CLIENT_ID') ?? '',
+      redirect_uri: this.configService.get<string>('GOOGLE_CALLBACK_URL') ?? '',
+      response_type: 'code',
+      scope: 'openid email profile',
+      prompt: 'select_account',
+    });
+    return `${GOOGLE_AUTH_URL}?${params.toString()}`;
+  }
+
+  /**
+   * Troca o `code` do callback do Google por um id_token e autentica. O
+   * id_token vem direto do endpoint de token do Google (server-to-server,
+   * via HTTPS), então decodificar o payload sem re-verificar a assinatura é
+   * seguro aqui - não é um valor vindo do cliente.
+   */
+  async handleGoogleCallback(code: string) {
+    const tokenResponse = await fetch(GOOGLE_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id: this.configService.get<string>('GOOGLE_CLIENT_ID') ?? '',
+        client_secret:
+          this.configService.get<string>('GOOGLE_CLIENT_SECRET') ?? '',
+        redirect_uri:
+          this.configService.get<string>('GOOGLE_CALLBACK_URL') ?? '',
+        grant_type: 'authorization_code',
+      }),
+    });
+
+    if (!tokenResponse.ok) {
+      this.logger.warn(
+        `Falha ao trocar code do Google por token: ${tokenResponse.status}`,
+      );
+      throw new UnauthorizedException('Não foi possível autenticar com o Google.');
+    }
+
+    const { id_token } = (await tokenResponse.json()) as { id_token: string };
+    const payload = this.decodeGoogleIdToken(id_token);
+
+    if (!payload.email_verified) {
+      throw new UnauthorizedException('Email do Google não verificado.');
+    }
+
+    return this.loginWithGoogle({ email: payload.email, name: payload.name });
+  }
+
+  private decodeGoogleIdToken(idToken: string): GoogleIdTokenPayload {
+    const payloadSegment = idToken.split('.')[1];
+    const json = Buffer.from(payloadSegment, 'base64url').toString('utf8');
+    return JSON.parse(json) as GoogleIdTokenPayload;
+  }
+
+  /**
+   * Login via Google: emails @ifpe.edu.br (qualquer subdomínio) entram
+   * direto - se ainda não existe conta, cria uma como Vaqueiro vinculada ao
+   * primeiro Admin cadastrado (não existem "fazendas" separadas aqui, é tudo
+   * uma instalação única do IFPE). Emails de fora do domínio só entram se um
+   * Admin os liberou antes na tela de Funcionários (ver AllowedEmailsController).
+   */
+  async loginWithGoogle(profile: { email: string; name?: string }) {
+    const email = profile.email.toLowerCase().trim();
+
+    const isAllowed =
+      isIfpeEmail(email) ||
+      (await this.allowedEmailRepository.findByEmail(email)) !== null;
+
+    if (!isAllowed) {
+      throw new UnauthorizedException(
+        'Este email não tem acesso. Peça para um administrador liberar seu email na tela de Funcionários.',
+      );
+    }
+
+    const existing = await this.userRepository.findByEmail(email);
+    if (existing) {
+      if (existing.status !== Status.Active) {
+        throw new UnauthorizedException(
+          'Conta inativa. Entre em contato com o administrador.',
+        );
+      }
+      return this.loginEntity(existing, 'user');
+    }
+
+    const admin = await this.userRepository.findFirstAdmin();
+    if (!admin) {
+      throw new UnauthorizedException(
+        'Ainda não há um administrador cadastrado no sistema.',
+      );
+    }
+
+    // Conta Google-only: senha nunca é usada para logar, só existe para
+    // satisfazer a coluna obrigatória - por isso é aleatória e descartada.
+    const randomPassword = await this.hashService.hash(
+      randomBytes(32).toString('hex'),
+      BCRYPT_ROUNDS_USER_CREATION,
+    );
+
+    const created = await this.userRepository.create({
+      name: profile.name?.trim() || email.split('@')[0],
+      email,
+      password: randomPassword,
+      role: UserRole.VAQUEIRO,
+      userCategory: UserCategory.Fisica,
+      city: 'Não informado',
+      state: 'PE',
+      adminId: admin.id,
+    });
+
+    this.logger.log(`Conta criada via login com Google: ${created.email}`);
+
+    return this.loginEntity(created, 'user');
   }
 
   async loginEntity(entity: any, entityType: 'user' | 'association') {

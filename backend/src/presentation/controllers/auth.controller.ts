@@ -1,10 +1,14 @@
 import {
   Controller,
   Post,
+  Get,
+  Query,
+  Res,
   Body,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { THROTTLE_TTL } from '@/common/throttler/throttler.config';
 import { AuthService } from '@/auth/auth.service';
@@ -15,6 +19,8 @@ import { ValidateTokenDto } from '@/application/dtos/auth/validate-token.dto';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
 import { Public } from '@/common/decorators/public.decorator';
+
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -36,6 +42,28 @@ export class AuthController {
   @ResponseMessage('Login realizado com sucesso')
   async login(@Body() loginDto: LoginDto) {
     return this.authService.executeLogin(loginDto);
+  }
+
+  @Get('google')
+  @Public()
+  @ApiOperation({ summary: 'Redireciona para a tela de consentimento do Google' })
+  googleRedirect(@Res() res: Response) {
+    res.redirect(this.authService.getGoogleAuthUrl());
+  }
+
+  @Throttle({ default: { limit: 5, ttl: THROTTLE_TTL.SHORT } })
+  @Get('google/callback')
+  @Public()
+  @ApiOperation({ summary: 'Callback do OAuth do Google' })
+  async googleCallback(@Query('code') code: string, @Res() res: Response) {
+    try {
+      const { access_token } = await this.authService.handleGoogleCallback(code);
+      res.redirect(`${FRONTEND_URL}/google-callback?token=${access_token}`);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Não foi possível autenticar com o Google.';
+      res.redirect(`${FRONTEND_URL}/login?error=${encodeURIComponent(message)}`);
+    }
   }
 
   @Throttle({ default: { limit: 3, ttl: THROTTLE_TTL.LONG } }) // 3 tentativas por 5min (300s prod, 2s test)

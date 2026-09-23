@@ -284,11 +284,21 @@ model NotificationRecipient {
 
 model FailedEmail {
   id          String   @id @default(uuid())
-  payload     Json     
-  errorReason String   
+  payload     Json
+  errorReason String
   retryCount  Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@map("failed_emails")
+}
+
+// Emails de fora do domínio ifpe.edu.br liberados manualmente por um Admin
+// para poder entrar via "Entrar com Google" (ver AuthService.loginWithGoogle).
+model AllowedEmail {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  createdAt DateTime @default(now())
+
+  @@map("allowed_emails")
 }

@@ -22,6 +22,8 @@ import { IBreedRepository } from '@/domain/repositories/breed.repository';
 import { IAnimalSpeciesRepository } from '@/domain/repositories/animal-species.repository';
 import { PrismaAnimalSpeciesRepository } from '@/infrastructure/repositories/prisma-animal-species.repository';
 import { PrismaBreedRepository } from '@/infrastructure/repositories/prisma-breed.repository';
+import { IAllowedEmailRepository } from '@/domain/repositories/allowed-email.repository';
+import { PrismaAllowedEmailRepository } from '@/infrastructure/repositories/prisma-allowed-email.repository';
 
 @Module({
   imports: [
@@ -50,6 +52,7 @@ import { PrismaBreedRepository } from '@/infrastructure/repositories/prisma-bree
     { provide: IInviteRepository, useClass: PrismaInviteRepository },
     { provide: IBreedRepository, useClass: PrismaBreedRepository },
     { provide: IAnimalSpeciesRepository, useClass: PrismaAnimalSpeciesRepository },
+    { provide: IAllowedEmailRepository, useClass: PrismaAllowedEmailRepository },
   ],
   exports: [
     PrismaModule,
@@ -63,6 +66,7 @@ import { PrismaBreedRepository } from '@/infrastructure/repositories/prisma-bree
     IInviteRepository,
     IBreedRepository,
     IAnimalSpeciesRepository,
+    IAllowedEmailRepository,
   ],
 })
 export class InfrastructureModule {}
