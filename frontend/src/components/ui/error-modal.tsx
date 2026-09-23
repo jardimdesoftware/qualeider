@@ -20,7 +20,7 @@ export default function ErrorModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="campus-card w-full max-w-sm p-6 text-center">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
         <div className="mb-4 flex justify-center">
           <div
             className={`w-12 h-12 ${isSuccess ? "bg-green-100" : isInfo ? "bg-blue-100" : "bg-red-100"} rounded-full flex items-center justify-center`}
