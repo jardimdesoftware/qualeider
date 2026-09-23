@@ -12,8 +12,8 @@ export function LandingNavbar() {
               cx="50"
               cy="50"
               r="48"
-              fill="#2f9e41"
-              stroke="#fceeb5"
+              fill="#fceeb5"
+              stroke="#2f9e41"
               strokeWidth="4"
             />
             <path
