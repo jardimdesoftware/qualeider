@@ -8,7 +8,8 @@ import { AnimalCriteria } from '@/domain/criteria/animal.criteria';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 import { BusinessException } from '@/common/exceptions/business.exception';
 import { isSameHerd, resolveHerdScope } from '@/domain/utils/herd-scope.util';
-import { UserRole } from '@/domain/enums/enums';
+import { UserRole, ActivityEventType } from '@/domain/enums/enums';
+import { ActivityLogService } from '@/application/services/activity-logs/activity-logs.service';
 
 export interface AnimalRequesterContext {
   id: number;
@@ -25,6 +26,7 @@ export class AnimalsService {
     @Inject(IAnimalRepository) private animalRepository: IAnimalRepository,
     @Inject(IUserRepository) private userRepository: IUserRepository,
     @Inject(IDailyCollectionRepository) private dailyCollectionRepository: IDailyCollectionRepository,
+    private activityLogService: ActivityLogService,
   ) {}
 
   private async validateUser(userId: number) {
@@ -115,11 +117,25 @@ export class AnimalsService {
     }
 
     this.logger.log(`Animal criado: ${animal.tagNumber ?? animal.name} (ID: ${animal.id})`);
+    await this.activityLogService.record(
+      requester?.id ?? owner.id,
+      ActivityEventType.ANIMAL_CREATED,
+      { animalId: animal.id },
+    );
     return animal;
   }
 
   async findAll(criteria?: AnimalCriteria) {
     return this.animalRepository.findAll(criteria);
+  }
+
+  async getProductionSummary(
+    requester: AnimalRequesterContext,
+    startDate?: Date,
+    endDate?: Date,
+  ) {
+    const scope = resolveHerdScope(requester as any);
+    return this.animalRepository.findProductionSummary(scope, startDate, endDate);
   }
 
   async findOne(id: number) {
@@ -159,6 +175,12 @@ export class AnimalsService {
     if (updateAnimalDto.tagNumber && updateAnimalDto.tagNumber !== existing.tagNumber) {
       await this.reconcileParentCodes(existing.userId as number, updateAnimalDto.tagNumber, id);
     }
+
+    await this.activityLogService.record(
+      requester?.id ?? (existing.userId as number),
+      ActivityEventType.ANIMAL_UPDATED,
+      { animalId: id },
+    );
 
     return updated;
   }

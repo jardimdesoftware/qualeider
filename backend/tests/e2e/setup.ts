@@ -72,10 +72,11 @@ async function safeDeleteMany(deleteFn: () => Promise<any>): Promise<void> {
 
 export async function cleanDatabase(): Promise<void> {
   try {
-    // 1ª ordem: tabelas dependentes (FK para collections/notifications)
+    // 1ª ordem: tabelas dependentes (FK para collections/notifications/users)
     await Promise.all([
       safeDeleteMany(() => prisma.dailyCollectionItem.deleteMany()),
       safeDeleteMany(() => prisma.notificationRecipient.deleteMany()),
+      safeDeleteMany(() => prisma.activityLog.deleteMany()),
     ]);
 
     // 2ª ordem: collections e notifications

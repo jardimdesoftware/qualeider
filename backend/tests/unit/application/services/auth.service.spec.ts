@@ -15,6 +15,7 @@ import { IAssociationRepository } from '@/domain/repositories/association.reposi
 import { IFailedEmailRepository } from '@/domain/repositories/failed-email.repository';
 import { IAllowedEmailRepository } from '@/domain/repositories/allowed-email.repository';
 import { ConfigService } from '@nestjs/config';
+import { ActivityLogService } from '@/application/services/activity-logs/activity-logs.service';
 import {
   BCRYPT_ROUNDS_RESET_PASSWORD,
   BCRYPT_ROUNDS_USER_CREATION,
@@ -94,6 +95,12 @@ describe('AuthService', () => {
           provide: ConfigService,
           useValue: {
             get: jest.fn(),
+          },
+        },
+        {
+          provide: ActivityLogService,
+          useValue: {
+            record: jest.fn(),
           },
         },
       ],

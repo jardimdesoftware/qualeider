@@ -65,3 +65,11 @@ export enum CmtResult {
   Suspeito = 'Suspeito',
   Positivo = 'Positivo',
 }
+
+export enum ActivityEventType {
+  LOGIN = 'LOGIN',
+  DAILY_COLLECTION_CREATED = 'DAILY_COLLECTION_CREATED',
+  DAILY_COLLECTION_UPDATED = 'DAILY_COLLECTION_UPDATED',
+  ANIMAL_CREATED = 'ANIMAL_CREATED',
+  ANIMAL_UPDATED = 'ANIMAL_UPDATED',
+}
