@@ -135,7 +135,7 @@ export function ActiveCowForm({
           type="button"
           onClick={onConfirm}
           disabled={!isValid}
-          className="w-full bg-[#2f9e41] hover:bg-[#15291e] disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-black text-lg py-4 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2"
+          className="w-full bg-[#2f9e41] hover:bg-[#237a32] disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-black text-lg py-4 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2"
         >
           <Check className="w-5 h-5" />
           Confirmar Vaca
