@@ -162,7 +162,7 @@ function AnimalModal({
     <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 sticky top-0 bg-white z-10">
-          <h2 className="text-xl font-bold text-[#1e3a29]">
+          <h2 className="text-xl font-bold text-slate-800">
             {isEditing ? "Editar Animal" : "Novo Animal"}
           </h2>
           <button
@@ -241,7 +241,7 @@ function AnimalModal({
                   onClick={() => handleMotherModeChange(mode)}
                   className={`flex-1 py-1.5 px-2 text-xs rounded-lg border transition-colors ${
                     motherMode === mode
-                      ? "bg-[#1e3a29] text-white border-[#1e3a29]"
+                      ? "bg-[#2f9e41] text-white border-[#2f9e41]"
                       : "bg-white text-slate-600 border-slate-200 hover:border-slate-400"
                   }`}
                 >
@@ -412,48 +412,46 @@ export default function ManageAnimals() {
           title="Meus Animais"
           subtitle="Gerencie o rebanho da sua fazenda"
           actions={
+            <button
+              onClick={() => setShowInactive((v) => !v)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                showInactive
+                  ? "bg-red-50 border-red-200 text-red-700"
+                  : "bg-white border-gray-300 text-gray-500 hover:border-gray-400"
+              }`}
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${showInactive ? "bg-red-500" : "bg-gray-300"}`}
+              />
+              {showInactive ? "Mostrar apenas ativos" : "Mostrar inativos"}
+            </button>
+          }
+        />
+
+        <div className="flex-1 min-h-0 flex flex-col w-full p-4 md:p-6 max-w-5xl mx-auto">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-2 shrink-0">
+            <div className="relative w-full sm:max-w-xs">
+              <Search
+                size={16}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                type="text"
+                placeholder="Buscar por numero, nome, tipo ou raca..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+              />
+            </div>
             <Button
               variant="primary"
               onClick={openCreate}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 shrink-0"
             >
               <Plus size={16} />
               Novo Animal
             </Button>
-          }
-        />
-
-        <div className="p-6 md:p-8 max-w-5xl mx-auto">
-          {animals.length > 0 && (
-            <div className="flex flex-wrap items-center gap-3 mb-6">
-              <div className="relative flex-1 min-w-[200px] max-w-sm">
-                <Search
-                  size={16}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                />
-                <input
-                  type="text"
-                  placeholder="Buscar por numero, nome, tipo ou raca..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent"
-                />
-              </div>
-              <button
-                onClick={() => setShowInactive((v) => !v)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                  showInactive
-                    ? "bg-red-50 border-red-200 text-red-700"
-                    : "bg-white border-gray-300 text-gray-500 hover:border-gray-400"
-                }`}
-              >
-                <span
-                  className={`w-2 h-2 rounded-full ${showInactive ? "bg-red-500" : "bg-gray-300"}`}
-                />
-                {showInactive ? "Mostrar apenas ativos" : "Mostrar inativos"}
-              </button>
-            </div>
-          )}
+          </div>
 
           {!isLoading && animals.length === 0 && (
             <EmptyState
@@ -470,28 +468,30 @@ export default function ManageAnimals() {
           )}
 
           {!isLoading && filtered.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-              <div className="overflow-x-auto">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col min-h-0 flex-1">
+              <div className="overflow-auto min-h-0 flex-1">
                 <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-[#1e3a29] text-white">
-                      <th className="px-4 py-4 text-left font-semibold">N</th>
-                      <th className="px-4 py-4 text-left font-semibold">
+                  <thead className="sticky top-0 z-10 bg-gray-50">
+                    <tr className="bg-gray-50 border-b border-gray-200">
+                      <th className="px-4 py-4 text-left font-semibold text-gray-600">
+                        N
+                      </th>
+                      <th className="px-4 py-4 text-left font-semibold text-gray-600">
                         Nome
                       </th>
-                      <th className="px-4 py-4 text-left font-semibold hidden md:table-cell">
+                      <th className="px-4 py-4 text-left font-semibold text-gray-600 hidden md:table-cell">
                         Tipo
                       </th>
-                      <th className="px-4 py-4 text-left font-semibold hidden md:table-cell">
+                      <th className="px-4 py-4 text-left font-semibold text-gray-600 hidden md:table-cell">
                         Raca
                       </th>
-                      <th className="px-4 py-4 text-left font-semibold hidden lg:table-cell">
+                      <th className="px-4 py-4 text-left font-semibold text-gray-600 hidden lg:table-cell">
                         Mae
                       </th>
-                      <th className="px-4 py-4 text-left font-semibold hidden md:table-cell">
+                      <th className="px-4 py-4 text-left font-semibold text-gray-600 hidden md:table-cell">
                         Idade
                       </th>
-                      <th className="px-4 py-4 text-right font-semibold">
+                      <th className="px-4 py-4 text-right font-semibold text-gray-600">
                         Acoes
                       </th>
                     </tr>
@@ -504,7 +504,7 @@ export default function ManageAnimals() {
                       >
                         <td className="px-4 py-4">
                           {animal.tagNumber ? (
-                            <span className="inline-flex items-center gap-1 font-mono font-semibold text-[#1e3a29] bg-green-50 border border-green-200 rounded px-2 py-0.5 text-xs">
+                            <span className="inline-flex items-center gap-1 font-mono font-semibold text-slate-800 bg-green-50 border border-green-200 rounded px-2 py-0.5 text-xs">
                               <Hash size={10} />
                               {animal.tagNumber}
                             </span>
@@ -516,7 +516,7 @@ export default function ManageAnimals() {
                         </td>
                         <td className="px-4 py-4">
                           <div className="flex items-center gap-2">
-                            <span className="font-semibold text-[#1e3a29]">
+                            <span className="font-semibold text-slate-800">
                               {animal.name || (
                                 <span className="text-slate-400 italic font-normal">
                                   Sem nome
@@ -553,7 +553,7 @@ export default function ManageAnimals() {
                           {animal.mother ? (
                             <span className="text-slate-600 text-xs">
                               {animal.mother.tagNumber ? (
-                                <span className="font-mono font-semibold text-[#1e3a29]">
+                                <span className="font-mono font-semibold text-slate-800">
                                   #{animal.mother.tagNumber}
                                 </span>
                               ) : (
@@ -584,7 +584,7 @@ export default function ManageAnimals() {
                             </button>
                             <button
                               onClick={() => openEdit(animal)}
-                              className="p-2 rounded-lg text-slate-500 hover:text-[#1e3a29] hover:bg-slate-100 transition-colors"
+                              className="p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
                               title="Editar"
                             >
                               <Pencil size={16} />

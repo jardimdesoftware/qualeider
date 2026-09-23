@@ -42,8 +42,8 @@ export default function FormProgressBar({
                         isCompleted
                           ? "bg-brand-primary border-brand-primary text-white"
                           : isCurrent
-                          ? "bg-white border-brand-primary text-brand-primary ring-4 ring-brand-primary ring-opacity-20"
-                          : "bg-gray-100 border-gray-300 text-gray-400"
+                            ? "bg-white border-brand-primary text-slate-800 ring-4 ring-brand-primary ring-opacity-20"
+                            : "bg-gray-100 border-gray-300 text-gray-400"
                       }
                     `}
                   >
@@ -59,10 +59,10 @@ export default function FormProgressBar({
                     <p
                       className={`text-sm font-medium ${
                         isCurrent
-                          ? "text-brand-primary"
+                          ? "text-slate-800"
                           : isCompleted
-                          ? "text-gray-700"
-                          : "text-gray-400"
+                            ? "text-gray-700"
+                            : "text-gray-400"
                       }`}
                     >
                       {step.title}
@@ -97,7 +97,9 @@ export default function FormProgressBar({
           <span className="text-sm font-medium text-gray-700">
             Passo {currentStep + 1} de {totalSteps}
           </span>
-          <span className="text-xs text-gray-500">{steps[currentStep].title}</span>
+          <span className="text-xs text-gray-500">
+            {steps[currentStep].title}
+          </span>
         </div>
 
         {/* Progress Bar */}

@@ -38,14 +38,14 @@ export default function RadioCardGroup({
 
   return (
     <div className="space-y-2">
-      <label className="text-brand-primary font-medium text-sm block">
+      <label className="text-slate-800 font-medium text-sm block">
         {label}
       </label>
 
       <div className={`grid ${gridCols[columns]} gap-3`}>
         {options.map((option) => {
           const isSelected = value === option.value;
-          
+
           return (
             <button
               key={option.value}
