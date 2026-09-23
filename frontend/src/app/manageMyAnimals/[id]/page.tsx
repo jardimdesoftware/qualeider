@@ -2,7 +2,14 @@
 
 import { ReactNode } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Tag, Calendar, Dna, Heart, AlertCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  Tag,
+  Calendar,
+  Dna,
+  Heart,
+  AlertCircle,
+} from "lucide-react";
 import { DashboardLayout } from "@/components/layout";
 import { PageHeader } from "@/components/dashboard";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
@@ -10,7 +17,10 @@ import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { useAnimal } from "@/hooks/queries/useAnimals";
 import { useAnimalCollectionHistory } from "@/hooks/queries/useCollections";
 import { Status, Animal } from "@/interfaces/animal";
-import { CmtResult, AnimalCollectionHistoryItem } from "@/interfaces/daily-collection";
+import {
+  CmtResult,
+  AnimalCollectionHistoryItem,
+} from "@/interfaces/daily-collection";
 
 // helpers
 
@@ -27,7 +37,9 @@ function cmtBadge(result: CmtResult | null | undefined) {
     [CmtResult.Positivo]: "bg-red-100 text-red-800",
   };
   return (
-    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${styles[result]}`}>
+    <span
+      className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${styles[result]}`}
+    >
       {result}
     </span>
   );
@@ -38,7 +50,9 @@ function cmtBadge(result: CmtResult | null | undefined) {
 function InfoRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="text-xs uppercase tracking-wider text-gray-400 font-semibold">{label}</span>
+      <span className="text-xs uppercase tracking-wider text-gray-400 font-semibold">
+        {label}
+      </span>
       <span className="text-gray-800 font-medium">{value || "—"}</span>
     </div>
   );
@@ -66,12 +80,23 @@ function HistoryTable({ rows }: { rows: AnimalCollectionHistoryItem[] }) {
         </thead>
         <tbody className="divide-y divide-gray-100">
           {rows.map((row) => (
-            <tr key={row.collectionId} className="hover:bg-[#fdfbf7] transition-colors">
+            <tr
+              key={row.collectionId}
+              className="hover:bg-[#fdfbf7] transition-colors"
+            >
               <td className="px-5 py-3 text-gray-700 font-medium">
-                {new Date(row.collectionDate).toLocaleDateString("pt-BR", { timeZone: "UTC" })}
+                {new Date(row.collectionDate).toLocaleDateString("pt-BR", {
+                  timeZone: "UTC",
+                })}
               </td>
-              <td className="px-5 py-3 text-brand-primary font-bold">{row.quantity} L</td>
-              <td className="px-5 py-3">{cmtBadge(row.cmtResult) ?? <span className="text-gray-400 text-xs">—</span>}</td>
+              <td className="px-5 py-3 text-brand-primary font-bold">
+                {row.quantity} L
+              </td>
+              <td className="px-5 py-3">
+                {cmtBadge(row.cmtResult) ?? (
+                  <span className="text-gray-400 text-xs">—</span>
+                )}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -85,11 +110,16 @@ function HistoryTable({ rows }: { rows: AnimalCollectionHistoryItem[] }) {
 export default function AnimalDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { isLoading: authLoading } = useAuthGuard("user");
+  const { isLoading: authLoading } = useAuthGuard();
 
   const animalId = id ? Number(id) : null;
-  const { data: animal, isLoading: animalLoading, isError } = useAnimal(animalId);
-  const { data: history = [], isLoading: historyLoading } = useAnimalCollectionHistory(animalId);
+  const {
+    data: animal,
+    isLoading: animalLoading,
+    isError,
+  } = useAnimal(animalId);
+  const { data: history = [], isLoading: historyLoading } =
+    useAnimalCollectionHistory(animalId);
 
   if (authLoading || animalLoading) return <DashboardLoading />;
 
@@ -138,10 +168,14 @@ export default function AnimalDetailPage() {
             <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">
               <Tag size={18} className="text-amber-600" />
             </div>
-            <h2 className="text-base font-semibold text-gray-800">Dados do Animal</h2>
+            <h2 className="text-base font-semibold text-gray-800">
+              Dados do Animal
+            </h2>
             <span
               className={`ml-auto inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                isInactive ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"
+                isInactive
+                  ? "bg-red-100 text-red-700"
+                  : "bg-green-100 text-green-700"
               }`}
             >
               {isInactive ? "Inativo" : "Ativo"}
@@ -149,11 +183,20 @@ export default function AnimalDetailPage() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
-            <InfoRow label="Brinco / Tag" value={animal.tagNumber ? `#${animal.tagNumber}` : "—"} />
+            <InfoRow
+              label="Brinco / Tag"
+              value={animal.tagNumber ? `#${animal.tagNumber}` : "—"}
+            />
             <InfoRow label="Nome" value={animal.name} />
-            <InfoRow label="Especie" value={animal.animalSpecies?.name ?? animal.animalType} />
+            <InfoRow
+              label="Especie"
+              value={animal.animalSpecies?.name ?? animal.animalType}
+            />
             <InfoRow label="Raca" value={animal.breed} />
-            <InfoRow label="Idade" value={animal.age ? `${animal.age} anos` : undefined} />
+            <InfoRow
+              label="Idade"
+              value={animal.age ? `${animal.age} anos` : undefined}
+            />
             <InfoRow
               label="Cadastrado em"
               value={
@@ -166,13 +209,18 @@ export default function AnimalDetailPage() {
         </div>
 
         {/* parentesco */}
-        {(animal.motherId || animal.motherCode || animal.fatherId || animal.fatherCode) && (
+        {(animal.motherId ||
+          animal.motherCode ||
+          animal.fatherId ||
+          animal.fatherCode) && (
           <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
             <div className="flex items-center gap-3 mb-5">
               <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center">
                 <Dna size={18} className="text-purple-500" />
               </div>
-              <h2 className="text-base font-semibold text-gray-800">Parentesco</h2>
+              <h2 className="text-base font-semibold text-gray-800">
+                Parentesco
+              </h2>
             </div>
 
             <div className="grid grid-cols-2 gap-5">
@@ -182,8 +230,8 @@ export default function AnimalDetailPage() {
                   animal.mother
                     ? animalLabel(animal.mother)
                     : animal.motherCode
-                    ? `Codigo externo: ${animal.motherCode}`
-                    : undefined
+                      ? `Codigo externo: ${animal.motherCode}`
+                      : undefined
                 }
               />
               <InfoRow
@@ -192,8 +240,8 @@ export default function AnimalDetailPage() {
                   animal.father
                     ? animalLabel(animal.father)
                     : animal.fatherCode
-                    ? `Codigo externo: ${animal.fatherCode}`
-                    : undefined
+                      ? `Codigo externo: ${animal.fatherCode}`
+                      : undefined
                 }
               />
             </div>
@@ -206,10 +254,14 @@ export default function AnimalDetailPage() {
             <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
               <Calendar size={18} className="text-blue-500" />
             </div>
-            <h2 className="text-base font-semibold text-gray-800">Historico de Ordenhas</h2>
+            <h2 className="text-base font-semibold text-gray-800">
+              Historico de Ordenhas
+            </h2>
             {!historyLoading && history.length > 0 && (
               <span className="ml-auto text-sm text-gray-500">
-                <span className="font-semibold text-brand-primary">{totalLiters.toFixed(1)} L</span>{" "}
+                <span className="font-semibold text-brand-primary">
+                  {totalLiters.toFixed(1)} L
+                </span>{" "}
                 em {history.length} coleta{history.length !== 1 ? "s" : ""}
               </span>
             )}
@@ -217,11 +269,15 @@ export default function AnimalDetailPage() {
 
           <div className="flex items-center gap-2 mb-4">
             <Heart size={13} className="text-red-400" />
-            <span className="text-xs text-gray-400">Ordenado por data mais recente</span>
+            <span className="text-xs text-gray-400">
+              Ordenado por data mais recente
+            </span>
           </div>
 
           {historyLoading ? (
-            <div className="py-8 text-center text-gray-400 text-sm">Carregando historico...</div>
+            <div className="py-8 text-center text-gray-400 text-sm">
+              Carregando historico...
+            </div>
           ) : (
             <HistoryTable rows={history} />
           )}

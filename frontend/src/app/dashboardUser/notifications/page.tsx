@@ -5,19 +5,25 @@ import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { Bell, CheckCircle, MailOpen } from "lucide-react";
 import { formatDateTimeBR } from "@/utils/date";
 import { ICON_SIZES } from "@/constants/ui";
-import { useUserNotifications, useMarkNotificationAsRead } from "@/hooks/queries/useNotifications";
+import {
+  useUserNotifications,
+  useMarkNotificationAsRead,
+} from "@/hooks/queries/useNotifications";
 import { logger } from "@/utils/logger";
 
 export default function UserNotificationsPage() {
-  const { userId, isLoading: authLoading } = useAuthGuard("user");
-  const { data: notifications = [], isLoading: loading } = useUserNotifications();
+  const { userId, isLoading: authLoading } = useAuthGuard();
+  const { data: notifications = [], isLoading: loading } =
+    useUserNotifications();
   const markAsRead = useMarkNotificationAsRead();
 
   const handleMarkAsRead = async (id: number) => {
     try {
       await markAsRead.mutateAsync(id);
     } catch (error) {
-      logger.error("Erro ao marcar notificação como lida", error, { notificationId: id });
+      logger.error("Erro ao marcar notificação como lida", error, {
+        notificationId: id,
+      });
     }
   };
 
@@ -43,14 +49,18 @@ export default function UserNotificationsPage() {
         {notifications.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-lg shadow-sm">
             <MailOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 text-lg">Você não possui notificações no momento.</p>
+            <p className="text-gray-500 text-lg">
+              Você não possui notificações no momento.
+            </p>
           </div>
         ) : (
           notifications.map((item) => (
-            <div 
-              key={item.id} 
+            <div
+              key={item.id}
               className={`bg-white rounded-lg p-5 border transition-all ${
-                item.read ? 'border-gray-200 opacity-80' : 'border-l-4 border-l-green-500 border-gray-200 shadow-md'
+                item.read
+                  ? "border-gray-200 opacity-80"
+                  : "border-l-4 border-l-green-500 border-gray-200 shadow-md"
               }`}
             >
               <div className="flex justify-between items-start gap-4">
@@ -65,7 +75,9 @@ export default function UserNotificationsPage() {
                       </span>
                     )}
                   </div>
-                  <h3 className={`text-lg font-bold mb-2 ${item.read ? 'text-gray-700' : 'text-[#1e3a29]'}`}>
+                  <h3
+                    className={`text-lg font-bold mb-2 ${item.read ? "text-gray-700" : "text-[#1e3a29]"}`}
+                  >
                     {item.notification.subject}
                   </h3>
                   <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">
@@ -74,7 +86,7 @@ export default function UserNotificationsPage() {
                 </div>
 
                 {!item.read && (
-                  <button 
+                  <button
                     onClick={() => handleMarkAsRead(item.id)}
                     className="text-green-600 hover:text-green-800 hover:bg-green-50 p-2 rounded-full transition-colors"
                     title="Marcar como lida"

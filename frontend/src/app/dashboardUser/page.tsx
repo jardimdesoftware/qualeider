@@ -30,7 +30,9 @@ const AnimalDistributionChart = dynamic(
   {
     ssr: false,
     loading: () => (
-      <p className="py-10 text-center text-brand-muted">Carregando gráfico...</p>
+      <p className="py-10 text-center text-brand-muted">
+        Carregando gráfico...
+      </p>
     ),
   },
 );
@@ -40,7 +42,9 @@ const MilkLast7DaysChart = dynamic(
   {
     ssr: false,
     loading: () => (
-      <p className="py-10 text-center text-brand-muted">Carregando gráfico...</p>
+      <p className="py-10 text-center text-brand-muted">
+        Carregando gráfico...
+      </p>
     ),
   },
 );
@@ -73,7 +77,7 @@ const adminActions = [
 ];
 
 export default function DashboardUser() {
-  const { userId, isLoading: isAuthLoading } = useAuthGuard("user");
+  const { userId, isLoading: isAuthLoading } = useAuthGuard();
   const [userPermRole, setUserPermRole] = useState<"ADMIN" | "VAQUEIRO" | null>(
     null,
   );
@@ -267,19 +271,21 @@ export default function DashboardUser() {
                 </p>
               </div>
               <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 xl:grid-cols-4">
-                {adminActions.map(({ href, title, description, icon: Icon }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    className="rounded-md border border-brand-border bg-gray-50 p-4 transition hover:border-brand-primary hover:bg-brand-accent"
-                  >
-                    <Icon className="mb-3 h-6 w-6 text-brand-primary" />
-                    <h4 className="font-bold text-gray-950">{title}</h4>
-                    <p className="mt-1 text-sm text-brand-muted">
-                      {description}
-                    </p>
-                  </Link>
-                ))}
+                {adminActions.map(
+                  ({ href, title, description, icon: Icon }) => (
+                    <Link
+                      key={href}
+                      href={href}
+                      className="rounded-md border border-brand-border bg-gray-50 p-4 transition hover:border-brand-primary hover:bg-brand-accent"
+                    >
+                      <Icon className="mb-3 h-6 w-6 text-brand-primary" />
+                      <h4 className="font-bold text-gray-950">{title}</h4>
+                      <p className="mt-1 text-sm text-brand-muted">
+                        {description}
+                      </p>
+                    </Link>
+                  ),
+                )}
               </div>
             </section>
           )}
