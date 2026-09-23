@@ -1,33 +1,26 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
 
-import {
-  BrandHeader,
-  ContentCard,
-  InputField,
-  Button,
-  Divider,
-  ErrorModal,
-} from "@/components/ui";
-import { PageFooter } from "@/components/layout";
-import { authService } from "@/services/authService";
+import { ErrorModal, IfpeBrand } from "@/components/ui";
 import { loginSchema, LoginData } from "@/schemas/auth";
 import { getFriendlyErrorMessage } from "@/utils/errorMessage";
 import { useLogin } from "@/hooks/queries/useAuth";
+import cowMascot from "@/assets/vaca.png";
+import googleLogo from "@/assets/image-removebg-preview.png";
+import loginBackground from "@/assets/fundo.png";
 
 const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 function GoogleLoginError() {
-  const searchParams = useSearchParams();
-  const error = searchParams.get("error");
-
+  const error = useSearchParams().get("error");
   if (!error) return null;
-
   return (
     <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-center text-sm font-medium text-red-700">
       {error}
@@ -37,133 +30,156 @@ function GoogleLoginError() {
 
 export default function Login() {
   const [showErrorModal, setShowErrorModal] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const { mutate: login, isPending } = useLogin();
-
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting: isFormSubmitting },
+    formState: { errors, isSubmitting },
   } = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
     mode: "onBlur",
   });
+  const submitting = isPending || isSubmitting;
 
-  const isSubmitting = isPending || isFormSubmitting;
-
-  const onSubmit = (data: LoginData) => {
+  const onSubmit = (data: LoginData) =>
     login(data, {
-      onError: (err: any) => {
-        console.error(err);
-        setErrorMessage(getFriendlyErrorMessage(err));
+      onError: (error: unknown) => {
+        console.error(error);
+        setErrorMessage(getFriendlyErrorMessage(error));
         setShowErrorModal(true);
       },
     });
-  };
 
   return (
-    <main className="campus-page-shell flex min-h-screen items-center justify-center px-4 py-10">
+    <main
+      className="login-home"
+      style={{ backgroundImage: `url(${loginBackground.src})` }}
+    >
       <ErrorModal
         isOpen={showErrorModal}
         onClose={() => setShowErrorModal(false)}
         message={errorMessage}
       />
 
-      <ContentCard className="max-w-md">
-        <BrandHeader
-          title="QualeiDer"
-          subtitle="Controle de sua produção leiteira"
-        />
-
-        <div className="px-6 pb-6 pt-6 md:px-8 md:py-8">
-          <h2 className="mb-6 text-center text-2xl font-extrabold text-gray-950">
-            Entrar
-          </h2>
-
-          <Suspense fallback={null}>
-            <GoogleLoginError />
-          </Suspense>
-
-          {/* Uso da tag FORM para suporte nativo a 'Enter' */}
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <InputField
-              label="E-mail"
-              type="email"
-              placeholder="seu@email.com"
-              disabled={isSubmitting}
-              error={errors.email?.message}
-              {...register("email")}
+      <div className="login-home__frame">
+        <section className="login-home__story" aria-labelledby="login-headline">
+          <IfpeBrand className="login-home__brand" />
+          <h1 id="login-headline" className="login-home__headline">
+            A gestão inteligente da <strong>Produção Leiteira.</strong>
+          </h1>
+          <div className="login-home__mascot" aria-hidden="true">
+            <Image
+              src={cowMascot}
+              alt=""
+              priority
+              sizes="(max-width: 767px) 46vw, 38vw"
             />
+          </div>
+        </section>
 
-            <InputField
-              label="Senha"
-              showPasswordToggle
-              placeholder="••••••••"
-              disabled={isSubmitting}
-              error={errors.password?.message}
-              {...register("password")}
-            />
+        <section className="login-home__panel" aria-labelledby="login-title">
+          <div className="login-home__form-card">
+            <header>
+              <h2 id="login-title">Entrar</h2>
+              <p>Acesse sua conta para continuar</p>
+            </header>
 
-            <div className="mt-3 text-right">
-              <Link
-                href="/forgotPassword"
-                className="text-brand-primary hover:text-brand-primary-hover font-semibold text-sm transition-colors"
-              >
-                Esqueci minha senha
+            <Suspense fallback={null}>
+              <GoogleLoginError />
+            </Suspense>
+
+            <form
+              onSubmit={handleSubmit(onSubmit)}
+              className="login-home__form"
+            >
+              <div>
+                <label htmlFor="email" className="sr-only">
+                  E-mail
+                </label>
+                <div className="login-home__field">
+                  <Mail size={18} aria-hidden="true" />
+                  <input
+                    id="email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder="E-mail"
+                    disabled={submitting}
+                    aria-invalid={Boolean(errors.email)}
+                    {...register("email")}
+                  />
+                </div>
+                {errors.email && (
+                  <p className="login-home__error">{errors.email.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="password" className="sr-only">
+                  Senha
+                </label>
+                <div className="login-home__field">
+                  <LockKeyhole size={18} aria-hidden="true" />
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    placeholder="Senha"
+                    disabled={submitting}
+                    aria-invalid={Boolean(errors.password)}
+                    {...register("password")}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((visible) => !visible)}
+                    aria-label={
+                      showPassword ? "Ocultar senha" : "Mostrar senha"
+                    }
+                    title={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="login-home__error">{errors.password.message}</p>
+                )}
+              </div>
+
+              <Link href="/forgotPassword" className="login-home__forgot">
+                Esqueceu sua senha?
               </Link>
+              <button
+                type="submit"
+                className="login-home__submit"
+                disabled={submitting}
+              >
+                <span>{submitting ? "Entrando..." : "Entrar"}</span>
+                <ArrowRight size={18} aria-hidden="true" />
+              </button>
+            </form>
+
+            <div className="login-home__divider">
+              <span>ou</span>
             </div>
-
-            <Button
-              type="submit"
-              variant="primary"
-              fullWidth
-              disabled={isSubmitting}
-              className="mt-6"
+            <a
+              href={`${API_ORIGIN}/auth/google`}
+              className="login-home__google"
             >
-              {isSubmitting ? "ENTRANDO..." : "ENTRAR"}
-            </Button>
-          </form>
-
-          <Divider text="OU" />
-
-          <a
-            href={`${API_ORIGIN}/auth/google`}
-            className="flex w-full items-center justify-center gap-2 rounded-full border-2 border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-800 transition-colors hover:bg-gray-50"
-          >
-            <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden>
-              <path
-                fill="#4285F4"
-                d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.47c-.28 1.5-1.13 2.78-2.4 3.63v3.02h3.89c2.28-2.1 3.6-5.2 3.6-8.84z"
+              <Image
+                src={googleLogo}
+                alt=""
+                className="login-home__google-logo"
               />
-              <path
-                fill="#34A853"
-                d="M12 24c3.24 0 5.95-1.07 7.93-2.9l-3.89-3.02c-1.08.72-2.45 1.15-4.04 1.15-3.11 0-5.74-2.1-6.68-4.92H1.3v3.09C3.26 21.3 7.3 24 12 24z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.32 14.31A7.2 7.2 0 0 1 4.93 12c0-.8.14-1.58.39-2.31V6.6H1.3A11.98 11.98 0 0 0 0 12c0 1.94.46 3.77 1.3 5.4l4.02-3.09z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 4.77c1.76 0 3.34.6 4.58 1.79l3.44-3.44C17.94 1.19 15.24 0 12 0 7.3 0 3.26 2.7 1.3 6.6l4.02 3.09C6.26 6.87 8.89 4.77 12 4.77z"
-              />
-            </svg>
-            Entrar com Google (email @ifpe.edu.br)
-          </a>
-
-          <p className="text-center text-gray-600 text-sm mt-4">
-            Não tem uma conta?{" "}
-            <Link
-              href="/createAccount"
-              className="text-brand-primary hover:text-brand-primary-hover font-semibold transition-colors"
-            >
-              Criar Conta
-            </Link>
-          </p>
-        </div>
-
-        <PageFooter />
-      </ContentCard>
+              Entrar com o Google
+            </a>
+            <p className="login-home__signup">
+              Não possui uma conta?{" "}
+              <Link href="/createAccount">Cadastre-se</Link>
+            </p>
+          </div>
+        </section>
+      </div>
     </main>
   );
 }
