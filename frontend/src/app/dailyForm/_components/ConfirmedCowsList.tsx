@@ -48,17 +48,18 @@ export function ConfirmedCowsList({
                 <Droplets className="w-4 h-4 text-green-600" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-bold text-[#1e3a29] text-sm truncate">
+                <p className="font-bold text-slate-800 text-sm truncate">
                   {animalLabel(animal)}
                 </p>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-xs font-black text-[#1e3a29]">
+                  <span className="text-xs font-black text-slate-800">
                     {data.quantity.toFixed(1)} L
                   </span>
                   {data.cmtResult && (
                     <span
                       className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        CMT_BADGE[data.cmtResult] ?? "bg-slate-100 text-slate-600"
+                        CMT_BADGE[data.cmtResult] ??
+                        "bg-slate-100 text-slate-600"
                       }`}
                     >
                       CMT: {data.cmtResult}

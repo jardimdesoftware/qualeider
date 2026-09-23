@@ -65,7 +65,9 @@ export function ActiveCowForm({
       <div className="flex items-center justify-between bg-amber-50 px-4 py-3 border-b border-amber-100">
         <div className="flex items-center gap-2">
           <Droplets className="w-5 h-5 text-[#d97706]" />
-          <span className="font-black text-[#1e3a29] text-lg">{animalLabel}</span>
+          <span className="font-black text-slate-800 text-lg">
+            {animalLabel}
+          </span>
         </div>
         <button
           type="button"
@@ -91,7 +93,7 @@ export function ActiveCowForm({
               value={quantity}
               onChange={handleQuantityInput}
               autoFocus
-              className="w-full text-center text-4xl font-black text-[#1e3a29] border-2 rounded-xl py-4 focus:outline-none focus:border-[#d97706] transition-all"
+              className="w-full text-center text-4xl font-black text-slate-800 border-2 rounded-xl py-4 focus:outline-none focus:border-[#d97706] transition-all"
             />
             <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xl pointer-events-none">
               L
@@ -133,7 +135,7 @@ export function ActiveCowForm({
           type="button"
           onClick={onConfirm}
           disabled={!isValid}
-          className="w-full bg-[#1e3a29] hover:bg-[#15291e] disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-black text-lg py-4 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2"
+          className="w-full bg-[#2f9e41] hover:bg-[#237a32] disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-black text-lg py-4 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2"
         >
           <Check className="w-5 h-5" />
           Confirmar Vaca
