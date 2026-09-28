@@ -21,7 +21,10 @@ const config: Config = {
   // test:e2e e falhando nos e2e por faltar DATABASE_URL/JWT_SECRET (só
   // jest.e2e.config.ts carrega o .env.test). Escopo pro que é seguro rodar sem
   // infra externa; os outros configs continuam com seus proprios testMatch.
-  testMatch: ['<rootDir>/tests/unit/**/*.spec.ts'],
+  testMatch: [
+    '<rootDir>/tests/unit/**/*.spec.ts',
+    '<rootDir>/tests/arch/**/*.spec.ts',
+  ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
