@@ -29,6 +29,7 @@ visível, priorizado e corrigido ou rastreado com dono definido.
 | Atualização de dependências | Dependabot | `.github/dependabot.yml` | Abre PRs semanais para npm, Docker e GitHub Actions. |
 | Scan de dependência/container | Trivy | CI de backend e frontend | Bloqueia achados `CRITICAL`/`HIGH` em `main` e PRs para `main`; envia SARIF para o GitHub Security. |
 | Análise estática de código | CodeQL | `.github/workflows/codeql.yml` | Análise estática para JavaScript/TypeScript em PRs, pushes e semanalmente. |
+| Teste dinâmico da aplicação | OWASP ZAP | `.github/workflows/owasp-zap.yml` | Executa um baseline DAST semanalmente ou por acionamento manual. |
 | Triagem manual | Aba GitHub Security + este documento | A cada revisão de segurança | Classifica alertas remanescentes por severidade, exploração e risco de correção. |
 
 ### Regras de triagem
