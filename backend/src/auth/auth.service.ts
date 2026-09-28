@@ -25,7 +25,8 @@ import {
 import { isIfpeEmail } from '@/common/utils/email-domain.util';
 import { UserEntity } from '@/domain/entities/user.entity';
 import { AssociationEntity } from '@/domain/entities/association.entity';
-import { Status, UserRole, UserCategory } from '@/domain/enums/enums';
+import { Status, UserRole, UserCategory, ActivityEventType } from '@/domain/enums/enums';
+import { ActivityLogService } from '@/application/services/activity-logs/activity-logs.service';
 
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
@@ -50,6 +51,7 @@ export class AuthService {
     @Inject(IHashService) private hashService: IHashService,
     @Inject(IFailedEmailRepository) private failedEmailRepository: IFailedEmailRepository,
     private configService: ConfigService,
+    private activityLogService: ActivityLogService,
   ) {}
 
   async validateUser(
@@ -255,6 +257,7 @@ export class AuthService {
 
     if (entityType === 'user') {
       await this.userRepository.update(entity.id, { lastLogin: new Date() });
+      await this.activityLogService.record(entity.id, ActivityEventType.LOGIN);
     }
 
     return {

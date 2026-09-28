@@ -87,6 +87,14 @@ enum UserRole {
   VAQUEIRO
 }
 
+enum ActivityEventType {
+  LOGIN
+  DAILY_COLLECTION_CREATED
+  DAILY_COLLECTION_UPDATED
+  ANIMAL_CREATED
+  ANIMAL_UPDATED
+}
+
 model User {
   id                    Int              @id @default(autoincrement())
   associationId         Int?
@@ -113,9 +121,24 @@ model User {
   dailyCollections      DailyCollection[]
   invites               Invite[]
   receivedNotifications NotificationRecipient[]
+  activityLogs          ActivityLog[]
   @@index([city, state, status])
   @@index([associationId, status])
   @@index([adminId])
+}
+
+// Historico de acoes do usuario (login, coleta/animal criado ou editado),
+// consultavel pelo ADMIN para acompanhar a atividade dos seus Vaqueiros.
+model ActivityLog {
+  id        Int               @id @default(autoincrement())
+  userId    Int
+  user      User              @relation(fields: [userId], references: [id])
+  eventType ActivityEventType
+  metadata  Json?
+  createdAt DateTime          @default(now())
+
+  @@index([userId])
+  @@index([userId, createdAt])
 }
 
 model Breed {
