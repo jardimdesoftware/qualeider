@@ -37,7 +37,7 @@ export default function ReportExportButton({
 
       // Cabeçalho
       doc.setFontSize(20);
-      doc.setTextColor(30, 58, 41); // #2f9e41
+      doc.setTextColor(47, 158, 65); // #2f9e41
       doc.text("Relatório de Produção", pageWidth / 2, yPosition, {
         align: "center",
       });
@@ -58,7 +58,7 @@ export default function ReportExportButton({
       // Seção: Resumo Mensal
       if (monthlyReport) {
         doc.setFontSize(14);
-        doc.setTextColor(30, 58, 41);
+        doc.setTextColor(47, 158, 65);
         doc.text(`Resumo Mensal - ${monthlyReport.month}`, 14, yPosition);
         yPosition += 8;
 
@@ -102,7 +102,7 @@ export default function ReportExportButton({
       // Seção: Produção por Animal
       if (animalProduction && animalProduction.length > 0) {
         doc.setFontSize(14);
-        doc.setTextColor(30, 58, 41);
+        doc.setTextColor(47, 158, 65);
         doc.text("Produção por Animal", 14, yPosition);
         yPosition += 5;
 
@@ -119,7 +119,7 @@ export default function ReportExportButton({
           body: tableData,
           theme: "grid",
           headStyles: {
-            fillColor: [30, 58, 41], // #2f9e41
+            fillColor: [47, 158, 65], // #2f9e41
             textColor: [255, 255, 255],
             fontStyle: "bold",
             fontSize: 9,

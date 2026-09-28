@@ -45,7 +45,7 @@ export default function AnimalReportExportButton({
 
       // Cabeçalho
       doc.setFontSize(20);
-      doc.setTextColor(30, 58, 41); // #2f9e41
+      doc.setTextColor(47, 158, 65); // #2f9e41
       doc.text("Relatório de Ordenhas", pageWidth / 2, yPosition, {
         align: "center",
       });
@@ -83,7 +83,7 @@ export default function AnimalReportExportButton({
 
       // Resumo
       doc.setFontSize(14);
-      doc.setTextColor(30, 58, 41);
+      doc.setTextColor(47, 158, 65);
       doc.text("Resumo", 14, yPosition);
       yPosition += 8;
 
@@ -111,7 +111,7 @@ export default function AnimalReportExportButton({
       // Histórico de coletas
       if (history.length > 0) {
         doc.setFontSize(14);
-        doc.setTextColor(30, 58, 41);
+        doc.setTextColor(47, 158, 65);
         doc.text("Histórico de Coletas", 14, yPosition);
         yPosition += 5;
 
@@ -129,7 +129,7 @@ export default function AnimalReportExportButton({
           body: tableData,
           theme: "grid",
           headStyles: {
-            fillColor: [30, 58, 41], // #2f9e41
+            fillColor: [47, 158, 65], // #2f9e41
             textColor: [255, 255, 255],
             fontStyle: "bold",
             fontSize: 9,
