@@ -10,12 +10,7 @@ import { User, ShieldCheck, Loader2 } from "lucide-react";
 
 import { DashboardLayout } from "@/components/layout";
 import { PageHeader } from "@/components/dashboard";
-import {
-  InputField,
-  SelectField,
-  ErrorModal,
-  Button,
-} from "@/components/ui";
+import { InputField, SelectField, ErrorModal, Button } from "@/components/ui";
 import { useUser, useUpdateUser } from "@/hooks/queries/useUsers";
 import { UserRole, Status } from "@/interfaces/user";
 import { getFriendlyErrorMessage } from "@/utils/errorMessage";
@@ -109,7 +104,7 @@ function EditUserForm() {
             message: getFriendlyErrorMessage(err),
           });
         },
-      }
+      },
     );
   };
 
@@ -128,7 +123,7 @@ function EditUserForm() {
         ID de funcionário não informado.{" "}
         <button
           onClick={() => router.push("/manageUsers")}
-          className="text-brand-primary hover:underline"
+          className="text-slate-800 hover:underline"
         >
           Voltar à lista
         </button>
@@ -151,7 +146,7 @@ function EditUserForm() {
         Não foi possível carregar os dados do funcionário.{" "}
         <button
           onClick={() => router.push("/manageUsers")}
-          className="text-brand-primary hover:underline"
+          className="text-slate-800 hover:underline"
         >
           Voltar à lista
         </button>
@@ -176,11 +171,10 @@ function EditUserForm() {
       <div className="p-6 md:p-8 max-w-2xl mx-auto">
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 md:p-8">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-
             {/* Seção: Dados de Acesso */}
             <div>
               <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-4">
-                <User size={16} className="text-brand-primary" />
+                <User size={16} className="text-slate-800" />
                 Dados de Acesso
               </h3>
               <div className="space-y-4">
@@ -206,7 +200,7 @@ function EditUserForm() {
             {/* Seção: Cargo e Status */}
             <div>
               <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-4">
-                <ShieldCheck size={16} className="text-brand-primary" />
+                <ShieldCheck size={16} className="text-slate-800" />
                 Cargo / Perfil
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

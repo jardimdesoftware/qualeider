@@ -13,10 +13,11 @@ export function DailyHeader({
   totalAnimals,
   displayDate,
 }: DailyHeaderProps) {
-  const percentage = totalAnimals > 0 ? Math.min((milkedCows / totalAnimals) * 100, 100) : 0;
+  const percentage =
+    totalAnimals > 0 ? Math.min((milkedCows / totalAnimals) * 100, 100) : 0;
 
   return (
-    <header className="bg-[#1e3a29] text-white p-4 shadow-md sticky top-0 z-20">
+    <header className="bg-[#2f9e41] text-white p-4 shadow-md sticky top-0 z-20">
       <div className="flex justify-between items-center mb-2">
         <div>
           <h1 className="font-serif text-xl font-bold">Coleta de Leite</h1>
@@ -29,9 +30,7 @@ export function DailyHeader({
             {totalMilk.toFixed(1)}
             <span className="text-sm font-normal text-slate-300">L</span>
           </p>
-          <p className="text-[10px] text-slate-300 uppercase">
-            Total Parcial
-          </p>
+          <p className="text-[10px] text-slate-300 uppercase">Total Parcial</p>
         </div>
       </div>
 

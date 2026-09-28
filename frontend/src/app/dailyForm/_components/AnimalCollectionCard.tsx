@@ -53,7 +53,7 @@ function AnimalCollectionCard({
           </div>
 
           <div className="flex-1">
-            <h3 className="text-lg font-bold text-[#1e3a29] font-serif">
+            <h3 className="text-lg font-bold text-slate-800 font-serif">
               {animal.name}
             </h3>
             <p className="text-xs text-slate-500 font-bold">
@@ -62,12 +62,13 @@ function AnimalCollectionCard({
           </div>
 
           <div className="text-right flex flex-col items-end">
-            <p className="text-2xl font-black text-[#1e3a29]">
-              {value} <span className="text-sm text-slate-500 font-normal">L</span>
+            <p className="text-2xl font-black text-slate-800">
+              {value}{" "}
+              <span className="text-sm text-slate-500 font-normal">L</span>
             </p>
             <button
               onClick={() => {
-                setIsFocused(true); 
+                setIsFocused(true);
               }}
               className="text-xs text-[#d97706] font-bold underline mt-1"
               disabled={disabled}
@@ -81,22 +82,28 @@ function AnimalCollectionCard({
   }
 
   return (
-    <div className={`bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden relative transition-all ${isFocused ? 'ring-2 ring-[#d97706]' : ''}`}>
+    <div
+      className={`bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden relative transition-all ${isFocused ? "ring-2 ring-[#d97706]" : ""}`}
+    >
       <div className="p-4 flex gap-4">
         {/* Avatar / ID */}
         <div className="flex flex-col items-center gap-1 min-w-[70px]">
-          <div className={`w-16 h-16 rounded-full flex items-center justify-center border-2 transition-colors ${hasValue ? 'bg-green-50 border-green-200' : 'bg-slate-100 border-slate-200'}`}>
-             {hasValue ? <Check className="w-8 h-8 text-green-600" /> : <Milk className="w-8 h-8 text-slate-400" />}
+          <div
+            className={`w-16 h-16 rounded-full flex items-center justify-center border-2 transition-colors ${hasValue ? "bg-green-50 border-green-200" : "bg-slate-100 border-slate-200"}`}
+          >
+            {hasValue ? (
+              <Check className="w-8 h-8 text-green-600" />
+            ) : (
+              <Milk className="w-8 h-8 text-slate-400" />
+            )}
           </div>
-          <span className="text-xs font-bold text-slate-500">
-            #{animal.id}
-          </span>
+          <span className="text-xs font-bold text-slate-500">#{animal.id}</span>
         </div>
 
         {/* Input Area */}
         <div className="flex-1">
           <div className="flex justify-between items-start mb-2">
-            <h3 className="text-xl font-black text-[#1e3a29] font-serif">
+            <h3 className="text-xl font-black text-slate-800 font-serif">
               {animal.name}
             </h3>
           </div>
@@ -107,13 +114,13 @@ function AnimalCollectionCard({
                 type="text"
                 inputMode="decimal"
                 placeholder="0.0"
-                className={`w-full text-center text-2xl font-bold text-[#1e3a29] border-2 rounded-lg py-2 focus:outline-none transition-all ${hasValue ? 'border-green-300 bg-green-50' : 'border-slate-200 focus:border-[#d97706] focus:bg-[#fffbeb]'}`}
+                className={`w-full text-center text-2xl font-bold text-slate-800 border-2 rounded-lg py-2 focus:outline-none transition-all ${hasValue ? "border-green-300 bg-green-50" : "border-slate-200 focus:border-[#d97706] focus:bg-[#fffbeb]"}`}
                 value={value}
                 onChange={(e) => {
-                   const val = e.target.value.replace(",", ".");
-                   if (/^\d*\.?\d*$/.test(val)) {
-                     onChange(val);
-                   }
+                  const val = e.target.value.replace(",", ".");
+                  if (/^\d*\.?\d*$/.test(val)) {
+                    onChange(val);
+                  }
                 }}
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setIsFocused(false)}

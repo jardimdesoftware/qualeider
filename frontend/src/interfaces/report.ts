@@ -1,14 +1,3 @@
-export interface ProducerRanking {
-  id: number;
-  name: string;
-  city?: string;
-  state?: string;
-  totalProduction: number;
-  animalsCount: number;
-  avgProductionPerDay: number;
-  rank: number;
-}
-
 export interface MonthlyReport {
   month: string;
   totalProduction: number;
@@ -22,5 +11,5 @@ export interface MonthlyReport {
 export interface ReportFilters {
   startDate?: string;
   endDate?: string;
-  period?: 'day' | 'week' | 'month';
+  period?: "day" | "week" | "month";
 }

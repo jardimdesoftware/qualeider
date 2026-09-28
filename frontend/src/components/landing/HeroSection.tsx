@@ -11,11 +11,13 @@ export function HeroSection() {
             Gestão Rural Simplificada
           </div>
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-white leading-tight mb-6 brand-font drop-shadow-lg">
-            Transforme dados de <span className="text-[#fceeb5]">leite em lucro.</span>
+            Transforme dados de{" "}
+            <span className="text-[#fceeb5]">leite em lucro.</span>
           </h1>
           <p className="text-lg md:text-xl text-slate-200 mb-10 leading-relaxed max-w-lg mx-auto md:mx-0 font-light">
             A plataforma completa feita para o produtor rural. Controle seu
-            rebanho, monitore a produção e tome decisões certas, sem complicação.
+            rebanho, monitore a produção e tome decisões certas, sem
+            complicação.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
@@ -28,7 +30,7 @@ export function HeroSection() {
             </Link>
             <button className="bg-transparent border-2 border-white text-white hover:bg-white/10 font-bold py-4 px-8 rounded-lg text-lg transition-colors flex items-center justify-center gap-2">
               <PlayCircle className="w-6 h-6" />
-              Ver como funciona 
+              Ver como funciona
             </button>
             <p> Criar video depois</p>
           </div>
@@ -43,17 +45,15 @@ export function HeroSection() {
         {/* Escondido no mobile para focar na mensagem */}
         <div className="hidden md:block w-1/3 lg:w-1/2 relative">
           <div className="relative z-10 bg-white p-2 rounded-xl shadow-2xl transform rotate-3 hover:rotate-0 transition-transform duration-500">
-             {/* eslint-disable-next-line @next/next/no-img-element */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="https://images.unsplash.com/photo-1605000797499-95a51c5269ae?q=80&w=2071&auto=format&fit=crop"
               alt="Dashboard Preview"
               className="rounded-lg w-full h-auto"
             />
             {/* Selo Flutuante */}
-            <div className="absolute -bottom-6 -right-6 bg-[#1e3a29] text-white p-4 rounded-lg shadow-xl border-4 border-[#fceeb5]">
-              <p className="font-bold text-2xl text-center brand-font">
-                +20%
-              </p>
+            <div className="absolute -bottom-6 -right-6 bg-[#2f9e41] text-white p-4 rounded-lg shadow-xl border-4 border-[#fceeb5]">
+              <p className="font-bold text-2xl text-center brand-font">+20%</p>
               <p className="text-xs uppercase tracking-wider text-[#4ade80]">
                 Produtividade
               </p>

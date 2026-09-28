@@ -1,9 +1,24 @@
 import { apiBase } from "./baseApi";
-import { Animal, CreateAnimalDto } from "@/interfaces/animal";
+import {
+  Animal,
+  AnimalProductionSummary,
+  CreateAnimalDto,
+} from "@/interfaces/animal";
 
 export const animalService = {
   getByUser: async (userId: number): Promise<Animal[]> => {
     const { data } = await apiBase.get(`/animals/user/${userId}`);
+    return data;
+  },
+
+  getProductionSummary: async (
+    startDate?: string,
+    endDate?: string,
+  ): Promise<AnimalProductionSummary[]> => {
+    const { data } = await apiBase.get<AnimalProductionSummary[]>(
+      "/animals/production-summary",
+      { params: { startDate, endDate } },
+    );
     return data;
   },
 
@@ -12,13 +27,19 @@ export const animalService = {
     return data;
   },
 
-  create: async (animalData: Omit<CreateAnimalDto, 'userId'>, userId: number): Promise<Animal> => {
+  create: async (
+    animalData: Omit<CreateAnimalDto, "userId">,
+    userId: number,
+  ): Promise<Animal> => {
     const payload: CreateAnimalDto = { ...animalData, userId };
     const { data } = await apiBase.post("/animals", payload);
     return data;
   },
 
-  update: async (id: number, animalData: Partial<CreateAnimalDto>): Promise<Animal> => {
+  update: async (
+    id: number,
+    animalData: Partial<CreateAnimalDto>,
+  ): Promise<Animal> => {
     const { data } = await apiBase.put(`/animals/${id}`, animalData);
     return data;
   },

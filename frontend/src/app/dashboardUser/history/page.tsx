@@ -8,25 +8,37 @@ import { useAuthGuard } from "@/hooks/useAuthGuard";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { CollectionDetailsModal } from "./_components/CollectionDetailsModal";
 import { EditCollectionModal } from "./_components/EditCollectionModal";
-import { useUserCollections, useUpdateCollection, useDeleteCollection } from "@/hooks/queries/useCollections";
+import {
+  useUserCollections,
+  useUpdateCollection,
+  useDeleteCollection,
+} from "@/hooks/queries/useCollections";
 import { DailyCollection } from "@/interfaces/daily-collection";
 import { getFriendlyErrorMessage } from "@/utils/errorMessage";
 
 export default function CollectionHistory() {
-  const { userId, isLoading: authLoading } = useAuthGuard("user");
-  const { data: rawCollections = [], isLoading: loading } = useUserCollections(userId);
+  const { userId, isLoading: authLoading } = useAuthGuard();
+  const { data: rawCollections = [], isLoading: loading } =
+    useUserCollections(userId);
 
-  const [selectedCollection, setSelectedCollection] = useState<DailyCollection | null>(null);
-  const [editingCollection, setEditingCollection] = useState<DailyCollection | null>(null);
+  const [selectedCollection, setSelectedCollection] =
+    useState<DailyCollection | null>(null);
+  const [editingCollection, setEditingCollection] =
+    useState<DailyCollection | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [feedback, setFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   const collections = useMemo(
     () =>
       [...rawCollections].sort(
-        (a, b) => new Date(b.collectionDate).getTime() - new Date(a.collectionDate).getTime()
+        (a, b) =>
+          new Date(b.collectionDate).getTime() -
+          new Date(a.collectionDate).getTime(),
       ),
-    [rawCollections]
+    [rawCollections],
   );
 
   const updateCollection = useUpdateCollection(userId);
@@ -38,14 +50,17 @@ export default function CollectionHistory() {
       {
         onSuccess: () => {
           setEditingCollection(null);
-          setFeedback({ type: "success", message: "Coleta atualizada com sucesso!" });
+          setFeedback({
+            type: "success",
+            message: "Coleta atualizada com sucesso!",
+          });
           setTimeout(() => setFeedback(null), 3000);
         },
         onError: (err: any) => {
           setFeedback({ type: "error", message: getFriendlyErrorMessage(err) });
           setTimeout(() => setFeedback(null), 4000);
         },
-      }
+      },
     );
   };
 
@@ -54,7 +69,10 @@ export default function CollectionHistory() {
     deleteCollection.mutate(id, {
       onSuccess: () => {
         setDeletingId(null);
-        setFeedback({ type: "success", message: "Coleta excluída com sucesso!" });
+        setFeedback({
+          type: "success",
+          message: "Coleta excluída com sucesso!",
+        });
         setTimeout(() => setFeedback(null), 3000);
       },
       onError: (err: any) => {
@@ -75,7 +93,7 @@ export default function CollectionHistory() {
           subtitle="Visualize e gerencie seus envios anteriores"
         />
 
-        <div className="p-6 md:p-8 max-w-5xl mx-auto">
+        <div className="flex-1 min-h-0 flex flex-col w-full p-4 md:p-6 max-w-5xl mx-auto">
           {/* Feedback toast */}
           {feedback && (
             <div
@@ -89,10 +107,10 @@ export default function CollectionHistory() {
             </div>
           )}
 
-          <div className="bg-white rounded-xl shadow-md border border-slate-100 overflow-hidden">
-            <div className="overflow-x-auto">
+          <div className="bg-white rounded-xl shadow-md border border-slate-100 overflow-hidden flex flex-col min-h-0 flex-1">
+            <div className="overflow-auto min-h-0 flex-1">
               <table className="w-full text-left border-collapse">
-                <thead>
+                <thead className="sticky top-0 z-10 bg-gray-50">
                   <tr className="bg-gray-50 border-b border-gray-100 text-xs uppercase text-gray-500 font-semibold tracking-wider">
                     <th className="px-6 py-4">Data</th>
                     <th className="px-6 py-4">Quantidade (L)</th>
@@ -104,22 +122,33 @@ export default function CollectionHistory() {
                 <tbody className="divide-y divide-gray-100">
                   {collections.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                      <td
+                        colSpan={5}
+                        className="px-6 py-8 text-center text-gray-500"
+                      >
                         Nenhuma coleta registrada.
                       </td>
                     </tr>
                   ) : (
                     collections.map((item) => (
-                      <tr key={item.id} className="hover:bg-[#fdfbf7] transition-colors">
+                      <tr
+                        key={item.id}
+                        className="hover:bg-[#fdfbf7] transition-colors"
+                      >
                         <td className="px-6 py-4 text-gray-900 font-medium">
-                          {new Date(item.collectionDate).toLocaleDateString("pt-BR", {
-                            timeZone: "UTC",
-                          })}
+                          {new Date(item.collectionDate).toLocaleDateString(
+                            "pt-BR",
+                            {
+                              timeZone: "UTC",
+                            },
+                          )}
                         </td>
-                        <td className="px-6 py-4 text-brand-primary font-bold">
+                        <td className="px-6 py-4 text-slate-800 font-bold">
                           {item.quantity} L
                         </td>
-                        <td className="px-6 py-4 text-gray-600">{item.numAnimals}</td>
+                        <td className="px-6 py-4 text-gray-600">
+                          {item.numAnimals}
+                        </td>
                         <td className="px-6 py-4">
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                             Recebido
@@ -137,7 +166,7 @@ export default function CollectionHistory() {
                             <button
                               onClick={() => setEditingCollection(item)}
                               title="Editar coleta"
-                              className="p-1.5 text-slate-500 hover:text-brand-primary hover:bg-slate-100 rounded-lg transition-colors"
+                              className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
                             >
                               <Pencil size={15} />
                             </button>

@@ -14,9 +14,9 @@ interface MetricCardProps {
 
 export default function MetricCard({
   icon,
-  iconColor = "text-gov-blue",
+  iconColor = "text-blue-600",
   iconBgColor = "bg-blue-50",
-  borderColor = "border-brand-primary",
+  borderColor = "border-[#2f9e41]",
   title,
   value,
   unit,
@@ -25,26 +25,26 @@ export default function MetricCard({
 }: MetricCardProps) {
   return (
     <div
-      className={`group rounded-lg border border-brand-border border-l-4 ${borderColor} bg-white p-5 shadow-[0_8px_20px_rgba(12,50,111,0.05)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(12,50,111,0.08)]`}
+      className={`bg-white rounded-xl shadow-md border-b-4 ${borderColor} p-5 hover:shadow-lg transition-shadow`}
     >
-      <div className="mb-3 flex items-start justify-between gap-4">
-        <span className="text-xs font-bold uppercase tracking-wide text-brand-muted">
+      <div className="flex justify-between items-start mb-2">
+        <span className="text-slate-500 text-sm font-bold uppercase">
           {title}
         </span>
-        <div className={`rounded-md p-2 ${iconBgColor} ${iconColor}`}>
+        <div className={`p-2 ${iconBgColor} rounded-lg ${iconColor}`}>
           {icon}
         </div>
       </div>
       <div className="flex items-baseline gap-1">
-        <span className="text-3xl font-extrabold text-gray-950">{value}</span>
+        <span className="text-3xl font-black text-slate-800">{value}</span>
         {unit && (
-          <span className="text-sm font-semibold text-brand-muted">{unit}</span>
+          <span className="text-sm font-bold text-slate-400">{unit}</span>
         )}
       </div>
       {trend && (
         <p
-          className={`mt-2 flex items-center gap-1 text-xs font-bold ${
-            trendUp ? "text-brand-primary" : "text-brand-muted"
+          className={`text-xs font-bold mt-2 flex items-center gap-1 ${
+            trendUp ? "text-[#4ade80]" : "text-slate-400"
           }`}
         >
           {trend}
