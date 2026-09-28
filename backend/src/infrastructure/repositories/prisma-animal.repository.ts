@@ -245,9 +245,12 @@ export class PrismaAnimalRepository implements IAnimalRepository {
     if (animals.length === 0) return [];
 
     const itemWhere: any = { animalId: { in: animals.map((a) => a.id) } };
-    if (startDate && endDate) {
+    if (startDate || endDate) {
       itemWhere.dailyCollection = {
-        collectionDate: { gte: startDate, lte: endDate },
+        collectionDate: {
+          ...(startDate ? { gte: startDate } : {}),
+          ...(endDate ? { lte: endDate } : {}),
+        },
       };
     }
 
