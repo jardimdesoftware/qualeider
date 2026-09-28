@@ -103,7 +103,8 @@
     },
     "@nestjs/common": {
       "file-type": "^21.3.2"
-    }
+    },
+    "deepmerge-ts": "^8.0.2"
   },
   "lint-staged": {
     "*.ts": [
