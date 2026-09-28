@@ -21,6 +21,7 @@ import {
   CmtResult,
   AnimalCollectionHistoryItem,
 } from "@/interfaces/daily-collection";
+import AnimalReportExportButton from "@/components/reports/AnimalReportExportButton";
 
 // helpers
 
@@ -89,7 +90,7 @@ function HistoryTable({ rows }: { rows: AnimalCollectionHistoryItem[] }) {
                   timeZone: "UTC",
                 })}
               </td>
-              <td className="px-5 py-3 text-brand-primary font-bold">
+              <td className="px-5 py-3 text-slate-800 font-bold">
                 {row.quantity} L
               </td>
               <td className="px-5 py-3">
@@ -148,7 +149,7 @@ export default function AnimalDetailPage() {
         {/* back */}
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-brand-primary transition-colors"
+          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-slate-900 transition-colors"
         >
           <ArrowLeft size={16} />
           Voltar
@@ -259,13 +260,19 @@ export default function AnimalDetailPage() {
             </h2>
             {!historyLoading && history.length > 0 && (
               <span className="ml-auto text-sm text-gray-500">
-                <span className="font-semibold text-brand-primary">
+                <span className="font-semibold text-slate-800">
                   {totalLiters.toFixed(1)} L
                 </span>{" "}
                 em {history.length} coleta{history.length !== 1 ? "s" : ""}
               </span>
             )}
           </div>
+
+          {!historyLoading && (
+            <div className="flex justify-end mb-4">
+              <AnimalReportExportButton animal={animal} history={history} />
+            </div>
+          )}
 
           <div className="flex items-center gap-2 mb-4">
             <Heart size={13} className="text-red-400" />
