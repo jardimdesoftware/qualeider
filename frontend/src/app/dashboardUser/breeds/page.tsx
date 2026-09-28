@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { DashboardLayout } from "@/components/layout";
 import { PageHeader } from "@/components/dashboard";
@@ -21,7 +21,7 @@ import {
   useDeleteBreed,
 } from "@/hooks/queries/useBreeds";
 import { Breed, CreateBreedDto } from "@/interfaces/breed";
-import { Plus, Pencil, Trash2, X, Tag, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Tag, Loader2, Search } from "lucide-react";
 
 // ─── Modal de Criar / Editar ────────────────────────────────────────────────
 
@@ -93,7 +93,7 @@ function BreedModal({
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <h2 className="text-xl font-bold text-[#1e3a29]">
+          <h2 className="text-xl font-bold text-slate-800">
             {isEditing ? "Editar Raça" : "Nova Raça"}
           </h2>
           <button
@@ -118,7 +118,7 @@ function BreedModal({
           />
 
           <div className="space-y-1">
-            <label className="text-brand-primary font-medium text-sm">
+            <label className="text-slate-800 font-medium text-sm">
               Descrição (opcional)
             </label>
             <textarea
@@ -170,6 +170,12 @@ export default function BreedsPage() {
 
   const { data: breeds = [], isLoading, isError } = useBreeds();
   const deleteBreed = useDeleteBreed();
+  const [search, setSearch] = useState("");
+  const filtered = useMemo(
+    () =>
+      breeds.filter((b) => b.name.toLowerCase().includes(search.toLowerCase())),
+    [breeds, search],
+  );
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -236,19 +242,33 @@ export default function BreedsPage() {
         <PageHeader
           title="Raças"
           subtitle="Gerencie o catálogo de raças de animais"
-          actions={
+        />
+
+        <div className="flex-1 min-h-0 flex flex-col w-full p-4 md:p-6 max-w-5xl mx-auto">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-2 shrink-0">
+            <div className="relative w-full sm:max-w-xs">
+              <Search
+                size={16}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                type="text"
+                placeholder="Buscar raça..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+              />
+            </div>
             <Button
               variant="primary"
               onClick={openCreate}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 shrink-0"
             >
               <Plus size={16} />
               Nova Raça
             </Button>
-          }
-        />
+          </div>
 
-        <div className="p-6 md:p-8 max-w-5xl mx-auto">
           {/* Loading */}
           {isLoading && (
             <div className="flex items-center justify-center py-20 text-slate-400">
@@ -274,26 +294,37 @@ export default function BreedsPage() {
           )}
 
           {/* Tabela */}
-          {!isLoading && !isError && breeds.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-              <div className="overflow-x-auto">
+          {!isLoading &&
+            !isError &&
+            breeds.length > 0 &&
+            filtered.length === 0 && (
+              <div className="text-center py-16 text-slate-400 text-sm">
+                Nenhum resultado para <strong>&quot;{search}&quot;</strong>.
+              </div>
+            )}
+
+          {!isLoading && !isError && filtered.length > 0 && (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col min-h-0 flex-1">
+              <div className="overflow-auto min-h-0 flex-1">
                 <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-[#1e3a29] text-white">
-                      <th className="px-6 py-4 text-left font-semibold">#</th>
-                      <th className="px-6 py-4 text-left font-semibold">
+                  <thead className="sticky top-0 z-10 bg-gray-50">
+                    <tr className="bg-gray-50 border-b border-gray-200">
+                      <th className="px-6 py-4 text-left font-semibold text-gray-600">
+                        #
+                      </th>
+                      <th className="px-6 py-4 text-left font-semibold text-gray-600">
                         Nome
                       </th>
-                      <th className="px-6 py-4 text-left font-semibold hidden md:table-cell">
+                      <th className="px-6 py-4 text-left font-semibold text-gray-600 hidden md:table-cell">
                         Descrição
                       </th>
-                      <th className="px-6 py-4 text-right font-semibold">
+                      <th className="px-6 py-4 text-right font-semibold text-gray-600">
                         Ações
                       </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {breeds.map((breed, index) => (
+                    {filtered.map((breed, index) => (
                       <tr
                         key={breed.id}
                         className="hover:bg-slate-50 transition-colors"
@@ -302,7 +333,7 @@ export default function BreedsPage() {
                           {index + 1}
                         </td>
                         <td className="px-6 py-4">
-                          <span className="font-semibold text-[#1e3a29]">
+                          <span className="font-semibold text-slate-800">
                             {breed.name}
                           </span>
                         </td>
@@ -319,7 +350,7 @@ export default function BreedsPage() {
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => openEdit(breed)}
-                              className="p-2 rounded-lg text-slate-500 hover:text-[#1e3a29] hover:bg-slate-100 transition-colors"
+                              className="p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
                               title="Editar"
                             >
                               <Pencil size={16} />
@@ -340,8 +371,10 @@ export default function BreedsPage() {
               </div>
 
               <div className="px-6 py-3 border-t border-slate-100 bg-slate-50 text-xs text-slate-400">
-                {breeds.length}{" "}
-                {breeds.length === 1 ? "raça cadastrada" : "raças cadastradas"}
+                {filtered.length}{" "}
+                {filtered.length === 1
+                  ? "raça cadastrada"
+                  : "raças cadastradas"}
               </div>
             </div>
           )}

@@ -2,19 +2,9 @@
 @config "../../tailwind.config.ts";
 
 :root {
-  --foreground-rgb: 31, 41, 55;
-  --background-start-rgb: 248, 248, 248;
-  --background-end-rgb: 248, 248, 248;
-  --ifpe-green: #2f9e41;
-  --ifpe-green-dark: #1f7a30;
-  --ifpe-green-soft: #e1f5e6;
-  --ifpe-red: #cd191e;
-  --gov-blue: #1351b4;
-  --gov-blue-dark: #0c326f;
-  --gray-bg: #f8f8f8;
-  --gray-border: #e0e0e0;
-  --gray-text: #4b5563;
-  --surface: #ffffff;
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 245, 242, 235;
+  --background-end-rgb: 245, 242, 235;
 }
 
 /* :root {
@@ -25,75 +15,16 @@
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: var(--gray-bg);
-  font-family: Rawline, Arial, Helvetica, sans-serif;
-  min-height: 100vh;
-}
-
-body::before {
-  content: "";
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 60;
-  width: 100%;
-  height: 5px;
-  background: linear-gradient(90deg, var(--ifpe-red) 0 6%, var(--ifpe-green) 6% 100%);
-}
-
-::selection {
-  background: var(--ifpe-green-soft);
-  color: #111827;
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
-
-  .campus-page-shell {
-    background:
-      radial-gradient(circle at top left, rgba(225, 245, 230, 0.85), rgba(225, 245, 230, 0) 340px),
-      linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(248, 248, 248, 0) 280px),
-      var(--gray-bg);
-  }
-
-  .campus-card {
-    background: var(--surface);
-    border: 1px solid var(--gray-border);
-    border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(12, 50, 111, 0.06);
-  }
-
-  .campus-section-label {
-    color: var(--gray-text);
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-}
-
-/* Landing Page Styles */
-.hero-bg {
-  background-image: linear-gradient(
-      rgba(30, 58, 41, 0.85),
-      rgba(30, 58, 41, 0.7)
-    ),
-    url("https://images.unsplash.com/photo-1545420333-23aade0b08aa?q=80&w=2071&auto=format&fit=crop");
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-}
-.texture-paper {
-  background-color: var(--gray-bg);
-}
-
-/* Typography from Landing Page */
-/* Note: These rely on the CSS variables --font-roboto and --font-roboto-slab being present */
-.font-roboto {
-  font-family: Rawline, Arial, Helvetica, sans-serif;
-}
-.brand-font, h1, h2, h3 {
-  font-family: Rawline, Arial, Helvetica, sans-serif;
 }

@@ -93,7 +93,7 @@ export default function CollectionHistory() {
           subtitle="Visualize e gerencie seus envios anteriores"
         />
 
-        <div className="p-6 md:p-8 max-w-5xl mx-auto">
+        <div className="flex-1 min-h-0 flex flex-col w-full p-4 md:p-6 max-w-5xl mx-auto">
           {/* Feedback toast */}
           {feedback && (
             <div
@@ -107,10 +107,10 @@ export default function CollectionHistory() {
             </div>
           )}
 
-          <div className="bg-white rounded-xl shadow-md border border-slate-100 overflow-hidden">
-            <div className="overflow-x-auto">
+          <div className="bg-white rounded-xl shadow-md border border-slate-100 overflow-hidden flex flex-col min-h-0 flex-1">
+            <div className="overflow-auto min-h-0 flex-1">
               <table className="w-full text-left border-collapse">
-                <thead>
+                <thead className="sticky top-0 z-10 bg-gray-50">
                   <tr className="bg-gray-50 border-b border-gray-100 text-xs uppercase text-gray-500 font-semibold tracking-wider">
                     <th className="px-6 py-4">Data</th>
                     <th className="px-6 py-4">Quantidade (L)</th>
@@ -143,7 +143,7 @@ export default function CollectionHistory() {
                             },
                           )}
                         </td>
-                        <td className="px-6 py-4 text-brand-primary font-bold">
+                        <td className="px-6 py-4 text-slate-800 font-bold">
                           {item.quantity} L
                         </td>
                         <td className="px-6 py-4 text-gray-600">
@@ -166,7 +166,7 @@ export default function CollectionHistory() {
                             <button
                               onClick={() => setEditingCollection(item)}
                               title="Editar coleta"
-                              className="p-1.5 text-slate-500 hover:text-brand-primary hover:bg-slate-100 rounded-lg transition-colors"
+                              className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
                             >
                               <Pencil size={15} />
                             </button>
