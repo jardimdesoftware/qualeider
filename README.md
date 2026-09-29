@@ -51,6 +51,20 @@ make backend # roda o backend em modo watch
 make frontend # roda o frontend em modo dev
 ```
 
+## 👥 Equipe e Papéis
+
+| Nome | Função |
+|---|---|
+| Marcelo Chagas | Dev Backend e DevSecOps |
+| Jota Quaresma | UI/UX |
+| Valéria Lima | DevSecOps |
+
+Detalhes de responsabilidades na [Wiki](https://github.com/jardimdesoftware/qualeider/wiki#-equipe-do-projeto).
+
+## 🎨 Protótipos
+
+> Ainda não há um link de protótipo (Figma ou similar) publicado — pendente.
+
 ## 📖 Documentação
 
 A documentação de arquitetura, modelagem de dados, plano de testes e outros documentos do projeto estão na [Wiki](https://github.com/jardimdesoftware/qualeider/wiki).
