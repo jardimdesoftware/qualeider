@@ -1,6 +1,10 @@
 generator client {
   provider = "prisma-client-js"
-  binaryTargets = ["native", "debian-openssl-3.0.x"]
+  // Ambos os targets listados explicitamente (não "native") porque o Dockerfile
+  // roda `prisma generate` sempre na plataforma nativa do runner (--platform=$BUILDPLATFORM),
+  // mesmo ao montar a imagem final para linux/arm64 — rodar o engine Wasm do Prisma
+  // sob emulação QEMU corrompe o JSON do getDmmf (erro "Unable to parse JSON").
+  binaryTargets = ["debian-openssl-3.0.x", "linux-arm64-openssl-3.0.x"]
 }
 
 datasource db {
