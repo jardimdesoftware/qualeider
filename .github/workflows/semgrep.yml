@@ -1,0 +1,59 @@
+name: Semgrep CE Security Scan
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    - cron: "30 0 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+concurrency:
+  group: semgrep-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  semgrep:
+    name: Scan source code
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Install Semgrep CE
+        run: pipx install semgrep
+
+      - name: Run Semgrep
+        run: |
+          mkdir -p security-reports/semgrep
+          semgrep scan \
+            --config auto \
+            --exclude node_modules \
+            --exclude .next \
+            --exclude dist \
+            --exclude '.env*' \
+            --json-output security-reports/semgrep/semgrep.json \
+            --sarif-output security-reports/semgrep/semgrep.sarif \
+            --text-output security-reports/semgrep/semgrep.txt
+
+      - name: Upload SARIF to code scanning
+        if: always() && hashFiles('security-reports/semgrep/semgrep.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: security-reports/semgrep/semgrep.sarif
+
+      - name: Upload Semgrep evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-evidence
+          path: security-reports/semgrep/
+          if-no-files-found: error
+

@@ -1,0 +1,4 @@
+# OWASP ZAP baseline rule configuration.
+# Format: rule-id<TAB>action<TAB>optional comment
+# Unlisted passive rules retain the baseline default (WARN).
+

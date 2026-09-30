@@ -1,0 +1,346 @@
+                    
+                    
+┌──────────────────┐
+│ 78 Code Findings │
+└──────────────────┘
+                          
+    .github/dependabot.yml
+    ❯❱ package_managers.dependabot.dependabot-missing-cooldown.dependabot-missing-cooldown
+          ❰❰ Blocking ❱❱
+          This Dependabot configuration does not set a cooldown period. Newly published packages can be     
+          malicious or unstable. Add a `cooldown` block with `default-days: 7` to each `package-ecosystem`  
+          entry under `updates` to wait 7 days before proposing updates to newly published package versions.
+          Reference: https://docs.github.com/en/code-security/dependabot/dependabot-version-                
+          updates/configuration-options-for-the-dependabot.yml-file#cooldown                                
+          Details: https://sg.run/5WvGK                                                                     
+                                                                                                            
+           14┆ - package-ecosystem: "npm"
+           15┆   directory: "/backend"
+           16┆   schedule:
+           17┆     interval: "weekly"
+           18┆     day: "monday"
+           19┆     time: "06:00"
+           20┆     timezone: "America/Sao_Paulo"
+           21┆   open-pull-requests-limit: 10
+           22┆   labels:
+           23┆     - "dependencies"
+             [hid 21 additional lines, adjust with --max-lines-per-finding] 
+           50┆ - package-ecosystem: "npm"
+           51┆   directory: "/frontend"
+           52┆   schedule:
+           53┆     interval: "weekly"
+           54┆     day: "monday"
+           55┆     time: "06:00"
+           56┆     timezone: "America/Sao_Paulo"
+           57┆   open-pull-requests-limit: 10
+           58┆   labels:
+           59┆     - "dependencies"
+             [hid 15 additional lines, adjust with --max-lines-per-finding] 
+           79┆ - package-ecosystem: "docker"
+           80┆   directory: "/backend"
+           81┆   schedule:
+           82┆     interval: "weekly"
+           83┆     day: "monday"
+           84┆     time: "06:00"
+           85┆     timezone: "America/Sao_Paulo"
+           86┆   open-pull-requests-limit: 5
+           87┆   labels:
+           88┆     - "dependencies"
+             [hid 3 additional lines, adjust with --max-lines-per-finding] 
+           93┆ - package-ecosystem: "docker"
+           94┆   directory: "/frontend"
+           95┆   schedule:
+           96┆     interval: "weekly"
+           97┆     day: "monday"
+           98┆     time: "06:00"
+           99┆     timezone: "America/Sao_Paulo"
+          100┆   open-pull-requests-limit: 5
+          101┆   labels:
+          102┆     - "dependencies"
+             [hid 3 additional lines, adjust with --max-lines-per-finding] 
+          110┆ - package-ecosystem: "github-actions"
+          111┆   directory: "/"
+          112┆   schedule:
+          113┆     interval: "weekly"
+          114┆     day: "monday"
+          115┆     time: "06:00"
+          116┆     timezone: "America/Sao_Paulo"
+          117┆   open-pull-requests-limit: 5
+          118┆   labels:
+          119┆     - "dependencies"
+             [hid 3 additional lines, adjust with --max-lines-per-finding] 
+                                                    
+    .github/workflows/azure-containerapps-deploy.yml
+    ❯❱ yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
+          ❰❰ Blocking ❱❱
+          GitHub Actions step uses a mutable tag or branch reference. Tags and branch names can be silently   
+          repointed by the action owner, enabling supply-chain attacks — as seen in the trivy-action and kics-
+          github-action compromises. Pin the reference to a full 40-character commit SHA instead, e.g. `uses: 
+          actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608`.                                         
+          Details: https://sg.run/2LgAL                                                                       
+                                                                                                              
+           47┆ uses: actions/checkout@v7
+            ⋮┆----------------------------------------
+           55┆ uses: aquasecurity/trivy-action@v0.36.0
+            ⋮┆----------------------------------------
+           65┆ uses: aquasecurity/trivy-action@v0.36.0
+            ⋮┆----------------------------------------
+           75┆ uses: actions/upload-artifact@v7
+            ⋮┆----------------------------------------
+          104┆ uses: azure/login@v3
+            ⋮┆----------------------------------------
+          109┆ uses: azure/cli@v3
+            ⋮┆----------------------------------------
+          142┆ uses: azure/cli@v3
+                                    
+    .github/workflows/backend-ci.yml
+    ❯❱ yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
+          ❰❰ Blocking ❱❱
+          GitHub Actions step uses a mutable tag or branch reference. Tags and branch names can be silently   
+          repointed by the action owner, enabling supply-chain attacks — as seen in the trivy-action and kics-
+          github-action compromises. Pin the reference to a full 40-character commit SHA instead, e.g. `uses: 
+          actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608`.                                         
+          Details: https://sg.run/2LgAL                                                                       
+                                                                                                              
+           92┆ - uses: actions/checkout@v7
+   
+   ❯❯❱ yaml.github-actions.security.run-shell-injection.run-shell-injection
+          ❰❰ Blocking ❱❱
+          Using variable interpolation `${{...}}` with `github` context data in a `run:` step could allow an  
+          attacker to inject their own code into the runner. This would allow them to steal secrets and code. 
+          `github` context data can have arbitrary user input and should be treated as untrusted. Instead, use
+          an intermediate environment variable with `env:` to store the data and use the environment variable 
+          in the `run:` script. Be sure to use double-quotes the environment variable, like this: "$ENVVAR".  
+          Details: https://sg.run/pkzk                                                                        
+                                                                                                              
+          112┆ run: |
+          113┆   if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          114┆     echo "change_type=${{ inputs.change_type }}" >> "$GITHUB_OUTPUT"
+          115┆     exit 0
+          116┆   fi
+          117┆
+          118┆   change_type=""
+          119┆   if grep -qiE "\[x\]\s*\`?novo-marco\`?" body.txt; then
+          120┆     change_type="novo-marco"
+          121┆   elif grep -qiE "\[x\]\s*\`?nova-feature-refactor\`?" body.txt; then
+             [hid 14 additional lines, adjust with --max-lines-per-finding] 
+   
+    ❯❱ yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
+          ❰❰ Blocking ❱❱
+          GitHub Actions step uses a mutable tag or branch reference. Tags and branch names can be silently   
+          repointed by the action owner, enabling supply-chain attacks — as seen in the trivy-action and kics-
+          github-action compromises. Pin the reference to a full 40-character commit SHA instead, e.g. `uses: 
+          actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608`.                                         
+          Details: https://sg.run/2LgAL                                                                       
+                                                                                                              
+          197┆ uses: actions/checkout@v7
+            ⋮┆----------------------------------------
+          200┆ uses: actions/setup-node@v7
+            ⋮┆----------------------------------------
+          227┆ uses: actions/checkout@v7
+            ⋮┆----------------------------------------
+          230┆ uses: actions/setup-node@v7
+            ⋮┆----------------------------------------
+          250┆ uses: actions/upload-artifact@v7
+            ⋮┆----------------------------------------
+          284┆ uses: actions/checkout@v7
+            ⋮┆----------------------------------------
+          287┆ uses: actions/setup-node@v7
+            ⋮┆----------------------------------------
+          317┆ uses: actions/upload-artifact@v7
+            ⋮┆----------------------------------------
+          351┆ uses: actions/checkout@v7
+            ⋮┆----------------------------------------
+          354┆ uses: actions/setup-node@v7
+            ⋮┆----------------------------------------
+          389┆ uses: actions/upload-artifact@v7
+            ⋮┆----------------------------------------
+          411┆ uses: actions/checkout@v7
+            ⋮┆----------------------------------------
+          415┆ uses: aquasecurity/trivy-action@v0.36.0
+            ⋮┆----------------------------------------
+          427┆ uses: aquasecurity/trivy-action@v0.36.0
+            ⋮┆----------------------------------------
+          437┆ uses: aquasecurity/trivy-action@v0.36.0
+            ⋮┆----------------------------------------
+          449┆ uses: aquasecurity/trivy-action@v0.36.0
+            ⋮┆----------------------------------------
+          462┆ uses: github/codeql-action/upload-sarif@v4
+            ⋮┆----------------------------------------
+          481┆ uses: actions/checkout@v7
+            ⋮┆----------------------------------------
+          484┆ uses: docker/setup-buildx-action@v4
+            ⋮┆----------------------------------------
+          487┆ uses: docker/build-push-action@v7
+            ⋮┆----------------------------------------
+          499┆ uses: aquasecurity/trivy-action@v0.36.0
+            ⋮┆----------------------------------------
+          510┆ uses: aquasecurity/trivy-action@v0.36.0
+            ⋮┆----------------------------------------
+          522┆ uses: github/codeql-action/upload-sarif@v4
+            ⋮┆----------------------------------------
+          557┆ uses: actions/checkout@v7
+            ⋮┆----------------------------------------
+          575┆ uses: docker/setup-qemu-action@v4
+            ⋮┆----------------------------------------
+          578┆ uses: docker/setup-buildx-action@v4
+            ⋮┆----------------------------------------
+          581┆ uses: docker/login-action@v4
+            ⋮┆----------------------------------------
+          590┆ uses: docker/build-push-action@v7
+            ⋮┆----------------------------------------
+          611┆ uses: aquasecurity/trivy-action@v0.36.0
+            ⋮┆----------------------------------------
+          626┆ uses: aquasecurity/trivy-action@v0.36.0
+            ⋮┆----------------------------------------
+          641┆ uses: github/codeql-action/upload-sarif@v4
+            ⋮┆----------------------------------------
+          649┆ uses: aquasecurity/trivy-action@v0.36.0
+            ⋮┆----------------------------------------
+          660┆ uses: actions/upload-artifact@v7
+            ⋮┆----------------------------------------
+          669┆ uses: sigstore/cosign-installer@v3
+            ⋮┆----------------------------------------
+          700┆ uses: actions/checkout@v7
+            ⋮┆----------------------------------------
+          703┆ uses: actions/download-artifact@v8
+            ⋮┆----------------------------------------
+          708┆ uses: softprops/action-gh-release@v3
+                                
+    .github/workflows/codeql.yml
+    ❯❱ yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
+          ❰❰ Blocking ❱❱
+          GitHub Actions step uses a mutable tag or branch reference. Tags and branch names can be silently   
+          repointed by the action owner, enabling supply-chain attacks — as seen in the trivy-action and kics-
+          github-action compromises. Pin the reference to a full 40-character commit SHA instead, e.g. `uses: 
+          actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608`.                                         
+          Details: https://sg.run/2LgAL                                                                       
+                                                                                                              
+           43┆ uses: actions/checkout@v7
+            ⋮┆----------------------------------------
+           46┆ uses: github/codeql-action/init@v4
+            ⋮┆----------------------------------------
+           52┆ uses: github/codeql-action/analyze@v4
+                                     
+    .github/workflows/frontend-ci.yml
+    ❯❱ yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
+          ❰❰ Blocking ❱❱
+          GitHub Actions step uses a mutable tag or branch reference. Tags and branch names can be silently   
+          repointed by the action owner, enabling supply-chain attacks — as seen in the trivy-action and kics-
+          github-action compromises. Pin the reference to a full 40-character commit SHA instead, e.g. `uses: 
+          actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608`.                                         
+          Details: https://sg.run/2LgAL                                                                       
+                                                                                                              
+           75┆ - uses: actions/checkout@v7
+   
+   ❯❯❱ yaml.github-actions.security.run-shell-injection.run-shell-injection
+          ❰❰ Blocking ❱❱
+          Using variable interpolation `${{...}}` with `github` context data in a `run:` step could allow an  
+          attacker to inject their own code into the runner. This would allow them to steal secrets and code. 
+          `github` context data can have arbitrary user input and should be treated as untrusted. Instead, use
+          an intermediate environment variable with `env:` to store the data and use the environment variable 
+          in the `run:` script. Be sure to use double-quotes the environment variable, like this: "$ENVVAR".  
+          Details: https://sg.run/pkzk                                                                        
+                                                                                                              
+          102┆ run: |
+          103┆   if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          104┆     echo "change_type=${{ inputs.change_type }}" >> "$GITHUB_OUTPUT"
+          105┆     exit 0
+          106┆   fi
+          107┆
+          108┆   change_type=""
+          109┆   if grep -qiE "\[x\]\s*\`?novo-marco\`?" body.txt; then
+          110┆     change_type="novo-marco"
+          111┆   elif grep -qiE "\[x\]\s*\`?nova-feature-refactor\`?" body.txt; then
+             [hid 17 additional lines, adjust with --max-lines-per-finding] 
+   
+    ❯❱ yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
+          ❰❰ Blocking ❱❱
+          GitHub Actions step uses a mutable tag or branch reference. Tags and branch names can be silently   
+          repointed by the action owner, enabling supply-chain attacks — as seen in the trivy-action and kics-
+          github-action compromises. Pin the reference to a full 40-character commit SHA instead, e.g. `uses: 
+          actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608`.                                         
+          Details: https://sg.run/2LgAL                                                                       
+                                                                                                              
+          202┆ uses: actions/checkout@v7
+            ⋮┆----------------------------------------
+          207┆ uses: actions/setup-node@v7
+            ⋮┆----------------------------------------
+          222┆ uses: aquasecurity/trivy-action@v0.36.0
+            ⋮┆----------------------------------------
+          235┆ uses: aquasecurity/trivy-action@v0.36.0
+            ⋮┆----------------------------------------
+          247┆ uses: github/codeql-action/upload-sarif@v4
+            ⋮┆----------------------------------------
+          254┆ uses: docker/setup-qemu-action@v4
+            ⋮┆----------------------------------------
+          257┆ uses: docker/setup-buildx-action@v4
+            ⋮┆----------------------------------------
+          260┆ uses: docker/login-action@v4
+            ⋮┆----------------------------------------
+          269┆ uses: docker/build-push-action@v7
+            ⋮┆----------------------------------------
+          293┆ uses: aquasecurity/trivy-action@v0.36.0
+            ⋮┆----------------------------------------
+          308┆ uses: aquasecurity/trivy-action@v0.36.0
+            ⋮┆----------------------------------------
+          322┆ uses: github/codeql-action/upload-sarif@v4
+            ⋮┆----------------------------------------
+          339┆ - uses: actions/checkout@v7
+            ⋮┆----------------------------------------
+          342┆ uses: softprops/action-gh-release@v3
+                                             
+    .github/workflows/vulnerability-badge.yml
+    ❯❱ yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
+          ❰❰ Blocking ❱❱
+          GitHub Actions step uses a mutable tag or branch reference. Tags and branch names can be silently   
+          repointed by the action owner, enabling supply-chain attacks — as seen in the trivy-action and kics-
+          github-action compromises. Pin the reference to a full 40-character commit SHA instead, e.g. `uses: 
+          actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608`.                                         
+          Details: https://sg.run/2LgAL                                                                       
+                                                                                                              
+           27┆ uses: actions/checkout@v7
+                                               
+    backend/src/mail/template-mailer.service.ts
+    ❯❱ javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+          ❰❰ Blocking ❱❱
+          Detected possible user input going into a `path.join` or `path.resolve` function. This could   
+          possibly lead to a path traversal vulnerability,  where the attacker can access arbitrary files
+          stored in the file system. Instead, be sure to sanitize or validate user input first.          
+          Details: https://sg.run/OPqk                                                                   
+                                                                                                         
+           67┆ const filePath = join(__dirname, '..', '..', 'templates', `${templateName}.hbs`);
+                                
+    frontend/src/utils/logger.ts
+     ❱ javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring
+          ❰❰ Blocking ❱❱
+          Detected string concatenation with a non-literal variable in a util.format / console.log function.
+          If an attacker injects a format specifier in the string, it will forge the log message. Try to use
+          constant values for the format string.                                                            
+          Details: https://sg.run/7Y5R                                                                      
+                                                                                                            
+           27┆ console.log(`ℹ️ [INFO] ${message}`, context || '');
+            ⋮┆----------------------------------------
+           39┆ console.warn(`⚠️ [WARN] ${message}`, context || '');
+            ⋮┆----------------------------------------
+           56┆ console.error(`❌ [ERROR] ${message}`, error, context || '');
+            ⋮┆----------------------------------------
+           76┆ console.debug(`🐛 [DEBUG] ${message}`, data || '');
+                    
+    nginx/nginx.conf
+    ❯❱ generic.nginx.security.possible-h2c-smuggling.possible-nginx-h2c-smuggling
+          ❰❰ Blocking ❱❱
+          Conditions for Nginx H2C smuggling identified. H2C smuggling allows upgrading HTTP/1.1 connections 
+          to lesser-known HTTP/2 over cleartext (h2c) connections which can allow a bypass of reverse proxy  
+          access controls, and lead to long-lived, unrestricted HTTP traffic directly to back-end servers. To
+          mitigate: WebSocket support required: Allow only the value websocket for HTTP/1.1 upgrade headers  
+          (e.g., Upgrade: websocket). WebSocket support not required: Do not forward Upgrade headers.        
+          Details: https://sg.run/ploZ                                                                       
+                                                                                                             
+           30┆ proxy_http_version 1.1;
+           31┆ proxy_set_header Upgrade $http_upgrade;
+           32┆ proxy_set_header Connection 'upgrade';
+            ⋮┆----------------------------------------
+           58┆ proxy_http_version 1.1;
+           59┆ proxy_set_header Upgrade $http_upgrade;
+           60┆ proxy_set_header Connection 'upgrade';
