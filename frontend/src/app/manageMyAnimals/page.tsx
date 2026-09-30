@@ -6,12 +6,23 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DashboardLayout } from "@/components/layout";
 import { PageHeader } from "@/components/dashboard";
-import { Button, EmptyState, ErrorModal, ConfirmationModal } from "@/components/ui";
+import {
+  Button,
+  EmptyState,
+  ErrorModal,
+  ConfirmationModal,
+} from "@/components/ui";
 import InputField from "@/components/ui/input-field";
 import SelectField from "@/components/ui/select-field";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
-import { useUserAnimals, useCreateAnimal, useUpdateAnimal, useDeleteAnimal, useInativarAnimal } from "@/hooks/queries/useAnimals";
+import {
+  useUserAnimals,
+  useCreateAnimal,
+  useUpdateAnimal,
+  useDeleteAnimal,
+  useInativarAnimal,
+} from "@/hooks/queries/useAnimals";
 import { useBreeds } from "@/hooks/queries/useBreeds";
 import { useAnimalSpecies } from "@/hooks/queries/useAnimalSpecies";
 import { Animal } from "@/interfaces/animal";
@@ -35,20 +46,36 @@ interface AnimalModalProps {
   onError: (msg: string) => void;
 }
 
-function AnimalModal({ isOpen, editingAnimal, userId, animals, onClose, onSuccess, onError }: AnimalModalProps) {
+function AnimalModal({
+  isOpen,
+  editingAnimal,
+  userId,
+  animals,
+  onClose,
+  onSuccess,
+  onError,
+}: AnimalModalProps) {
   const isEditing = !!editingAnimal;
   const createAnimal = useCreateAnimal();
   const updateAnimal = useUpdateAnimal();
   const { data: breeds = [], isLoading: loadingBreeds } = useBreeds();
   const { data: species = [], isLoading: loadingSpecies } = useAnimalSpecies();
 
-  const [motherMode, setMotherMode] = useState<"none" | "registered" | "unregistered">(() => {
+  const [motherMode, setMotherMode] = useState<
+    "none" | "registered" | "unregistered"
+  >(() => {
     if (editingAnimal?.motherId) return "registered";
     if (editingAnimal?.motherCode) return "unregistered";
     return "none";
   });
 
-  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<AnimalData>({
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<AnimalData>({
     resolver: zodResolver(animalSchema),
     defaultValues: {
       tagNumber: editingAnimal?.tagNumber ?? "",
@@ -67,15 +94,23 @@ function AnimalModal({ isOpen, editingAnimal, userId, animals, onClose, onSucces
   const selectedSpeciesId = watch("animalSpeciesId");
   const selectedMotherId = watch("motherId");
 
-  const speciesOptions = species.map((s) => ({ value: String(s.id), label: s.name }));
-  const breedOptions = breeds.map((b) => ({ value: String(b.id), label: b.name }));
+  const speciesOptions = species.map((s) => ({
+    value: String(s.id),
+    label: s.name,
+  }));
+  const breedOptions = breeds.map((b) => ({
+    value: String(b.id),
+    label: b.name,
+  }));
 
   const motherOptions = animals
     .filter((a) => a.id !== editingAnimal?.id && a.status === "Active")
     .map((a) => ({ value: String(a.id), label: animalLabel(a) }));
 
   const handleSpeciesChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setValue("animalSpeciesId", Number(e.target.value), { shouldValidate: true });
+    setValue("animalSpeciesId", Number(e.target.value), {
+      shouldValidate: true,
+    });
   };
 
   const handleBreedChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -85,14 +120,18 @@ function AnimalModal({ isOpen, editingAnimal, userId, animals, onClose, onSucces
     setValue("breed", found?.name ?? "");
   };
 
-  const handleMotherModeChange = (mode: "none" | "registered" | "unregistered") => {
+  const handleMotherModeChange = (
+    mode: "none" | "registered" | "unregistered",
+  ) => {
     setMotherMode(mode);
     if (mode !== "registered") setValue("motherId", undefined);
     if (mode !== "unregistered") setValue("motherCode", "");
   };
 
   const handleMotherSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setValue("motherId", Number(e.target.value) || undefined, { shouldValidate: true });
+    setValue("motherId", Number(e.target.value) || undefined, {
+      shouldValidate: true,
+    });
   };
 
   const onSubmit = async (data: AnimalData) => {
@@ -110,7 +149,9 @@ function AnimalModal({ isOpen, editingAnimal, userId, animals, onClose, onSucces
       }
       onClose();
     } catch (err: any) {
-      onError(err?.response?.data?.message || "Ocorreu um erro. Tente novamente.");
+      onError(
+        err?.response?.data?.message || "Ocorreu um erro. Tente novamente.",
+      );
     }
   };
 
@@ -121,10 +162,13 @@ function AnimalModal({ isOpen, editingAnimal, userId, animals, onClose, onSucces
     <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 sticky top-0 bg-white z-10">
-          <h2 className="text-xl font-bold text-[#1e3a29]">
+          <h2 className="text-xl font-bold text-slate-800">
             {isEditing ? "Editar Animal" : "Novo Animal"}
           </h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
+          <button
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-600 transition-colors"
+          >
             <X size={20} />
           </button>
         </div>
@@ -147,9 +191,11 @@ function AnimalModal({ isOpen, editingAnimal, userId, animals, onClose, onSucces
           <SelectField
             label="Tipo de Animal *"
             placeholder={
-              loadingSpecies ? "Carregando tipos..." :
-              speciesOptions.length === 0 ? "Nenhum tipo cadastrado" :
-              "Selecione o tipo"
+              loadingSpecies
+                ? "Carregando tipos..."
+                : speciesOptions.length === 0
+                  ? "Nenhum tipo cadastrado"
+                  : "Selecione o tipo"
             }
             disabled={loadingSpecies || speciesOptions.length === 0}
             error={errors.animalSpeciesId?.message}
@@ -160,7 +206,13 @@ function AnimalModal({ isOpen, editingAnimal, userId, animals, onClose, onSucces
 
           <SelectField
             label="Raca *"
-            placeholder={loadingBreeds ? "Carregando racas..." : breedOptions.length === 0 ? "Nenhuma raca cadastrada" : "Selecione uma raca"}
+            placeholder={
+              loadingBreeds
+                ? "Carregando racas..."
+                : breedOptions.length === 0
+                  ? "Nenhuma raca cadastrada"
+                  : "Selecione uma raca"
+            }
             disabled={loadingBreeds || breedOptions.length === 0}
             error={errors.breedId?.message}
             options={breedOptions}
@@ -178,7 +230,9 @@ function AnimalModal({ isOpen, editingAnimal, userId, animals, onClose, onSucces
           />
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-slate-700">Mae</label>
+            <label className="block text-sm font-medium text-slate-700">
+              Mae
+            </label>
             <div className="flex gap-2">
               {(["none", "registered", "unregistered"] as const).map((mode) => (
                 <button
@@ -187,7 +241,7 @@ function AnimalModal({ isOpen, editingAnimal, userId, animals, onClose, onSucces
                   onClick={() => handleMotherModeChange(mode)}
                   className={`flex-1 py-1.5 px-2 text-xs rounded-lg border transition-colors ${
                     motherMode === mode
-                      ? "bg-[#1e3a29] text-white border-[#1e3a29]"
+                      ? "bg-[#2f9e41] text-white border-[#2f9e41]"
                       : "bg-white text-slate-600 border-slate-200 hover:border-slate-400"
                   }`}
                 >
@@ -201,7 +255,11 @@ function AnimalModal({ isOpen, editingAnimal, userId, animals, onClose, onSucces
             {motherMode === "registered" && (
               <SelectField
                 label=""
-                placeholder={motherOptions.length === 0 ? "Nenhum animal cadastrado" : "Selecione a mae"}
+                placeholder={
+                  motherOptions.length === 0
+                    ? "Nenhum animal cadastrado"
+                    : "Selecione a mae"
+                }
                 disabled={motherOptions.length === 0}
                 options={motherOptions}
                 value={selectedMotherId ? String(selectedMotherId) : ""}
@@ -227,10 +285,21 @@ function AnimalModal({ isOpen, editingAnimal, userId, animals, onClose, onSucces
           />
 
           <div className="flex gap-3 pt-2">
-            <Button type="button" variant="outline" fullWidth onClick={onClose} disabled={isPending}>
+            <Button
+              type="button"
+              variant="outline"
+              fullWidth
+              onClick={onClose}
+              disabled={isPending}
+            >
               Cancelar
             </Button>
-            <Button type="submit" variant="primary" fullWidth loading={isPending}>
+            <Button
+              type="submit"
+              variant="primary"
+              fullWidth
+              loading={isPending}
+            >
               {isEditing ? "Salvar Alteracoes" : "Cadastrar"}
             </Button>
           </div>
@@ -243,7 +312,7 @@ function AnimalModal({ isOpen, editingAnimal, userId, animals, onClose, onSucces
 // Pagina principal
 export default function ManageAnimals() {
   const router = useRouter();
-  const { userId, isLoading: authLoading } = useAuthGuard("user");
+  const { userId, isLoading: authLoading } = useAuthGuard();
   const { data: animalsRaw = [], isLoading } = useUserAnimals(userId);
   const animals = animalsRaw as Animal[];
   const deleteAnimal = useDeleteAnimal();
@@ -256,27 +325,42 @@ export default function ManageAnimals() {
   const [search, setSearch] = useState("");
   const [showInactive, setShowInactive] = useState(false);
   const [feedback, setFeedback] = useState<{
-    isOpen: boolean; title: string; message: string; type: "success" | "error";
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: "success" | "error";
   }>({ isOpen: false, title: "", message: "", type: "success" });
 
-  const filtered = useMemo(() =>
-    animals.filter((a) => {
-      if (!showInactive && a.status === "Inactive") return false;
-      const q = search.toLowerCase();
-      return (
-        (a.tagNumber ?? "").toLowerCase().includes(q) ||
-        (a.name ?? "").toLowerCase().includes(q) ||
-        (a.animalSpecies?.name ?? a.animalType ?? "").toLowerCase().includes(q) ||
-        (a.breed ?? "").toLowerCase().includes(q)
-      );
-    }),
-    [animals, search, showInactive]
+  const filtered = useMemo(
+    () =>
+      animals.filter((a) => {
+        if (!showInactive && a.status === "Inactive") return false;
+        const q = search.toLowerCase();
+        return (
+          (a.tagNumber ?? "").toLowerCase().includes(q) ||
+          (a.name ?? "").toLowerCase().includes(q) ||
+          (a.animalSpecies?.name ?? a.animalType ?? "")
+            .toLowerCase()
+            .includes(q) ||
+          (a.breed ?? "").toLowerCase().includes(q)
+        );
+      }),
+    [animals, search, showInactive],
   );
 
-  const openCreate = () => { setEditingAnimal(null); setModalOpen(true); };
-  const openEdit = (a: Animal) => { setEditingAnimal(a); setModalOpen(true); };
-  const showFeedback = (title: string, message: string, type: "success" | "error") =>
-    setFeedback({ isOpen: true, title, message, type });
+  const openCreate = () => {
+    setEditingAnimal(null);
+    setModalOpen(true);
+  };
+  const openEdit = (a: Animal) => {
+    setEditingAnimal(a);
+    setModalOpen(true);
+  };
+  const showFeedback = (
+    title: string,
+    message: string,
+    type: "success" | "error",
+  ) => setFeedback({ isOpen: true, title, message, type });
 
   const handleConfirmDelete = async () => {
     if (!confirmDelete) return;
@@ -311,7 +395,11 @@ export default function ManageAnimals() {
       showFeedback("Sucesso!", "Animal inativado com sucesso.", "success");
     } catch (err: any) {
       setConfirmInativar(null);
-      showFeedback("Erro", err?.response?.data?.message || "Nao foi possivel inativar.", "error");
+      showFeedback(
+        "Erro",
+        err?.response?.data?.message || "Nao foi possivel inativar.",
+        "error",
+      );
     }
   };
 
@@ -324,39 +412,46 @@ export default function ManageAnimals() {
           title="Meus Animais"
           subtitle="Gerencie o rebanho da sua fazenda"
           actions={
-            <Button variant="primary" onClick={openCreate} className="flex items-center gap-2">
-              <Plus size={16} />
-              Novo Animal
-            </Button>
+            <button
+              onClick={() => setShowInactive((v) => !v)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                showInactive
+                  ? "bg-red-50 border-red-200 text-red-700"
+                  : "bg-white border-gray-300 text-gray-500 hover:border-gray-400"
+              }`}
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${showInactive ? "bg-red-500" : "bg-gray-300"}`}
+              />
+              {showInactive ? "Mostrar apenas ativos" : "Mostrar inativos"}
+            </button>
           }
         />
 
-        <div className="p-6 md:p-8 max-w-5xl mx-auto">
-          {animals.length > 0 && (
-            <div className="flex flex-wrap items-center gap-3 mb-6">
-              <div className="relative flex-1 min-w-[200px] max-w-sm">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Buscar por numero, nome, tipo ou raca..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent"
-                />
-              </div>
-              <button
-                onClick={() => setShowInactive((v) => !v)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                  showInactive
-                    ? "bg-red-50 border-red-200 text-red-700"
-                    : "bg-white border-gray-300 text-gray-500 hover:border-gray-400"
-                }`}
-              >
-                <span className={`w-2 h-2 rounded-full ${showInactive ? "bg-red-500" : "bg-gray-300"}`} />
-                {showInactive ? "Mostrar apenas ativos" : "Mostrar inativos"}
-              </button>
+        <div className="flex-1 min-h-0 flex flex-col w-full p-4 md:p-6 max-w-5xl mx-auto">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-2 shrink-0">
+            <div className="relative w-full sm:max-w-xs">
+              <Search
+                size={16}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                type="text"
+                placeholder="Buscar por numero, nome, tipo ou raca..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+              />
             </div>
-          )}
+            <Button
+              variant="primary"
+              onClick={openCreate}
+              className="flex items-center gap-2 shrink-0"
+            >
+              <Plus size={16} />
+              Novo Animal
+            </Button>
+          </div>
 
           {!isLoading && animals.length === 0 && (
             <EmptyState
@@ -373,37 +468,60 @@ export default function ManageAnimals() {
           )}
 
           {!isLoading && filtered.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-              <div className="overflow-x-auto">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col min-h-0 flex-1">
+              <div className="overflow-auto min-h-0 flex-1">
                 <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-[#1e3a29] text-white">
-                      <th className="px-4 py-4 text-left font-semibold">N</th>
-                      <th className="px-4 py-4 text-left font-semibold">Nome</th>
-                      <th className="px-4 py-4 text-left font-semibold hidden md:table-cell">Tipo</th>
-                      <th className="px-4 py-4 text-left font-semibold hidden md:table-cell">Raca</th>
-                      <th className="px-4 py-4 text-left font-semibold hidden lg:table-cell">Mae</th>
-                      <th className="px-4 py-4 text-left font-semibold hidden md:table-cell">Idade</th>
-                      <th className="px-4 py-4 text-right font-semibold">Acoes</th>
+                  <thead className="sticky top-0 z-10 bg-gray-50">
+                    <tr className="bg-gray-50 border-b border-gray-200">
+                      <th className="px-4 py-4 text-left font-semibold text-gray-600">
+                        N
+                      </th>
+                      <th className="px-4 py-4 text-left font-semibold text-gray-600">
+                        Nome
+                      </th>
+                      <th className="px-4 py-4 text-left font-semibold text-gray-600 hidden md:table-cell">
+                        Tipo
+                      </th>
+                      <th className="px-4 py-4 text-left font-semibold text-gray-600 hidden md:table-cell">
+                        Raca
+                      </th>
+                      <th className="px-4 py-4 text-left font-semibold text-gray-600 hidden lg:table-cell">
+                        Mae
+                      </th>
+                      <th className="px-4 py-4 text-left font-semibold text-gray-600 hidden md:table-cell">
+                        Idade
+                      </th>
+                      <th className="px-4 py-4 text-right font-semibold text-gray-600">
+                        Acoes
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {filtered.map((animal, index) => (
-                      <tr key={animal.id} className="hover:bg-slate-50 transition-colors">
+                      <tr
+                        key={animal.id}
+                        className="hover:bg-slate-50 transition-colors"
+                      >
                         <td className="px-4 py-4">
                           {animal.tagNumber ? (
-                            <span className="inline-flex items-center gap-1 font-mono font-semibold text-[#1e3a29] bg-green-50 border border-green-200 rounded px-2 py-0.5 text-xs">
+                            <span className="inline-flex items-center gap-1 font-mono font-semibold text-slate-800 bg-green-50 border border-green-200 rounded px-2 py-0.5 text-xs">
                               <Hash size={10} />
                               {animal.tagNumber}
                             </span>
                           ) : (
-                            <span className="text-slate-300 text-xs font-mono">{index + 1}</span>
+                            <span className="text-slate-300 text-xs font-mono">
+                              {index + 1}
+                            </span>
                           )}
                         </td>
                         <td className="px-4 py-4">
                           <div className="flex items-center gap-2">
-                            <span className="font-semibold text-[#1e3a29]">
-                              {animal.name || <span className="text-slate-400 italic font-normal">Sem nome</span>}
+                            <span className="font-semibold text-slate-800">
+                              {animal.name || (
+                                <span className="text-slate-400 italic font-normal">
+                                  Sem nome
+                                </span>
+                              )}
                             </span>
                             {animal.status === "Inactive" && (
                               <span className="inline-flex px-1.5 py-0.5 rounded text-[10px] font-semibold bg-red-100 text-red-600 uppercase tracking-wide">
@@ -412,26 +530,40 @@ export default function ManageAnimals() {
                             )}
                           </div>
                           <span className="block text-xs text-slate-500 mt-0.5 md:hidden">
-                            {animal.animalSpecies?.name ?? animal.animalType ?? ""} {animal.breed ? `- ${animal.breed}` : ""} - {animal.age}a
+                            {animal.animalSpecies?.name ??
+                              animal.animalType ??
+                              ""}{" "}
+                            {animal.breed ? `- ${animal.breed}` : ""} -{" "}
+                            {animal.age}a
                           </span>
                         </td>
                         <td className="px-4 py-4 text-slate-600 hidden md:table-cell">
-                          {animal.animalSpecies?.name ?? animal.animalType ?? <span className="text-slate-300 italic"></span>}
+                          {animal.animalSpecies?.name ?? animal.animalType ?? (
+                            <span className="text-slate-300 italic"></span>
+                          )}
                         </td>
                         <td className="px-4 py-4 text-slate-600 hidden md:table-cell">
-                          {animal.breed ?? <span className="text-slate-300 italic">sem raca</span>}
+                          {animal.breed ?? (
+                            <span className="text-slate-300 italic">
+                              sem raca
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-4 hidden lg:table-cell">
                           {animal.mother ? (
                             <span className="text-slate-600 text-xs">
                               {animal.mother.tagNumber ? (
-                                <span className="font-mono font-semibold text-[#1e3a29]">#{animal.mother.tagNumber}</span>
+                                <span className="font-mono font-semibold text-slate-800">
+                                  #{animal.mother.tagNumber}
+                                </span>
                               ) : (
                                 animal.mother.name || `ID ${animal.mother.id}`
                               )}
                             </span>
                           ) : animal.motherCode ? (
-                            <span className="text-slate-400 text-xs italic">#{animal.motherCode} (pendente)</span>
+                            <span className="text-slate-400 text-xs italic">
+                              #{animal.motherCode} (pendente)
+                            </span>
                           ) : (
                             <span className="text-slate-200 text-xs"></span>
                           )}
@@ -442,7 +574,9 @@ export default function ManageAnimals() {
                         <td className="px-4 py-4">
                           <div className="flex items-center justify-end gap-2">
                             <button
-                              onClick={() => router.push(`/manageMyAnimals/${animal.id}`)}
+                              onClick={() =>
+                                router.push(`/manageMyAnimals/${animal.id}`)
+                              }
                               className="p-2 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
                               title="Ver perfil"
                             >
@@ -450,7 +584,7 @@ export default function ManageAnimals() {
                             </button>
                             <button
                               onClick={() => openEdit(animal)}
-                              className="p-2 rounded-lg text-slate-500 hover:text-[#1e3a29] hover:bg-slate-100 transition-colors"
+                              className="p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
                               title="Editar"
                             >
                               <Pencil size={16} />
@@ -470,7 +604,8 @@ export default function ManageAnimals() {
                 </table>
               </div>
               <div className="px-6 py-3 border-t border-slate-100 bg-slate-50 text-xs text-slate-400">
-                {filtered.length} animal{filtered.length !== 1 ? "is" : ""} cadastrado{filtered.length !== 1 ? "s" : ""}
+                {filtered.length} animal{filtered.length !== 1 ? "is" : ""}{" "}
+                cadastrado{filtered.length !== 1 ? "s" : ""}
               </div>
             </div>
           )}

@@ -19,13 +19,11 @@ export default function SelectField({
   ...props
 }: SelectFieldProps) {
   return (
-    <div className="space-y-1.5">
-      <label className="text-xs font-bold uppercase tracking-[0.03em] text-brand-muted">
-        {label}
-      </label>
+    <div className="space-y-1">
+      <label className="text-slate-800 font-medium text-sm">{label}</label>
       <select
-        className={`h-11 w-full rounded border border-[#cfcfcf] bg-white px-3 py-2 text-sm text-gray-900 shadow-sm
-          focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary
+        className={`w-full h-11 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm shadow-sm 
+          focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent
           disabled:bg-gray-100 disabled:cursor-not-allowed
           ${error ? "border-red-500" : ""}
           ${className}`}

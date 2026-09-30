@@ -11,6 +11,7 @@ import { IUserRepository, IUserRepository as IUserRepositorySymbol } from '@/dom
 import { IDailyCollectionRepository, IDailyCollectionRepository as IDailyCollectionRepositorySymbol } from '@/domain/repositories/daily-collection.repository';
 import { BusinessException } from '@/common/exceptions/business.exception';
 import { ForbiddenException } from '@nestjs/common';
+import { ActivityLogService } from '@/application/services/activity-logs/activity-logs.service';
 
 describe('AnimalsService', () => {
   let service: AnimalsService;
@@ -46,6 +47,12 @@ describe('AnimalsService', () => {
           useValue: {
             findAll: jest.fn(),
             countItemsByAnimalId: jest.fn(),
+          },
+        },
+        {
+          provide: ActivityLogService,
+          useValue: {
+            record: jest.fn(),
           },
         },
       ],

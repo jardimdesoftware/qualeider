@@ -72,6 +72,34 @@ export class AnimalsController {
     return this.animalsService.findAll(criteria);
   }
 
+  @ApiOperation({
+    summary:
+      'Producao total por animal (relatorio geral): todos os animais ativos do rebanho do solicitante, com litros/coletas no periodo informado',
+  })
+  @ApiBearerAuth()
+  @ApiResponse({ status: 200, description: 'Resumo de producao por animal' })
+  @Get('production-summary')
+  @ResponseMessage('Resumo de produção por animal listado com sucesso')
+  async getProductionSummary(
+    @GetUser('id') requesterId: number,
+    @GetUser('role') requesterRole?: UserRole,
+    @GetUser('associationId') requesterAssociationId?: number | null,
+    @GetUser('adminId') requesterAdminId?: number | null,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.animalsService.getProductionSummary(
+      {
+        id: requesterId,
+        role: requesterRole,
+        associationId: requesterAssociationId,
+        adminId: requesterAdminId,
+      },
+      startDate ? new Date(startDate) : undefined,
+      endDate ? new Date(endDate) : undefined,
+    );
+  }
+
   @Get(':id')
   @ResponseMessage('Animal encontrado')
   @ApiOperation({ summary: 'Buscar um animal pelo ID' })
