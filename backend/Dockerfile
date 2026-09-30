@@ -2,7 +2,7 @@
 # Backend Qualeider - hardened multi-arch image
 # =============================================================================
 
-FROM node:25-slim AS builder
+FROM --platform=$BUILDPLATFORM node:25-slim AS builder
 
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
@@ -17,7 +17,8 @@ COPY package.json package-lock.json ./
 COPY prisma ./prisma/
 COPY tsconfig*.json ./
 
-ENV HUSKY=0
+ENV HUSKY=0 \
+    CHECKPOINT_DISABLE=1
 
 RUN npm ci --ignore-scripts && \
     node node_modules/prisma/build/index.js generate && \
@@ -28,7 +29,14 @@ RUN npm run build
 
 # Prepare production dependencies outside the final image so package managers
 # and build utilities do not become part of the runtime attack surface.
-FROM node:25-slim AS production-dependencies
+#
+# Runs on $BUILDPLATFORM (native), not the final image's target platform:
+# `prisma generate` uses a Wasm engine for schema parsing that produces
+# corrupted JSON under QEMU emulation (cross-building linux/arm64 on an
+# amd64 runner). Both target engine binaries are still downloaded because
+# schema.prisma lists them explicitly in `binaryTargets` rather than relying
+# on the "native" platform.
+FROM --platform=$BUILDPLATFORM node:25-slim AS production-dependencies
 
 WORKDIR /usr/appBackend
 
@@ -39,7 +47,8 @@ RUN apt-get update && \
 COPY package.json package-lock.json ./
 COPY prisma ./prisma/
 
-ENV HUSKY=0
+ENV HUSKY=0 \
+    CHECKPOINT_DISABLE=1
 
 RUN npm ci --omit=dev --ignore-scripts && \
     node node_modules/prisma/build/index.js generate && \
