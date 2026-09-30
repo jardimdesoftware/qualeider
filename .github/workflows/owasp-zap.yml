@@ -1,0 +1,34 @@
+name: OWASP ZAP Security Scan
+
+on:
+  schedule:
+    - cron: "0 0 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: owasp-zap-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  zap-scan:
+    name: Run passive DAST scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: OWASP ZAP baseline scan
+        uses: zaproxy/action-baseline@6c5a007541891231cd9e0ddec25d4f25c59c9874 # v0.15.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          target: ${{ vars.ZAP_TARGET_URL || 'https://qualeider.valerialima.me' }}
+          rules_file_name: ".zap/rules.tsv"
+          fail_action: true
+          allow_issue_writing: true
+          issue_title: "OWASP ZAP Security Scan Report"
