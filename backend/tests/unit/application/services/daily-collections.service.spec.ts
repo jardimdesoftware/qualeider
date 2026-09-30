@@ -12,6 +12,7 @@ import { IAnimalRepository, IAnimalRepository as IAnimalRepositorySymbol } from 
 import { BusinessException } from '@/common/exceptions/business.exception';
 import { createAnimal } from '../../../factories/animal.factory';
 import { ForbiddenException } from '@nestjs/common';
+import { ActivityLogService } from '@/application/services/activity-logs/activity-logs.service';
 
 describe('DailyCollectionsService', () => {
   let service: DailyCollectionsService;
@@ -48,6 +49,12 @@ describe('DailyCollectionsService', () => {
           provide: IUserRepositorySymbol,
           useValue: {
             findById: jest.fn(),
+          },
+        },
+        {
+          provide: ActivityLogService,
+          useValue: {
+            record: jest.fn(),
           },
         },
       ],

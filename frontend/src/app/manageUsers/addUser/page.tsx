@@ -32,7 +32,7 @@ const addUserSchema = z
       .min(8, "Mínimo de 8 caracteres")
       .regex(
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/,
-        "A senha deve ter maiúscula, minúscula, número e caractere especial"
+        "A senha deve ter maiúscula, minúscula, número e caractere especial",
       ),
     confirmPassword: z.string(),
     role: z.nativeEnum(UserRole, { message: "Selecione o cargo" }),
@@ -154,8 +154,8 @@ export default function AddUser() {
             {/* ── Seção 1: Qual será o cargo? ─────────────────────────── */}
             <div>
               <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-1">
-                <ShieldCheck size={16} className="text-brand-primary" />
-                O que este funcionário será?
+                <ShieldCheck size={16} className="text-slate-800" />O que este
+                funcionário será?
               </h3>
               <p className="text-xs text-gray-500 mb-4">
                 Escolha o nível de acesso antes de preencher os dados.
@@ -172,14 +172,17 @@ export default function AddUser() {
                       key={card.value}
                       type="button"
                       disabled={isPending}
-                      onClick={() => setValue("role", card.value, { shouldValidate: true })}
+                      onClick={() =>
+                        setValue("role", card.value, { shouldValidate: true })
+                      }
                       className={`
                         relative flex flex-col gap-2 rounded-xl border-2 p-4 text-left transition-all duration-150 focus:outline-none
-                        ${isSelected
-                          ? isAmber
-                            ? "border-amber-500 bg-amber-50 shadow-sm"
-                            : "border-blue-500 bg-blue-50 shadow-sm"
-                          : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
+                        ${
+                          isSelected
+                            ? isAmber
+                              ? "border-amber-500 bg-amber-50 shadow-sm"
+                              : "border-blue-500 bg-blue-50 shadow-sm"
+                            : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
                         }
                         disabled:opacity-60 disabled:cursor-not-allowed
                       `}
@@ -230,7 +233,9 @@ export default function AddUser() {
               {/* Hidden input para react-hook-form */}
               <input type="hidden" {...register("role")} />
               {errors.role && (
-                <p className="text-red-500 text-xs mt-2">{errors.role.message}</p>
+                <p className="text-red-500 text-xs mt-2">
+                  {errors.role.message}
+                </p>
               )}
             </div>
 
@@ -239,7 +244,7 @@ export default function AddUser() {
             {/* ── Seção 2: Dados de Acesso ─────────────────────────────── */}
             <div>
               <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-4">
-                <User size={16} className="text-brand-primary" />
+                <User size={16} className="text-slate-800" />
                 Dados de Acesso
               </h3>
               <div className="space-y-4">

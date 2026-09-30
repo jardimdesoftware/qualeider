@@ -1,7 +1,10 @@
 import { InputHTMLAttributes } from "react";
 import { Calendar } from "lucide-react";
 
-interface DatePickerFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {
+interface DatePickerFieldProps extends Omit<
+  InputHTMLAttributes<HTMLInputElement>,
+  "type"
+> {
   label: string;
   error?: string;
   helperText?: string;
@@ -19,33 +22,31 @@ export default function DatePickerField({
   ...props
 }: DatePickerFieldProps) {
   const formatDateForInput = (date: Date) => {
-    return date.toISOString().split('T')[0];
+    return date.toISOString().split("T")[0];
   };
 
   const maxDateStr = maxDate ? formatDateForInput(maxDate) : undefined;
   const minDateStr = minDate ? formatDateForInput(minDate) : undefined;
 
   return (
-    <div className="space-y-1.5">
-      <label className="text-xs font-bold uppercase tracking-[0.03em] text-brand-muted">
-        {label}
-      </label>
-      
+    <div className="space-y-1">
+      <label className="text-slate-800 font-medium text-sm">{label}</label>
+
       <div className="relative">
         <input
           type="date"
           max={maxDateStr}
           min={minDateStr}
-          className={`h-11 w-full rounded border border-[#cfcfcf] bg-white px-3 py-2 text-sm text-gray-900 shadow-sm
-            focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary
+          className={`w-full h-11 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm shadow-sm 
+            focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent
             disabled:bg-gray-100 disabled:cursor-not-allowed
             [&::-webkit-calendar-picker-indicator]:cursor-pointer
             ${error ? "border-red-500" : ""}
             ${className}`}
           {...props}
         />
-        <Calendar 
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none w-5 h-5" 
+        <Calendar
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none w-5 h-5"
           aria-hidden="true"
         />
       </div>
@@ -56,7 +57,7 @@ export default function DatePickerField({
           {helperText}
         </p>
       )}
-      
+
       {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
     </div>
   );
