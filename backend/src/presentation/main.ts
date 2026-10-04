@@ -9,6 +9,7 @@ import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { HttpExceptionFilter } from '@/common/filters/http-exception.filter';
 import { PrismaExceptionFilter } from '@/common/filters/prisma-exception.filter';
 import { useContainer } from 'class-validator';
+import { configureTrustProxy } from './proxy.config';
 
 /**
  * Configura as opções de CORS baseadas nas variáveis de ambiente.
@@ -129,6 +130,7 @@ async function logAppStatus(
   app: INestApplication,
   corsOptions: CorsOptions,
   swaggerEnabled: boolean,
+  trustedProxyHops: number,
 ): Promise<void> {
   const appUrl = await app.getUrl();
 
@@ -149,6 +151,12 @@ async function logAppStatus(
     `CORS habilitado para: ${formatOrigin(corsOptions.origin)}`,
     'Bootstrap',
   );
+  Logger.log(
+    trustedProxyHops > 0
+      ? `Proxy confiável: ${trustedProxyHops} salto(s) (TRUST_PROXY_HOPS) — IP do cliente vem do X-Forwarded-For`
+      : 'Proxy confiável: nenhum (TRUST_PROXY_HOPS=0) — IP do cliente é o da conexão',
+    'Bootstrap',
+  );
 }
 
 /**
@@ -157,6 +165,9 @@ async function logAppStatus(
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   const configService = app.get(ConfigService);
+
+  // IP real do cliente atrás do nginx (rate limit de rotas públicas por IP).
+  const trustedProxyHops = configureTrustProxy(app, configService);
 
   // Habilitar injeção de dependências em validadores customizados do class-validator
   useContainer(app.select(AppModule), { fallbackOnErrors: true });
@@ -203,7 +214,7 @@ async function bootstrap() {
   await app.listen(port, '0.0.0.0');
 
   // 5. Logar o status da aplicação
-  await logAppStatus(app, corsOptions, swaggerEnabled);
+  await logAppStatus(app, corsOptions, swaggerEnabled, trustedProxyHops);
 }
 
 bootstrap();
