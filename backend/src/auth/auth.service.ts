@@ -127,14 +127,18 @@ export class AuthService {
     return this.loginEntity(user, 'user');
   }
 
-  /** Monta a URL de consentimento do Google para a qual GET /auth/google redireciona. */
-  getGoogleAuthUrl(): string {
+  /**
+   * Monta a URL de consentimento do Google para a qual GET /auth/google
+   * redireciona. `state` é conferido no callback contra o cookie do navegador.
+   */
+  getGoogleAuthUrl(state: string): string {
     const params = new URLSearchParams({
       client_id: this.configService.get<string>('GOOGLE_CLIENT_ID') ?? '',
       redirect_uri: this.configService.get<string>('GOOGLE_CALLBACK_URL') ?? '',
       response_type: 'code',
       scope: 'openid email profile',
       prompt: 'select_account',
+      state,
     });
     return `${GOOGLE_AUTH_URL}?${params.toString()}`;
   }

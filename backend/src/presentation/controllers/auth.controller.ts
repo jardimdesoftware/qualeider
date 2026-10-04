@@ -3,12 +3,21 @@ import {
   Post,
   Get,
   Query,
+  Req,
   Res,
   Body,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
+import {
+  GOOGLE_OAUTH_STATE_COOKIE,
+  GOOGLE_OAUTH_STATE_COOKIE_PATH,
+  GOOGLE_OAUTH_STATE_TTL_MS,
+  generateOAuthState,
+  isValidOAuthState,
+  readCookie,
+} from '@/common/utils/oauth-state.util';
 import { Throttle } from '@nestjs/throttler';
 import { THROTTLE_TTL } from '@/common/throttler/throttler.config';
 import { AuthService } from '@/auth/auth.service';
@@ -21,6 +30,17 @@ import { ResponseMessage } from '@/common/decorators/response-message.decorator'
 import { Public } from '@/common/decorators/public.decorator';
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+
+// SameSite=Lax: o cookie acompanha a navegação de volta do Google (GET de
+// topo) mas não requisições disparadas por outros sites.
+function googleStateCookieOptions() {
+  return {
+    httpOnly: true,
+    sameSite: 'lax' as const,
+    secure: FRONTEND_URL.startsWith('https://'),
+    path: GOOGLE_OAUTH_STATE_COOKIE_PATH,
+  };
+}
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -48,14 +68,37 @@ export class AuthController {
   @Public()
   @ApiOperation({ summary: 'Redireciona para a tela de consentimento do Google' })
   googleRedirect(@Res() res: Response) {
-    res.redirect(this.authService.getGoogleAuthUrl());
+    const state = generateOAuthState();
+    res.cookie(GOOGLE_OAUTH_STATE_COOKIE, state, {
+      ...googleStateCookieOptions(),
+      maxAge: GOOGLE_OAUTH_STATE_TTL_MS,
+    });
+    res.redirect(this.authService.getGoogleAuthUrl(state));
   }
 
   @Throttle({ default: { limit: 5, ttl: THROTTLE_TTL.SHORT } })
   @Get('google/callback')
   @Public()
   @ApiOperation({ summary: 'Callback do OAuth do Google' })
-  async googleCallback(@Query('code') code: string, @Res() res: Response) {
+  async googleCallback(
+    @Query('code') code: string,
+    @Query('state') state: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const expectedState = readCookie(req.headers.cookie, GOOGLE_OAUTH_STATE_COOKIE);
+    // Uso único: o cookie é descartado independentemente do resultado.
+    res.clearCookie(GOOGLE_OAUTH_STATE_COOKIE, googleStateCookieOptions());
+
+    if (!code || !isValidOAuthState(state, expectedState)) {
+      res.redirect(
+        `${FRONTEND_URL}/login?error=${encodeURIComponent(
+          'Sessão de login com o Google inválida ou expirada. Tente novamente.',
+        )}`,
+      );
+      return;
+    }
+
     try {
       const { access_token } = await this.authService.handleGoogleCallback(code);
       res.redirect(`${FRONTEND_URL}/google-callback?token=${access_token}`);
