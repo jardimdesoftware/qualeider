@@ -126,6 +126,7 @@ model User {
   invites               Invite[]
   receivedNotifications NotificationRecipient[]
   activityLogs          ActivityLog[]
+  allowedEmails         AllowedEmail[]   @relation("AdminAllowedEmails")
   @@index([city, state, status])
   @@index([associationId, status])
   @@index([adminId])
@@ -325,7 +326,12 @@ model FailedEmail {
 model AllowedEmail {
   id        Int      @id @default(autoincrement())
   email     String   @unique
+  // Admin que liberou o email: no primeiro login via Google o funcionário é
+  // vinculado a ele (User.adminId). Nulo = liberado antes deste vínculo existir.
+  adminId   Int?
+  admin     User?    @relation("AdminAllowedEmails", fields: [adminId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
 
+  @@index([adminId])
   @@map("allowed_emails")
 }
