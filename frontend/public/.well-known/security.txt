@@ -1,0 +1,8 @@
+# Política de divulgação de vulnerabilidades do QualeiDer (RFC 9116).
+# Atualize "Expires" antes da data (no máximo 1 ano à frente): há um teste que
+# falha quando o arquivo está vencido, para lembrar da renovação.
+Contact: https://github.com/jardimdesoftware/qualeider/security/advisories/new
+Expires: 2027-10-04T00:00:00.000Z
+Preferred-Languages: pt, en
+Canonical: https://qualeider.valerialima.me/.well-known/security.txt
+Policy: https://github.com/jardimdesoftware/qualeider/blob/main/SECURITY.md
