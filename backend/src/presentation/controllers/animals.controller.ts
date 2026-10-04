@@ -193,25 +193,29 @@ export class AnimalsController {
     @GetUser('associationId') associationId?: number | null,
     @GetUser('adminId') requesterAdminId?: number | null,
   ) {
+    // includeInactive: esta listagem alimenta a tela de gestao do rebanho
+    // ("Meus Animais"), que decide ativos/inativos no client via o toggle
+    // "Mostrar inativos" - sem isso, animais inativados nunca voltavam da
+    // API e o toggle nao tinha efeito algum.
     if (associationId) {
       // Todo usuario (ADMIN ou VAQUEIRO) vinculado a uma associacao
       // (cooperativa) enxerga o mesmo rebanho: os animais pertencem a
       // associacao, nao a quem os cadastrou individualmente.
-      return this.animalsService.findAll({ associationId, limit: MAX_LIMIT });
+      return this.animalsService.findAll({ associationId, limit: MAX_LIMIT, includeInactive: true });
     }
     if (role === UserRole.ADMIN) {
       // Cenario padrao atual, sem cooperativa: o admin enxerga os animais
       // de todos os produtores cadastrados no sistema - assim como ja
       // ocorre em "Gerenciar Usuarios".
-      return this.animalsService.findAll({ limit: MAX_LIMIT });
+      return this.animalsService.findAll({ limit: MAX_LIMIT, includeInactive: true });
     }
     if (requesterAdminId) {
       // Vaqueiro vinculado a um Admin (dono da fazenda) via "Adicionar
       // Funcionario": enxerga o mesmo rebanho desse Admin.
-      return this.animalsService.findAll({ adminGroupId: requesterAdminId, limit: MAX_LIMIT });
+      return this.animalsService.findAll({ adminGroupId: requesterAdminId, limit: MAX_LIMIT, includeInactive: true });
     }
     // Vaqueiro sem nenhum vinculo (legado): ve apenas os animais que ele
     // proprio cadastrou.
-    return this.animalsService.findAll({ userId });
+    return this.animalsService.findAll({ userId, includeInactive: true });
   }
 }
