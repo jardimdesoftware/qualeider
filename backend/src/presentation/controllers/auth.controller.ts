@@ -15,9 +15,9 @@ import {
   GOOGLE_OAUTH_STATE_COOKIE,
   GOOGLE_OAUTH_STATE_COOKIE_PATH,
   GOOGLE_OAUTH_STATE_TTL_MS,
-  generateOAuthState,
-  hashOAuthState,
-  isValidOAuthState,
+  generateStateNonce,
+  signStateNonce,
+  matchesStateNonce,
   readCookie,
 } from '@/common/utils/oauth-state.util';
 import { Throttle } from '@nestjs/throttler';
@@ -71,11 +71,11 @@ export class AuthController {
   @Public()
   @ApiOperation({ summary: 'Redireciona para a tela de consentimento do Google' })
   googleRedirect(@Res() res: Response) {
-    const state = generateOAuthState();
+    const state = generateStateNonce();
     // O cookie guarda só o hash do state (o valor cru vai apenas na URL do
     // Google). SameSite=Lax: ele acompanha a navegação de volta do Google (GET
     // de topo), mas não requisições disparadas por outros sites.
-    res.cookie(GOOGLE_OAUTH_STATE_COOKIE, hashOAuthState(state, this.stateKey), {
+    res.cookie(GOOGLE_OAUTH_STATE_COOKIE, signStateNonce(state, this.stateKey), {
       httpOnly: true,
       secure: COOKIE_SECURE,
       sameSite: 'lax',
@@ -104,7 +104,7 @@ export class AuthController {
       path: GOOGLE_OAUTH_STATE_COOKIE_PATH,
     });
 
-    if (!code || !isValidOAuthState(state, expectedStateHash, this.stateKey)) {
+    if (!code || !matchesStateNonce(state, expectedStateHash, this.stateKey)) {
       res.redirect(
         `${FRONTEND_URL}/login?error=${encodeURIComponent(
           'Sessão de login com o Google inválida ou expirada. Tente novamente.',

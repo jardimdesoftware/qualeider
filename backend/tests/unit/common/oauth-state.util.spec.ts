@@ -1,38 +1,38 @@
 import {
-  generateOAuthState,
-  hashOAuthState,
-  isValidOAuthState,
+  generateStateNonce,
+  signStateNonce,
+  matchesStateNonce,
   readCookie,
 } from '@/common/utils/oauth-state.util';
 
 const KEY = 'chave-de-teste';
 
 describe('oauth-state.util', () => {
-  describe('generateOAuthState', () => {
+  describe('generateStateNonce', () => {
     it('gera valores hexadecimais de 64 caracteres, diferentes a cada chamada', () => {
-      const a = generateOAuthState();
-      const b = generateOAuthState();
+      const a = generateStateNonce();
+      const b = generateStateNonce();
 
       expect(a).toMatch(/^[0-9a-f]{64}$/);
       expect(a).not.toBe(b);
     });
   });
 
-  describe('hashOAuthState', () => {
+  describe('signStateNonce', () => {
     it('devolve SHA-256 em hex, determinístico e diferente do valor original', () => {
-      const state = generateOAuthState();
+      const state = generateStateNonce();
 
-      expect(hashOAuthState(state, KEY)).toMatch(/^[0-9a-f]{64}$/);
-      expect(hashOAuthState(state, KEY)).toBe(hashOAuthState(state, KEY));
-      expect(hashOAuthState(state, KEY)).not.toBe(state);
+      expect(signStateNonce(state, KEY)).toMatch(/^[0-9a-f]{64}$/);
+      expect(signStateNonce(state, KEY)).toBe(signStateNonce(state, KEY));
+      expect(signStateNonce(state, KEY)).not.toBe(state);
     });
 
     it('chaves diferentes geram valores diferentes (o cookie depende do segredo do servidor)', () => {
-      expect(hashOAuthState('a', 'chave-1')).not.toBe(hashOAuthState('a', 'chave-2'));
+      expect(signStateNonce('a', 'chave-1')).not.toBe(signStateNonce('a', 'chave-2'));
     });
 
     it('valores diferentes geram hashes diferentes', () => {
-      expect(hashOAuthState('a', KEY)).not.toBe(hashOAuthState('b', KEY));
+      expect(signStateNonce('a', KEY)).not.toBe(signStateNonce('b', KEY));
     });
   });
 
@@ -64,37 +64,37 @@ describe('oauth-state.util', () => {
     });
   });
 
-  describe('isValidOAuthState', () => {
+  describe('matchesStateNonce', () => {
     it('aceita quando o hash do state recebido é o do cookie', () => {
-      const state = generateOAuthState();
+      const state = generateStateNonce();
 
-      expect(isValidOAuthState(state, hashOAuthState(state, KEY), KEY)).toBe(true);
+      expect(matchesStateNonce(state, signStateNonce(state, KEY), KEY)).toBe(true);
     });
 
     it('recusa quando o state não corresponde ao hash do cookie', () => {
-      expect(isValidOAuthState('abc', hashOAuthState('abd', KEY), KEY)).toBe(false);
+      expect(matchesStateNonce('abc', signStateNonce('abd', KEY), KEY)).toBe(false);
     });
 
     it('recusa o state cru no lugar do hash (o cookie não guarda o valor original)', () => {
-      const state = generateOAuthState();
+      const state = generateStateNonce();
 
-      expect(isValidOAuthState(state, state, KEY)).toBe(false);
+      expect(matchesStateNonce(state, state, KEY)).toBe(false);
     });
 
     it('recusa cookie de tamanho diferente (sem lançar)', () => {
-      expect(isValidOAuthState('abc', 'curto', KEY)).toBe(false);
+      expect(matchesStateNonce('abc', 'curto', KEY)).toBe(false);
     });
 
     it('recusa um cookie gerado com outra chave', () => {
-      const state = generateOAuthState();
+      const state = generateStateNonce();
 
-      expect(isValidOAuthState(state, hashOAuthState(state, 'outra-chave'), KEY)).toBe(false);
+      expect(matchesStateNonce(state, signStateNonce(state, 'outra-chave'), KEY)).toBe(false);
     });
 
     it('recusa quando falta o state ou o cookie', () => {
-      expect(isValidOAuthState(undefined, hashOAuthState('abc', KEY), KEY)).toBe(false);
-      expect(isValidOAuthState('abc', undefined, KEY)).toBe(false);
-      expect(isValidOAuthState('', '', KEY)).toBe(false);
+      expect(matchesStateNonce(undefined, signStateNonce('abc', KEY), KEY)).toBe(false);
+      expect(matchesStateNonce('abc', undefined, KEY)).toBe(false);
+      expect(matchesStateNonce('', '', KEY)).toBe(false);
     });
   });
 });

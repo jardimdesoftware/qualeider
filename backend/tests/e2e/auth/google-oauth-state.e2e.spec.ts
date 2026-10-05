@@ -2,7 +2,7 @@ import { setupE2ETests, teardownE2ETests, E2E_TIMEOUT } from '../setup';
 import { TestApp, AuthHelper } from '../helpers';
 import { UserFactory } from '../factories';
 import { HttpStatus } from '@nestjs/common';
-import { hashOAuthState } from '@/common/utils/oauth-state.util';
+import { signStateNonce } from '@/common/utils/oauth-state.util';
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 const STATE_COOKIE = 'qualeider_oauth_state';
@@ -71,7 +71,7 @@ describe('E2E: Google OAuth — state (CSRF) e redirects', () => {
 
       const stateCookie = cookies.find((c) => c.startsWith(`${STATE_COOKIE}=`))!;
       // O cookie guarda só o hash do state; o valor cru existe apenas na URL do Google.
-      expect(stateCookie).toContain(`${STATE_COOKIE}=${hashOAuthState(state, STATE_KEY)}`);
+      expect(stateCookie).toContain(`${STATE_COOKIE}=${signStateNonce(state, STATE_KEY)}`);
       expect(stateCookie).not.toContain(state);
       expect(stateCookie).toMatch(/HttpOnly/i);
       expect(stateCookie).toMatch(/SameSite=Lax/i);
@@ -111,7 +111,7 @@ describe('E2E: Google OAuth — state (CSRF) e redirects', () => {
       const response = await testApp
         .request()
         .get('/auth/google/callback?code=abc&state=outro-valor')
-        .set('Cookie', `${STATE_COOKIE}=${hashOAuthState(state, STATE_KEY)}`)
+        .set('Cookie', `${STATE_COOKIE}=${signStateNonce(state, STATE_KEY)}`)
         .redirects(0);
 
       expectLoginError(response);
@@ -124,7 +124,7 @@ describe('E2E: Google OAuth — state (CSRF) e redirects', () => {
       const response = await testApp
         .request()
         .get('/auth/google/callback?code=abc')
-        .set('Cookie', `${STATE_COOKIE}=${hashOAuthState(state, STATE_KEY)}`)
+        .set('Cookie', `${STATE_COOKIE}=${signStateNonce(state, STATE_KEY)}`)
         .redirects(0);
 
       expectLoginError(response);
@@ -137,7 +137,7 @@ describe('E2E: Google OAuth — state (CSRF) e redirects', () => {
       const response = await testApp
         .request()
         .get(`/auth/google/callback?error=access_denied&state=${state}`)
-        .set('Cookie', `${STATE_COOKIE}=${hashOAuthState(state, STATE_KEY)}`)
+        .set('Cookie', `${STATE_COOKIE}=${signStateNonce(state, STATE_KEY)}`)
         .redirects(0);
 
       expectLoginError(response);
@@ -163,7 +163,7 @@ describe('E2E: Google OAuth — state (CSRF) e redirects', () => {
       const response = await testApp
         .request()
         .get(`/auth/google/callback?code=abc&state=${state}`)
-        .set('Cookie', `${STATE_COOKIE}=${hashOAuthState(state, STATE_KEY)}`)
+        .set('Cookie', `${STATE_COOKIE}=${signStateNonce(state, STATE_KEY)}`)
         .redirects(0);
 
       expect(fetchSpy).toHaveBeenCalledTimes(1);
@@ -183,7 +183,7 @@ describe('E2E: Google OAuth — state (CSRF) e redirects', () => {
       const response = await testApp
         .request()
         .get(`/auth/google/callback?code=abc&state=${state}`)
-        .set('Cookie', `${STATE_COOKIE}=${hashOAuthState(state, STATE_KEY)}`)
+        .set('Cookie', `${STATE_COOKIE}=${signStateNonce(state, STATE_KEY)}`)
         .redirects(0);
 
       expect(response.status).toBe(HttpStatus.FOUND);
@@ -205,7 +205,7 @@ describe('E2E: Google OAuth — state (CSRF) e redirects', () => {
       await testApp
         .request()
         .get(`/auth/google/callback?code=abc&state=${state}`)
-        .set('Cookie', `${STATE_COOKIE}=${hashOAuthState(state, STATE_KEY)}`)
+        .set('Cookie', `${STATE_COOKIE}=${signStateNonce(state, STATE_KEY)}`)
         .redirects(0);
 
       // O navegador já recebeu a instrução de apagar o cookie; sem ele, o
@@ -257,7 +257,7 @@ describe('E2E: Google OAuth — state (CSRF) e redirects', () => {
       const response = await testApp
         .request()
         .get(`/auth/google/callback?code=abc&state=${state}&${hostileQuery}`)
-        .set('Cookie', `${STATE_COOKIE}=${hashOAuthState(state, STATE_KEY)}`)
+        .set('Cookie', `${STATE_COOKIE}=${signStateNonce(state, STATE_KEY)}`)
         .redirects(0);
 
       expect(response.headers.location.startsWith(`${FRONTEND_URL}/google-callback?token=`)).toBe(true);

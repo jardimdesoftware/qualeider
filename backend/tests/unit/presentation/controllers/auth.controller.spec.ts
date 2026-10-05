@@ -11,7 +11,7 @@ import { createUser } from '../../../factories/user.factory';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 import {
   GOOGLE_OAUTH_STATE_COOKIE,
-  hashOAuthState,
+  signStateNonce,
 } from '@/common/utils/oauth-state.util';
 
 const STATE_KEY = 'chave-de-teste-do-state';
@@ -213,7 +213,7 @@ describe('AuthController', () => {
     const reqWithStateCookie = (state?: string) =>
       ({
         headers: {
-          cookie: state ? `${GOOGLE_OAUTH_STATE_COOKIE}=${hashOAuthState(state, STATE_KEY)}` : undefined,
+          cookie: state ? `${GOOGLE_OAUTH_STATE_COOKIE}=${signStateNonce(state, STATE_KEY)}` : undefined,
         },
       }) as any;
     const errorRedirect = (message: string) =>
@@ -232,7 +232,7 @@ describe('AuthController', () => {
         expect(state).toMatch(/^[0-9a-f]{64}$/);
         expect(res.cookie).toHaveBeenCalledWith(
           GOOGLE_OAUTH_STATE_COOKIE,
-          hashOAuthState(state, STATE_KEY),
+          signStateNonce(state, STATE_KEY),
           expect.objectContaining({
             httpOnly: true,
             sameSite: 'lax',

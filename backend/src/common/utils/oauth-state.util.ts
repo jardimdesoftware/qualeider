@@ -5,7 +5,7 @@ export const GOOGLE_OAUTH_STATE_COOKIE_PATH = '/api/auth/google';
 export const GOOGLE_OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 
 /** Valor aleatório, imprevisível e de uso único, enviado ao Google como `state`. */
-export function generateOAuthState(): string {
+export function generateStateNonce(): string {
   return randomBytes(32).toString('hex');
 }
 
@@ -14,7 +14,7 @@ export function generateOAuthState(): string {
  * valor "cru" só existe na URL do Google, então o cookie sozinho não revela o
  * state, e ninguém consegue calcular o cookie de um state sem a chave.
  */
-export function hashOAuthState(state: string, key: string): string {
+export function signStateNonce(state: string, key: string): string {
   return createHmac('sha256', key).update(state).digest('hex');
 }
 
@@ -41,14 +41,14 @@ export function readCookie(header: string | undefined, name: string): string | u
  * navegador recebeu no cookie ao iniciar o login. Sem isso, um atacante poderia
  * fazer a vítima concluir um login com o `code` da conta dele (login CSRF).
  */
-export function isValidOAuthState(
+export function matchesStateNonce(
   received: string | undefined,
   expectedHash: string | undefined,
   key: string,
 ): boolean {
   if (!received || !expectedHash) return false;
 
-  const receivedBuffer = Buffer.from(hashOAuthState(received, key));
+  const receivedBuffer = Buffer.from(signStateNonce(received, key));
   const expectedBuffer = Buffer.from(expectedHash);
   if (receivedBuffer.length !== expectedBuffer.length) return false;
 
