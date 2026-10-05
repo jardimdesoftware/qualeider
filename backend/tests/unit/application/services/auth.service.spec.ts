@@ -361,7 +361,7 @@ describe('AuthService', () => {
         return values[key];
       });
 
-      const url = service.getGoogleAuthUrl();
+      const url = service.getGoogleAuthUrl('state-abc123');
       const parsed = new URL(url);
 
       expect(parsed.origin + parsed.pathname).toBe(
@@ -374,6 +374,7 @@ describe('AuthService', () => {
       expect(parsed.searchParams.get('response_type')).toBe('code');
       expect(parsed.searchParams.get('scope')).toBe('openid email profile');
       expect(parsed.searchParams.get('prompt')).toBe('select_account');
+      expect(parsed.searchParams.get('state')).toBe('state-abc123');
     });
 
     it('deve lançar UnauthorizedException quando a troca de code por token falhar', async () => {
