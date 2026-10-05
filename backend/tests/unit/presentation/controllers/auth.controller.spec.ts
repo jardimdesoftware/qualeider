@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { AuthController } from '@/presentation/controllers/auth.controller';
 import { AuthService } from '@/auth/auth.service';
 import { LoginDto } from '@/application/dtos/auth/login.dto';
@@ -12,6 +13,8 @@ import {
   GOOGLE_OAUTH_STATE_COOKIE,
   hashOAuthState,
 } from '@/common/utils/oauth-state.util';
+
+const STATE_KEY = 'chave-de-teste-do-state';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -35,6 +38,10 @@ describe('AuthController', () => {
         {
           provide: AuthService,
           useValue: mockAuthService,
+        },
+        {
+          provide: ConfigService,
+          useValue: { getOrThrow: jest.fn().mockReturnValue(STATE_KEY) },
         },
       ],
     }).compile();
@@ -206,7 +213,7 @@ describe('AuthController', () => {
     const reqWithStateCookie = (state?: string) =>
       ({
         headers: {
-          cookie: state ? `${GOOGLE_OAUTH_STATE_COOKIE}=${hashOAuthState(state)}` : undefined,
+          cookie: state ? `${GOOGLE_OAUTH_STATE_COOKIE}=${hashOAuthState(state, STATE_KEY)}` : undefined,
         },
       }) as any;
     const errorRedirect = (message: string) =>
@@ -225,7 +232,7 @@ describe('AuthController', () => {
         expect(state).toMatch(/^[0-9a-f]{64}$/);
         expect(res.cookie).toHaveBeenCalledWith(
           GOOGLE_OAUTH_STATE_COOKIE,
-          hashOAuthState(state),
+          hashOAuthState(state, STATE_KEY),
           expect.objectContaining({
             httpOnly: true,
             sameSite: 'lax',

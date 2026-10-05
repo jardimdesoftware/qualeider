@@ -10,6 +10,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import { ConfigService } from '@nestjs/config';
 import {
   GOOGLE_OAUTH_STATE_COOKIE,
   GOOGLE_OAUTH_STATE_COOKIE_PATH,
@@ -39,7 +40,15 @@ const COOKIE_SECURE = FRONTEND_URL.startsWith('https://');
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private configService: ConfigService,
+  ) {}
+
+  // Chave do HMAC do cookie de state: o mesmo segredo do JWT (obrigatório em produção).
+  private get stateKey(): string {
+    return this.configService.getOrThrow<string>('JWT_SECRET');
+  }
 
   // [BR-004] Rate Limiting Login
   @Throttle({ default: { limit: 3, ttl: THROTTLE_TTL.SHORT } })
@@ -66,7 +75,7 @@ export class AuthController {
     // O cookie guarda só o hash do state (o valor cru vai apenas na URL do
     // Google). SameSite=Lax: ele acompanha a navegação de volta do Google (GET
     // de topo), mas não requisições disparadas por outros sites.
-    res.cookie(GOOGLE_OAUTH_STATE_COOKIE, hashOAuthState(state), {
+    res.cookie(GOOGLE_OAUTH_STATE_COOKIE, hashOAuthState(state, this.stateKey), {
       httpOnly: true,
       secure: COOKIE_SECURE,
       sameSite: 'lax',
@@ -95,7 +104,7 @@ export class AuthController {
       path: GOOGLE_OAUTH_STATE_COOKIE_PATH,
     });
 
-    if (!code || !isValidOAuthState(state, expectedStateHash)) {
+    if (!code || !isValidOAuthState(state, expectedStateHash, this.stateKey)) {
       res.redirect(
         `${FRONTEND_URL}/login?error=${encodeURIComponent(
           'Sessão de login com o Google inválida ou expirada. Tente novamente.',
