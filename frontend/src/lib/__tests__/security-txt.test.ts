@@ -5,8 +5,13 @@ const file = readFileSync(
   join(__dirname, "../../../public/.well-known/security.txt"),
   "utf-8",
 );
+// Sem regex: o arquivo tem um campo por linha ("Nome: valor").
 const field = (name: string) =>
-  file.match(new RegExp(`^${name}:\s*(.+)$`, "m"))?.[1].trim();
+  file
+    .split(/\r?\n/)
+    .find((line) => line.startsWith(`${name}:`))
+    ?.slice(name.length + 1)
+    .trim();
 
 describe("public/.well-known/security.txt (RFC 9116)", () => {
   it("tem Contact apontando para o relato privado de vulnerabilidades do repositório", () => {
