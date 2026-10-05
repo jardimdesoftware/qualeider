@@ -10,6 +10,18 @@ import { UserEntity } from '@/domain/entities/user.entity';
 const PASSWORD_POLICY =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,72}$/;
 
+/**
+ * Contas de TESTE embutidas de proposito (decisao do projeto: ambiente de
+ * demonstracao/avaliacao). Qualquer `DEFAULT_*` no ambiente sobrescreve estes
+ * valores; `DEFAULT_ACCOUNTS_DISABLED=true` desliga a criacao (use em producao
+ * real). Em NODE_ENV=test nada e criado por padrao, para nao sujar a base dos
+ * testes.
+ */
+const TEST_ACCOUNTS = {
+  DEFAULT_ADMIN: { email: 'admin@qualeider.test', password: 'Teste@12345', name: 'Administrador de Teste' },
+  DEFAULT_VAQUEIRO: { email: 'vaqueiro@qualeider.test', password: 'Teste@12345', name: 'Vaqueiro de Teste' },
+} as const;
+
 interface AccountSpec {
   role: UserRole;
   prefix: 'DEFAULT_ADMIN' | 'DEFAULT_VAQUEIRO';
@@ -20,8 +32,9 @@ interface AccountSpec {
  * Garante, na subida da aplicacao, um ADMIN e um VAQUEIRO "locais" (login por
  * e-mail e senha, sem Google) quando as variaveis de ambiente os definem.
  *
- * - Nada e criado sem `DEFAULT_*_EMAIL` e `DEFAULT_*_PASSWORD`: nao existe
- *   credencial padrao no codigo (o repositorio e publico).
+ * - Sem variaveis, usa as contas de teste de `TEST_ACCOUNTS` (login por e-mail e
+ *   senha). Defina `DEFAULT_*` para trocar ou `DEFAULT_ACCOUNTS_DISABLED=true`
+ *   para nao criar nada.
  * - Idempotente: se o e-mail ja existe, a conta nao e tocada (senha incluida).
  * - O VAQUEIRO e vinculado ao ADMIN via `adminId`, como no cadastro interno,
  *   para os dois enxergarem o mesmo rebanho.
@@ -47,19 +60,19 @@ export class DefaultAccountsService implements OnApplicationBootstrap {
   }
 
   async ensureDefaultAccounts(): Promise<void> {
+    if (this.isDisabled()) return;
+
     const admin = await this.ensureAccount({
       role: UserRole.ADMIN,
       prefix: 'DEFAULT_ADMIN',
       fallbackName: 'Administrador',
     });
 
-    const adminEmail = this.read('DEFAULT_ADMIN_EMAIL');
+    const adminEmail = this.read('DEFAULT_ADMIN_EMAIL')?.toLowerCase();
     const adminRecord = admin ?? (adminEmail ? await this.userRepository.findByEmail(adminEmail) : null);
 
     if (!adminRecord || adminRecord.role !== UserRole.ADMIN) {
-      if (this.read('DEFAULT_VAQUEIRO_EMAIL')) {
-        this.logger.warn('Vaqueiro padrao ignorado: nao ha ADMIN padrao configurado/existente.');
-      }
+      this.logger.warn('Vaqueiro padrao ignorado: nao ha ADMIN padrao configurado/existente.');
       return;
     }
 
@@ -97,8 +110,18 @@ export class DefaultAccountsService implements OnApplicationBootstrap {
     return created;
   }
 
+  private isDisabled(): boolean {
+    return this.configService.get<string>('DEFAULT_ACCOUNTS_DISABLED')?.trim().toLowerCase() === 'true';
+  }
+
+  /** Valor do ambiente; sem ele, o das contas de teste (exceto em NODE_ENV=test). */
   private read(key: string): string | undefined {
     const value = this.configService.get<string>(key)?.trim();
-    return value ? value : undefined;
+    if (value) return value;
+
+    const match = /^(DEFAULT_ADMIN|DEFAULT_VAQUEIRO)_(EMAIL|PASSWORD|NAME)$/.exec(key);
+    if (!match || this.configService.get<string>('NODE_ENV') === 'test') return undefined;
+    const account = TEST_ACCOUNTS[match[1] as keyof typeof TEST_ACCOUNTS];
+    return account[match[2].toLowerCase() as 'email' | 'password' | 'name'];
   }
 }

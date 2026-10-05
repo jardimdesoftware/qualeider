@@ -18,19 +18,41 @@ describe('DefaultAccountsService', () => {
     );
 
   beforeEach(() => {
-    env = {};
+    env = { NODE_ENV: 'test' };
     userRepository = { findByEmail: jest.fn().mockResolvedValue(null), create: jest.fn() };
     userRepository.create.mockImplementation(async (data: any) => ({ id: data.role === UserRole.ADMIN ? 1 : 2, ...data }) as any);
     hashService = { hash: jest.fn().mockResolvedValue('hashed') };
   });
 
-  it('não cria nada sem as variáveis de ambiente', async () => {
+  it('em NODE_ENV=test não cria nada sem as variáveis de ambiente', async () => {
+    await build().ensureDefaultAccounts();
+    expect(userRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('fora de teste e sem variáveis, cria as contas de teste embutidas (admin e vaqueiro vinculado)', async () => {
+    env = {};
+    await build().ensureDefaultAccounts();
+
+    expect(hashService.hash).toHaveBeenCalledWith('Teste@12345', BCRYPT_ROUNDS_USER_CREATION);
+    expect(userRepository.create).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ email: 'admin@qualeider.test', role: UserRole.ADMIN, name: 'Administrador de Teste' }),
+    );
+    expect(userRepository.create).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ email: 'vaqueiro@qualeider.test', role: UserRole.VAQUEIRO, adminId: 1 }),
+    );
+  });
+
+  it('DEFAULT_ACCOUNTS_DISABLED=true desliga a criação das contas embutidas', async () => {
+    env = { DEFAULT_ACCOUNTS_DISABLED: 'true' };
     await build().ensureDefaultAccounts();
     expect(userRepository.create).not.toHaveBeenCalled();
   });
 
   it('cria o ADMIN e o VAQUEIRO vinculado ao admin, com e-mail em minúsculas e senha com hash', async () => {
     env = {
+      NODE_ENV: 'test',
       DEFAULT_ADMIN_EMAIL: ' Admin@Example.com ',
       DEFAULT_ADMIN_PASSWORD: 'Admin@12345',
       DEFAULT_ADMIN_NAME: 'Dono',
@@ -68,6 +90,7 @@ describe('DefaultAccountsService', () => {
 
   it('rejeita senha fora da política e ignora o vaqueiro sem admin', async () => {
     env = {
+      NODE_ENV: 'test',
       DEFAULT_ADMIN_EMAIL: 'admin@example.com',
       DEFAULT_ADMIN_PASSWORD: 'fraca',
       DEFAULT_VAQUEIRO_EMAIL: 'vaq@example.com',
@@ -92,7 +115,7 @@ describe('DefaultAccountsService', () => {
   });
 
   it('onApplicationBootstrap nunca propaga erro', async () => {
-    env = { DEFAULT_ADMIN_EMAIL: 'admin@example.com', DEFAULT_ADMIN_PASSWORD: 'Admin@12345' };
+    env = { NODE_ENV: 'test', DEFAULT_ADMIN_EMAIL: 'admin@example.com', DEFAULT_ADMIN_PASSWORD: 'Admin@12345' };
     userRepository.findByEmail.mockRejectedValue(new Error('banco fora'));
     await expect(build().onApplicationBootstrap()).resolves.toBeUndefined();
   });

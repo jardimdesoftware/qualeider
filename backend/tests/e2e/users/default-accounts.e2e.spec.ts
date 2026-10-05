@@ -2,6 +2,7 @@ import { setupE2ETests, teardownE2ETests, E2E_TIMEOUT, prisma } from '../setup';
 import { TestApp, AuthHelper } from '../helpers';
 import { AnimalFactory } from '../factories';
 import { UserRole } from '@/domain/enums/enums';
+import { DefaultAccountsService } from '@/application/services/users/default-accounts.service';
 import { HttpStatus } from '@nestjs/common';
 
 /**
@@ -93,10 +94,8 @@ describe('E2E: Contas padrão na subida da aplicação', () => {
   it('é idempotente: subir de novo não duplica nem troca a senha das contas existentes', async () => {
     const before = await prisma.user.findMany({ orderBy: { id: 'asc' } });
 
-    const second = new TestApp();
     process.env.DEFAULT_ADMIN_PASSWORD = 'OutraSenha@999';
-    await second.setup();
-    await second.close();
+    await testApp.getModule().get(DefaultAccountsService).ensureDefaultAccounts();
 
     const after = await prisma.user.findMany({ orderBy: { id: 'asc' } });
     expect(after).toHaveLength(before.length);

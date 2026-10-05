@@ -74,7 +74,8 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD}
       SMTP_FROM: ${SMTP_FROM:-noreply@qualeider.com}
       # Contas locais (e-mail/senha) criadas na subida se EMAIL e PASSWORD vierem preenchidos.
-      # Sem valor, nada e criado. Idempotente: nunca altera conta existente.
+      # Sem valor, usa as contas de teste embutidas (DEFAULT_ACCOUNTS_DISABLED=true desliga). Idempotente: nunca altera conta existente.
+      DEFAULT_ACCOUNTS_DISABLED: ${DEFAULT_ACCOUNTS_DISABLED:-}
       DEFAULT_ADMIN_EMAIL: ${DEFAULT_ADMIN_EMAIL:-}
       DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:-}
       DEFAULT_ADMIN_NAME: ${DEFAULT_ADMIN_NAME:-}
