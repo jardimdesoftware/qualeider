@@ -10,9 +10,11 @@ import { AllowedEmailMapper } from '@/infrastructure/mappers/allowed-email.mappe
 export class PrismaAllowedEmailRepository implements IAllowedEmailRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(email: string): Promise<AllowedEmailEntity> {
+  async create(email: string, adminId?: ID | null): Promise<AllowedEmailEntity> {
     try {
-      const created = await this.prisma.allowedEmail.create({ data: { email } });
+      const created = await this.prisma.allowedEmail.create({
+        data: { email, adminId: adminId ?? null },
+      });
       return AllowedEmailMapper.toDomain(created);
     } catch (error) {
       handlePrismaError(error, {
@@ -21,9 +23,17 @@ export class PrismaAllowedEmailRepository implements IAllowedEmailRepository {
     }
   }
 
-  async findAll(): Promise<AllowedEmailEntity[]> {
-    const items = await this.prisma.allowedEmail.findMany({ orderBy: { createdAt: 'desc' } });
+  async findAll(adminId?: ID): Promise<AllowedEmailEntity[]> {
+    const items = await this.prisma.allowedEmail.findMany({
+      where: adminId === undefined ? undefined : { OR: [{ adminId }, { adminId: null }] },
+      orderBy: { createdAt: 'desc' },
+    });
     return items.map(AllowedEmailMapper.toDomain);
+  }
+
+  async findById(id: ID): Promise<AllowedEmailEntity | null> {
+    const item = await this.prisma.allowedEmail.findUnique({ where: { id } });
+    return item ? AllowedEmailMapper.toDomain(item) : null;
   }
 
   async findByEmail(email: string): Promise<AllowedEmailEntity | null> {
