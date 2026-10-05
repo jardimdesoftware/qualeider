@@ -96,7 +96,11 @@ export class UsersService {
 
   async remove(id: number, requester?: RequesterContext) {
     if (requester) {
-      this.assertAdmin(requester, 'Você não tem permissão para excluir este usuário.');
+      // Mesma regra de PUT/PATCH: o ADMIN só desativa a si mesmo, funcionários
+      // vinculados a ele ou membros da sua associação. Antes bastava ser ADMIN,
+      // e o cadastro público cria ADMIN, então qualquer visitante desativava
+      // contas de outros donos.
+      await this.assertCanManage(id, requester);
     }
 
     const deactivated = await this.userRepository.softDelete(id);
