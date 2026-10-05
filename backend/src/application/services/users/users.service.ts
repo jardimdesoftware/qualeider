@@ -137,7 +137,17 @@ export class UsersService {
 
   async findOneForRequester(id: number, requester: RequesterContext) {
     this.assertAdmin(requester, 'Você não tem permissão para buscar este usuário.');
-    return this.findOne(id);
+    // findByIdAny (não findOne/findById): esta rota alimenta a tela de edição
+    // de funcionário, que precisa carregar também usuários inativos (é o
+    // único jeito de reverter uma inativação pela interface — sem isso, o
+    // campo "Status da Conta" existe no formulário mas nunca é alcançável
+    // de volta). findOne continua Active-only pois também é usado pela
+    // JwtStrategy para validar login.
+    const user = await this.userRepository.findByIdAny(id);
+    if (!user) {
+      throw new EntityNotFoundException(`Usuário com ID ${id} não encontrado.`);
+    }
+    return this.removePassword(user);
   }
 
   async exists(id: number): Promise<boolean> {
