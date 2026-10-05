@@ -225,7 +225,7 @@ describe('AnimalsController', () => {
 
           const result = await controller.findAllByUserId(5);
 
-          expect(animalsService.findAll).toHaveBeenCalledWith({ userId: 5 });
+          expect(animalsService.findAll).toHaveBeenCalledWith({ userId: 5, includeInactive: true });
           expect(result).toEqual(animals);
       });
 
@@ -238,7 +238,7 @@ describe('AnimalsController', () => {
 
           const result = await controller.findAllByUserId(1, UserRole.ADMIN, null);
 
-          expect(animalsService.findAll).toHaveBeenCalledWith({ limit: MAX_LIMIT });
+          expect(animalsService.findAll).toHaveBeenCalledWith({ limit: MAX_LIMIT, includeInactive: true });
           expect(result).toEqual(animals);
       });
 
@@ -248,7 +248,7 @@ describe('AnimalsController', () => {
 
           const result = await controller.findAllByUserId(1, UserRole.ADMIN, 10);
 
-          expect(animalsService.findAll).toHaveBeenCalledWith({ associationId: 10, limit: MAX_LIMIT });
+          expect(animalsService.findAll).toHaveBeenCalledWith({ associationId: 10, limit: MAX_LIMIT, includeInactive: true });
           expect(result).toEqual(animals);
       });
 
@@ -261,7 +261,7 @@ describe('AnimalsController', () => {
 
           const result = await controller.findAllByUserId(5, UserRole.VAQUEIRO, 10);
 
-          expect(animalsService.findAll).toHaveBeenCalledWith({ associationId: 10, limit: MAX_LIMIT });
+          expect(animalsService.findAll).toHaveBeenCalledWith({ associationId: 10, limit: MAX_LIMIT, includeInactive: true });
           expect(result).toEqual(animals);
       });
 
@@ -274,7 +274,7 @@ describe('AnimalsController', () => {
 
           const result = await controller.findAllByUserId(5, UserRole.VAQUEIRO, null, 1);
 
-          expect(animalsService.findAll).toHaveBeenCalledWith({ adminGroupId: 1, limit: MAX_LIMIT });
+          expect(animalsService.findAll).toHaveBeenCalledWith({ adminGroupId: 1, limit: MAX_LIMIT, includeInactive: true });
           expect(result).toEqual(animals);
       });
   });

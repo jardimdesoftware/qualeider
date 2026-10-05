@@ -3,7 +3,8 @@ import { NotificationsController } from '@/presentation/controllers/notification
 import { NotificationsService } from '@/application/services/notifications/notifications.service';
 import { SendNotificationDto } from '@/application/dtos/notifications/send-notification.dto';
 import { NotificationEvent } from '@/events/notification.events';
-import { NotificationType } from '@/domain/enums/enums';
+import { NotificationType, UserRole } from '@/domain/enums/enums';
+import { ForbiddenException } from '@nestjs/common';
 import { BusinessException } from '@/common/exceptions/business.exception';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 
@@ -47,7 +48,7 @@ describe('NotificationsController', () => {
 
       mockNotificationsService.notifyProducers.mockResolvedValue(undefined);
 
-      const result = await controller.sendNotification(dto);
+      const result = await controller.sendNotification(dto, 1, 'association', undefined as any, null);
 
       expect(service.notifyProducers).toHaveBeenCalledWith(
         expect.any(NotificationEvent),
@@ -65,34 +66,70 @@ describe('NotificationsController', () => {
 
       mockNotificationsService.notifyProducers.mockResolvedValue(undefined);
 
-      const result = await controller.sendNotification(dto);
+      const result = await controller.sendNotification(dto, 1, 'association', undefined as any, null);
 
       expect(result).toEqual({ count: 'todos' });
     });
 
     it('deve propagar EntityNotFoundException', async () => {
-      const dto: SendNotificationDto = { associationId: 999 } as any;
+      const dto: SendNotificationDto = { associationId: 1 } as any;
       const error = new EntityNotFoundException('Associação não encontrada');
 
       mockNotificationsService.notifyProducers.mockRejectedValue(error);
 
-      await expect(controller.sendNotification(dto)).rejects.toThrow(
+      await expect(controller.sendNotification(dto, 1, 'association', undefined as any, null)).rejects.toThrow(
         EntityNotFoundException,
       );
     });
 
     it('deve propagar BusinessException', async () => {
-      const dto: SendNotificationDto = { type: NotificationType.INDIVIDUAL, userIds: [] } as any;
+      const dto: SendNotificationDto = { type: NotificationType.INDIVIDUAL, associationId: 1, userIds: [] } as any;
       const error = new BusinessException('Lista de usuários vazia');
 
       mockNotificationsService.notifyProducers.mockRejectedValue(error);
 
-      await expect(controller.sendNotification(dto)).rejects.toThrow(
+      await expect(controller.sendNotification(dto, 1, 'association', undefined as any, null)).rejects.toThrow(
         BusinessException,
       );
     });
   });
 
+
+  describe('autorização do envio', () => {
+    const dto = {
+      type: NotificationType.COLLECTIVE,
+      associationId: 5,
+      subject: 'Aviso',
+      message: 'Mensagem de teste longa',
+    } as SendNotificationDto;
+
+    beforeEach(() => mockNotificationsService.notifyProducers.mockResolvedValue(undefined));
+
+    it('a própria associação envia para os seus membros', async () => {
+      await controller.sendNotification(dto, 5, 'association', undefined as any, null);
+
+      expect(service.notifyProducers).toHaveBeenCalled();
+    });
+
+    it('um ADMIN membro da associação envia', async () => {
+      await controller.sendNotification(dto, 10, 'user', UserRole.ADMIN, 5);
+
+      expect(service.notifyProducers).toHaveBeenCalled();
+    });
+
+    it.each([
+      ['usuário sem associação', 10, 'user', UserRole.ADMIN, null],
+      ['ADMIN de OUTRA associação', 10, 'user', UserRole.ADMIN, 6],
+      ['funcionário (VAQUEIRO) da própria associação', 10, 'user', UserRole.VAQUEIRO, 5],
+      ['outra associação', 6, 'association', undefined, null],
+      ['usuário cujo id coincide com o da associação', 5, 'user', UserRole.ADMIN, null],
+    ])('nega: %s (nada é enviado)', async (_label, id, type, role, associationId) => {
+      await expect(
+        controller.sendNotification(dto, id as number, type as string, role as any, associationId as number | null),
+      ).rejects.toThrow(ForbiddenException);
+      expect(service.notifyProducers).not.toHaveBeenCalled();
+    });
+  });
 
   describe('getMyNotifications', () => {
     it('deve retornar notificações do usuário', async () => {
@@ -109,12 +146,11 @@ describe('NotificationsController', () => {
 
   describe('markAsRead', () => {
     it('deve marcar notificação como lida', async () => {
-      const id = '1';
       mockNotificationsService.markAsRead.mockResolvedValue(undefined);
 
-      const result = await controller.markAsRead(id);
+      const result = await controller.markAsRead(1, 42);
 
-      expect(service.markAsRead).toHaveBeenCalledWith(1);
+      expect(service.markAsRead).toHaveBeenCalledWith(1, 42);
       expect(result).toBeUndefined();
     });
   });

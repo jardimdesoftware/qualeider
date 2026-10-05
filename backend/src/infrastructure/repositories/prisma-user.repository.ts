@@ -141,6 +141,10 @@ export class PrismaUserRepository implements IUserRepository {
         };
       }
 
+      if (data.adminId) {
+        updateData.admin = { connect: { id: data.adminId } };
+      }
+
       if (data.role) updateData.role = data.role as unknown as PrismaUserRole;
       if (data.userType) updateData.userType = data.userType as unknown as PrismaUserType;
       if (data.userCategory) updateData.userCategory = data.userCategory as unknown as PrismaUserCategory;
