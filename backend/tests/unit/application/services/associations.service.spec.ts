@@ -426,11 +426,12 @@ describe('AssociationsService', () => {
         .fn()
         .mockResolvedValue(mockReport);
 
-      const result = await service.getMonthlyReport(1, 2023, 10);
+      const scope = { adminGroupId: 1 };
+      const result = await service.getMonthlyReport(scope, 2023, 10);
 
       expect(result).toEqual(mockReport);
       expect(associationRepository.getMonthlyReport).toHaveBeenCalledWith(
-        1,
+        scope,
         2023,
         10,
       );

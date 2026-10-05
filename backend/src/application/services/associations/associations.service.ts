@@ -5,6 +5,7 @@ import { CreateAssociationDto } from '@/application/dtos/associations/create-ass
 import { IHashService } from '@/application/ports/hash.service';
 import { BCRYPT_ROUNDS_USER_CREATION } from '@/common/constants/security.constants';
 import { BusinessException } from '@/common/exceptions/business.exception';
+import { HerdScope } from '@/domain/utils/herd-scope.util';
 
 @Injectable()
 export class AssociationsService {
@@ -115,7 +116,7 @@ export class AssociationsService {
     return this.associationRepository.getProducerRanking(associationId, startDate, endDate);
   }
 
-  async getMonthlyReport(associationId: number, year: number, month: number) {
-    return this.associationRepository.getMonthlyReport(associationId, year, month);
+  async getMonthlyReport(scope: HerdScope, year: number, month: number) {
+    return this.associationRepository.getMonthlyReport(scope, year, month);
   }
 }

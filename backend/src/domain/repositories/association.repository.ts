@@ -1,4 +1,5 @@
 import { AssociationEntity } from '@/domain/entities/association.entity';
+import { HerdScope } from '@/domain/utils/herd-scope.util';
 
 export const IAssociationRepository = Symbol('IAssociationRepository');
 
@@ -12,7 +13,7 @@ export interface IAssociationRepository {
   findAssociates(associationId: number, options: { page: number; limit: number }): Promise<{ data: any[]; total: number }>;
   getHerdStats(associationId: number): Promise<any>;
   getProducerRanking(associationId: number, startDate?: Date, endDate?: Date): Promise<any[]>;
-  getMonthlyReport(associationId: number, year: number, month: number): Promise<any>;
+  getMonthlyReport(scope: HerdScope, year: number, month: number): Promise<any>;
   findAvailableProducers(): Promise<any[]>;
   linkProducer(userId: number, associationId: number): Promise<void>;
   update(id: number, data: Partial<AssociationEntity>): Promise<AssociationEntity>;
