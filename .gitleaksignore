@@ -1,11 +1,17 @@
 # Falsos positivos do gitleaks já auditados (um fingerprint por linha).
-# Todos são a regra genérica `generic-api-key` casando com a palavra "token":
-#  - README.md (1º commit): badge do template do NestJS (`?token=abc123def456`);
-#  - invites.controller.ts: exemplo do Swagger (`token: 'abc123-def456-ghi789'`);
-#  - invites.controller.spec.ts: fixture de teste (`token: 'abc123-def456'`).
+# Todos são a regra genérica (generic-api-key) casando com a palavra "token":
+#  - README.md (1º commit): badge do template do NestJS;
+#  - invites.controller.ts: exemplo da documentação Swagger;
+#  - invites.controller.spec.ts: fixture de teste.
 # Auditoria de 04/10/2026 sobre todo o histórico: nenhum segredo real. O .env que
 # já esteve versionado (removido em 28/05/2026) só continha placeholders.
+# Não escreva os valores de exemplo aqui: o gitleaks varre este arquivo também.
 1505c7e2f05ed785d1769a4a67de3ef7b3a9caed:backend/src/presentation/controllers/invites.controller.ts:generic-api-key:37
 30aa73a961bc4c56a281b11761cc832effb5c7cc:backend/tests/unit/presentation/controllers/invites.controller.spec.ts:generic-api-key:49
 61cfff8cd6aca91e73a7c2b89d9705b0da0e7edb:README.md:generic-api-key:5
 f4e8fe5f48a23e94fbc713e30406a1c95f257f82:backend/Tests/unit/presentation/controllers/invites.controller.spec.ts:generic-api-key:49
+# Comentários do primeiro commit deste arquivo (dfdd752), que citavam os valores
+# de exemplo por extenso; já corrigidos, mas o histórico preserva essas linhas.
+dfdd75287e88ed79ef1648762b6ec9ec620da5cf:.gitleaksignore:generic-api-key:3
+dfdd75287e88ed79ef1648762b6ec9ec620da5cf:.gitleaksignore:generic-api-key:4
+dfdd75287e88ed79ef1648762b6ec9ec620da5cf:.gitleaksignore:generic-api-key:5
