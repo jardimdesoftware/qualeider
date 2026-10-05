@@ -1,3 +1,4 @@
+import { HerdScope } from '@/domain/utils/herd-scope.util';
 import { PaginationParams } from '../common/pagination.interface';
 
 /**
@@ -14,6 +15,8 @@ import { PaginationParams } from '../common/pagination.interface';
 export interface UserCriteria extends PaginationParams {
   ids?: number[];
   associationId?: number;
+  /** Escopo obrigatório de quem lê; aplicado com AND sobre os demais filtros. */
+  scope?: HerdScope;
   status?: 'Active' | 'Inactive';
   emailContains?: string;
   includeAnimals?: boolean;

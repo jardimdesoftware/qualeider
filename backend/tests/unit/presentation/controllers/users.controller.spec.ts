@@ -206,11 +206,11 @@ describe('UsersController', () => {
       const users = [createUser({ id: 1 })];
       mockUsersService.findAll.mockResolvedValue(users);
 
-      const result = await controller.findAll({}, 1, UserRole.ADMIN);
+      const result = await controller.findAll({}, 1, UserRole.ADMIN, null);
 
       expect(usersService.findAll).toHaveBeenCalledWith(
         {},
-        { id: 1, role: UserRole.ADMIN },
+        { id: 1, role: UserRole.ADMIN, associationId: null },
       );
       expect(result).toEqual(users);
     });
@@ -227,6 +227,7 @@ describe('UsersController', () => {
         },
         1,
         UserRole.ADMIN,
+        7,
       );
 
       expect(usersService.findAll).toHaveBeenCalledWith(
@@ -235,7 +236,7 @@ describe('UsersController', () => {
           status: 'Active',
           emailContains: 'test',
         },
-        { id: 1, role: UserRole.ADMIN },
+        { id: 1, role: UserRole.ADMIN, associationId: 7 },
       );
     });
   });
@@ -245,11 +246,12 @@ describe('UsersController', () => {
       const user = createUser({ id: 1 });
       mockUsersService.findOneForRequester.mockResolvedValue(user);
 
-      const result = await controller.findOne(1, 1, UserRole.ADMIN);
+      const result = await controller.findOne(1, 1, UserRole.ADMIN, 3);
 
       expect(usersService.findOneForRequester).toHaveBeenCalledWith(1, {
         id: 1,
         role: UserRole.ADMIN,
+        associationId: 3,
       });
       expect(result).toEqual(user);
     });
@@ -258,7 +260,7 @@ describe('UsersController', () => {
       const error = new EntityNotFoundException('Usuário não encontrado.');
       mockUsersService.findOneForRequester.mockRejectedValue(error);
 
-      await expect(controller.findOne(999, 1, UserRole.ADMIN)).rejects.toThrow(EntityNotFoundException);
+      await expect(controller.findOne(999, 1, UserRole.ADMIN, null)).rejects.toThrow(EntityNotFoundException);
     });
   });
 

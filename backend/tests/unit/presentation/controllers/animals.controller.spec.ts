@@ -18,6 +18,7 @@ describe('AnimalsController', () => {
     create: jest.fn(),
     findAll: jest.fn(),
     findOne: jest.fn(),
+    assertCanReadUserData: jest.fn(),
     update: jest.fn(),
     remove: jest.fn(),
     inativar: jest.fn(),
@@ -88,51 +89,62 @@ describe('AnimalsController', () => {
     });
   });
 
+  const adminA = { id: 1, userType: 'user', role: UserRole.ADMIN, associationId: null, adminId: null };
+
   describe('findAll', () => {
-    it('deve listar todos os animais', async () => {
+    it('lista sempre dentro do escopo de quem pede (admin sem associação: o próprio grupo)', async () => {
       const animals = [createAnimal({ id: 1 }), createAnimal({ id: 2 })];
       mockAnimalsService.findAll.mockResolvedValue(animals);
 
-      const result = await controller.findAll({});
+      const result = await controller.findAll({}, adminA);
 
-      expect(animalsService.findAll).toHaveBeenCalledWith({});
+      expect(animalsService.findAll).toHaveBeenCalledWith({ scope: { adminGroupId: 1 } });
       expect(result).toEqual(animals);
     });
 
-    it('deve filtrar por associationId, userId e status', async () => {
-      const animals = [createAnimal({ id: 1 })];
-      mockAnimalsService.findAll.mockResolvedValue(animals);
+    it('os filtros da query são somados ao escopo, nunca o substituem', async () => {
+      mockAnimalsService.findAll.mockResolvedValue([]);
 
-      await controller.findAll({
-        associationId: 10,
-        userId: 5,
-        status: 'Active',
-      });
+      await controller.findAll({ associationId: 10, userId: 5, status: 'Active' }, adminA);
 
       expect(animalsService.findAll).toHaveBeenCalledWith({
+        scope: { adminGroupId: 1 },
         associationId: 10,
         userId: 5,
         status: 'Active',
       });
+    });
+
+    it('login de associação lê o escopo da própria associação', async () => {
+      mockAnimalsService.findAll.mockResolvedValue([]);
+
+      await controller.findAll({}, { id: 7, userType: 'association' });
+
+      expect(animalsService.findAll).toHaveBeenCalledWith({ scope: { associationId: 7 } });
     });
   });
 
   describe('findOne', () => {
-    it('deve retornar animal por ID', async () => {
+    it('retorna o animal, checando o escopo de quem pede', async () => {
       const animal = createAnimal({ id: 1 });
       mockAnimalsService.findOne.mockResolvedValue(animal);
 
-      const result = await controller.findOne(1);
+      const result = await controller.findOne(1, adminA);
 
-      expect(animalsService.findOne).toHaveBeenCalledWith(1);
+      expect(animalsService.findOne).toHaveBeenCalledWith(1, adminA);
       expect(result).toEqual(animal);
     });
 
-    it('deve propagar EntityNotFoundException quando animal não existe', async () => {
-      const error = new EntityNotFoundException('Animal não encontrado.');
-      mockAnimalsService.findOne.mockRejectedValue(error);
+    it('propaga EntityNotFoundException quando o animal não existe', async () => {
+      mockAnimalsService.findOne.mockRejectedValue(new EntityNotFoundException('Animal não encontrado.'));
 
-      await expect(controller.findOne(999)).rejects.toThrow(EntityNotFoundException);
+      await expect(controller.findOne(999, adminA)).rejects.toThrow(EntityNotFoundException);
+    });
+
+    it('propaga ForbiddenException quando o animal é de outro dono', async () => {
+      mockAnimalsService.findOne.mockRejectedValue(new ForbiddenException('outro dono'));
+
+      await expect(controller.findOne(5, adminA)).rejects.toThrow(ForbiddenException);
     });
   });
 
@@ -219,63 +231,38 @@ describe('AnimalsController', () => {
   });
 
   describe('findAllByUserId', () => {
-      it('deve retornar lista de animais do usuário (vaqueiro)', async () => {
-          const animals = [createAnimal({ id: 1, userId: 5 })];
-          mockAnimalsService.findAll.mockResolvedValue(animals);
+    const lists = (requester: any, userId: number, scope: object) => async () => {
+      const animals = [createAnimal({ id: 1 })];
+      mockAnimalsService.findAll.mockResolvedValue(animals);
+      mockAnimalsService.assertCanReadUserData.mockResolvedValue(undefined);
 
-          const result = await controller.findAllByUserId(5);
+      const result = await controller.findAllByUserId(userId, requester);
 
-          expect(animalsService.findAll).toHaveBeenCalledWith({ userId: 5, includeInactive: true });
-          expect(result).toEqual(animals);
-      });
+      expect(animalsService.assertCanReadUserData).toHaveBeenCalledWith(userId, requester);
+      expect(animalsService.findAll).toHaveBeenCalledWith({ scope, limit: MAX_LIMIT, includeInactive: true });
+      expect(result).toEqual(animals);
+    };
 
-      it('deve retornar animais de todos os produtores quando solicitante for ADMIN sem associacao', async () => {
-          const animals = [
-            createAnimal({ id: 1, userId: 1 }),
-            createAnimal({ id: 2, userId: 2 }),
-          ];
-          mockAnimalsService.findAll.mockResolvedValue(animals);
+    it('admin sem associação: o próprio grupo (não os animais de todos os donos)',
+      lists(adminA, 1, { adminGroupId: 1 }));
 
-          const result = await controller.findAllByUserId(1, UserRole.ADMIN, null);
+    it('admin de uma associação: o rebanho da associação',
+      lists({ ...adminA, associationId: 10 }, 1, { associationId: 10 }));
 
-          expect(animalsService.findAll).toHaveBeenCalledWith({ limit: MAX_LIMIT, includeInactive: true });
-          expect(result).toEqual(animals);
-      });
+    it('vaqueiro de uma associação: o rebanho da associação',
+      lists({ id: 5, userType: 'user', role: UserRole.VAQUEIRO, associationId: 10, adminId: null }, 5, { associationId: 10 }));
 
-      it('deve restringir por associacao quando ADMIN pertence a uma associacao (cooperativa)', async () => {
-          const animals = [createAnimal({ id: 1, userId: 2 })];
-          mockAnimalsService.findAll.mockResolvedValue(animals);
+    it('vaqueiro cadastrado por um admin: o grupo desse admin',
+      lists({ id: 5, userType: 'user', role: UserRole.VAQUEIRO, associationId: null, adminId: 1 }, 5, { adminGroupId: 1 }));
 
-          const result = await controller.findAllByUserId(1, UserRole.ADMIN, 10);
+    it('vaqueiro sem vínculo: só os próprios animais',
+      lists({ id: 5, userType: 'user', role: UserRole.VAQUEIRO, associationId: null, adminId: null }, 5, { userId: 5 }));
 
-          expect(animalsService.findAll).toHaveBeenCalledWith({ associationId: 10, limit: MAX_LIMIT, includeInactive: true });
-          expect(result).toEqual(animals);
-      });
+    it('recusa quando o id do caminho é de outro dono (nada é listado)', async () => {
+      mockAnimalsService.assertCanReadUserData.mockRejectedValue(new ForbiddenException('outro dono'));
 
-      it('deve retornar o rebanho da associacao quando VAQUEIRO pertence a uma associacao (mesmo rebanho do ADMIN)', async () => {
-          const animals = [
-            createAnimal({ id: 1, userId: 2 }),
-            createAnimal({ id: 2, userId: 5 }),
-          ];
-          mockAnimalsService.findAll.mockResolvedValue(animals);
-
-          const result = await controller.findAllByUserId(5, UserRole.VAQUEIRO, 10);
-
-          expect(animalsService.findAll).toHaveBeenCalledWith({ associationId: 10, limit: MAX_LIMIT, includeInactive: true });
-          expect(result).toEqual(animals);
-      });
-
-      it('deve retornar o rebanho do Admin quando VAQUEIRO foi cadastrado por ele (sem associacao/cooperativa)', async () => {
-          const animals = [
-            createAnimal({ id: 1, userId: 1 }), // animal do Admin
-            createAnimal({ id: 2, userId: 5 }), // animal do proprio Vaqueiro
-          ];
-          mockAnimalsService.findAll.mockResolvedValue(animals);
-
-          const result = await controller.findAllByUserId(5, UserRole.VAQUEIRO, null, 1);
-
-          expect(animalsService.findAll).toHaveBeenCalledWith({ adminGroupId: 1, limit: MAX_LIMIT, includeInactive: true });
-          expect(result).toEqual(animals);
-      });
+      await expect(controller.findAllByUserId(99, adminA)).rejects.toThrow(ForbiddenException);
+      expect(animalsService.findAll).not.toHaveBeenCalled();
+    });
   });
 });

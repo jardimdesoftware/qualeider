@@ -13,6 +13,7 @@ import { handlePrismaError, PrismaErrorCode } from '@/common/utils/prisma-error-
 import { AnimalMapper } from '@/infrastructure/mappers/animal.mapper';
 import { Status as PrismaStatus } from '@prisma/client';
 import { PaginatedResult, normalizePaginationParams, createPaginatedResult } from '@/domain/common/pagination.interface';
+import { herdScopeUserWhere } from '@/infrastructure/utils/herd-scope-where';
 
 const ANIMAL_INCLUDE: any = {
   animalSpecies: true,
@@ -79,6 +80,10 @@ export class PrismaAnimalRepository implements IAnimalRepository {
       where.user = {
         OR: [{ id: criteria.adminGroupId }, { adminId: criteria.adminGroupId }],
       };
+    }
+
+    if (criteria.scope) {
+      where.AND = [{ user: herdScopeUserWhere(criteria.scope) }];
     }
 
     if (criteria.animalType) {

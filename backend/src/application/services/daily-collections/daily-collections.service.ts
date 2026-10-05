@@ -9,6 +9,8 @@ import { BusinessException } from '@/common/exceptions/business.exception';
 import { DailyCollectionCriteria } from '@/domain/criteria/daily-collection.criteria';
 import { COLLECTION_BUSINESS_RULES } from '@/common/constants/business.constants';
 import { isSameHerd } from '@/domain/utils/herd-scope.util';
+import { ReadPrincipal } from '@/domain/utils/read-scope.util';
+import { assertCanReadOwner, assertCanReadUserData } from '@/application/utils/read-access.util';
 import { UserRole, ActivityEventType } from '@/domain/enums/enums';
 import { ActivityLogService } from '@/application/services/activity-logs/activity-logs.service';
 
@@ -150,12 +152,19 @@ export class DailyCollectionsService {
     return this.dailyCollectionRepository.findAll(criteria);
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, reader?: ReadPrincipal) {
     const dailyCollection = await this.dailyCollectionRepository.findById(id);
     if (!dailyCollection) {
       throw new EntityNotFoundException(`Coleta diária com ID ${id} não encontrada.`);
     }
+    if (reader) {
+      await assertCanReadOwner(this.userRepository, dailyCollection.userId as number, reader);
+    }
     return dailyCollection;
+  }
+
+  async assertCanReadUserData(userId: number, reader: ReadPrincipal) {
+    await assertCanReadUserData(this.userRepository, userId, reader);
   }
 
   async update(
@@ -209,7 +218,14 @@ export class DailyCollectionsService {
 
     return this.dailyCollectionRepository.softDelete(id);
   }
-  async findHistoryByAnimal(animalId: number) {
+  async findHistoryByAnimal(animalId: number, reader?: ReadPrincipal) {
+    if (reader) {
+      const animal = await this.animalRepository.findById(animalId);
+      if (!animal) {
+        throw new EntityNotFoundException(`Animal com ID ${animalId} não encontrado.`);
+      }
+      await assertCanReadOwner(this.userRepository, animal.userId as number, reader);
+    }
     return this.dailyCollectionRepository.findByAnimalId(animalId);
   }
 }

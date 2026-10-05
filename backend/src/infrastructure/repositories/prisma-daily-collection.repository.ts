@@ -8,6 +8,7 @@ import { DailyCollectionCriteria } from '@/domain/criteria/daily-collection.crit
 import { handlePrismaError, PrismaErrorCode } from '@/common/utils/prisma-error-handler';
 import { DailyCollectionMapper } from '@/infrastructure/mappers/daily-collection.mapper';
 import { PaginatedResult, normalizePaginationParams, createPaginatedResult } from '@/domain/common/pagination.interface';
+import { herdScopeUserWhere } from '@/infrastructure/utils/herd-scope-where';
 
 @Injectable()
 export class PrismaDailyCollectionRepository implements IDailyCollectionRepository {
@@ -66,6 +67,10 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
       where.user = {
         OR: [{ id: criteria.adminGroupId }, { adminId: criteria.adminGroupId }],
       };
+    }
+
+    if (criteria.scope) {
+      where.AND = [{ user: herdScopeUserWhere(criteria.scope) }];
     }
 
     if (criteria.dateRange) {

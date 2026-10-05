@@ -27,6 +27,7 @@ import { ResponseMessage } from '@/common/decorators/response-message.decorator'
 import { GetUser } from '@/common/decorators/get-user.decorator';
 import { UserRole } from '@/domain/enums/enums';
 import { MAX_LIMIT } from '@/domain/common/pagination.interface';
+import { ReadPrincipal, resolveReadScope } from '@/domain/utils/read-scope.util';
 
 @ApiTags('Daily Collections')
 @Controller('daily-collections')
@@ -64,8 +65,9 @@ export class DailyCollectionsController {
   @ApiOperation({ summary: 'Listar todos os formulários cadastrados' })
   @ApiResponse({ status: 200, description: 'Formulários listados com sucesso' })
   @Get()
-  async findAll(@Query() query: FindDailyCollectionsDto) {
+  async findAll(@Query() query: FindDailyCollectionsDto, @GetUser() requester: ReadPrincipal) {
     const criteria: DailyCollectionCriteria = {
+      scope: resolveReadScope(requester),
       associationId: query.associationId,
       userId: query.userId,
     };
@@ -89,8 +91,8 @@ export class DailyCollectionsController {
     description: 'Formulário encontrado com sucesso',
   })
   @ApiResponse({ status: 404, description: 'Formulário não encontrado' })
-  async findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.dailyCollectionsService.findOne(id);
+  async findOne(@Param('id', ParseIntPipe) id: number, @GetUser() requester: ReadPrincipal) {
+    return this.dailyCollectionsService.findOne(id, requester);
   }
 
   @ApiOperation({
@@ -157,30 +159,15 @@ export class DailyCollectionsController {
   @ResponseMessage('Formulários do usuário listados com sucesso')
   async findAllByUserId(
     @Param('userId', ParseIntPipe) userId: number,
-    @GetUser('role') role?: UserRole,
-    @GetUser('associationId') associationId?: number | null,
-    @GetUser('adminId') requesterAdminId?: number | null,
+    @GetUser() requester: ReadPrincipal,
   ) {
-    if (associationId) {
-      // Todo usuario (ADMIN ou VAQUEIRO) vinculado a uma associacao
-      // (cooperativa) enxerga as mesmas coletas: elas pertencem a
-      // associacao, nao a quem as registrou individualmente.
-      return this.dailyCollectionsService.findAll({ associationId, limit: MAX_LIMIT });
-    }
-    if (role === UserRole.ADMIN) {
-      // Cenario padrao atual, sem cooperativa: o admin enxerga as coletas
-      // de todos os produtores cadastrados no sistema - assim como ja
-      // ocorre em "Gerenciar Usuarios".
-      return this.dailyCollectionsService.findAll({ limit: MAX_LIMIT });
-    }
-    if (requesterAdminId) {
-      // Vaqueiro vinculado a um Admin (dono da fazenda) via "Adicionar
-      // Funcionario": enxerga as mesmas coletas desse Admin.
-      return this.dailyCollectionsService.findAll({ adminGroupId: requesterAdminId, limit: MAX_LIMIT });
-    }
-    // Vaqueiro sem nenhum vinculo (legado): ve apenas as coletas que ele
-    // proprio registrou.
-    return this.dailyCollectionsService.findAll({ userId });
+    // O id do caminho precisa estar no escopo de quem pede; a lista é sempre a do
+    // escopo dele (associacao > grupo Admin + funcionarios > ele mesmo).
+    await this.dailyCollectionsService.assertCanReadUserData(userId, requester);
+    return this.dailyCollectionsService.findAll({
+      scope: resolveReadScope(requester),
+      limit: MAX_LIMIT,
+    });
   }
 
   @ApiOperation({ summary: 'Buscar historico de coletas de um animal especifico' })
@@ -189,7 +176,10 @@ export class DailyCollectionsController {
   @ApiResponse({ status: 404, description: 'Animal nao encontrado' })
   @Get('animal/:animalId')
   @ResponseMessage('Historico de coletas do animal listado com sucesso')
-  async findByAnimalId(@Param('animalId', ParseIntPipe) animalId: number) {
-    return this.dailyCollectionsService.findHistoryByAnimal(animalId);
+  async findByAnimalId(
+    @Param('animalId', ParseIntPipe) animalId: number,
+    @GetUser() requester: ReadPrincipal,
+  ) {
+    return this.dailyCollectionsService.findHistoryByAnimal(animalId, requester);
   }
 }
