@@ -56,7 +56,7 @@ describe('E2E: Associations - Relatórios', () => {
 
     associationToken = loginResponse.body.data.access_token;
 
-    const producer1Data = UserFactory.build({ associationId });
+    const producer1Data = UserFactory.build();
     const producer1Response = await testApp
       .request()
       .post('/users')
@@ -67,6 +67,9 @@ describe('E2E: Associations - Relatórios', () => {
       throw new Error(`Failed to create producer1. Response: ${JSON.stringify(producer1Response.body)}`);
     }
     producer1Id = producer1Response.body.data.id;
+    // O cadastro público não escolhe associação; o vínculo vem de convite aceito
+    // (aqui, direto no banco).
+    await testApp.getPrismaService().user.update({ where: { id: producer1Id }, data: { associationId } });
 
     const p1Login = await testApp
       .request()
@@ -75,7 +78,7 @@ describe('E2E: Associations - Relatórios', () => {
       .expect(HttpStatus.OK);
     const p1Token = p1Login.body.data.access_token;
 
-    const producer2Data = UserFactory.build({ associationId });
+    const producer2Data = UserFactory.build();
     const producer2Response = await testApp
       .request()
       .post('/users')
@@ -86,6 +89,7 @@ describe('E2E: Associations - Relatórios', () => {
       throw new Error(`Failed to create producer2. Response: ${JSON.stringify(producer2Response.body.data)}`);
     }
     producer2Id = producer2Response.body.data.id;
+    await testApp.getPrismaService().user.update({ where: { id: producer2Id }, data: { associationId } });
 
     const p2Login = await testApp
       .request()

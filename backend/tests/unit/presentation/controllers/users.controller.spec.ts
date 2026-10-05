@@ -86,6 +86,40 @@ describe('UsersController', () => {
     });
   });
 
+  describe('associationId no cadastro', () => {
+    const base = { name: 'Fulano', email: 'fulano@example.com', associationId: 77 } as any;
+
+    beforeEach(() => mockUsersService.create.mockResolvedValue(createUser({ id: 1 })));
+
+    it('registro público ignora o associationId enviado (ninguém se declara membro de uma associação)', async () => {
+      await controller.create({ ...base });
+
+      expect(usersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ role: UserRole.ADMIN, associationId: undefined }),
+      );
+    });
+
+    it('cadastro interno: associationId alheio é descartado', async () => {
+      await controller.createInternal({ ...base, role: UserRole.VAQUEIRO }, 1, UserRole.ADMIN, 5);
+
+      expect(usersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ associationId: undefined, adminId: 1 }),
+      );
+    });
+
+    it('cadastro interno: admin sem associação não vincula a nenhuma', async () => {
+      await controller.createInternal({ ...base, role: UserRole.VAQUEIRO }, 1, UserRole.ADMIN, null);
+
+      expect(usersService.create).toHaveBeenCalledWith(expect.objectContaining({ associationId: undefined }));
+    });
+
+    it('cadastro interno: vincula à própria associação do admin', async () => {
+      await controller.createInternal({ ...base, associationId: 5, role: UserRole.VAQUEIRO }, 1, UserRole.ADMIN, 5);
+
+      expect(usersService.create).toHaveBeenCalledWith(expect.objectContaining({ associationId: 5 }));
+    });
+  });
+
   describe('createInternal', () => {
     it('deve vincular adminId = id do criador quando ADMIN cadastra um VAQUEIRO', async () => {
       const createDto: CreateUserDto = {

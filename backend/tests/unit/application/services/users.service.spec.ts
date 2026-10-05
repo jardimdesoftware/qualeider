@@ -270,6 +270,48 @@ describe('UsersService', () => {
     });
   });
 
+  describe('vínculo com associação na edição', () => {
+    const target = () => createUser({ id: 8, adminId: 1, associationId: null, status: Status.Active });
+    const admin = { id: 1, role: UserRole.ADMIN, associationId: 5 };
+
+    it.each([
+      ['update', (dto: any, req: any) => service.update(8, dto, req)],
+      ['partialUpdate', (dto: any, req: any) => service.partialUpdate(8, dto, req)],
+    ])('%s: admin não vincula usuário a associação alheia', async (_name, call) => {
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValue(target());
+
+      await expect(call({ associationId: 99 }, admin)).rejects.toThrow(ForbiddenException);
+      expect(userRepository.partialUpdate).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['update', (dto: any, req: any) => service.update(8, dto, req)],
+      ['partialUpdate', (dto: any, req: any) => service.partialUpdate(8, dto, req)],
+    ])('%s: admin sem associação também não vincula a nenhuma', async (_name, call) => {
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValue(target());
+
+      await expect(call({ associationId: 5 }, { ...admin, associationId: null })).rejects.toThrow(ForbiddenException);
+    });
+
+    it('permite vincular à própria associação do admin', async () => {
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValue(target());
+      (userRepository.partialUpdate as jest.Mock).mockResolvedValue({ ...target(), associationId: 5 });
+
+      await service.partialUpdate(8, { associationId: 5 } as any, admin);
+
+      expect(userRepository.partialUpdate).toHaveBeenCalledWith(8, expect.objectContaining({ associationId: 5 }));
+    });
+
+    it('edições sem associationId seguem normais', async () => {
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValue(target());
+      (userRepository.partialUpdate as jest.Mock).mockResolvedValue(target());
+
+      await service.partialUpdate(8, { name: 'Novo Nome' } as any, admin);
+
+      expect(userRepository.partialUpdate).toHaveBeenCalled();
+    });
+  });
+
   describe('update', () => {
     it('deve atualizar usuário com sucesso', async () => {
       const mockUser = createUser({ id: 1, status: Status.Active });
