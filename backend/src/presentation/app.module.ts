@@ -66,13 +66,15 @@ import { HealthController } from './controllers/health.controller';
   ],
   controllers: [HealthController],
   providers: [
-    {
-      provide: APP_GUARD,
-      useClass: AppThrottlerGuard,
-    },
+    // A ordem importa: o JwtAuthGuard roda primeiro para que o throttler
+    // saiba quem é o usuário e use o balde dele (e não o do IP do proxy).
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: AppThrottlerGuard,
     },
     {
       provide: APP_INTERCEPTOR,

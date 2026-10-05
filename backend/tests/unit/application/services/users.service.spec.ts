@@ -261,12 +261,22 @@ describe('UsersService', () => {
 
     it('deve permitir busca por ID quando o requisitante e ADMIN', async () => {
       const mockUser = createUser({ id: 1, status: Status.Active });
-      (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValue(mockUser);
 
       const result = await service.findOneForRequester(1, adminRequester);
 
-      expect(userRepository.findById).toHaveBeenCalledWith(1);
+      expect(userRepository.findByIdAny).toHaveBeenCalledWith(1);
       expect(result.id).toBe(1);
+    });
+
+    it('deve permitir que ADMIN busque um funcionario inativo (para poder reativa-lo)', async () => {
+      const mockUser = createUser({ id: 2, status: Status.Inactive });
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValue(mockUser);
+
+      const result = await service.findOneForRequester(2, adminRequester);
+
+      expect(result.id).toBe(2);
+      expect(result.status).toBe(Status.Inactive);
     });
   });
 
@@ -516,32 +526,63 @@ describe('UsersService', () => {
   });
 
   describe('remove', () => {
-    it('deve desativar o usuário (soft delete)', async () => {
-      const mockUser = createUser({ id: 1, status: Status.Active });
-      const mockDeactivatedUser = { ...mockUser, status: Status.Inactive };
+    it('admin desativa um funcionário vinculado a ele (soft delete)', async () => {
+      const target = createUser({ id: 5, status: Status.Active, adminId: 1 });
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValue(target);
+      (userRepository.softDelete as jest.Mock).mockResolvedValue({ ...target, status: Status.Inactive });
 
-      (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
-      (userRepository.softDelete as jest.Mock).mockResolvedValue(mockDeactivatedUser);
+      const result = await service.remove(5, adminRequester);
 
-      const result = await service.remove(1, adminRequester);
-
-      expect(userRepository.softDelete).toHaveBeenCalledWith(1);
+      expect(userRepository.softDelete).toHaveBeenCalledWith(5);
       expect(result.status).toBe(Status.Inactive);
     });
 
-    it('deve lançar EntityNotFoundException quando usuário não for encontrado', async () => {
-      const error = new EntityNotFoundException('Usuário não encontrado');
-      (userRepository.softDelete as jest.Mock).mockRejectedValue(error);
+    it('admin pode desativar a própria conta (sem consultar o escopo)', async () => {
+      const self = createUser({ id: 1, status: Status.Active });
+      (userRepository.softDelete as jest.Mock).mockResolvedValue({ ...self, status: Status.Inactive });
 
-      await expect(service.remove(999, adminRequester)).rejects.toThrow(
-        EntityNotFoundException,
-      );
+      await service.remove(1, adminRequester);
+
+      expect(userRepository.softDelete).toHaveBeenCalledWith(1);
     });
 
-    it('deve negar remocao quando o requisitante nao e ADMIN', async () => {
-      await expect(service.remove(1, vaqueiroRequester)).rejects.toThrow(
-        ForbiddenException,
+    it('admin NÃO desativa usuário de outro dono (adminId diferente)', async () => {
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValue(
+        createUser({ id: 9, adminId: 99, associationId: null }),
       );
+
+      await expect(service.remove(9, adminRequester)).rejects.toThrow(ForbiddenException);
+      expect(userRepository.softDelete).not.toHaveBeenCalled();
+    });
+
+    it('admin NÃO desativa outro ADMIN sem vínculo', async () => {
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValue(
+        createUser({ id: 9, role: UserRole.ADMIN, adminId: null, associationId: null }),
+      );
+
+      await expect(service.remove(9, adminRequester)).rejects.toThrow(ForbiddenException);
+      expect(userRepository.softDelete).not.toHaveBeenCalled();
+    });
+
+    it('admin de uma associação desativa membro da mesma associação', async () => {
+      const requester = { id: 1, role: UserRole.ADMIN, associationId: 3 };
+      const member = createUser({ id: 8, associationId: 3, adminId: null });
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValue(member);
+      (userRepository.softDelete as jest.Mock).mockResolvedValue({ ...member, status: Status.Inactive });
+
+      await service.remove(8, requester);
+
+      expect(userRepository.softDelete).toHaveBeenCalledWith(8);
+    });
+
+    it('retorna EntityNotFoundException quando o usuário não existe', async () => {
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValue(null);
+
+      await expect(service.remove(999, adminRequester)).rejects.toThrow(EntityNotFoundException);
+    });
+
+    it('nega remoção quando o requisitante não é ADMIN', async () => {
+      await expect(service.remove(1, vaqueiroRequester)).rejects.toThrow(ForbiddenException);
 
       expect(userRepository.softDelete).not.toHaveBeenCalled();
     });

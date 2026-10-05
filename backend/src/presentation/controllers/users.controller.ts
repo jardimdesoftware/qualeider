@@ -198,10 +198,12 @@ export class UsersController {
     @Param('id', ParseIntPipe) id: number,
     @GetUser('id') requesterId: number,
     @GetUser('role') requesterRole: UserRole,
+    @GetUser('associationId') requesterAssociationId: number | null,
   ) {
     return this.usersService.remove(id, {
       id: requesterId,
       role: requesterRole,
+      associationId: requesterAssociationId,
     });
   }
 }

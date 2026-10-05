@@ -7,14 +7,13 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { randomBytes } from 'crypto';
+import { randomBytes, randomInt } from 'crypto';
 import { IHashService } from '@/application/ports/hash.service';
 import { IUserRepository } from '@/domain/repositories/user.repository';
 import { IAssociationRepository } from '@/domain/repositories/association.repository';
 import { IFailedEmailRepository } from '@/domain/repositories/failed-email.repository';
 import { IAllowedEmailRepository } from '@/domain/repositories/allowed-email.repository';
 import { MailService } from '@/mail/mail.service';
-import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 import {
   BCRYPT_ROUNDS_RESET_PASSWORD,
   BCRYPT_ROUNDS_USER_CREATION,
@@ -23,7 +22,9 @@ import {
   RESET_TOKEN_EXPIRY_MINUTES,
 } from '@/common/constants/security.constants';
 import { isIfpeEmail } from '@/common/utils/email-domain.util';
+import { safeEqual } from '@/common/utils/safe-compare.util';
 import { UserEntity } from '@/domain/entities/user.entity';
+import { AllowedEmailEntity } from '@/domain/entities/allowed-email.entity';
 import { AssociationEntity } from '@/domain/entities/association.entity';
 import { Status, UserRole, UserCategory, ActivityEventType } from '@/domain/enums/enums';
 import { ActivityLogService } from '@/application/services/activity-logs/activity-logs.service';
@@ -127,14 +128,18 @@ export class AuthService {
     return this.loginEntity(user, 'user');
   }
 
-  /** Monta a URL de consentimento do Google para a qual GET /auth/google redireciona. */
-  getGoogleAuthUrl(): string {
+  /**
+   * Monta a URL de consentimento do Google para a qual GET /auth/google
+   * redireciona. `state` é conferido no callback contra o cookie do navegador.
+   */
+  getGoogleAuthUrl(state: string): string {
     const params = new URLSearchParams({
       client_id: this.configService.get<string>('GOOGLE_CLIENT_ID') ?? '',
       redirect_uri: this.configService.get<string>('GOOGLE_CALLBACK_URL') ?? '',
       response_type: 'code',
       scope: 'openid email profile',
       prompt: 'select_account',
+      state,
     });
     return `${GOOGLE_AUTH_URL}?${params.toString()}`;
   }
@@ -184,20 +189,33 @@ export class AuthService {
   }
 
   /**
-   * Login via Google: emails @ifpe.edu.br (qualquer subdomínio) entram
-   * direto - se ainda não existe conta, cria uma como Vaqueiro vinculada ao
-   * primeiro Admin cadastrado (não existem "fazendas" separadas aqui, é tudo
-   * uma instalação única do IFPE). Emails de fora do domínio só entram se um
-   * Admin os liberou antes na tela de Funcionários (ver AllowedEmailsController).
+   * Admin ativo que liberou o email (se houver). Um funcionário criado via
+   * Google precisa ficar no grupo desse admin; senão ele não enxerga os
+   * animais e coletas que o admin cadastra.
+   */
+  private async findAdminWhoAllowed(allowedEmail: AllowedEmailEntity | null) {
+    if (!allowedEmail?.adminId) return null;
+    const admin = await this.userRepository.findById(allowedEmail.adminId);
+    return admin && admin.role === UserRole.ADMIN ? admin : null;
+  }
+
+  /**
+   * Login via Google. Emails @ifpe.edu.br (qualquer subdomínio) entram direto;
+   * emails de fora do domínio só entram se um Admin os liberou antes na tela
+   * de Funcionários (ver AllowedEmailsController).
+   *
+   * Se ainda não existe conta, cria uma como Vaqueiro vinculada ao Admin que
+   * liberou o email. Sem admin responsável (email @ifpe.edu.br ou liberação
+   * antiga, sem dono), cai no primeiro Admin ativo cadastrado.
    */
   async loginWithGoogle(profile: { email: string; name?: string }) {
     const email = profile.email.toLowerCase().trim();
 
-    const isAllowed =
-      isIfpeEmail(email) ||
-      (await this.allowedEmailRepository.findByEmail(email)) !== null;
+    const allowedEmail = isIfpeEmail(email)
+      ? null
+      : ((await this.allowedEmailRepository.findByEmail(email)) ?? null);
 
-    if (!isAllowed) {
+    if (!isIfpeEmail(email) && allowedEmail === null) {
       throw new UnauthorizedException(
         'Este email não tem acesso. Peça para um administrador liberar seu email na tela de Funcionários.',
       );
@@ -210,10 +228,28 @@ export class AuthService {
           'Conta inativa. Entre em contato com o administrador.',
         );
       }
+
+      // Funcionário sem vínculo (criado antes de User.adminId existir) cujo
+      // email um admin liberou: completa o vínculo para ele passar a ver o
+      // rebanho desse admin.
+      if (
+        existing.role === UserRole.VAQUEIRO &&
+        !existing.adminId &&
+        !existing.associationId
+      ) {
+        const linkedAdmin = await this.findAdminWhoAllowed(allowedEmail);
+        if (linkedAdmin) {
+          await this.userRepository.update(existing.id, { adminId: linkedAdmin.id });
+          existing.adminId = linkedAdmin.id;
+        }
+      }
+
       return this.loginEntity(existing, 'user');
     }
 
-    const admin = await this.userRepository.findFirstAdmin();
+    const admin =
+      (await this.findAdminWhoAllowed(allowedEmail)) ??
+      (await this.userRepository.findFirstAdmin());
     if (!admin) {
       throw new UnauthorizedException(
         'Ainda não há um administrador cadastrado no sistema.',
@@ -271,12 +307,20 @@ export class AuthService {
     const user = await this.userRepository.findByEmail(normalizedEmail);
 
     if (!user) {
-      throw new EntityNotFoundException('E-mail não encontrado no sistema.');
+      // Não revela se o e-mail existe: a resposta é igual à de um e-mail
+      // cadastrado (o controller sempre diz "se o e-mail existir...").
+      this.logger.warn('Redefinição de senha solicitada para e-mail não cadastrado.');
+      return {
+        status: HttpStatus.CREATED,
+        message: 'E-mail de redefinição de senha enviado com sucesso.',
+      };
     }
 
     try {
-      const resetToken = Math.floor(
-        RESET_TOKEN_MIN_VALUE + Math.random() * RESET_TOKEN_MAX_VALUE,
+      // randomInt é um CSPRNG (Math.random é previsível); 6 dígitos, 100000-999999.
+      const resetToken = randomInt(
+        RESET_TOKEN_MIN_VALUE,
+        RESET_TOKEN_MIN_VALUE + RESET_TOKEN_MAX_VALUE,
       ).toString();
 
       const resetTokenExpiry = new Date();
@@ -348,11 +392,9 @@ export class AuthService {
   async validateResetToken(email: string, token: string): Promise<UserEntity> {
     const user = await this.userRepository.findByEmail(email);
 
-    if (!user) {
-      throw new EntityNotFoundException('Usuário não encontrado.');
-    }
-
-    if (!user.resetToken || user.resetToken !== token) {
+    // E-mail inexistente e token errado dão a MESMA resposta (401), para o
+    // endpoint não servir de oráculo de e-mails cadastrados.
+    if (!user || !user.resetToken || !safeEqual(user.resetToken, token)) {
       throw new UnauthorizedException('Token inválido.');
     }
 
