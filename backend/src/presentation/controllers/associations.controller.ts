@@ -8,6 +8,9 @@ import {
   Query,
   Param,
   NotFoundException,
+  ForbiddenException,
+  ParseIntPipe,
+  UseGuards,
   Patch,
 } from '@nestjs/common';
 import { GetUser } from '@/common/decorators/get-user.decorator';
@@ -21,6 +24,9 @@ import { UpdateAssociationDto } from '@/application/dtos/associations/update-ass
 import { BusinessException } from '@/common/exceptions/business.exception';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
 import { Public } from '@/common/decorators/public.decorator';
+import { AssociationOnlyGuard } from '@/application/guards/association-only.guard';
+import { UserRole } from '@/domain/enums/enums';
+import { HerdScope, resolveHerdScope } from '@/domain/utils/herd-scope.util';
 
 @ApiTags('associations')
 @Controller('associations')
@@ -73,6 +79,7 @@ export class AssociationsController {
 
 
   @Get('metrics/associates')
+  @UseGuards(AssociationOnlyGuard)
   @ApiOperation({ summary: 'Obter lista resumida de associados paginada' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
@@ -89,6 +96,7 @@ export class AssociationsController {
   }
 
   @Get('available-producers')
+  @UseGuards(AssociationOnlyGuard)
   @ApiOperation({ summary: 'Listar produtores sem associação' })
   @ApiResponse({ status: 200, description: 'Lista de produtores retornada.' })
   async getAvailableProducers() {
@@ -96,6 +104,7 @@ export class AssociationsController {
   }
 
   @Post('invite')
+  @UseGuards(AssociationOnlyGuard)
   @ApiOperation({ summary: 'Convidar/Vincular produtor à associação' })
   @ApiResponse({ status: 200, description: 'Produtor vinculado com sucesso.' })
   @ResponseMessage('Produtor vinculado com sucesso')
@@ -104,6 +113,7 @@ export class AssociationsController {
   }
 
   @Get('metrics/herd')
+  @UseGuards(AssociationOnlyGuard)
   @ApiOperation({ summary: 'Obter estatísticas do rebanho regional' })
   @ApiResponse({ status: 200, description: 'Estatísticas retornadas com sucesso.' })
   async getHerdStats(@GetUser('id') associationId: number) {
@@ -111,6 +121,7 @@ export class AssociationsController {
   }
 
   @Get('reports/producer-ranking')
+  @UseGuards(AssociationOnlyGuard)
   @ApiOperation({ summary: 'Obter ranking de produtores por produção' })
   @ApiQuery({ name: 'startDate', required: false, type: String, description: 'Data de início (ISO)' })
   @ApiQuery({ name: 'endDate', required: false, type: String, description: 'Data de fim (ISO)' })
@@ -125,8 +136,27 @@ export class AssociationsController {
   @ApiOperation({ summary: 'Obter relatório mensal agregado' })
   @ApiResponse({ status: 200, description: 'Relatório mensal retornado com sucesso.' })
   @ApiResponse({ status: 400, description: 'Parâmetros inválidos ou faltando.' })
-  async getMonthlyReport(@GetUser('id') associationId: number, @Query() dto: GetMonthlyReportDto) {
-    return this.associationsService.getMonthlyReport(associationId, dto.year, dto.month);
+  async getMonthlyReport(
+    @GetUser('id') requesterId: number,
+    @GetUser('role') requesterRole: UserRole,
+    @GetUser('associationId') requesterAssociationId: number | null,
+    @GetUser('adminId') requesterAdminId: number | null,
+    @GetUser('userType') requesterType: 'user' | 'association' | undefined,
+    @Query() dto: GetMonthlyReportDto,
+  ) {
+    // Login como Associacao: o `id` do token e o da propria associacao (nao ha
+    // role/associationId no request.user), entao ele nao pode passar por
+    // resolveHerdScope - cairia em { userId } e colidiria com ids de usuarios.
+    const scope: HerdScope =
+      requesterType === 'association'
+        ? { associationId: requesterId }
+        : resolveHerdScope({
+            id: requesterId,
+            role: requesterRole,
+            associationId: requesterAssociationId,
+            adminId: requesterAdminId,
+          });
+    return this.associationsService.getMonthlyReport(scope, dto.year, dto.month);
   }
 
   @Get(':id')
@@ -134,18 +164,42 @@ export class AssociationsController {
   @ApiOperation({ summary: 'Buscar associação por ID' })
   @ApiResponse({ status: 200, description: 'Associação encontrada.' })
   @ApiResponse({ status: 404, description: 'Associação não encontrada.' })
-  async findById(@Param('id') id: string) {
-    const association = await this.associationsService.findById(Number(id));
+  @ApiResponse({ status: 403, description: 'Só a própria associação ou um de seus membros.' })
+  async findById(
+    @Param('id', ParseIntPipe) id: number,
+    @GetUser('id') requesterId: number,
+    @GetUser('userType') requesterType: string,
+    @GetUser('associationId') requesterAssociationId: number | null,
+  ) {
+    const isSelf = requesterType === 'association' && requesterId === id;
+    const isMember = requesterType !== 'association' && requesterAssociationId === id;
+    if (!isSelf && !isMember) {
+      throw new ForbiddenException('Você não tem acesso a esta associação.');
+    }
+
+    const association = await this.associationsService.findById(id);
     if (!association) {
       throw new NotFoundException('Associação não encontrada');
     }
     return association;
   }
+
+  // Só a própria associação altera os seus dados. Sem isso, qualquer usuário
+  // autenticado trocava e-mail e senha de uma associação e assumia a conta.
   @Patch(':id')
   @ApiOperation({ summary: 'Atualizar dados da associação' })
   @ApiResponse({ status: 200, description: 'Associação atualizada com sucesso.' })
+  @ApiResponse({ status: 403, description: 'Só a própria associação pode alterar seus dados.' })
   @ResponseMessage('Associação atualizada com sucesso')
-  async update(@Param('id') id: string, @Body() updateAssociationDto: UpdateAssociationDto) {
-    return this.associationsService.update(Number(id), updateAssociationDto);
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateAssociationDto: UpdateAssociationDto,
+    @GetUser('id') requesterId: number,
+    @GetUser('userType') requesterType: string,
+  ) {
+    if (requesterType !== 'association' || requesterId !== id) {
+      throw new ForbiddenException('Você não pode alterar os dados desta associação.');
+    }
+    return this.associationsService.update(id, updateAssociationDto);
   }
 }

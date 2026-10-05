@@ -77,6 +77,7 @@ export async function cleanDatabase(): Promise<void> {
       safeDeleteMany(() => prisma.dailyCollectionItem.deleteMany()),
       safeDeleteMany(() => prisma.notificationRecipient.deleteMany()),
       safeDeleteMany(() => prisma.activityLog.deleteMany()),
+      safeDeleteMany(() => prisma.allowedEmail.deleteMany()),
     ]);
 
     // 2ª ordem: collections e notifications

@@ -6,6 +6,7 @@ export class AllowedEmailMapper {
     return new AllowedEmailEntity({
       id: raw.id,
       email: raw.email,
+      adminId: raw.adminId,
       createdAt: raw.createdAt,
     });
   }

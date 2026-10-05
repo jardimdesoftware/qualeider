@@ -278,11 +278,12 @@ describe('UsersController', () => {
       const deleted = createUser({ id: 1 });
       mockUsersService.remove.mockResolvedValue(deleted);
 
-      const result = await controller.remove(1, 1, UserRole.ADMIN);
+      const result = await controller.remove(1, 1, UserRole.ADMIN, 7);
 
       expect(usersService.remove).toHaveBeenCalledWith(1, {
         id: 1,
         role: UserRole.ADMIN,
+        associationId: 7,
       });
       expect(result).toEqual(deleted);
     });
@@ -291,7 +292,7 @@ describe('UsersController', () => {
       const error = new EntityNotFoundException('Usuário não encontrado.');
       mockUsersService.remove.mockRejectedValue(error);
 
-      await expect(controller.remove(999, 1, UserRole.ADMIN)).rejects.toThrow(EntityNotFoundException);
+      await expect(controller.remove(999, 1, UserRole.ADMIN, null)).rejects.toThrow(EntityNotFoundException);
     });
   });
 });
