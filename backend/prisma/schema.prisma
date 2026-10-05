@@ -1,10 +1,13 @@
 generator client {
   provider = "prisma-client-js"
-  // Ambos os targets listados explicitamente (não "native") porque o Dockerfile
-  // roda `prisma generate` sempre na plataforma nativa do runner (--platform=$BUILDPLATFORM),
+  // "native" gera o engine da máquina de quem roda `prisma generate` (Windows, macOS,
+  // Linux de desenvolvimento). Sem ele, o app local não acha o engine do seu sistema.
+  // Os dois targets Linux ficam listados explicitamente porque o Dockerfile roda
+  // `prisma generate` sempre na plataforma nativa do runner (--platform=$BUILDPLATFORM),
   // mesmo ao montar a imagem final para linux/arm64 — rodar o engine Wasm do Prisma
   // sob emulação QEMU corrompe o JSON do getDmmf (erro "Unable to parse JSON").
-  binaryTargets = ["debian-openssl-3.0.x", "linux-arm64-openssl-3.0.x"]
+  // Nesse build, "native" coincide com um dos dois e o Prisma remove a duplicata.
+  binaryTargets = ["native", "debian-openssl-3.0.x", "linux-arm64-openssl-3.0.x"]
 }
 
 datasource db {

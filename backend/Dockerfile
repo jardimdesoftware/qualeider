@@ -34,8 +34,8 @@ RUN npm run build
 # `prisma generate` uses a Wasm engine for schema parsing that produces
 # corrupted JSON under QEMU emulation (cross-building linux/arm64 on an
 # amd64 runner). Both target engine binaries are still downloaded because
-# schema.prisma lists them explicitly in `binaryTargets` rather than relying
-# on the "native" platform.
+# schema.prisma lists them explicitly in `binaryTargets` (alongside "native",
+# which only adds the engine of whoever runs `prisma generate` locally).
 FROM --platform=$BUILDPLATFORM node:25-slim AS production-dependencies
 
 WORKDIR /usr/appBackend

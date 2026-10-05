@@ -4,6 +4,7 @@ import { AssociationsService } from '@/application/services/associations/associa
 import { CreateAssociationDto } from '@/application/dtos/associations/create-association.dto';
 import { BusinessException } from '@/common/exceptions/business.exception';
 import { createAssociation } from '../../../factories/association.factory';
+import { UserRole } from '@/domain/enums/enums';
 
 describe('AssociationsController', () => {
   let controller: AssociationsController;
@@ -177,20 +178,48 @@ describe('AssociationsController', () => {
 
   describe('getMonthlyReport', () => {
     it('deve retornar relatório mensal', async () => {
-      const associationId = 1;
+      const requesterId = 1;
       const dto: any = { year: 2023, month: 10 };
       const mockResult = {};
 
       mockAssociationsService.getMonthlyReport.mockResolvedValue(mockResult);
 
-      const result = await controller.getMonthlyReport(associationId, dto);
+      const result = await controller.getMonthlyReport(
+        requesterId,
+        UserRole.ADMIN,
+        null,
+        null,
+        'user',
+        dto,
+      );
 
       expect(associationsService.getMonthlyReport).toHaveBeenCalledWith(
-        associationId,
+        { adminGroupId: requesterId },
         2023,
         10,
       );
       expect(result).toEqual(mockResult);
+    });
+
+    it('deve usar a propria associacao como escopo quando o login for de Associacao', async () => {
+      const associationId = 7;
+      const dto: any = { year: 2023, month: 10 };
+      mockAssociationsService.getMonthlyReport.mockResolvedValue({});
+
+      await controller.getMonthlyReport(
+        associationId,
+        undefined as any,
+        undefined as any,
+        undefined as any,
+        'association',
+        dto,
+      );
+
+      expect(associationsService.getMonthlyReport).toHaveBeenCalledWith(
+        { associationId },
+        2023,
+        10,
+      );
     });
   });
 
