@@ -4,44 +4,12 @@ import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
-import helmet from 'helmet';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { HttpExceptionFilter } from '@/common/filters/http-exception.filter';
 import { PrismaExceptionFilter } from '@/common/filters/prisma-exception.filter';
 import { useContainer } from 'class-validator';
+import { buildCorsOptions, createHelmetMiddleware } from './security.config';
 import { configureTrustProxy } from './proxy.config';
-
-/**
- * Configura as opções de CORS baseadas nas variáveis de ambiente.
- */
-function configureCors(configService: ConfigService): CorsOptions {
-  const corsEnv = configService.get<string>('CORS_ORIGINS');
-  let origin: CorsOptions['origin'] = 'http://localhost:3000'; // Default
-
-  if (corsEnv) {
-    if (corsEnv === '*' || corsEnv.toLowerCase() === 'true') {
-      origin = true; // Permite todas as origens
-    } else {
-      const originsList = corsEnv
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean);
-      
-      // Garante suporte ao localhost:3000 (Frontend Local)
-      if (!originsList.includes('http://localhost:3000')) {
-        originsList.push('http://localhost:3000');
-      }
-      
-      origin = originsList;
-    }
-  }
-
-  return {
-    origin,
-    methods: 'GET,POST,PUT,PATCH,DELETE',
-    credentials: true,
-  };
-}
 
 /**
  * Caminhos expostos pelo Swagger (UI + specs raw), usados tanto para
@@ -135,7 +103,8 @@ async function logAppStatus(
   const appUrl = await app.getUrl();
 
   const formatOrigin = (origin: CorsOptions['origin']): string => {
-    if (origin === true) return '* (todas as origens)';
+    if (origin === true || origin === '*') return '* (todas as origens)';
+    if (origin === false) return 'nenhuma origem cross-origin';
     if (Array.isArray(origin)) return origin.join(', ');
     return String(origin);
   };
@@ -172,29 +141,16 @@ async function bootstrap() {
   // Habilitar injeção de dependências em validadores customizados do class-validator
   useContainer(app.select(AppModule), { fallbackOnErrors: true });
 
-  // Configurar Helmet para segurança HTTP
-  app.use(
-    helmet({
-      contentSecurityPolicy: {
-        directives: {
-          defaultSrc: ["'self'"],
-          // Swagger precisa de 'unsafe-inline' e 'unsafe-eval' para funcionar corretamente
-          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
-          imgSrc: ["'self'", 'data:', 'https:'],
-          // Helmet inclui essa diretiva por padrão, o que faz o navegador tentar
-          // recarregar todo asset (JS/CSS do Swagger, etc.) via HTTPS — quebrando
-          // silenciosamente a página em qualquer ambiente que sirva HTTP puro
-          // (dev local e a stack de nginx deste projeto, que não termina TLS).
-          upgradeInsecureRequests: null,
-        },
-      },
-    }),
-  );
+  // Helmet com CSP estrita para a API (JSON) e uma mais permissiva só para o Swagger UI
+  app.use(createHelmetMiddleware());
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
 
   // 1. Configurar CORS
-  const corsOptions = configureCors(configService);
+  const { options: corsOptions, warnings: corsWarnings } = buildCorsOptions(
+    configService.get<string>('CORS_ORIGINS'),
+    configService.get<string>('NODE_ENV') === 'production',
+  );
+  corsWarnings.forEach((warning) => Logger.warn(warning, 'Bootstrap'));
   app.enableCors(corsOptions);
 
   // 2. Configurar filtros globais
