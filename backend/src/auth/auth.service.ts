@@ -7,14 +7,13 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { randomBytes } from 'crypto';
+import { randomBytes, randomInt } from 'crypto';
 import { IHashService } from '@/application/ports/hash.service';
 import { IUserRepository } from '@/domain/repositories/user.repository';
 import { IAssociationRepository } from '@/domain/repositories/association.repository';
 import { IFailedEmailRepository } from '@/domain/repositories/failed-email.repository';
 import { IAllowedEmailRepository } from '@/domain/repositories/allowed-email.repository';
 import { MailService } from '@/mail/mail.service';
-import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 import {
   BCRYPT_ROUNDS_RESET_PASSWORD,
   BCRYPT_ROUNDS_USER_CREATION,
@@ -23,6 +22,7 @@ import {
   RESET_TOKEN_EXPIRY_MINUTES,
 } from '@/common/constants/security.constants';
 import { isIfpeEmail } from '@/common/utils/email-domain.util';
+import { safeEqual } from '@/common/utils/safe-compare.util';
 import { UserEntity } from '@/domain/entities/user.entity';
 import { AssociationEntity } from '@/domain/entities/association.entity';
 import { Status, UserRole, UserCategory, ActivityEventType } from '@/domain/enums/enums';
@@ -271,12 +271,20 @@ export class AuthService {
     const user = await this.userRepository.findByEmail(normalizedEmail);
 
     if (!user) {
-      throw new EntityNotFoundException('E-mail não encontrado no sistema.');
+      // Não revela se o e-mail existe: a resposta é igual à de um e-mail
+      // cadastrado (o controller sempre diz "se o e-mail existir...").
+      this.logger.warn('Redefinição de senha solicitada para e-mail não cadastrado.');
+      return {
+        status: HttpStatus.CREATED,
+        message: 'E-mail de redefinição de senha enviado com sucesso.',
+      };
     }
 
     try {
-      const resetToken = Math.floor(
-        RESET_TOKEN_MIN_VALUE + Math.random() * RESET_TOKEN_MAX_VALUE,
+      // randomInt é um CSPRNG (Math.random é previsível); 6 dígitos, 100000-999999.
+      const resetToken = randomInt(
+        RESET_TOKEN_MIN_VALUE,
+        RESET_TOKEN_MIN_VALUE + RESET_TOKEN_MAX_VALUE,
       ).toString();
 
       const resetTokenExpiry = new Date();
@@ -348,11 +356,9 @@ export class AuthService {
   async validateResetToken(email: string, token: string): Promise<UserEntity> {
     const user = await this.userRepository.findByEmail(email);
 
-    if (!user) {
-      throw new EntityNotFoundException('Usuário não encontrado.');
-    }
-
-    if (!user.resetToken || user.resetToken !== token) {
+    // E-mail inexistente e token errado dão a MESMA resposta (401), para o
+    // endpoint não servir de oráculo de e-mails cadastrados.
+    if (!user || !user.resetToken || !safeEqual(user.resetToken, token)) {
       throw new UnauthorizedException('Token inválido.');
     }
 

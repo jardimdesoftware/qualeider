@@ -7,7 +7,6 @@ import {
   UnauthorizedException,
   Logger,
 } from '@nestjs/common';
-import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 import { IHashService as IHashServiceSymbol, type IHashService } from '@/application/ports/hash.service';
 import { createUser } from '../../../factories';
 
@@ -570,12 +569,17 @@ describe('AuthService', () => {
       expect(userRepository.findByEmail).toHaveBeenCalledWith('test@example.com');
     });
 
-    it('deve lançar NotFoundException quando email não for encontrado', async () => {
+    it('não revela e-mail inexistente: responde como se tivesse enviado e não grava nem envia nada', async () => {
       (userRepository.findByEmail as jest.Mock).mockResolvedValue(null);
 
-      await expect(
-        service.forgotPassword('nonexistent@example.com'),
-      ).rejects.toThrow(EntityNotFoundException);
+      const result = await service.forgotPassword('nonexistent@example.com');
+
+      expect(result).toEqual({
+        status: 201,
+        message: 'E-mail de redefinição de senha enviado com sucesso.',
+      });
+      expect(userRepository.update).not.toHaveBeenCalled();
+      expect(mailService.sendResetPasswordEmail).not.toHaveBeenCalled();
     });
 
     it('deve gerar token de 6 dígitos', async () => {
@@ -744,12 +748,12 @@ describe('AuthService', () => {
       expect(diff).toBeLessThanOrEqual(16 * 60 * 1000);
     });
 
-    it('deve lançar NotFoundException quando usuário não for encontrado', async () => {
+    it('e-mail inexistente dá a mesma resposta de token errado (Unauthorized), sem revelar o e-mail', async () => {
       (userRepository.findByEmail as jest.Mock).mockResolvedValue(null);
 
       await expect(
         service.validateResetToken('nonexistent@example.com', '123456'),
-      ).rejects.toThrow(EntityNotFoundException);
+      ).rejects.toThrow(new UnauthorizedException('Token inválido.'));
     });
 
     it('deve lançar UnauthorizedException quando token não coincidir', async () => {
@@ -853,7 +857,7 @@ describe('AuthService', () => {
       expect(hashService.hash).not.toHaveBeenCalled();
     });
 
-    it('deve lançar NotFoundException quando usuário não for encontrado', async () => {
+    it('e-mail inexistente dá a mesma resposta de token errado (Unauthorized)', async () => {
       // First findUnique (in validateResetToken) returns null
       (userRepository.findByEmail as jest.Mock).mockResolvedValueOnce(null);
 
@@ -863,7 +867,8 @@ describe('AuthService', () => {
           '123456',
           'newPassword123',
         ),
-      ).rejects.toThrow(EntityNotFoundException);
+      ).rejects.toThrow(new UnauthorizedException('Token inválido.'));
+      expect(hashService.hash).not.toHaveBeenCalled();
     });
 
     it('deve hashear a senha com 12 salt rounds do bcrypt', async () => {
