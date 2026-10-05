@@ -29,6 +29,7 @@ visível, priorizado e corrigido ou rastreado com dono definido.
 | Atualização de dependências | Dependabot | `.github/dependabot.yml` | Abre PRs semanais para npm, Docker e GitHub Actions. |
 | Scan de dependência/container | Trivy | CI de backend e frontend | Bloqueia achados `CRITICAL`/`HIGH` em `main` e PRs para `main`; envia SARIF para o GitHub Security. |
 | Análise estática de código | CodeQL | `.github/workflows/codeql.yml` | Análise estática para JavaScript/TypeScript em PRs, pushes e semanalmente. |
+| Varredura de segredos | Gitleaks | `.github/workflows/secret-scan.yml` | Procura chaves, tokens e senhas em todo o histórico (o repositório é público) em PRs, pushes na `main` e semanalmente. |
 | Triagem manual | Aba GitHub Security + este documento | A cada revisão de segurança | Classifica alertas remanescentes por severidade, exploração e risco de correção. |
 
 ### Regras de triagem
@@ -75,6 +76,37 @@ Pelo menos uma vez por sprint, ou antes de cada release de produção:
 4. Mergear primeiro os PRs seguros de minor/patch do Dependabot.
 5. Para major upgrades, criar um PR focado por grupo de risco.
 6. Rodar novamente CI de backend/frontend e CodeQL antes do merge.
+
+### Varredura de segredos
+
+O repositório é público, então nenhum segredo (senha, chave de API, token,
+credencial de SMTP/OAuth, `JWT_SECRET` real) pode ser versionado. Arquivos `.env`
+ficam fora do Git; só os modelos `.env.example` (com valores de exemplo) e
+`backend/.env.test` (credenciais descartáveis de teste) são versionados.
+
+A auditoria de 04/10/2026 sobre todo o histórico (469 commits) não encontrou
+nenhum segredo real. Os 4 achados da regra genérica eram falsos positivos
+(badge do template do NestJS, exemplo do Swagger e fixtures de teste) e estão
+registrados em `.gitleaksignore`. Um `.env` que já esteve versionado (removido em
+28/05/2026) só continha valores de exemplo.
+
+Para rodar a mesma verificação do CI localmente (requer Docker):
+
+```bash
+docker run --rm -v "$PWD:/repo:ro" --entrypoint sh \
+  zricethezav/gitleaks:v8.30.1 \
+  -c 'git config --global --add safe.directory /repo && gitleaks detect --source=/repo --redact --verbose --log-opts="--all"'
+```
+
+Se um segredo real for encontrado: **revogue/rotacione primeiro** (remover o
+arquivo não apaga o histórico público), depois limpe o histórico se necessário.
+Falsos positivos entram em `.gitleaksignore` (por fingerprint) com a justificativa
+em comentário.
+
+Recomendação para quem administra o repositório: habilitar **Push protection** em
+Settings → Code security (hoje desativado; o Secret scanning já está ativo), para
+que o próprio GitHub bloqueie o push de um segredo antes de ele chegar ao
+repositório.
 
 ### Política de backlog
 
