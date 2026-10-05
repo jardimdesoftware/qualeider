@@ -58,7 +58,12 @@ export class PrismaAnimalRepository implements IAnimalRepository {
   async findAll(criteria: AnimalCriteria = {}): Promise<PaginatedResult<AnimalEntity>> {
     const where: any = {};
 
-    where.status = criteria.status !== undefined ? criteria.status : PrismaStatus.Active;
+    where.status =
+      criteria.status !== undefined
+        ? criteria.status
+        : criteria.includeInactive
+          ? undefined
+          : PrismaStatus.Active;
 
     if (criteria.userId) {
       where.userId = criteria.userId;

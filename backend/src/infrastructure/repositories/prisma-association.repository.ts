@@ -9,6 +9,7 @@ import { BusinessException } from '@/common/exceptions/business.exception';
 import { AssociationMapper } from '@/infrastructure/mappers/association.mapper';
 import { Status as PrismaStatus, Prisma } from '@prisma/client';
 import { HERD_BUSINESS_RULES } from '@/common/constants/business.constants';
+import { HerdScope } from '@/domain/utils/herd-scope.util';
 
 @Injectable()
 export class PrismaAssociationRepository implements IAssociationRepository {
@@ -364,31 +365,44 @@ export class PrismaAssociationRepository implements IAssociationRepository {
     return ranked;
   }
 
-  async getMonthlyReport(associationId: number, year: number, month: number): Promise<any> {
-    const cacheKey = `monthly_report:${associationId}:${year}:${month}`;
-    
+  async getMonthlyReport(scope: HerdScope, year: number, month: number): Promise<any> {
+    const scopeKey = scope.associationId
+      ? `assoc:${scope.associationId}`
+      : scope.adminGroupId
+        ? `admin:${scope.adminGroupId}`
+        : `user:${scope.userId}`;
+    const cacheKey = `monthly_report:${scopeKey}:${year}:${month}`;
+
     // Tenta buscar do cache
     const cached = await this.cacheManager.get(cacheKey);
     if (cached) return cached;
-    
+
     // Se não tiver no cache, calcula
-    const report = await this.calculateMonthlyReport(associationId, year, month);
-    
+    const report = await this.calculateMonthlyReport(scope, year, month);
+
     // Salva no cache (TTL 30 minutos para relatórios mensais)
     await this.cacheManager.set(cacheKey, report, 1800000);
-    
+
     return report;
   }
 
-  private async calculateMonthlyReport(associationId: number, year: number, month: number): Promise<any> {
+  private async calculateMonthlyReport(scope: HerdScope, year: number, month: number): Promise<any> {
     const startOfMonth = new Date(year, month - 1, 1);
     const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
+
+    // Mesma lógica de escopo de rebanho usada em PrismaAnimalRepository.findProductionSummary:
+    // associação formal > grupo Admin+Vaqueiros > usuário isolado.
+    const userWhere: Prisma.UserWhereInput = scope.associationId
+      ? { associationId: scope.associationId }
+      : scope.adminGroupId
+        ? { OR: [{ id: scope.adminGroupId }, { adminId: scope.adminGroupId }] }
+        : { id: scope.userId };
 
     const productionAgg = await this.prisma.dailyCollection.aggregate({
       _sum: { quantity: true },
       _count: { id: true },
       where: {
-        user: { associationId },
+        user: userWhere,
         collectionDate: {
           gte: startOfMonth,
           lte: endOfMonth,
@@ -401,7 +415,7 @@ export class PrismaAssociationRepository implements IAssociationRepository {
 
     const activeProducers = await this.prisma.user.count({
       where: {
-        associationId,
+        ...userWhere,
         dailyCollections: {
           some: {
             collectionDate: {
@@ -415,7 +429,7 @@ export class PrismaAssociationRepository implements IAssociationRepository {
 
     const totalAnimals = await this.prisma.animal.count({
       where: {
-        user: { associationId },
+        user: userWhere,
         status: 'Active',
       },
     });
