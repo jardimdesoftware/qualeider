@@ -361,7 +361,7 @@ describe('AuthService', () => {
         return values[key];
       });
 
-      const url = service.getGoogleAuthUrl();
+      const url = service.getGoogleAuthUrl('state-abc123');
       const parsed = new URL(url);
 
       expect(parsed.origin + parsed.pathname).toBe(
@@ -374,6 +374,7 @@ describe('AuthService', () => {
       expect(parsed.searchParams.get('response_type')).toBe('code');
       expect(parsed.searchParams.get('scope')).toBe('openid email profile');
       expect(parsed.searchParams.get('prompt')).toBe('select_account');
+      expect(parsed.searchParams.get('state')).toBe('state-abc123');
     });
 
     it('deve lançar UnauthorizedException quando a troca de code por token falhar', async () => {
@@ -518,6 +519,106 @@ describe('AuthService', () => {
       );
       expect(service.loginEntity).toHaveBeenCalledWith(createdUser, 'user');
       expect(result).toEqual(loginResult);
+    });
+
+    describe('vínculo com o admin que liberou o email', () => {
+      const allowed = (adminId: number | null) =>
+        ({ id: 1, email: 'ext@gmail.com', adminId, createdAt: new Date() }) as any;
+
+      beforeEach(() => {
+        (userRepository.findByEmail as jest.Mock).mockResolvedValue(null);
+        (hashService.hash as jest.Mock).mockResolvedValue('hashed-random-password');
+        (userRepository.create as jest.Mock).mockResolvedValue(
+          createUser({ id: 90, email: 'ext@gmail.com', role: UserRole.VAQUEIRO }),
+        );
+        jest.spyOn(service, 'loginEntity').mockResolvedValue({ access_token: 't' });
+      });
+
+      it('vincula o novo funcionário ao admin que liberou o email, não ao primeiro admin', async () => {
+        (allowedEmailRepository.findByEmail as jest.Mock).mockResolvedValue(allowed(55));
+        (userRepository.findById as jest.Mock).mockResolvedValue(
+          createUser({ id: 55, role: UserRole.ADMIN }),
+        );
+        (userRepository.findFirstAdmin as jest.Mock).mockResolvedValue(
+          createUser({ id: 1, role: UserRole.ADMIN }),
+        );
+
+        await service.loginWithGoogle({ email: 'ext@gmail.com' });
+
+        expect(userRepository.create).toHaveBeenCalledWith(
+          expect.objectContaining({ adminId: 55, role: UserRole.VAQUEIRO }),
+        );
+        expect(userRepository.findFirstAdmin).not.toHaveBeenCalled();
+      });
+
+      it('cai no primeiro admin quando o admin que liberou não está mais ativo', async () => {
+        (allowedEmailRepository.findByEmail as jest.Mock).mockResolvedValue(allowed(55));
+        (userRepository.findById as jest.Mock).mockResolvedValue(null);
+        (userRepository.findFirstAdmin as jest.Mock).mockResolvedValue(
+          createUser({ id: 1, role: UserRole.ADMIN }),
+        );
+
+        await service.loginWithGoogle({ email: 'ext@gmail.com' });
+
+        expect(userRepository.create).toHaveBeenCalledWith(
+          expect.objectContaining({ adminId: 1 }),
+        );
+      });
+
+      it('cai no primeiro admin para liberação antiga, sem dono', async () => {
+        (allowedEmailRepository.findByEmail as jest.Mock).mockResolvedValue(allowed(null));
+        (userRepository.findFirstAdmin as jest.Mock).mockResolvedValue(
+          createUser({ id: 1, role: UserRole.ADMIN }),
+        );
+
+        await service.loginWithGoogle({ email: 'ext@gmail.com' });
+
+        expect(userRepository.findById).not.toHaveBeenCalled();
+        expect(userRepository.create).toHaveBeenCalledWith(
+          expect.objectContaining({ adminId: 1 }),
+        );
+      });
+
+      it('completa o vínculo de funcionário existente sem admin quando o email foi liberado por um admin', async () => {
+        const orphan = createUser({
+          id: 70,
+          email: 'ext@gmail.com',
+          role: UserRole.VAQUEIRO,
+          status: Status.Active,
+          adminId: null,
+          associationId: null,
+        });
+        (userRepository.findByEmail as jest.Mock).mockResolvedValue(orphan);
+        (allowedEmailRepository.findByEmail as jest.Mock).mockResolvedValue(allowed(55));
+        (userRepository.findById as jest.Mock).mockResolvedValue(
+          createUser({ id: 55, role: UserRole.ADMIN }),
+        );
+        (userRepository.update as jest.Mock).mockResolvedValue(orphan);
+
+        await service.loginWithGoogle({ email: 'ext@gmail.com' });
+
+        expect(userRepository.update).toHaveBeenCalledWith(70, { adminId: 55 });
+        expect(userRepository.create).not.toHaveBeenCalled();
+      });
+
+      it('não altera o vínculo de funcionário que já tem admin', async () => {
+        const linked = createUser({
+          id: 71,
+          email: 'ext@gmail.com',
+          role: UserRole.VAQUEIRO,
+          status: Status.Active,
+          adminId: 12,
+        });
+        (userRepository.findByEmail as jest.Mock).mockResolvedValue(linked);
+        (allowedEmailRepository.findByEmail as jest.Mock).mockResolvedValue(allowed(55));
+
+        await service.loginWithGoogle({ email: 'ext@gmail.com' });
+
+        expect(userRepository.update).not.toHaveBeenCalledWith(
+          71,
+          expect.objectContaining({ adminId: expect.anything() }),
+        );
+      });
     });
   });
 

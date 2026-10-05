@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   ValidationPipe,
   UsePipes,
+  UseGuards,
 } from '@nestjs/common';
 import { BreedsService } from '@/application/services/breeds/breeds.service';
 import { CreateBreedDto } from '@/application/dtos/breeds/create-breed.dto';
@@ -20,10 +21,10 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Public } from '@/common/decorators/public.decorator';
+import { AdminOnlyGuard } from '@/application/guards/admin-only.guard';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
 
 @ApiTags('Raças')
-@Public()
 @Controller('breeds')
 export class BreedsController {
   constructor(private readonly breedsService: BreedsService) {}
@@ -32,6 +33,7 @@ export class BreedsController {
   @ApiResponse({ status: 201, description: 'Raça cadastrada com sucesso' })
   @ApiResponse({ status: 400, description: 'Dados inválidos ou raça já existe' })
   @Post()
+  @UseGuards(AdminOnlyGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
   @ResponseMessage('Raça criada com sucesso')
   async create(@Body() createBreedDto: CreateBreedDto) {
@@ -41,6 +43,7 @@ export class BreedsController {
   @ApiOperation({ summary: 'Listar todas as raças' })
   @ApiResponse({ status: 200, description: 'Raças listadas com sucesso' })
   @Get()
+  @Public()
   @ResponseMessage('Raças listadas com sucesso')
   async findAll() {
     return this.breedsService.findAll();
@@ -51,6 +54,7 @@ export class BreedsController {
   @ApiResponse({ status: 200, description: 'Raça encontrada com sucesso' })
   @ApiResponse({ status: 404, description: 'Raça não encontrada' })
   @Get(':id')
+  @Public()
   @ResponseMessage('Raça encontrada')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return this.breedsService.findOne(id);
@@ -61,6 +65,7 @@ export class BreedsController {
   @ApiResponse({ status: 200, description: 'Raça atualizada com sucesso' })
   @ApiResponse({ status: 404, description: 'Raça não encontrada' })
   @Put(':id')
+  @UseGuards(AdminOnlyGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
   @ResponseMessage('Raça atualizada com sucesso')
   async update(
@@ -75,6 +80,7 @@ export class BreedsController {
   @ApiResponse({ status: 200, description: 'Raça excluída com sucesso' })
   @ApiResponse({ status: 404, description: 'Raça não encontrada' })
   @Delete(':id')
+  @UseGuards(AdminOnlyGuard)
   @ResponseMessage('Raça excluída com sucesso')
   async remove(@Param('id', ParseIntPipe) id: number) {
     return this.breedsService.remove(id);
