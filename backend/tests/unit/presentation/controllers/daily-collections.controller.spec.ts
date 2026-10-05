@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ForbiddenException } from '@nestjs/common';
 import { DailyCollectionsController } from '@/presentation/controllers/daily-collections.controller';
 import { DailyCollectionsService } from '@/application/services/daily-collections/daily-collections.service';
 import { CreateDailyCollectionDto } from '@/application/dtos/daily-collections/create-daily-collection.dto';
@@ -20,6 +21,7 @@ describe('DailyCollectionsController', () => {
     remove: jest.fn(),
     findAllByUserId: jest.fn(),
     findHistoryByAnimal: jest.fn(),
+    assertCanReadUserData: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -91,57 +93,57 @@ describe('DailyCollectionsController', () => {
     });
   });
 
+  const adminA = { id: 1, userType: 'user', role: UserRole.ADMIN, associationId: null, adminId: null };
+
   describe('findAll', () => {
-    it('deve listar todas as coletas', async () => {
+    it('lista sempre dentro do escopo de quem pede', async () => {
       const items = [createDailyCollection({ id: 1 })];
       mockService.findAll.mockResolvedValue(items);
 
-      const result = await controller.findAll({});
+      const result = await controller.findAll({}, adminA);
 
-      expect(service.findAll).toHaveBeenCalledWith({});
+      expect(service.findAll).toHaveBeenCalledWith({ scope: { adminGroupId: 1 } });
       expect(result).toEqual(items);
     });
 
-    it('deve filtrar por associationId, userId e dateRange', async () => {
-      const items = [createDailyCollection({ id: 1 })];
-      mockService.findAll.mockResolvedValue(items);
+    it('os filtros da query são somados ao escopo, nunca o substituem', async () => {
+      mockService.findAll.mockResolvedValue([]);
 
-      await controller.findAll({
-        associationId: 10,
-        userId: 5,
-        startDate: '2025-01-01',
-        endDate: '2025-01-31',
-      });
+      await controller.findAll(
+        { associationId: 10, userId: 5, startDate: '2025-01-01', endDate: '2025-01-31' },
+        adminA,
+      );
 
       expect(service.findAll).toHaveBeenCalledWith({
+        scope: { adminGroupId: 1 },
         associationId: 10,
         userId: 5,
-        dateRange: {
-          start: new Date('2025-01-01'),
-          end: new Date('2025-01-31'),
-        },
+        dateRange: { start: new Date('2025-01-01'), end: new Date('2025-01-31') },
       });
     });
   });
 
   describe('findOne', () => {
-    it('deve retornar formulário por ID', async () => {
+    it('retorna a coleta, checando o escopo de quem pede', async () => {
       const item = createDailyCollection({ id: 1 });
       mockService.findOne.mockResolvedValue(item);
 
-      const result = await controller.findOne(1);
+      const result = await controller.findOne(1, adminA);
 
-      expect(service.findOne).toHaveBeenCalledWith(1);
+      expect(service.findOne).toHaveBeenCalledWith(1, adminA);
       expect(result).toEqual(item);
     });
 
-    it('deve propagar EntityNotFoundException quando formulário não existe', async () => {
-      const error = new EntityNotFoundException('Formulário não encontrado.');
-      mockService.findOne.mockRejectedValue(error);
+    it('propaga EntityNotFoundException quando a coleta não existe', async () => {
+      mockService.findOne.mockRejectedValue(new EntityNotFoundException('Formulário não encontrado.'));
 
-      await expect(controller.findOne(999)).rejects.toThrow(
-        EntityNotFoundException,
-      );
+      await expect(controller.findOne(999, adminA)).rejects.toThrow(EntityNotFoundException);
+    });
+
+    it('propaga ForbiddenException quando a coleta é de outro dono', async () => {
+      mockService.findOne.mockRejectedValue(new ForbiddenException('outro dono'));
+
+      await expect(controller.findOne(5, adminA)).rejects.toThrow(ForbiddenException);
     });
   });
 
@@ -202,61 +204,48 @@ describe('DailyCollectionsController', () => {
   });
 
   describe('findAllByUserId', () => {
-    it('deve retornar formulários do usuário (mesmo vazio)', async () => {
-      const items: any[] = [];
+    const lists = (requester: any, userId: number, scope: object) => async () => {
+      const items: any[] = [{ id: 1, userId }];
       mockService.findAll.mockResolvedValue(items);
+      mockService.assertCanReadUserData.mockResolvedValue(undefined);
 
-      const result = await controller.findAllByUserId(1);
+      const result = await controller.findAllByUserId(userId, requester);
 
-      expect(service.findAll).toHaveBeenCalledWith({ userId: 1 });
-      expect(result).toEqual([]);
-    });
-
-    it('deve retornar coletas de todos os produtores quando solicitante for ADMIN sem associacao', async () => {
-      const items: any[] = [{ id: 1, userId: 2 }];
-      mockService.findAll.mockResolvedValue(items);
-
-      const result = await controller.findAllByUserId(1, UserRole.ADMIN, null);
-
-      expect(service.findAll).toHaveBeenCalledWith({ limit: MAX_LIMIT });
+      expect(service.assertCanReadUserData).toHaveBeenCalledWith(userId, requester);
+      expect(service.findAll).toHaveBeenCalledWith({ scope, limit: MAX_LIMIT });
       expect(result).toEqual(items);
-    });
+    };
 
-    it('deve restringir por associacao quando ADMIN pertence a uma associacao (cooperativa)', async () => {
-      const items: any[] = [{ id: 1, userId: 2 }];
-      mockService.findAll.mockResolvedValue(items);
+    it('admin sem associação: o próprio grupo (não as coletas de todos os donos)', lists(adminA, 1, { adminGroupId: 1 }));
+    it('admin de uma associação: as coletas da associação', lists({ ...adminA, associationId: 10 }, 1, { associationId: 10 }));
+    it('vaqueiro cadastrado por um admin: o grupo desse admin',
+      lists({ id: 5, userType: 'user', role: UserRole.VAQUEIRO, associationId: null, adminId: 1 }, 5, { adminGroupId: 1 }));
+    it('vaqueiro sem vínculo: só as próprias',
+      lists({ id: 5, userType: 'user', role: UserRole.VAQUEIRO, associationId: null, adminId: null }, 5, { userId: 5 }));
 
-      const result = await controller.findAllByUserId(1, UserRole.ADMIN, 10);
+    it('recusa quando o id do caminho é de outro dono (nada é listado)', async () => {
+      mockService.assertCanReadUserData.mockRejectedValue(new ForbiddenException('outro dono'));
 
-      expect(service.findAll).toHaveBeenCalledWith({ associationId: 10, limit: MAX_LIMIT });
-      expect(result).toEqual(items);
-    });
-
-    it('deve retornar coletas do Admin quando VAQUEIRO foi cadastrado por ele (sem associacao/cooperativa)', async () => {
-      const items: any[] = [
-        { id: 1, userId: 1 }, // coleta do Admin
-        { id: 2, userId: 5 }, // coleta do proprio Vaqueiro
-      ];
-      mockService.findAll.mockResolvedValue(items);
-
-      const result = await controller.findAllByUserId(5, UserRole.VAQUEIRO, null, 1);
-
-      expect(service.findAll).toHaveBeenCalledWith({ adminGroupId: 1, limit: MAX_LIMIT });
-      expect(result).toEqual(items);
+      await expect(controller.findAllByUserId(99, adminA)).rejects.toThrow(ForbiddenException);
+      expect(service.findAll).not.toHaveBeenCalled();
     });
   });
 
   describe('findByAnimalId', () => {
-    it('deve retornar historico de coletas do animal', async () => {
-      const history = [
-        { collectionId: 1, collectionDate: new Date('2025-01-01'), quantity: 10, cmtResult: null },
-      ];
+    it('retorna o histórico do animal, checando o escopo de quem pede', async () => {
+      const history = [{ collectionId: 1, collectionDate: new Date('2025-01-01'), quantity: 10, cmtResult: null }];
       mockService.findHistoryByAnimal.mockResolvedValue(history);
 
-      const result = await controller.findByAnimalId(5);
+      const result = await controller.findByAnimalId(5, adminA);
 
-      expect(service.findHistoryByAnimal).toHaveBeenCalledWith(5);
+      expect(service.findHistoryByAnimal).toHaveBeenCalledWith(5, adminA);
       expect(result).toEqual(history);
+    });
+
+    it('propaga ForbiddenException quando o animal é de outro dono', async () => {
+      mockService.findHistoryByAnimal.mockRejectedValue(new ForbiddenException('outro dono'));
+
+      await expect(controller.findByAnimalId(5, adminA)).rejects.toThrow(ForbiddenException);
     });
   });
 });

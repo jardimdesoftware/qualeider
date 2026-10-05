@@ -215,7 +215,20 @@ describe('UsersService', () => {
 
       await service.findAll({ associationId: 10 }, adminRequester);
 
-      expect(userRepository.findAll).toHaveBeenCalledWith({ associationId: 10 });
+      expect(userRepository.findAll).toHaveBeenCalledWith({
+        associationId: 10,
+        scope: { adminGroupId: adminRequester.id },
+      });
+    });
+
+    it('lista só o escopo do requisitante: admin de associação vê a associação, sem associação vê o próprio grupo', async () => {
+      (userRepository.findAll as jest.Mock).mockResolvedValue({ data: [], total: 0, page: 1, limit: 50, totalPages: 0, hasNextPage: false, hasPreviousPage: false });
+
+      await service.findAll({}, { id: 1, role: UserRole.ADMIN, associationId: 9 });
+      expect(userRepository.findAll).toHaveBeenLastCalledWith({ scope: { associationId: 9 } });
+
+      await service.findAll({}, { id: 1, role: UserRole.ADMIN, associationId: null });
+      expect(userRepository.findAll).toHaveBeenLastCalledWith({ scope: { adminGroupId: 1 } });
     });
 
     it('deve negar listagem quando o requisitante nao e ADMIN', async () => {
@@ -270,13 +283,31 @@ describe('UsersService', () => {
     });
 
     it('deve permitir que ADMIN busque um funcionario inativo (para poder reativa-lo)', async () => {
-      const mockUser = createUser({ id: 2, status: Status.Inactive });
+      const mockUser = createUser({ id: 2, status: Status.Inactive, role: UserRole.VAQUEIRO, adminId: adminRequester.id });
       (userRepository.findByIdAny as jest.Mock).mockResolvedValue(mockUser);
 
       const result = await service.findOneForRequester(2, adminRequester);
 
       expect(result.id).toBe(2);
       expect(result.status).toBe(Status.Inactive);
+    });
+
+    it('admin NÃO lê usuário de outro dono (403)', async () => {
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValue(
+        createUser({ id: 9, role: UserRole.ADMIN, adminId: null, associationId: null }),
+      );
+
+      await expect(service.findOneForRequester(9, adminRequester)).rejects.toThrow(ForbiddenException);
+    });
+
+    it('admin lê a si mesmo e membros da própria associação', async () => {
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValueOnce(createUser({ id: adminRequester.id }));
+      await expect(service.findOneForRequester(adminRequester.id, adminRequester)).resolves.toBeDefined();
+
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValueOnce(createUser({ id: 8, associationId: 4, adminId: null }));
+      await expect(
+        service.findOneForRequester(8, { id: 1, role: UserRole.ADMIN, associationId: 4 }),
+      ).resolves.toBeDefined();
     });
   });
 

@@ -28,6 +28,7 @@ import { ResponseMessage } from '@/common/decorators/response-message.decorator'
 import { GetUser } from '@/common/decorators/get-user.decorator';
 import { UserRole } from '@/domain/enums/enums';
 import { MAX_LIMIT } from '@/domain/common/pagination.interface';
+import { ReadPrincipal, resolveReadScope } from '@/domain/utils/read-scope.util';
 
 @ApiTags('Animais')
 @Controller('animals')
@@ -60,8 +61,9 @@ export class AnimalsController {
   @ApiOperation({ summary: 'Listar todos os animais' })
   @ApiResponse({ status: 200, description: 'Animais listados com sucesso' })
   @Get()
-  async findAll(@Query() query: FindAnimalsDto) {
+  async findAll(@Query() query: FindAnimalsDto, @GetUser() requester: ReadPrincipal) {
     const criteria: AnimalCriteria = {
+      scope: resolveReadScope(requester),
       associationId: query.associationId,
       userId: query.userId,
       status: query.status,
@@ -106,8 +108,8 @@ export class AnimalsController {
   @ApiParam({ name: 'id', description: 'ID do animal', type: Number })
   @ApiResponse({ status: 200, description: 'Animal encontrado com sucesso' })
   @ApiResponse({ status: 404, description: 'Animal nao encontrado' })
-  async findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.animalsService.findOne(id);
+  async findOne(@Param('id', ParseIntPipe) id: number, @GetUser() requester: ReadPrincipal) {
+    return this.animalsService.findOne(id, requester);
   }
 
   @ApiOperation({ summary: 'Atualizar dados de um animal' })
@@ -189,33 +191,18 @@ export class AnimalsController {
   @ResponseMessage('Animais do usuario listados com sucesso')
   async findAllByUserId(
     @Param('userId', ParseIntPipe) userId: number,
-    @GetUser('role') role?: UserRole,
-    @GetUser('associationId') associationId?: number | null,
-    @GetUser('adminId') requesterAdminId?: number | null,
+    @GetUser() requester: ReadPrincipal,
   ) {
-    // includeInactive: esta listagem alimenta a tela de gestao do rebanho
-    // ("Meus Animais"), que decide ativos/inativos no client via o toggle
-    // "Mostrar inativos" - sem isso, animais inativados nunca voltavam da
-    // API e o toggle nao tinha efeito algum.
-    if (associationId) {
-      // Todo usuario (ADMIN ou VAQUEIRO) vinculado a uma associacao
-      // (cooperativa) enxerga o mesmo rebanho: os animais pertencem a
-      // associacao, nao a quem os cadastrou individualmente.
-      return this.animalsService.findAll({ associationId, limit: MAX_LIMIT, includeInactive: true });
-    }
-    if (role === UserRole.ADMIN) {
-      // Cenario padrao atual, sem cooperativa: o admin enxerga os animais
-      // de todos os produtores cadastrados no sistema - assim como ja
-      // ocorre em "Gerenciar Usuarios".
-      return this.animalsService.findAll({ limit: MAX_LIMIT, includeInactive: true });
-    }
-    if (requesterAdminId) {
-      // Vaqueiro vinculado a um Admin (dono da fazenda) via "Adicionar
-      // Funcionario": enxerga o mesmo rebanho desse Admin.
-      return this.animalsService.findAll({ adminGroupId: requesterAdminId, limit: MAX_LIMIT, includeInactive: true });
-    }
-    // Vaqueiro sem nenhum vinculo (legado): ve apenas os animais que ele
-    // proprio cadastrou.
-    return this.animalsService.findAll({ userId, includeInactive: true });
+    // O id do caminho precisa estar no escopo de quem pede; a lista é sempre a do
+    // escopo dele (associacao > grupo Admin + funcionarios > ele mesmo), nunca a
+    // de outro dono. includeInactive: esta listagem alimenta a tela de gestao do
+    // rebanho ("Meus Animais"), que decide ativos/inativos no client via o toggle
+    // "Mostrar inativos".
+    await this.animalsService.assertCanReadUserData(userId, requester);
+    return this.animalsService.findAll({
+      scope: resolveReadScope(requester),
+      limit: MAX_LIMIT,
+      includeInactive: true,
+    });
   }
 }

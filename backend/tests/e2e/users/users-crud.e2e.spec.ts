@@ -168,9 +168,11 @@ describe('E2E: Users - CRUD Operations', () => {
 
   describe('GET /users/:id (Find One)', () => {
     it('deve buscar usuário por ID com autenticação', async () => {
+      // Funcionário do próprio admin: ninguém lê usuários de outro dono.
       const created = await testApp
         .request()
-        .post('/users')
+        .post('/users/internal')
+        .set(authHelper.authHeader(adminToken))
         .send({
           email: 'findone@example.com',
           password: 'Test@1234',
@@ -178,6 +180,7 @@ describe('E2E: Users - CRUD Operations', () => {
           userCategory: UserCategory.Fisica,
           city: 'Brasília',
           state: 'DF',
+          role: UserRole.VAQUEIRO,
         })
         .expect(HttpStatus.CREATED);
 

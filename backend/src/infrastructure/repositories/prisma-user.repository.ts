@@ -14,6 +14,7 @@ import {
   Status as PrismaStatus
 } from '@prisma/client';
 import { PaginatedResult, normalizePaginationParams, createPaginatedResult } from '@/domain/common/pagination.interface';
+import { herdScopeUserWhere } from '@/infrastructure/utils/herd-scope-where';
 
 @Injectable()
 export class PrismaUserRepository implements IUserRepository {
@@ -60,6 +61,8 @@ export class PrismaUserRepository implements IUserRepository {
       : PrismaStatus.Active;
 
     if (criteria.associationId) where.associationId = criteria.associationId;
+
+    if (criteria.scope) where.AND = [herdScopeUserWhere(criteria.scope)];
     
     if (criteria.ids && criteria.ids.length > 0) where.id = { in: criteria.ids };
 

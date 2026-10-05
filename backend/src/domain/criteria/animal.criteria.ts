@@ -1,3 +1,4 @@
+import { HerdScope } from '@/domain/utils/herd-scope.util';
 import { AnimalType } from '@/domain/enums/enums';
 import { PaginationParams } from '../common/pagination.interface';
 
@@ -23,6 +24,8 @@ export interface AnimalCriteria extends PaginationParams {
   associationId?: number;
   userId?: number;
   adminGroupId?: number;
+  /** Escopo obrigatório de quem lê; aplicado com AND sobre os demais filtros. */
+  scope?: HerdScope;
   status?: 'Active' | 'Inactive';
   includeInactive?: boolean;
   includeUser?: boolean;

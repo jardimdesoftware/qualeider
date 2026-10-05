@@ -8,6 +8,7 @@ import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.ex
 import { BCRYPT_ROUNDS_USER_CREATION } from '@/common/constants/security.constants';
 import { UserCriteria } from '@/domain/criteria/user.criteria';
 import { UserRole } from '@/domain/enums/enums';
+import { canReadOwner, resolveReadScope } from '@/domain/utils/read-scope.util';
 
 /**
  * Identidade de quem esta fazendo a requisicao (extraida do JWT), usada para
@@ -114,7 +115,12 @@ export class UsersService {
       this.assertAdmin(requester, 'Você não tem permissão para listar usuários.');
     }
 
-    const result = await this.userRepository.findAll(criteria);
+    // Só lista usuários do escopo do requisitante (ele, seus funcionários ou a
+    // sua associação), nunca os de outros donos.
+    const result = await this.userRepository.findAll({
+      ...criteria,
+      scope: requester ? resolveReadScope(requester) : criteria?.scope,
+    });
     return {
       ...result,
       data: result.data.map(user => this.removePassword(user))
@@ -142,6 +148,9 @@ export class UsersService {
     const user = await this.userRepository.findByIdAny(id);
     if (!user) {
       throw new EntityNotFoundException(`Usuário com ID ${id} não encontrado.`);
+    }
+    if (user.id !== requester.id && !canReadOwner(requester, user)) {
+      throw new ForbiddenException('Você não tem permissão para buscar este usuário.');
     }
     return this.removePassword(user);
   }
