@@ -1,4 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
+import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { NotificationEvent } from '@/events/notification.events';
 import { NotificationSendPayload } from '@/events/notification-payload.interface';
@@ -69,7 +70,15 @@ export class NotificationsService {
     });
   }
 
-  async markAsRead(recipientId: number) {
+  /** Só o destinatário marca a própria notificação como lida. */
+  async markAsRead(recipientId: number, userId: number) {
+    const recipient = await this.prisma.notificationRecipient.findFirst({
+      where: { id: recipientId, userId },
+    });
+    if (!recipient) {
+      throw new EntityNotFoundException('Notificação não encontrada.');
+    }
+
     return this.prisma.notificationRecipient.update({
         where: { id: recipientId },
         data: { read: true, readAt: new Date() }

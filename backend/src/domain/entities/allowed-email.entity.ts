@@ -6,5 +6,7 @@ export class AllowedEmailEntity {
   }
   id!: ID;
   email!: string;
+  /** Admin que liberou o email; nulo em liberações anteriores ao vínculo. */
+  adminId?: ID | null;
   createdAt!: Date;
 }

@@ -524,16 +524,20 @@ describe('E2E: Users - CRUD Operations', () => {
 
   describe('DELETE /users/:id (Soft Delete)', () => {
     it('deve fazer soft delete de usuário', async () => {
+      // Funcionário do próprio admin (antes o alvo era um ADMIN independente
+      // criado pelo cadastro público, o que permitia exclusão entre donos).
       const deleteData = UserFactory.build({
         email: 'delete@example.com',
         name: 'Delete User',
         city: 'Recife',
         state: 'PE',
+        role: UserRole.VAQUEIRO,
       });
 
       const created = await testApp
         .request()
-        .post('/users')
+        .post('/users/internal')
+        .set(authHelper.authHeader(adminToken))
         .send(deleteData)
         .expect(HttpStatus.CREATED);
 
@@ -570,6 +574,59 @@ describe('E2E: Users - CRUD Operations', () => {
         .delete(`/users/${vaqueiroId}`)
         .set(authHelper.authHeader(vaqueiroToken))
         .expect(HttpStatus.FORBIDDEN);
+    });
+
+    describe('isolamento entre donos (um ADMIN não desativa contas de outro)', () => {
+      it('outro admin recebe 403 ao desativar o funcionário e ele continua ativo e entrando', async () => {
+        await testApp
+          .request()
+          .delete(`/users/${vaqueiroId}`)
+          .set(authHelper.authHeader(admin2Token))
+          .expect(HttpStatus.FORBIDDEN);
+
+        const still = await testApp
+          .request()
+          .get(`/users/${vaqueiroId}`)
+          .set(authHelper.authHeader(adminToken))
+          .expect(HttpStatus.OK);
+        expect(still.body.data.status).toBe(Status.Active);
+
+        await testApp
+          .request()
+          .post('/auth/login')
+          .send({ email: 'vaqueiro@example.com', password: 'Vaqueiro@1234' })
+          .expect(HttpStatus.OK);
+      });
+
+      it('outro admin recebe 403 ao desativar o próprio admin dono, que segue ativo', async () => {
+        const owner = await testApp.getPrismaService().user.findUniqueOrThrow({ where: { email: 'admin@example.com' } });
+
+        await testApp
+          .request()
+          .delete(`/users/${owner.id}`)
+          .set(authHelper.authHeader(admin2Token))
+          .expect(HttpStatus.FORBIDDEN);
+
+        const after = await testApp.getPrismaService().user.findUniqueOrThrow({ where: { id: owner.id } });
+        expect(after.status).toBe(Status.Active);
+      });
+
+      it('o admin dono continua podendo desativar o próprio funcionário', async () => {
+        const created = await testApp
+          .request()
+          .post('/users/internal')
+          .set(authHelper.authHeader(adminToken))
+          .send(
+            UserFactory.build({ email: 'desativavel@example.com', role: UserRole.VAQUEIRO }),
+          )
+          .expect(HttpStatus.CREATED);
+
+        await testApp
+          .request()
+          .delete(`/users/${created.body.data.id}`)
+          .set(authHelper.authHeader(adminToken))
+          .expect(HttpStatus.OK);
+      });
     });
   });
 

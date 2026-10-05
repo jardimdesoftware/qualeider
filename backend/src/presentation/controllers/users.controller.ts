@@ -51,8 +51,14 @@ export class UsersController {
   @ApiResponse({ status: 409, description: 'Email já cadastrado' })
   @ResponseMessage('Usuário criado com sucesso')
   async create(@Body() createUserDto: CreateUserDto) {
-    // Garante que o registro público SEMPRE cria um Admin
-    return this.usersService.create({ ...createUserDto, role: UserRole.ADMIN });
+    // Garante que o registro público SEMPRE cria um Admin. E que não escolhe
+    // associação: quem se cadastra sozinho não pode se declarar membro de uma
+    // associação qualquer (o vínculo vem de convite aceito ou de quem administra).
+    return this.usersService.create({
+      ...createUserDto,
+      role: UserRole.ADMIN,
+      associationId: undefined,
+    });
   }
 
   /**
@@ -76,6 +82,7 @@ export class UsersController {
     @Body() createUserDto: CreateUserDto,
     @GetUser('id') creatorId?: number,
     @GetUser('role') creatorRole?: UserRole,
+    @GetUser('associationId') creatorAssociationId?: number | null,
   ) {
     if (creatorRole !== UserRole.ADMIN) {
       throw new ForbiddenException('Você não tem permissão para cadastrar funcionários.');
@@ -86,7 +93,15 @@ export class UsersController {
       ? creatorId
       : undefined;
 
-    return this.usersService.create({ ...createUserDto, adminId });
+    // O admin só vincula à PRÓPRIA associação (ou a nenhuma): o associationId do
+    // corpo da requisição não pode apontar para uma associação alheia.
+    const associationId =
+      createUserDto.associationId != null &&
+      createUserDto.associationId === creatorAssociationId
+        ? createUserDto.associationId
+        : undefined;
+
+    return this.usersService.create({ ...createUserDto, adminId, associationId });
   }
 
   @Get('check-email')
@@ -202,10 +217,12 @@ export class UsersController {
     @Param('id', ParseIntPipe) id: number,
     @GetUser('id') requesterId: number,
     @GetUser('role') requesterRole: UserRole,
+    @GetUser('associationId') requesterAssociationId: number | null,
   ) {
     return this.usersService.remove(id, {
       id: requesterId,
       role: requesterRole,
+      associationId: requesterAssociationId,
     });
   }
 }

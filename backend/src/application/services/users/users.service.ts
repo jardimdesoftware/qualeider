@@ -47,6 +47,7 @@ export class UsersService {
 
   async update(id: number, updateUserDto: UpdateUserDto, requester: RequesterContext) {
     await this.assertCanManage(id, requester);
+    this.assertCanSetAssociation(updateUserDto, requester);
     return this.performUpdate(id, updateUserDto);
   }
 
@@ -56,6 +57,7 @@ export class UsersService {
     requester: RequesterContext,
   ) {
     await this.assertCanManage(id, requester);
+    this.assertCanSetAssociation(updatePartialUserDto, requester);
     return this.performUpdate(id, updatePartialUserDto);
   }
 
@@ -72,6 +74,19 @@ export class UsersService {
    * autenticado conseguia editar role/associationId de qualquer conta do
    * sistema via PUT/PATCH /users/:id (escalada de privilegio).
    */
+  /**
+   * O admin só vincula usuários à PRÓPRIA associação. Sem isso, ele encaixava um
+   * funcionário em qualquer associação e passava a enxergar os dados dela.
+   */
+  private assertCanSetAssociation(
+    dto: { associationId?: number | null },
+    requester: RequesterContext,
+  ): void {
+    if (dto.associationId != null && dto.associationId !== requester.associationId) {
+      throw new ForbiddenException('Você só pode vincular usuários à sua própria associação.');
+    }
+  }
+
   private async assertCanManage(targetId: number, requester: RequesterContext): Promise<void> {
     if (requester.role !== UserRole.ADMIN) {
       throw new ForbiddenException('Você não tem permissão para editar este usuário.');
@@ -97,7 +112,11 @@ export class UsersService {
 
   async remove(id: number, requester?: RequesterContext) {
     if (requester) {
-      this.assertAdmin(requester, 'Você não tem permissão para excluir este usuário.');
+      // Mesma regra de PUT/PATCH: o ADMIN só desativa a si mesmo, funcionários
+      // vinculados a ele ou membros da sua associação. Antes bastava ser ADMIN,
+      // e o cadastro público cria ADMIN, então qualquer visitante desativava
+      // contas de outros donos.
+      await this.assertCanManage(id, requester);
     }
 
     const deactivated = await this.userRepository.softDelete(id);

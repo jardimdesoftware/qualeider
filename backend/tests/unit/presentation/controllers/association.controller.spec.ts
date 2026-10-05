@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { AssociationsController } from '@/presentation/controllers/associations.controller';
 import { AssociationsService } from '@/application/services/associations/associations.service';
 import { CreateAssociationDto } from '@/application/dtos/associations/create-association.dto';
@@ -274,36 +275,62 @@ describe('AssociationsController', () => {
   });
 
   describe('findById', () => {
-    it('deve retornar associação por ID', async () => {
+    it('a própria associação lê os seus dados', async () => {
       mockAssociationsService.findById.mockResolvedValue(mockAssociation);
 
-      const result = await controller.findById('1');
+      const result = await controller.findById(1, 1, 'association', null);
 
       expect(associationsService.findById).toHaveBeenCalledWith(1);
       expect(result).toEqual(mockAssociation);
     });
 
+    it('um membro (usuário com associationId igual) lê a sua associação', async () => {
+      mockAssociationsService.findById.mockResolvedValue(mockAssociation);
+
+      const result = await controller.findById(1, 50, 'user', 1);
+
+      expect(result).toEqual(mockAssociation);
+    });
+
+    it.each([
+      ['usuário sem associação', 50, 'user', null],
+      ['usuário de OUTRA associação', 50, 'user', 2],
+      ['outra associação', 2, 'association', null],
+      ['usuário cujo id coincide com o da associação', 1, 'user', null],
+    ])('nega: %s', async (_label, requesterId, type, requesterAssociationId) => {
+      await expect(
+        controller.findById(1, requesterId as number, type as string, requesterAssociationId as number | null),
+      ).rejects.toThrow(ForbiddenException);
+      expect(associationsService.findById).not.toHaveBeenCalled();
+    });
+
     it('deve lançar NotFoundException se não encontrar', async () => {
       mockAssociationsService.findById.mockResolvedValue(null);
 
-      try {
-        await controller.findById('1');
-      } catch (e) {
-        expect(e.response.statusCode).toBe(404);
-        expect(e.message).toBe('Associação não encontrada');
-      }
+      await expect(controller.findById(1, 1, 'association', null)).rejects.toThrow(NotFoundException);
     });
   });
 
   describe('update', () => {
-    it('deve atualizar associação', async () => {
+    it('a própria associação atualiza os seus dados', async () => {
       const mockBody = { name: 'New Name' };
       mockAssociationsService.update.mockResolvedValue(mockAssociation);
 
-      const result = await controller.update('1', mockBody);
+      const result = await controller.update(1, mockBody, 1, 'association');
 
       expect(associationsService.update).toHaveBeenCalledWith(1, mockBody);
       expect(result).toEqual(mockAssociation);
+    });
+
+    it.each([
+      ['usuário comum', 50, 'user'],
+      ['usuário cujo id coincide com o da associação', 1, 'user'],
+      ['outra associação', 2, 'association'],
+    ])('nega: %s (não chega ao serviço)', async (_label, requesterId, type) => {
+      await expect(
+        controller.update(1, { email: 'evil@example.com', password: 'Evil@12345' }, requesterId as number, type as string),
+      ).rejects.toThrow(ForbiddenException);
+      expect(associationsService.update).not.toHaveBeenCalled();
     });
   });
 });
