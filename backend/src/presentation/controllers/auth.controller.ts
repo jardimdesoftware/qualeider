@@ -15,6 +15,7 @@ import {
   GOOGLE_OAUTH_STATE_COOKIE_PATH,
   GOOGLE_OAUTH_STATE_TTL_MS,
   generateOAuthState,
+  hashOAuthState,
   isValidOAuthState,
   readCookie,
 } from '@/common/utils/oauth-state.util';
@@ -31,16 +32,9 @@ import { Public } from '@/common/decorators/public.decorator';
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
-// SameSite=Lax: o cookie acompanha a navegação de volta do Google (GET de
-// topo) mas não requisições disparadas por outros sites.
-function googleStateCookieOptions() {
-  return {
-    httpOnly: true,
-    sameSite: 'lax' as const,
-    secure: FRONTEND_URL.startsWith('https://'),
-    path: GOOGLE_OAUTH_STATE_COOKIE_PATH,
-  };
-}
+// Secure quando o frontend é servido por HTTPS (produção); em HTTP local o
+// navegador descartaria um cookie Secure.
+const COOKIE_SECURE = FRONTEND_URL.startsWith('https://');
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -69,8 +63,14 @@ export class AuthController {
   @ApiOperation({ summary: 'Redireciona para a tela de consentimento do Google' })
   googleRedirect(@Res() res: Response) {
     const state = generateOAuthState();
-    res.cookie(GOOGLE_OAUTH_STATE_COOKIE, state, {
-      ...googleStateCookieOptions(),
+    // O cookie guarda só o hash do state (o valor cru vai apenas na URL do
+    // Google). SameSite=Lax: ele acompanha a navegação de volta do Google (GET
+    // de topo), mas não requisições disparadas por outros sites.
+    res.cookie(GOOGLE_OAUTH_STATE_COOKIE, hashOAuthState(state), {
+      httpOnly: true,
+      secure: COOKIE_SECURE,
+      sameSite: 'lax',
+      path: GOOGLE_OAUTH_STATE_COOKIE_PATH,
       maxAge: GOOGLE_OAUTH_STATE_TTL_MS,
     });
     res.redirect(this.authService.getGoogleAuthUrl(state));
@@ -86,11 +86,16 @@ export class AuthController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    const expectedState = readCookie(req.headers.cookie, GOOGLE_OAUTH_STATE_COOKIE);
+    const expectedStateHash = readCookie(req.headers.cookie, GOOGLE_OAUTH_STATE_COOKIE);
     // Uso único: o cookie é descartado independentemente do resultado.
-    res.clearCookie(GOOGLE_OAUTH_STATE_COOKIE, googleStateCookieOptions());
+    res.clearCookie(GOOGLE_OAUTH_STATE_COOKIE, {
+      httpOnly: true,
+      secure: COOKIE_SECURE,
+      sameSite: 'lax',
+      path: GOOGLE_OAUTH_STATE_COOKIE_PATH,
+    });
 
-    if (!code || !isValidOAuthState(state, expectedState)) {
+    if (!code || !isValidOAuthState(state, expectedStateHash)) {
       res.redirect(
         `${FRONTEND_URL}/login?error=${encodeURIComponent(
           'Sessão de login com o Google inválida ou expirada. Tente novamente.',

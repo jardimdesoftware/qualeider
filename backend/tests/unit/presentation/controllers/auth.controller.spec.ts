@@ -8,6 +8,10 @@ import { ResetPasswordDto } from '@/application/dtos/auth/reset-password.dto';
 import { ValidateTokenDto } from '@/application/dtos/auth/validate-token.dto';
 import { createUser } from '../../../factories/user.factory';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
+import {
+  GOOGLE_OAUTH_STATE_COOKIE,
+  hashOAuthState,
+} from '@/common/utils/oauth-state.util';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -20,6 +24,8 @@ describe('AuthController', () => {
     forgotPassword: jest.fn(),
     validateResetToken: jest.fn(),
     resetPassword: jest.fn(),
+    getGoogleAuthUrl: jest.fn(),
+    handleGoogleCallback: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -191,6 +197,110 @@ describe('AuthController', () => {
       await expect(
         controller.resetPassword(resetPasswordDto),
       ).rejects.toThrow(EntityNotFoundException);
+    });
+  });
+  describe('Google OAuth', () => {
+    const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const buildRes = () =>
+      ({ cookie: jest.fn(), clearCookie: jest.fn(), redirect: jest.fn() }) as any;
+    const reqWithStateCookie = (state?: string) =>
+      ({
+        headers: {
+          cookie: state ? `${GOOGLE_OAUTH_STATE_COOKIE}=${hashOAuthState(state)}` : undefined,
+        },
+      }) as any;
+    const errorRedirect = (message: string) =>
+      `${FRONTEND_URL}/login?error=${encodeURIComponent(message)}`;
+    const INVALID_STATE_MESSAGE =
+      'Sessão de login com o Google inválida ou expirada. Tente novamente.';
+
+    describe('googleRedirect', () => {
+      it('grava só o hash do state em cookie HttpOnly/Lax e manda o state cru ao Google', () => {
+        const res = buildRes();
+        mockAuthService.getGoogleAuthUrl.mockReturnValue('https://accounts.google.com/o/oauth2/v2/auth?x=1');
+
+        controller.googleRedirect(res);
+
+        const state = mockAuthService.getGoogleAuthUrl.mock.calls[0][0];
+        expect(state).toMatch(/^[0-9a-f]{64}$/);
+        expect(res.cookie).toHaveBeenCalledWith(
+          GOOGLE_OAUTH_STATE_COOKIE,
+          hashOAuthState(state),
+          expect.objectContaining({
+            httpOnly: true,
+            sameSite: 'lax',
+            path: '/api/auth/google',
+            maxAge: 10 * 60 * 1000,
+            secure: FRONTEND_URL.startsWith('https://'),
+          }),
+        );
+        expect(res.cookie.mock.calls[0][1]).not.toBe(state);
+        expect(res.redirect).toHaveBeenCalledWith('https://accounts.google.com/o/oauth2/v2/auth?x=1');
+      });
+    });
+
+    describe('googleCallback', () => {
+      it('state válido: autentica e redireciona ao frontend com o token', async () => {
+        const res = buildRes();
+        mockAuthService.handleGoogleCallback.mockResolvedValue({ access_token: 'jwt-123' });
+
+        await controller.googleCallback('codigo', 'estado-ok', reqWithStateCookie('estado-ok'), res);
+
+        expect(mockAuthService.handleGoogleCallback).toHaveBeenCalledWith('codigo');
+        expect(res.redirect).toHaveBeenCalledWith(`${FRONTEND_URL}/google-callback?token=jwt-123`);
+      });
+
+      it('descarta o cookie de state em qualquer resultado (uso único)', async () => {
+        const res = buildRes();
+
+        await controller.googleCallback('codigo', 'forjado', reqWithStateCookie(), res);
+
+        expect(res.clearCookie).toHaveBeenCalledWith(
+          GOOGLE_OAUTH_STATE_COOKIE,
+          expect.objectContaining({ httpOnly: true, sameSite: 'lax', path: '/api/auth/google' }),
+        );
+      });
+
+      it.each([
+        ['sem cookie de state', 'estado', undefined],
+        ['state diferente do cookie', 'outro', 'estado'],
+      ])('%s: volta ao login sem falar com o Google', async (_label, urlState, cookieState) => {
+        const res = buildRes();
+
+        await controller.googleCallback('codigo', urlState, reqWithStateCookie(cookieState), res);
+
+        expect(mockAuthService.handleGoogleCallback).not.toHaveBeenCalled();
+        expect(res.redirect).toHaveBeenCalledWith(errorRedirect(INVALID_STATE_MESSAGE));
+      });
+
+      it('sem code (usuário negou o acesso): volta ao login sem falar com o Google', async () => {
+        const res = buildRes();
+
+        await controller.googleCallback(undefined as any, 'estado', reqWithStateCookie('estado'), res);
+
+        expect(mockAuthService.handleGoogleCallback).not.toHaveBeenCalled();
+        expect(res.redirect).toHaveBeenCalledWith(errorRedirect(INVALID_STATE_MESSAGE));
+      });
+
+      it('falha do serviço: redireciona ao login com a mensagem do erro', async () => {
+        const res = buildRes();
+        mockAuthService.handleGoogleCallback.mockRejectedValue(
+          new UnauthorizedException('Este email não tem acesso.'),
+        );
+
+        await controller.googleCallback('codigo', 'estado', reqWithStateCookie('estado'), res);
+
+        expect(res.redirect).toHaveBeenCalledWith(errorRedirect('Este email não tem acesso.'));
+      });
+
+      it('falha que não é um Error: usa a mensagem padrão', async () => {
+        const res = buildRes();
+        mockAuthService.handleGoogleCallback.mockRejectedValue('quebrou');
+
+        await controller.googleCallback('codigo', 'estado', reqWithStateCookie('estado'), res);
+
+        expect(res.redirect).toHaveBeenCalledWith(errorRedirect('Não foi possível autenticar com o Google.'));
+      });
     });
   });
 });

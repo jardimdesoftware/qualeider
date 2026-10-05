@@ -1,5 +1,6 @@
 import {
   generateOAuthState,
+  hashOAuthState,
   isValidOAuthState,
   readCookie,
 } from '@/common/utils/oauth-state.util';
@@ -12,6 +13,20 @@ describe('oauth-state.util', () => {
 
       expect(a).toMatch(/^[0-9a-f]{64}$/);
       expect(a).not.toBe(b);
+    });
+  });
+
+  describe('hashOAuthState', () => {
+    it('devolve SHA-256 em hex, determinístico e diferente do valor original', () => {
+      const state = generateOAuthState();
+
+      expect(hashOAuthState(state)).toMatch(/^[0-9a-f]{64}$/);
+      expect(hashOAuthState(state)).toBe(hashOAuthState(state));
+      expect(hashOAuthState(state)).not.toBe(state);
+    });
+
+    it('valores diferentes geram hashes diferentes', () => {
+      expect(hashOAuthState('a')).not.toBe(hashOAuthState('b'));
     });
   });
 
@@ -30,6 +45,10 @@ describe('oauth-state.util', () => {
       expect(readCookie('outro=1', 'k')).toBeUndefined();
     });
 
+    it('ignora pedaços sem "="', () => {
+      expect(readCookie('semvalor; k=1', 'k')).toBe('1');
+    });
+
     it('não confunde nomes que apenas terminam igual', () => {
       expect(readCookie('xk=1', 'k')).toBeUndefined();
     });
@@ -40,20 +59,28 @@ describe('oauth-state.util', () => {
   });
 
   describe('isValidOAuthState', () => {
-    it('aceita quando o state recebido é igual ao do cookie', () => {
-      expect(isValidOAuthState('abc', 'abc')).toBe(true);
+    it('aceita quando o hash do state recebido é o do cookie', () => {
+      const state = generateOAuthState();
+
+      expect(isValidOAuthState(state, hashOAuthState(state))).toBe(true);
     });
 
-    it('recusa quando diferem', () => {
-      expect(isValidOAuthState('abc', 'abd')).toBe(false);
+    it('recusa quando o state não corresponde ao hash do cookie', () => {
+      expect(isValidOAuthState('abc', hashOAuthState('abd'))).toBe(false);
     });
 
-    it('recusa quando os tamanhos diferem (sem lançar)', () => {
-      expect(isValidOAuthState('abc', 'abcd')).toBe(false);
+    it('recusa o state cru no lugar do hash (o cookie não guarda o valor original)', () => {
+      const state = generateOAuthState();
+
+      expect(isValidOAuthState(state, state)).toBe(false);
+    });
+
+    it('recusa cookie de tamanho diferente (sem lançar)', () => {
+      expect(isValidOAuthState('abc', 'curto')).toBe(false);
     });
 
     it('recusa quando falta o state ou o cookie', () => {
-      expect(isValidOAuthState(undefined, 'abc')).toBe(false);
+      expect(isValidOAuthState(undefined, hashOAuthState('abc'))).toBe(false);
       expect(isValidOAuthState('abc', undefined)).toBe(false);
       expect(isValidOAuthState('', '')).toBe(false);
     });
