@@ -261,12 +261,22 @@ describe('UsersService', () => {
 
     it('deve permitir busca por ID quando o requisitante e ADMIN', async () => {
       const mockUser = createUser({ id: 1, status: Status.Active });
-      (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValue(mockUser);
 
       const result = await service.findOneForRequester(1, adminRequester);
 
-      expect(userRepository.findById).toHaveBeenCalledWith(1);
+      expect(userRepository.findByIdAny).toHaveBeenCalledWith(1);
       expect(result.id).toBe(1);
+    });
+
+    it('deve permitir que ADMIN busque um funcionario inativo (para poder reativa-lo)', async () => {
+      const mockUser = createUser({ id: 2, status: Status.Inactive });
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValue(mockUser);
+
+      const result = await service.findOneForRequester(2, adminRequester);
+
+      expect(result.id).toBe(2);
+      expect(result.status).toBe(Status.Inactive);
     });
   });
 

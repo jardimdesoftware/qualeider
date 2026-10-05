@@ -21,6 +21,8 @@ import { UpdateAssociationDto } from '@/application/dtos/associations/update-ass
 import { BusinessException } from '@/common/exceptions/business.exception';
 import { ResponseMessage } from '@/common/decorators/response-message.decorator';
 import { Public } from '@/common/decorators/public.decorator';
+import { UserRole } from '@/domain/enums/enums';
+import { HerdScope, resolveHerdScope } from '@/domain/utils/herd-scope.util';
 
 @ApiTags('associations')
 @Controller('associations')
@@ -125,8 +127,27 @@ export class AssociationsController {
   @ApiOperation({ summary: 'Obter relatório mensal agregado' })
   @ApiResponse({ status: 200, description: 'Relatório mensal retornado com sucesso.' })
   @ApiResponse({ status: 400, description: 'Parâmetros inválidos ou faltando.' })
-  async getMonthlyReport(@GetUser('id') associationId: number, @Query() dto: GetMonthlyReportDto) {
-    return this.associationsService.getMonthlyReport(associationId, dto.year, dto.month);
+  async getMonthlyReport(
+    @GetUser('id') requesterId: number,
+    @GetUser('role') requesterRole: UserRole,
+    @GetUser('associationId') requesterAssociationId: number | null,
+    @GetUser('adminId') requesterAdminId: number | null,
+    @GetUser('userType') requesterType: 'user' | 'association' | undefined,
+    @Query() dto: GetMonthlyReportDto,
+  ) {
+    // Login como Associacao: o `id` do token e o da propria associacao (nao ha
+    // role/associationId no request.user), entao ele nao pode passar por
+    // resolveHerdScope - cairia em { userId } e colidiria com ids de usuarios.
+    const scope: HerdScope =
+      requesterType === 'association'
+        ? { associationId: requesterId }
+        : resolveHerdScope({
+            id: requesterId,
+            role: requesterRole,
+            associationId: requesterAssociationId,
+            adminId: requesterAdminId,
+          });
+    return this.associationsService.getMonthlyReport(scope, dto.year, dto.month);
   }
 
   @Get(':id')

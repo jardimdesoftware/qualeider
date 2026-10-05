@@ -3,6 +3,21 @@ import { ThrottlerGuard, ThrottlerRequest } from '@nestjs/throttler';
 
 @Injectable()
 export class AppThrottlerGuard extends ThrottlerGuard {
+  /**
+   * Quem é o "dono" do balde: usuário autenticado -> o próprio usuário;
+   * visitante -> o IP real (req.ip, que respeita `trust proxy`).
+   *
+   * Depende de o JwtAuthGuard ter rodado antes (ver ordem dos APP_GUARD em
+   * app.module.ts) para que `req.user` já esteja preenchido.
+   */
+  protected async getTracker(req: Record<string, any>): Promise<string> {
+    const user = req.user;
+    if (user?.id != null) {
+      return `${user.userType ?? 'user'}:${user.id}`;
+    }
+    return super.getTracker(req);
+  }
+
   protected async handleRequest(
     requestProps: ThrottlerRequest
   ): Promise<boolean> {
@@ -15,7 +30,7 @@ export class AppThrottlerGuard extends ThrottlerGuard {
     const hasVipPass = req.headers['x-e2e-bypass'] === 'true';
 
     if (isTestEnv && hasVipPass) {
-      return true; 
+      return true;
     }
 
     return super.handleRequest(requestProps);
