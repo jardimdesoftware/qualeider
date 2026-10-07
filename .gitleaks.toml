@@ -1,0 +1,16 @@
+title = "Qualeider — gitleaks"
+
+[extend]
+useDefault = true
+
+# Fixtures de teste usam tokens fictícios (ex.: token: 'abc123-def456') que a regra
+# genérica confunde com chaves de API. Só ela é liberada nessas pastas: regras de
+# fornecedores (AWS, GitHub, Google...) e de chaves privadas continuam valendo.
+[[allowlists]]
+description = "Tokens fictícios em fixtures de teste"
+targetRules = ["generic-api-key"]
+paths = [
+  '''backend/tests/''',
+  '''backend/Tests/''',
+  '''frontend/src/.*__tests__/''',
+]

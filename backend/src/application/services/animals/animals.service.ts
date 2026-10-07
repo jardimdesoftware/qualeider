@@ -8,6 +8,8 @@ import { AnimalCriteria } from '@/domain/criteria/animal.criteria';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 import { BusinessException } from '@/common/exceptions/business.exception';
 import { isSameHerd, resolveHerdScope } from '@/domain/utils/herd-scope.util';
+import { ReadPrincipal } from '@/domain/utils/read-scope.util';
+import { assertCanReadOwner, assertCanReadUserData } from '@/application/utils/read-access.util';
 import { UserRole, ActivityEventType } from '@/domain/enums/enums';
 import { ActivityLogService } from '@/application/services/activity-logs/activity-logs.service';
 
@@ -138,12 +140,20 @@ export class AnimalsService {
     return this.animalRepository.findProductionSummary(scope, startDate, endDate);
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, reader?: ReadPrincipal) {
     const animal = await this.animalRepository.findById(id);
     if (!animal) {
       throw new EntityNotFoundException(`Animal com ID ${id} não encontrado.`);
     }
+    // Com `reader` (leitura pela API) o dono precisa estar no escopo dele.
+    if (reader) {
+      await assertCanReadOwner(this.userRepository, animal.userId as number, reader);
+    }
     return animal;
+  }
+
+  async assertCanReadUserData(userId: number, reader: ReadPrincipal) {
+    await assertCanReadUserData(this.userRepository, userId, reader);
   }
 
   async update(id: number, updateAnimalDto: UpdateAnimalDto, requester?: AnimalRequesterContext) {

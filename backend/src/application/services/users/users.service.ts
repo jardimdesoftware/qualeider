@@ -8,6 +8,7 @@ import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.ex
 import { BCRYPT_ROUNDS_USER_CREATION } from '@/common/constants/security.constants';
 import { UserCriteria } from '@/domain/criteria/user.criteria';
 import { UserRole } from '@/domain/enums/enums';
+import { canReadOwner, resolveReadScope } from '@/domain/utils/read-scope.util';
 
 /**
  * Identidade de quem esta fazendo a requisicao (extraida do JWT), usada para
@@ -46,6 +47,7 @@ export class UsersService {
 
   async update(id: number, updateUserDto: UpdateUserDto, requester: RequesterContext) {
     await this.assertCanManage(id, requester);
+    this.assertCanSetAssociation(updateUserDto, requester);
     return this.performUpdate(id, updateUserDto);
   }
 
@@ -55,6 +57,7 @@ export class UsersService {
     requester: RequesterContext,
   ) {
     await this.assertCanManage(id, requester);
+    this.assertCanSetAssociation(updatePartialUserDto, requester);
     return this.performUpdate(id, updatePartialUserDto);
   }
 
@@ -71,6 +74,19 @@ export class UsersService {
    * autenticado conseguia editar role/associationId de qualquer conta do
    * sistema via PUT/PATCH /users/:id (escalada de privilegio).
    */
+  /**
+   * O admin só vincula usuários à PRÓPRIA associação. Sem isso, ele encaixava um
+   * funcionário em qualquer associação e passava a enxergar os dados dela.
+   */
+  private assertCanSetAssociation(
+    dto: { associationId?: number | null },
+    requester: RequesterContext,
+  ): void {
+    if (dto.associationId != null && dto.associationId !== requester.associationId) {
+      throw new ForbiddenException('Você só pode vincular usuários à sua própria associação.');
+    }
+  }
+
   private async assertCanManage(targetId: number, requester: RequesterContext): Promise<void> {
     if (requester.role !== UserRole.ADMIN) {
       throw new ForbiddenException('Você não tem permissão para editar este usuário.');
@@ -96,7 +112,11 @@ export class UsersService {
 
   async remove(id: number, requester?: RequesterContext) {
     if (requester) {
-      this.assertAdmin(requester, 'Você não tem permissão para excluir este usuário.');
+      // Mesma regra de PUT/PATCH: o ADMIN só desativa a si mesmo, funcionários
+      // vinculados a ele ou membros da sua associação. Antes bastava ser ADMIN,
+      // e o cadastro público cria ADMIN, então qualquer visitante desativava
+      // contas de outros donos.
+      await this.assertCanManage(id, requester);
     }
 
     const deactivated = await this.userRepository.softDelete(id);
@@ -114,7 +134,12 @@ export class UsersService {
       this.assertAdmin(requester, 'Você não tem permissão para listar usuários.');
     }
 
-    const result = await this.userRepository.findAll(criteria);
+    // Só lista usuários do escopo do requisitante (ele, seus funcionários ou a
+    // sua associação), nunca os de outros donos.
+    const result = await this.userRepository.findAll({
+      ...criteria,
+      scope: requester ? resolveReadScope(requester) : criteria?.scope,
+    });
     return {
       ...result,
       data: result.data.map(user => this.removePassword(user))
@@ -133,7 +158,20 @@ export class UsersService {
 
   async findOneForRequester(id: number, requester: RequesterContext) {
     this.assertAdmin(requester, 'Você não tem permissão para buscar este usuário.');
-    return this.findOne(id);
+    // findByIdAny (não findOne/findById): esta rota alimenta a tela de edição
+    // de funcionário, que precisa carregar também usuários inativos (é o
+    // único jeito de reverter uma inativação pela interface — sem isso, o
+    // campo "Status da Conta" existe no formulário mas nunca é alcançável
+    // de volta). findOne continua Active-only pois também é usado pela
+    // JwtStrategy para validar login.
+    const user = await this.userRepository.findByIdAny(id);
+    if (!user) {
+      throw new EntityNotFoundException(`Usuário com ID ${id} não encontrado.`);
+    }
+    if (user.id !== requester.id && !canReadOwner(requester, user)) {
+      throw new ForbiddenException('Você não tem permissão para buscar este usuário.');
+    }
+    return this.removePassword(user);
   }
 
   async exists(id: number): Promise<boolean> {

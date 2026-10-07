@@ -1,3 +1,4 @@
+import { HerdScope } from '@/domain/utils/herd-scope.util';
 import { PaginationParams } from '../common/pagination.interface';
 
 /**
@@ -16,6 +17,8 @@ export interface DailyCollectionCriteria extends PaginationParams {
   associationId?: number;
   userId?: number;
   adminGroupId?: number;
+  /** Escopo obrigatório de quem lê; aplicado com AND sobre os demais filtros. */
+  scope?: HerdScope;
   dateRange?: {
     start: Date;
     end: Date;

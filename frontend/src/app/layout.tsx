@@ -16,6 +16,10 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// A CSP usa um nonce por requisição (src/proxy.ts), que só pode ser aplicado em
+// renderização dinâmica; páginas estáticas seriam geradas sem nonce.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "QuaLeiDer | IFPE",
   description: "Centralizador de informacoes sobre a qualidade do leite",
