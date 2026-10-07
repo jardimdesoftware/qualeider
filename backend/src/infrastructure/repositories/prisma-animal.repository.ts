@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/prisma/prisma.service';
-import { IAnimalRepository, AnimalFindOneOptions } from '@/domain/repositories/animal.repository';
+import {
+  IAnimalRepository,
+  AnimalFindOneOptions,
+  AnimalProductionSummary,
+} from '@/domain/repositories/animal.repository';
 import { ID } from '@/domain/enums/enums';
 import { AnimalEntity } from '@/domain/entities/animal.entity';
 import { AnimalCriteria } from '@/domain/criteria/animal.criteria';
@@ -9,6 +13,7 @@ import { handlePrismaError, PrismaErrorCode } from '@/common/utils/prisma-error-
 import { AnimalMapper } from '@/infrastructure/mappers/animal.mapper';
 import { Status as PrismaStatus } from '@prisma/client';
 import { PaginatedResult, normalizePaginationParams, createPaginatedResult } from '@/domain/common/pagination.interface';
+import { herdScopeUserWhere } from '@/infrastructure/utils/herd-scope-where';
 
 const ANIMAL_INCLUDE: any = {
   animalSpecies: true,
@@ -54,7 +59,12 @@ export class PrismaAnimalRepository implements IAnimalRepository {
   async findAll(criteria: AnimalCriteria = {}): Promise<PaginatedResult<AnimalEntity>> {
     const where: any = {};
 
-    where.status = criteria.status !== undefined ? criteria.status : PrismaStatus.Active;
+    where.status =
+      criteria.status !== undefined
+        ? criteria.status
+        : criteria.includeInactive
+          ? undefined
+          : PrismaStatus.Active;
 
     if (criteria.userId) {
       where.userId = criteria.userId;
@@ -70,6 +80,10 @@ export class PrismaAnimalRepository implements IAnimalRepository {
       where.user = {
         OR: [{ id: criteria.adminGroupId }, { adminId: criteria.adminGroupId }],
       };
+    }
+
+    if (criteria.scope) {
+      where.AND = [{ user: herdScopeUserWhere(criteria.scope) }];
     }
 
     if (criteria.animalType) {
@@ -213,6 +227,66 @@ export class PrismaAnimalRepository implements IAnimalRepository {
         [PrismaErrorCode.UNIQUE_CONSTRAINT_VIOLATION]: 'Ja existe um animal com esse numero de identificacao para este produtor.',
       });
     }
+  }
+
+  async findProductionSummary(
+    scope: HerdScope,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<AnimalProductionSummary[]> {
+    const where: any = { status: PrismaStatus.Active };
+
+    if (scope.associationId) {
+      where.user = { associationId: scope.associationId };
+    } else if (scope.adminGroupId) {
+      where.user = {
+        OR: [{ id: scope.adminGroupId }, { adminId: scope.adminGroupId }],
+      };
+    } else if (scope.userId) {
+      where.userId = scope.userId;
+    }
+
+    const animals = await this.prisma.animal.findMany({
+      where,
+      select: { id: true, name: true, tagNumber: true },
+      orderBy: { tagNumber: 'asc' },
+    });
+
+    if (animals.length === 0) return [];
+
+    const itemWhere: any = { animalId: { in: animals.map((a) => a.id) } };
+    if (startDate || endDate) {
+      itemWhere.dailyCollection = {
+        collectionDate: {
+          ...(startDate ? { gte: startDate } : {}),
+          ...(endDate ? { lte: endDate } : {}),
+        },
+      };
+    }
+
+    const grouped = await this.prisma.dailyCollectionItem.groupBy({
+      by: ['animalId'],
+      where: itemWhere,
+      _sum: { quantity: true },
+      _count: { _all: true },
+    });
+
+    const byAnimalId = new Map(grouped.map((g) => [g.animalId, g]));
+
+    return animals.map((animal) => {
+      const summary = byAnimalId.get(animal.id);
+      const totalProduction = summary?._sum.quantity ?? 0;
+      const collectionsCount = summary?._count._all ?? 0;
+
+      return {
+        animalId: animal.id,
+        name: animal.name,
+        tagNumber: animal.tagNumber,
+        totalProduction,
+        collectionsCount,
+        avgProduction: collectionsCount > 0 ? totalProduction / collectionsCount : 0,
+      };
+    });
   }
 
   async softDelete(id: ID): Promise<AnimalEntity> {

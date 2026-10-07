@@ -1,6 +1,13 @@
 generator client {
   provider = "prisma-client-js"
-  binaryTargets = ["native", "debian-openssl-3.0.x"]
+  // "native" gera o engine da máquina de quem roda `prisma generate` (Windows, macOS,
+  // Linux de desenvolvimento). Sem ele, o app local não acha o engine do seu sistema.
+  // Os dois targets Linux ficam listados explicitamente porque o Dockerfile roda
+  // `prisma generate` sempre na plataforma nativa do runner (--platform=$BUILDPLATFORM),
+  // mesmo ao montar a imagem final para linux/arm64 — rodar o engine Wasm do Prisma
+  // sob emulação QEMU corrompe o JSON do getDmmf (erro "Unable to parse JSON").
+  // Nesse build, "native" coincide com um dos dois e o Prisma remove a duplicata.
+  binaryTargets = ["native", "debian-openssl-3.0.x", "linux-arm64-openssl-3.0.x"]
 }
 
 datasource db {
@@ -87,6 +94,14 @@ enum UserRole {
   VAQUEIRO
 }
 
+enum ActivityEventType {
+  LOGIN
+  DAILY_COLLECTION_CREATED
+  DAILY_COLLECTION_UPDATED
+  ANIMAL_CREATED
+  ANIMAL_UPDATED
+}
+
 model User {
   id                    Int              @id @default(autoincrement())
   associationId         Int?
@@ -113,9 +128,25 @@ model User {
   dailyCollections      DailyCollection[]
   invites               Invite[]
   receivedNotifications NotificationRecipient[]
+  activityLogs          ActivityLog[]
+  allowedEmails         AllowedEmail[]   @relation("AdminAllowedEmails")
   @@index([city, state, status])
   @@index([associationId, status])
   @@index([adminId])
+}
+
+// Historico de acoes do usuario (login, coleta/animal criado ou editado),
+// consultavel pelo ADMIN para acompanhar a atividade dos seus Vaqueiros.
+model ActivityLog {
+  id        Int               @id @default(autoincrement())
+  userId    Int
+  user      User              @relation(fields: [userId], references: [id])
+  eventType ActivityEventType
+  metadata  Json?
+  createdAt DateTime          @default(now())
+
+  @@index([userId])
+  @@index([userId, createdAt])
 }
 
 model Breed {
@@ -298,7 +329,12 @@ model FailedEmail {
 model AllowedEmail {
   id        Int      @id @default(autoincrement())
   email     String   @unique
+  // Admin que liberou o email: no primeiro login via Google o funcionário é
+  // vinculado a ele (User.adminId). Nulo = liberado antes deste vínculo existir.
+  adminId   Int?
+  admin     User?    @relation("AdminAllowedEmails", fields: [adminId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
 
+  @@index([adminId])
   @@map("allowed_emails")
 }

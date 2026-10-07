@@ -6,14 +6,8 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import {
-  BrandHeader,
-  ContentCard,
-  InputField,
-  Button,
-  ErrorModal,
-} from "@/components/ui";
-import { PageFooter } from "@/components/layout";
+import { InputField, Button, ErrorModal } from "@/components/ui";
+import { AuthLayout } from "@/components/layout";
 import { forgotPasswordSchema, ForgotPasswordData } from "@/schemas/auth";
 import { useForgotPassword } from "@/hooks/queries/useAuth";
 import { getFriendlyErrorMessage } from "@/utils/errorMessage";
@@ -28,10 +22,8 @@ export default function ForgotPassword() {
   });
 
   const { mutateAsync: sendResetCode, isPending } = useForgotPassword();
-  // ...
-  
-  // ...
-    const {
+
+  const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting: isFormSubmitting },
@@ -69,7 +61,10 @@ export default function ForgotPassword() {
   };
 
   return (
-    <main className="campus-page-shell flex min-h-screen items-center justify-center px-4 py-10">
+    <AuthLayout
+      title="Recuperar Senha"
+      subtitle="Digite seu email para receber o código"
+    >
       <ErrorModal
         isOpen={modalState.isOpen}
         onClose={handleModalClose}
@@ -78,45 +73,34 @@ export default function ForgotPassword() {
         type={modalState.type}
       />
 
-      <ContentCard className="max-w-md">
-        <BrandHeader
-          title="Recuperar Senha"
-          subtitle="Digite seu email para receber o código"
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <InputField
+          label="E-mail"
+          type="email"
+          disabled={isSubmitting}
+          error={errors.email?.message}
+          {...register("email")}
         />
 
-        <div className="p-8 pb-6">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <InputField
-              label="E-mail"
-              type="email"
-              disabled={isSubmitting}
-              error={errors.email?.message}
-              {...register("email")}
-            />
+        <Button
+          type="submit"
+          variant="primary"
+          fullWidth
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "ENVIANDO..." : "ENVIAR CÓDIGO"}
+        </Button>
+      </form>
 
-            <Button
-              type="submit"
-              variant="primary"
-              fullWidth
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "ENVIANDO..." : "ENVIAR CÓDIGO"}
-            </Button>
-          </form>
-
-          <p className="text-center text-gray-600 text-sm mt-6">
-            Lembrou da senha?{" "}
-            <Link
-              href="/login"
-              className="text-brand-primary hover:text-brand-primary-hover font-semibold transition-colors"
-            >
-              Fazer Login
-            </Link>
-          </p>
-        </div>
-
-        <PageFooter />
-      </ContentCard>
-    </main>
+      <p className="text-center text-gray-600 text-sm mt-6">
+        Lembrou da senha?{" "}
+        <Link
+          href="/login"
+          className="text-slate-800 hover:text-slate-900 font-semibold transition-colors"
+        >
+          Fazer Login
+        </Link>
+      </p>
+    </AuthLayout>
   );
 }

@@ -42,12 +42,20 @@ describe('E2E: Auth - Forgot/Reset Password', () => {
       expect(response.body.message).toContain('receberá um link');
     });
 
-    it('deve retornar 404 com email inexistente', async () => {
-      await testApp
+    it('não revela se o e-mail existe: e-mail inexistente recebe exatamente a mesma resposta', async () => {
+      const unknown = await testApp
         .request()
         .post('/auth/forgot-password')
         .send({ email: 'nonexistent@example.com' })
-        .expect(HttpStatus.NOT_FOUND);
+        .expect(HttpStatus.OK);
+      const known = await testApp
+        .request()
+        .post('/auth/forgot-password')
+        .send({ email: userEmail })
+        .expect(HttpStatus.OK);
+
+      expect(unknown.body.statusCode).toBe(known.body.statusCode);
+      expect(unknown.body.message).toBe(known.body.message);
     });
 
     it('deve retornar 400 com email inválido', async () => {
@@ -167,8 +175,8 @@ describe('E2E: Auth - Forgot/Reset Password', () => {
         .expect(HttpStatus.UNAUTHORIZED);
     });
 
-    it('deve retornar 404 com email inexistente', async () => {
-      await testApp
+    it('e-mail inexistente responde como token errado (401), sem revelar o e-mail', async () => {
+      const unknown = await testApp
         .request()
         .post('/auth/reset-password')
         .send({
@@ -176,7 +184,18 @@ describe('E2E: Auth - Forgot/Reset Password', () => {
           token: '000000',
           newPassword: 'ValidPass@123',
         })
-        .expect(HttpStatus.NOT_FOUND);
+        .expect(HttpStatus.UNAUTHORIZED);
+      const wrongToken = await testApp
+        .request()
+        .post('/auth/reset-password')
+        .send({
+          email: userEmail,
+          token: '000000',
+          newPassword: 'ValidPass@123',
+        })
+        .expect(HttpStatus.UNAUTHORIZED);
+
+      expect(unknown.body.message).toEqual(wrongToken.body.message);
     });
 
     it('deve retornar 400 sem campos obrigatórios', async () => {

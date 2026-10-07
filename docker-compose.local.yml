@@ -64,11 +64,24 @@ services:
       NODE_ENV: production
       SWAGGER_ENABLED: ${SWAGGER_ENABLED:-true}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
+      # Atrás do nginx do stack (que sobrescreve o X-Forwarded-For): o IP do cliente
+      # vem desse header, e o rate limit por IP das rotas públicas passa a ser por
+      # cliente em vez de um balde único para todos.
+      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-1}
       SMTP_HOST: ${SMTP_HOST:-smtp.ethereal.email}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-noreply@qualeider.com}
+      # Contas locais (e-mail/senha) criadas na subida se EMAIL e PASSWORD vierem preenchidos.
+      # Sem valor, usa as contas de teste embutidas (DEFAULT_ACCOUNTS_DISABLED=true desliga). Idempotente: nunca altera conta existente.
+      DEFAULT_ACCOUNTS_DISABLED: ${DEFAULT_ACCOUNTS_DISABLED:-}
+      DEFAULT_ADMIN_EMAIL: ${DEFAULT_ADMIN_EMAIL:-}
+      DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:-}
+      DEFAULT_ADMIN_NAME: ${DEFAULT_ADMIN_NAME:-}
+      DEFAULT_VAQUEIRO_EMAIL: ${DEFAULT_VAQUEIRO_EMAIL:-}
+      DEFAULT_VAQUEIRO_PASSWORD: ${DEFAULT_VAQUEIRO_PASSWORD:-}
+      DEFAULT_VAQUEIRO_NAME: ${DEFAULT_VAQUEIRO_NAME:-}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-http://localhost:8080/api/auth/google/callback}

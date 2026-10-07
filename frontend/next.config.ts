@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import withBundleAnalyzer from "@next/bundle-analyzer";
+import { securityHeaders } from "./src/lib/security-headers";
 
 const analyze = withBundleAnalyzer({
   enabled: process.env.ANALYZE === "true",
@@ -7,13 +8,19 @@ const analyze = withBundleAnalyzer({
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // Não revelar a stack (header X-Powered-By: Next.js).
+  poweredByHeader: false,
+  async headers() {
+    return [{ source: "/(.*)", headers: securityHeaders }];
+  },
   async rewrites() {
     return [
       {
         source: "/api/:path*",
-        destination: process.env.NODE_ENV === 'development'
-          ? "http://localhost:3002/api/:path*" // Backend no Docker (porta 3002)
-          : "http://backend:3000/api/:path*", // Docker interno
+        destination:
+          process.env.NODE_ENV === "development"
+            ? "http://localhost:3002/api/:path*" // Backend no Docker (porta 3002)
+            : "http://backend:3000/api/:path*", // Docker interno
       },
     ];
   },

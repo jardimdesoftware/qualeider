@@ -8,11 +8,15 @@ export const USER_KEYS = {
   byId: (id: number) => ["users", id] as const,
 };
 
-export function useUsers(params?: Record<string, unknown>) {
+export function useUsers(
+  params?: Record<string, unknown> & { enabled?: boolean },
+) {
+  const { enabled = true, ...queryParams } = params ?? {};
   return useQuery<User[]>({
-    queryKey: [...USER_KEYS.all, params],
-    queryFn: () => userService.findAll(params),
+    queryKey: [...USER_KEYS.all, queryParams],
+    queryFn: () => userService.findAll(queryParams),
     staleTime: STALE_TIMES.MEDIUM,
+    enabled,
   });
 }
 

@@ -8,7 +8,10 @@ import { AnimalCriteria } from '@/domain/criteria/animal.criteria';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 import { BusinessException } from '@/common/exceptions/business.exception';
 import { isSameHerd, resolveHerdScope } from '@/domain/utils/herd-scope.util';
-import { UserRole } from '@/domain/enums/enums';
+import { ReadPrincipal } from '@/domain/utils/read-scope.util';
+import { assertCanReadOwner, assertCanReadUserData } from '@/application/utils/read-access.util';
+import { UserRole, ActivityEventType } from '@/domain/enums/enums';
+import { ActivityLogService } from '@/application/services/activity-logs/activity-logs.service';
 
 export interface AnimalRequesterContext {
   id: number;
@@ -25,6 +28,7 @@ export class AnimalsService {
     @Inject(IAnimalRepository) private animalRepository: IAnimalRepository,
     @Inject(IUserRepository) private userRepository: IUserRepository,
     @Inject(IDailyCollectionRepository) private dailyCollectionRepository: IDailyCollectionRepository,
+    private activityLogService: ActivityLogService,
   ) {}
 
   private async validateUser(userId: number) {
@@ -115,6 +119,11 @@ export class AnimalsService {
     }
 
     this.logger.log(`Animal criado: ${animal.tagNumber ?? animal.name} (ID: ${animal.id})`);
+    await this.activityLogService.record(
+      requester?.id ?? owner.id,
+      ActivityEventType.ANIMAL_CREATED,
+      { animalId: animal.id },
+    );
     return animal;
   }
 
@@ -122,12 +131,29 @@ export class AnimalsService {
     return this.animalRepository.findAll(criteria);
   }
 
-  async findOne(id: number) {
+  async getProductionSummary(
+    requester: AnimalRequesterContext,
+    startDate?: Date,
+    endDate?: Date,
+  ) {
+    const scope = resolveHerdScope(requester as any);
+    return this.animalRepository.findProductionSummary(scope, startDate, endDate);
+  }
+
+  async findOne(id: number, reader?: ReadPrincipal) {
     const animal = await this.animalRepository.findById(id);
     if (!animal) {
       throw new EntityNotFoundException(`Animal com ID ${id} não encontrado.`);
     }
+    // Com `reader` (leitura pela API) o dono precisa estar no escopo dele.
+    if (reader) {
+      await assertCanReadOwner(this.userRepository, animal.userId as number, reader);
+    }
     return animal;
+  }
+
+  async assertCanReadUserData(userId: number, reader: ReadPrincipal) {
+    await assertCanReadUserData(this.userRepository, userId, reader);
   }
 
   async update(id: number, updateAnimalDto: UpdateAnimalDto, requester?: AnimalRequesterContext) {
@@ -159,6 +185,12 @@ export class AnimalsService {
     if (updateAnimalDto.tagNumber && updateAnimalDto.tagNumber !== existing.tagNumber) {
       await this.reconcileParentCodes(existing.userId as number, updateAnimalDto.tagNumber, id);
     }
+
+    await this.activityLogService.record(
+      requester?.id ?? (existing.userId as number),
+      ActivityEventType.ANIMAL_UPDATED,
+      { animalId: id },
+    );
 
     return updated;
   }

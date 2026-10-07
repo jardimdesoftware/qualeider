@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
 import { NotificationsService } from '@/application/services/notifications/notifications.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createMockEventEmitter } from '../../../mocks/event-emitter.mock';
@@ -44,11 +45,12 @@ describe('NotificationsService', () => {
 
             $transaction: jest.fn((cb) => cb({
                notification: { create: jest.fn() },
-               notificationRecipient: { createMany: jest.fn(), findMany: jest.fn(), update: jest.fn() }
+               notificationRecipient: { createMany: jest.fn(), findMany: jest.fn(), findFirst: jest.fn(), update: jest.fn() }
             })),
             notificationRecipient: {
               createMany: jest.fn(),
               findMany: jest.fn(),
+              findFirst: jest.fn(),
               update: jest.fn()
             }
           },
@@ -267,17 +269,28 @@ describe('NotificationsService', () => {
   });
 
   describe('markAsRead', () => {
-    it('deve marcar notificação como lida', async () => {
-        const mockUpdated = { id: 1, read: true, readAt: new Date() };
-        (service['prisma'].notificationRecipient.update as jest.Mock).mockResolvedValue(mockUpdated);
+    it('o destinatário marca a própria notificação como lida', async () => {
+      const mockUpdated = { id: 1, read: true, readAt: new Date() };
+      (service['prisma'].notificationRecipient.findFirst as jest.Mock).mockResolvedValue({ id: 1, userId: 7 });
+      (service['prisma'].notificationRecipient.update as jest.Mock).mockResolvedValue(mockUpdated);
 
-        const result = await service.markAsRead(1);
+      const result = await service.markAsRead(1, 7);
 
-        expect(service['prisma'].notificationRecipient.update).toHaveBeenCalledWith({
-            where: { id: 1 },
-            data: { read: true, readAt: expect.any(Date) }
-        });
-        expect(result).toEqual(mockUpdated);
+      expect(service['prisma'].notificationRecipient.findFirst).toHaveBeenCalledWith({
+        where: { id: 1, userId: 7 },
+      });
+      expect(service['prisma'].notificationRecipient.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { read: true, readAt: expect.any(Date) },
+      });
+      expect(result).toEqual(mockUpdated);
+    });
+
+    it('não marca a notificação de outro usuário (404, sem atualizar)', async () => {
+      (service['prisma'].notificationRecipient.findFirst as jest.Mock).mockResolvedValue(null);
+
+      await expect(service.markAsRead(1, 99)).rejects.toThrow(EntityNotFoundException);
+      expect(service['prisma'].notificationRecipient.update).not.toHaveBeenCalled();
     });
   });
 });

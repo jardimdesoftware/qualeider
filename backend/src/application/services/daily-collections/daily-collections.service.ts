@@ -9,7 +9,10 @@ import { BusinessException } from '@/common/exceptions/business.exception';
 import { DailyCollectionCriteria } from '@/domain/criteria/daily-collection.criteria';
 import { COLLECTION_BUSINESS_RULES } from '@/common/constants/business.constants';
 import { isSameHerd } from '@/domain/utils/herd-scope.util';
-import { UserRole } from '@/domain/enums/enums';
+import { ReadPrincipal } from '@/domain/utils/read-scope.util';
+import { assertCanReadOwner, assertCanReadUserData } from '@/application/utils/read-access.util';
+import { UserRole, ActivityEventType } from '@/domain/enums/enums';
+import { ActivityLogService } from '@/application/services/activity-logs/activity-logs.service';
 
 export interface DailyCollectionRequesterContext {
   id: number;
@@ -26,6 +29,7 @@ export class DailyCollectionsService {
     @Inject(IUserRepository) private userRepository: IUserRepository,
     @Inject(IDailyCollectionRepository) private dailyCollectionRepository: IDailyCollectionRepository,
     @Inject(IAnimalRepository) private animalRepository: IAnimalRepository,
+    private activityLogService: ActivityLogService,
   ) {}
 
   private async validateUser(userId: number) {
@@ -80,6 +84,11 @@ export class DailyCollectionsService {
     const dailyCollection = await this.dailyCollectionRepository.create(createDailyCollectionDto);
 
     this.logger.log(`Coleta diária criada (ID: ${dailyCollection.id})`);
+    await this.activityLogService.record(
+      requester?.id ?? owner.id,
+      ActivityEventType.DAILY_COLLECTION_CREATED,
+      { collectionId: dailyCollection.id },
+    );
     return dailyCollection;
   }
 
@@ -143,12 +152,19 @@ export class DailyCollectionsService {
     return this.dailyCollectionRepository.findAll(criteria);
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, reader?: ReadPrincipal) {
     const dailyCollection = await this.dailyCollectionRepository.findById(id);
     if (!dailyCollection) {
       throw new EntityNotFoundException(`Coleta diária com ID ${id} não encontrada.`);
     }
+    if (reader) {
+      await assertCanReadOwner(this.userRepository, dailyCollection.userId as number, reader);
+    }
     return dailyCollection;
+  }
+
+  async assertCanReadUserData(userId: number, reader: ReadPrincipal) {
+    await assertCanReadUserData(this.userRepository, userId, reader);
   }
 
   async update(
@@ -182,7 +198,13 @@ export class DailyCollectionsService {
     if (items && items.length > 0) {
       await this.dailyCollectionRepository.updateItems(id, items);
     }
-    
+
+    await this.activityLogService.record(
+      requester?.id ?? (existing.userId as number),
+      ActivityEventType.DAILY_COLLECTION_UPDATED,
+      { collectionId: id },
+    );
+
     return this.dailyCollectionRepository.findById(id);
   }
 
@@ -196,7 +218,14 @@ export class DailyCollectionsService {
 
     return this.dailyCollectionRepository.softDelete(id);
   }
-  async findHistoryByAnimal(animalId: number) {
+  async findHistoryByAnimal(animalId: number, reader?: ReadPrincipal) {
+    if (reader) {
+      const animal = await this.animalRepository.findById(animalId);
+      if (!animal) {
+        throw new EntityNotFoundException(`Animal com ID ${animalId} não encontrado.`);
+      }
+      await assertCanReadOwner(this.userRepository, animal.userId as number, reader);
+    }
     return this.dailyCollectionRepository.findByAnimalId(animalId);
   }
 }

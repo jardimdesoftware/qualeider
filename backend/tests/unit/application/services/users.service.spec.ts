@@ -215,7 +215,20 @@ describe('UsersService', () => {
 
       await service.findAll({ associationId: 10 }, adminRequester);
 
-      expect(userRepository.findAll).toHaveBeenCalledWith({ associationId: 10 });
+      expect(userRepository.findAll).toHaveBeenCalledWith({
+        associationId: 10,
+        scope: { adminGroupId: adminRequester.id },
+      });
+    });
+
+    it('lista só o escopo do requisitante: admin de associação vê a associação, sem associação vê o próprio grupo', async () => {
+      (userRepository.findAll as jest.Mock).mockResolvedValue({ data: [], total: 0, page: 1, limit: 50, totalPages: 0, hasNextPage: false, hasPreviousPage: false });
+
+      await service.findAll({}, { id: 1, role: UserRole.ADMIN, associationId: 9 });
+      expect(userRepository.findAll).toHaveBeenLastCalledWith({ scope: { associationId: 9 } });
+
+      await service.findAll({}, { id: 1, role: UserRole.ADMIN, associationId: null });
+      expect(userRepository.findAll).toHaveBeenLastCalledWith({ scope: { adminGroupId: 1 } });
     });
 
     it('deve negar listagem quando o requisitante nao e ADMIN', async () => {
@@ -261,12 +274,82 @@ describe('UsersService', () => {
 
     it('deve permitir busca por ID quando o requisitante e ADMIN', async () => {
       const mockUser = createUser({ id: 1, status: Status.Active });
-      (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValue(mockUser);
 
       const result = await service.findOneForRequester(1, adminRequester);
 
-      expect(userRepository.findById).toHaveBeenCalledWith(1);
+      expect(userRepository.findByIdAny).toHaveBeenCalledWith(1);
       expect(result.id).toBe(1);
+    });
+
+    it('deve permitir que ADMIN busque um funcionario inativo (para poder reativa-lo)', async () => {
+      const mockUser = createUser({ id: 2, status: Status.Inactive, role: UserRole.VAQUEIRO, adminId: adminRequester.id });
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValue(mockUser);
+
+      const result = await service.findOneForRequester(2, adminRequester);
+
+      expect(result.id).toBe(2);
+      expect(result.status).toBe(Status.Inactive);
+    });
+
+    it('admin NÃO lê usuário de outro dono (403)', async () => {
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValue(
+        createUser({ id: 9, role: UserRole.ADMIN, adminId: null, associationId: null }),
+      );
+
+      await expect(service.findOneForRequester(9, adminRequester)).rejects.toThrow(ForbiddenException);
+    });
+
+    it('admin lê a si mesmo e membros da própria associação', async () => {
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValueOnce(createUser({ id: adminRequester.id }));
+      await expect(service.findOneForRequester(adminRequester.id, adminRequester)).resolves.toBeDefined();
+
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValueOnce(createUser({ id: 8, associationId: 4, adminId: null }));
+      await expect(
+        service.findOneForRequester(8, { id: 1, role: UserRole.ADMIN, associationId: 4 }),
+      ).resolves.toBeDefined();
+    });
+  });
+
+  describe('vínculo com associação na edição', () => {
+    const target = () => createUser({ id: 8, adminId: 1, associationId: null, status: Status.Active });
+    const admin = { id: 1, role: UserRole.ADMIN, associationId: 5 };
+
+    it.each([
+      ['update', (dto: any, req: any) => service.update(8, dto, req)],
+      ['partialUpdate', (dto: any, req: any) => service.partialUpdate(8, dto, req)],
+    ])('%s: admin não vincula usuário a associação alheia', async (_name, call) => {
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValue(target());
+
+      await expect(call({ associationId: 99 }, admin)).rejects.toThrow(ForbiddenException);
+      expect(userRepository.partialUpdate).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['update', (dto: any, req: any) => service.update(8, dto, req)],
+      ['partialUpdate', (dto: any, req: any) => service.partialUpdate(8, dto, req)],
+    ])('%s: admin sem associação também não vincula a nenhuma', async (_name, call) => {
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValue(target());
+
+      await expect(call({ associationId: 5 }, { ...admin, associationId: null })).rejects.toThrow(ForbiddenException);
+    });
+
+    it('permite vincular à própria associação do admin', async () => {
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValue(target());
+      (userRepository.partialUpdate as jest.Mock).mockResolvedValue({ ...target(), associationId: 5 });
+
+      await service.partialUpdate(8, { associationId: 5 } as any, admin);
+
+      expect(userRepository.partialUpdate).toHaveBeenCalledWith(8, expect.objectContaining({ associationId: 5 }));
+    });
+
+    it('edições sem associationId seguem normais', async () => {
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValue(target());
+      (userRepository.partialUpdate as jest.Mock).mockResolvedValue(target());
+
+      await service.partialUpdate(8, { name: 'Novo Nome' } as any, admin);
+
+      expect(userRepository.partialUpdate).toHaveBeenCalled();
     });
   });
 
@@ -516,32 +599,63 @@ describe('UsersService', () => {
   });
 
   describe('remove', () => {
-    it('deve desativar o usuário (soft delete)', async () => {
-      const mockUser = createUser({ id: 1, status: Status.Active });
-      const mockDeactivatedUser = { ...mockUser, status: Status.Inactive };
+    it('admin desativa um funcionário vinculado a ele (soft delete)', async () => {
+      const target = createUser({ id: 5, status: Status.Active, adminId: 1 });
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValue(target);
+      (userRepository.softDelete as jest.Mock).mockResolvedValue({ ...target, status: Status.Inactive });
 
-      (userRepository.findById as jest.Mock).mockResolvedValue(mockUser);
-      (userRepository.softDelete as jest.Mock).mockResolvedValue(mockDeactivatedUser);
+      const result = await service.remove(5, adminRequester);
 
-      const result = await service.remove(1, adminRequester);
-
-      expect(userRepository.softDelete).toHaveBeenCalledWith(1);
+      expect(userRepository.softDelete).toHaveBeenCalledWith(5);
       expect(result.status).toBe(Status.Inactive);
     });
 
-    it('deve lançar EntityNotFoundException quando usuário não for encontrado', async () => {
-      const error = new EntityNotFoundException('Usuário não encontrado');
-      (userRepository.softDelete as jest.Mock).mockRejectedValue(error);
+    it('admin pode desativar a própria conta (sem consultar o escopo)', async () => {
+      const self = createUser({ id: 1, status: Status.Active });
+      (userRepository.softDelete as jest.Mock).mockResolvedValue({ ...self, status: Status.Inactive });
 
-      await expect(service.remove(999, adminRequester)).rejects.toThrow(
-        EntityNotFoundException,
-      );
+      await service.remove(1, adminRequester);
+
+      expect(userRepository.softDelete).toHaveBeenCalledWith(1);
     });
 
-    it('deve negar remocao quando o requisitante nao e ADMIN', async () => {
-      await expect(service.remove(1, vaqueiroRequester)).rejects.toThrow(
-        ForbiddenException,
+    it('admin NÃO desativa usuário de outro dono (adminId diferente)', async () => {
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValue(
+        createUser({ id: 9, adminId: 99, associationId: null }),
       );
+
+      await expect(service.remove(9, adminRequester)).rejects.toThrow(ForbiddenException);
+      expect(userRepository.softDelete).not.toHaveBeenCalled();
+    });
+
+    it('admin NÃO desativa outro ADMIN sem vínculo', async () => {
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValue(
+        createUser({ id: 9, role: UserRole.ADMIN, adminId: null, associationId: null }),
+      );
+
+      await expect(service.remove(9, adminRequester)).rejects.toThrow(ForbiddenException);
+      expect(userRepository.softDelete).not.toHaveBeenCalled();
+    });
+
+    it('admin de uma associação desativa membro da mesma associação', async () => {
+      const requester = { id: 1, role: UserRole.ADMIN, associationId: 3 };
+      const member = createUser({ id: 8, associationId: 3, adminId: null });
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValue(member);
+      (userRepository.softDelete as jest.Mock).mockResolvedValue({ ...member, status: Status.Inactive });
+
+      await service.remove(8, requester);
+
+      expect(userRepository.softDelete).toHaveBeenCalledWith(8);
+    });
+
+    it('retorna EntityNotFoundException quando o usuário não existe', async () => {
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValue(null);
+
+      await expect(service.remove(999, adminRequester)).rejects.toThrow(EntityNotFoundException);
+    });
+
+    it('nega remoção quando o requisitante não é ADMIN', async () => {
+      await expect(service.remove(1, vaqueiroRequester)).rejects.toThrow(ForbiddenException);
 
       expect(userRepository.softDelete).not.toHaveBeenCalled();
     });

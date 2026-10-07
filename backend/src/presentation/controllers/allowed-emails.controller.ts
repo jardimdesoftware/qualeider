@@ -38,27 +38,35 @@ export class AllowedEmailsController {
   @ApiOperation({ summary: 'Listar emails externos liberados para login via Google' })
   @ApiResponse({ status: 200, description: 'Emails listados com sucesso' })
   @ResponseMessage('Emails listados com sucesso')
-  async findAll(@GetUser('role') role?: UserRole) {
+  async findAll(@GetUser('id') adminId: number, @GetUser('role') role?: UserRole) {
     this.assertAdmin(role);
-    return this.allowedEmailsService.findAll();
+    return this.allowedEmailsService.findAll(adminId);
   }
 
   @Post()
   @ApiOperation({ summary: 'Liberar um email externo para login via Google' })
   @ApiResponse({ status: 201, description: 'Email liberado com sucesso' })
   @ResponseMessage('Email liberado com sucesso')
-  async create(@Body() dto: CreateAllowedEmailDto, @GetUser('role') role?: UserRole) {
+  async create(
+    @Body() dto: CreateAllowedEmailDto,
+    @GetUser('id') adminId: number,
+    @GetUser('role') role?: UserRole,
+  ) {
     this.assertAdmin(role);
-    return this.allowedEmailsService.create(dto);
+    return this.allowedEmailsService.create(dto, adminId);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Remover a liberação de um email externo' })
   @ApiResponse({ status: 200, description: 'Liberação removida com sucesso' })
   @ResponseMessage('Liberação removida com sucesso')
-  async remove(@Param('id', ParseIntPipe) id: number, @GetUser('role') role?: UserRole) {
+  async remove(
+    @Param('id', ParseIntPipe) id: number,
+    @GetUser('id') adminId: number,
+    @GetUser('role') role?: UserRole,
+  ) {
     this.assertAdmin(role);
-    await this.allowedEmailsService.remove(id);
+    await this.allowedEmailsService.remove(id, adminId);
     return null;
   }
 }
