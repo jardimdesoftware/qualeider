@@ -1,0 +1,185 @@
+name: Deploy latest images to OCI
+
+on:
+  workflow_run:
+    workflows:
+      - Backend CI/CD
+      - Frontend CI/CD
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      component:
+        description: Component to deploy
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - backend
+          - frontend
+
+concurrency:
+  group: qualeider-oci-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to OCI production
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      OCI_HOST: ${{ secrets.OCI_HOST }}
+      OCI_USER: ${{ secrets.OCI_USER }}
+      OCI_SSH_PRIVATE_KEY: ${{ secrets.OCI_SSH_PRIVATE_KEY }}
+      OCI_SSH_KNOWN_HOSTS: ${{ secrets.OCI_SSH_KNOWN_HOSTS }}
+
+    steps:
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for variable in OCI_HOST OCI_USER OCI_SSH_PRIVATE_KEY OCI_SSH_KNOWN_HOSTS; do
+            if [[ -z "${!variable:-}" ]]; then
+              echo "Required secret ${variable} is not configured." >&2
+              exit 1
+            fi
+          done
+
+          install -m 700 -d "${RUNNER_TEMP}/ssh"
+          printf '%s\n' "${OCI_SSH_PRIVATE_KEY}" > "${RUNNER_TEMP}/ssh/oci_key"
+          printf '%s\n' "${OCI_SSH_KNOWN_HOSTS}" > "${RUNNER_TEMP}/ssh/known_hosts"
+          chmod 600 "${RUNNER_TEMP}/ssh/oci_key" "${RUNNER_TEMP}/ssh/known_hosts"
+
+      - name: Deploy backend image
+        if: >-
+          (github.event_name == 'workflow_run' && github.event.workflow_run.name == 'Backend CI/CD') ||
+          (github.event_name == 'workflow_dispatch' && (inputs.component == 'backend' || inputs.component == 'all'))
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ssh \
+            -i "${RUNNER_TEMP}/ssh/oci_key" \
+            -o BatchMode=yes \
+            -o ConnectTimeout=15 \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="${RUNNER_TEMP}/ssh/known_hosts" \
+            "${OCI_USER}@${OCI_HOST}" \
+            'flock -w 900 /tmp/oci-app-deploy.lock bash -se' <<'REMOTE'
+          set -euo pipefail
+
+          cd /opt/qualeider/app
+          compose=(
+            docker compose
+            -p qualeider
+            --env-file .env.production
+            -f docker-compose.prod.yml
+            -f docker-compose.oci.yml
+          )
+          image='ghcr.io/jardimdesoftware/qualeider-backend:latest'
+          container='qualeider-backend'
+          service='backend'
+          previous_image=$(docker inspect --format '{{.Image}}' "${container}")
+
+          rollback() {
+            echo 'Backend healthcheck failed; restoring the previous image.' >&2
+            docker image tag "${previous_image}" "${image}"
+            "${compose[@]}" up -d --no-deps --force-recreate "${service}"
+          }
+
+          "${compose[@]}" pull "${service}"
+          if ! "${compose[@]}" up -d --no-deps "${service}"; then
+            rollback
+            exit 1
+          fi
+
+          healthy=0
+          for attempt in $(seq 1 18); do
+            if curl --fail --silent --show-error --max-time 10 \
+              https://qualeider.valerialima.me/api/health >/dev/null; then
+              healthy=1
+              break
+            fi
+            echo "Backend healthcheck attempt ${attempt}/18 failed; retrying."
+            sleep 10
+          done
+
+          if [[ "${healthy}" -ne 1 ]]; then
+            rollback
+            exit 1
+          fi
+
+          docker image prune -f
+          docker inspect --format='Deployed backend image: {{.Config.Image}} ({{.Image}})' "${container}"
+          REMOTE
+
+      - name: Deploy frontend image
+        if: >-
+          (github.event_name == 'workflow_run' && github.event.workflow_run.name == 'Frontend CI/CD') ||
+          (github.event_name == 'workflow_dispatch' && (inputs.component == 'frontend' || inputs.component == 'all'))
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ssh \
+            -i "${RUNNER_TEMP}/ssh/oci_key" \
+            -o BatchMode=yes \
+            -o ConnectTimeout=15 \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="${RUNNER_TEMP}/ssh/known_hosts" \
+            "${OCI_USER}@${OCI_HOST}" \
+            'flock -w 900 /tmp/oci-app-deploy.lock bash -se' <<'REMOTE'
+          set -euo pipefail
+
+          cd /opt/qualeider/app
+          compose=(
+            docker compose
+            -p qualeider
+            --env-file .env.production
+            -f docker-compose.prod.yml
+            -f docker-compose.oci.yml
+          )
+          image='ghcr.io/jardimdesoftware/qualeider-frontend:latest'
+          container='qualeider-frontend'
+          service='frontend'
+          previous_image=$(docker inspect --format '{{.Image}}' "${container}")
+
+          rollback() {
+            echo 'Frontend healthcheck failed; restoring the previous image.' >&2
+            docker image tag "${previous_image}" "${image}"
+            "${compose[@]}" up -d --no-deps --force-recreate "${service}"
+          }
+
+          "${compose[@]}" pull "${service}"
+          if ! "${compose[@]}" up -d --no-deps "${service}"; then
+            rollback
+            exit 1
+          fi
+
+          healthy=0
+          for attempt in $(seq 1 18); do
+            if curl --fail --silent --show-error --max-time 10 \
+              https://qualeider.valerialima.me/ >/dev/null; then
+              healthy=1
+              break
+            fi
+            echo "Frontend healthcheck attempt ${attempt}/18 failed; retrying."
+            sleep 10
+          done
+
+          if [[ "${healthy}" -ne 1 ]]; then
+            rollback
+            exit 1
+          fi
+
+          docker image prune -f
+          docker inspect --format='Deployed frontend image: {{.Config.Image}} ({{.Image}})' "${container}"
+          REMOTE
