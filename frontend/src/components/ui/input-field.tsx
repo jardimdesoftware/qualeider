@@ -9,6 +9,7 @@ interface InputFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   registration?: any;
   helperText?: string;
   helperIcon?: React.ReactNode;
+  leadingIcon?: React.ReactNode;
 }
 
 export default function InputField({
@@ -20,6 +21,7 @@ export default function InputField({
   registration,
   helperText,
   helperIcon,
+  leadingIcon,
   ...props
 }: InputFieldProps) {
   const [showPassword, setShowPassword] = useState(false);
@@ -36,6 +38,11 @@ export default function InputField({
     <div className="space-y-1">
       <label className="text-slate-800 font-medium text-sm">{label}</label>
       <div className="relative">
+        {leadingIcon && (
+          <span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2 text-slate-400">
+            {leadingIcon}
+          </span>
+        )}
         <input
           type={inputType}
           className={`w-full h-11 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm shadow-sm 
@@ -43,6 +50,7 @@ export default function InputField({
             disabled:bg-gray-100 disabled:cursor-not-allowed
             ${error ? "border-red-500" : ""}
             ${hasIcon ? "pr-10" : ""}
+            ${leadingIcon ? "pl-10" : ""}
             ${className}`}
           {...registration}
           {...props}

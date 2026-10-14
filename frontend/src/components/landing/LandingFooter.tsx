@@ -9,7 +9,7 @@ export function LandingFooter() {
         <div className="col-span-1 md:col-span-2">
           <div className="flex items-center gap-2 mb-4">
             <span className="text-2xl font-black text-white brand-font">
-              QualeiDer
+              QuaLeiDer
             </span>
           </div>
           <p className="text-sm max-w-xs mb-6">

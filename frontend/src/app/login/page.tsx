@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { LockKeyhole, Mail } from "lucide-react";
 
 import { InputField, Button, Divider, ErrorModal } from "@/components/ui";
 import { AuthLayout } from "@/components/layout";
@@ -54,7 +55,11 @@ export default function Login() {
   };
 
   return (
-    <AuthLayout title="Entrar" subtitle="Acesse sua conta para continuar">
+    <AuthLayout
+      title="Bem-vindo(a)!"
+      subtitle="Acesse sua conta para continuar"
+      variant="login"
+    >
       <ErrorModal
         isOpen={showErrorModal}
         onClose={() => setShowErrorModal(false)}
@@ -66,29 +71,35 @@ export default function Login() {
       </Suspense>
 
       {/* Uso da tag FORM para suporte nativo a 'Enter' */}
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5">
         <InputField
           label="E-mail"
           type="email"
           placeholder="seu@email.com"
+          autoComplete="email"
+          leadingIcon={<Mail size={16} strokeWidth={1.8} />}
           disabled={isSubmitting}
           error={errors.email?.message}
+          className="h-10 rounded-md shadow-none"
           {...register("email")}
         />
 
         <InputField
           label="Senha"
           showPasswordToggle
-          placeholder="••••••••"
+          placeholder="Digite sua senha"
+          autoComplete="current-password"
+          leadingIcon={<LockKeyhole size={16} strokeWidth={1.8} />}
           disabled={isSubmitting}
           error={errors.password?.message}
+          className="h-10 rounded-md shadow-none"
           {...register("password")}
         />
 
-        <div className="text-right">
+        <div className="!-mt-1 text-right">
           <Link
             href="/forgotPassword"
-            className="text-slate-800 hover:text-slate-900 font-semibold text-sm transition-colors"
+            className="text-xs font-semibold text-[#237a32] transition-colors hover:text-[#185924] hover:underline"
           >
             Esqueci minha senha
           </Link>
@@ -99,17 +110,19 @@ export default function Login() {
           variant="primary"
           fullWidth
           disabled={isSubmitting}
-          className="mt-2"
+          className="mt-2 flex h-11 items-center justify-center gap-2 rounded-md py-2.5 text-sm font-semibold shadow-sm"
         >
-          {isSubmitting ? "ENTRANDO..." : "ENTRAR"}
+          {isSubmitting ? "Entrando..." : "Entrar"}
         </Button>
       </form>
 
-      <Divider text="OU" />
+      <div className="[&>div]:my-5 [&_span]:text-[11px] [&_span]:font-normal">
+        <Divider text="OU" />
+      </div>
 
       <a
         href={`${API_ORIGIN}/auth/google`}
-        className="flex w-full items-center justify-center gap-2 rounded-full border-2 border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-800 transition-colors hover:bg-gray-50"
+        className="flex h-11 w-full items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 transition-all hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#2f9e41]/35"
       >
         <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden>
           <path
@@ -132,11 +145,11 @@ export default function Login() {
         Entrar com Google (email @ifpe.edu.br)
       </a>
 
-      <p className="mt-4 text-center text-gray-600 text-sm">
+      <p className="mt-4 text-center text-xs text-slate-500">
         Não tem uma conta?{" "}
         <Link
           href="/createAccount"
-          className="text-slate-800 hover:text-slate-900 font-semibold transition-colors"
+          className="font-semibold text-[#237a32] transition-colors hover:text-[#185924] hover:underline"
         >
           Criar Conta
         </Link>

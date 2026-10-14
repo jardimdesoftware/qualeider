@@ -126,6 +126,7 @@ export default function CreateProducer() {
       title="Criar minha conta"
       subtitle="Cadastro do Administrador da Fazenda"
       contentWidth="lg"
+      variant="login"
     >
       <ErrorModal
         isOpen={modalState.isOpen}
@@ -221,11 +222,11 @@ export default function CreateProducer() {
         )}
       </MultiStepForm>
 
-      <p className="text-center text-gray-600 text-sm mt-6">
+      <p className="mt-6 text-center text-sm text-slate-500">
         Já tem uma conta?{" "}
         <Link
           href="/login"
-          className="text-slate-800 hover:text-slate-900 font-semibold transition-colors"
+          className="font-semibold text-[#237a32] transition-colors hover:text-[#185924] hover:underline"
         >
           Fazer Login
         </Link>
