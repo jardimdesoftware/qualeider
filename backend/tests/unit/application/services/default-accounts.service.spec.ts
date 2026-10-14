@@ -2,11 +2,11 @@ import { ConfigService } from '@nestjs/config';
 import { DefaultAccountsService } from '@/application/services/users/default-accounts.service';
 import { IUserRepository } from '@/domain/repositories/user.repository';
 import { IHashService } from '@/application/ports/hash.service';
-import { UserRole } from '@/domain/enums/enums';
+import { Status, UserRole } from '@/domain/enums/enums';
 import { BCRYPT_ROUNDS_USER_CREATION } from '@/common/constants/security.constants';
 
 describe('DefaultAccountsService', () => {
-  let userRepository: jest.Mocked<Pick<IUserRepository, 'findByEmail' | 'create'>>;
+  let userRepository: jest.Mocked<Pick<IUserRepository, 'findByEmail' | 'create' | 'update'>>;
   let hashService: jest.Mocked<Pick<IHashService, 'hash'>>;
   let env: Record<string, string | undefined>;
 
@@ -19,7 +19,7 @@ describe('DefaultAccountsService', () => {
 
   beforeEach(() => {
     env = { NODE_ENV: 'test' };
-    userRepository = { findByEmail: jest.fn().mockResolvedValue(null), create: jest.fn() };
+    userRepository = { findByEmail: jest.fn().mockResolvedValue(null), create: jest.fn(), update: jest.fn() };
     userRepository.create.mockImplementation(async (data: any) => ({ id: data.role === UserRole.ADMIN ? 1 : 2, ...data }) as any);
     hashService = { hash: jest.fn().mockResolvedValue('hashed') };
   });
@@ -86,6 +86,39 @@ describe('DefaultAccountsService', () => {
 
     expect(userRepository.create).toHaveBeenCalledTimes(1);
     expect(userRepository.create).toHaveBeenCalledWith(expect.objectContaining({ role: UserRole.VAQUEIRO, adminId: 7 }));
+  });
+
+  it('reativa a conta padrão inativa sem alterar senha nem perfil', async () => {
+    env = {
+      NODE_ENV: 'test',
+      DEFAULT_ADMIN_EMAIL: 'admin@example.com',
+      DEFAULT_ADMIN_PASSWORD: 'Admin@12345',
+      DEFAULT_VAQUEIRO_EMAIL: 'vaq@example.com',
+      DEFAULT_VAQUEIRO_PASSWORD: 'Vaq@12345',
+    };
+    userRepository.findByEmail.mockImplementation(async (email: string) =>
+      email === 'admin@example.com'
+        ? ({ id: 7, role: UserRole.ADMIN, status: Status.Inactive } as any)
+        : ({ id: 8, role: UserRole.VAQUEIRO, status: Status.Inactive } as any),
+    );
+    await build().ensureDefaultAccounts();
+
+    expect(userRepository.update).toHaveBeenCalledTimes(2);
+    expect(userRepository.update).toHaveBeenCalledWith(7, { status: Status.Active });
+    expect(userRepository.update).toHaveBeenCalledWith(8, { status: Status.Active });
+    expect(userRepository.create).not.toHaveBeenCalled();
+    expect(hashService.hash).not.toHaveBeenCalled();
+  });
+
+  it('não mexe em conta padrão que já está ativa', async () => {
+    env = {
+      NODE_ENV: 'test',
+      DEFAULT_ADMIN_EMAIL: 'admin@example.com',
+      DEFAULT_ADMIN_PASSWORD: 'Admin@12345',
+    };
+    userRepository.findByEmail.mockResolvedValue({ id: 7, role: UserRole.ADMIN, status: Status.Active } as any);
+    await build().ensureDefaultAccounts();
+    expect(userRepository.update).not.toHaveBeenCalled();
   });
 
   it('rejeita senha fora da política e ignora o vaqueiro sem admin', async () => {
