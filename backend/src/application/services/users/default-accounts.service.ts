@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { IUserRepository } from '@/domain/repositories/user.repository';
 import { IHashService } from '@/application/ports/hash.service';
 import { BCRYPT_ROUNDS_USER_CREATION } from '@/common/constants/security.constants';
-import { UserCategory, UserRole, UserType } from '@/domain/enums/enums';
+import { Status, UserCategory, UserRole, UserType } from '@/domain/enums/enums';
 import { UserEntity } from '@/domain/entities/user.entity';
 
 // Mesma politica de senha do cadastro (CreateUserDto).
@@ -35,7 +35,8 @@ interface AccountSpec {
  * - Sem variaveis, usa as contas de teste de `TEST_ACCOUNTS` (login por e-mail e
  *   senha). Defina `DEFAULT_*` para trocar ou `DEFAULT_ACCOUNTS_DISABLED=true`
  *   para nao criar nada.
- * - Idempotente: se o e-mail ja existe, a conta nao e tocada (senha incluida).
+ * - Idempotente: se o e-mail ja existe, a conta nao e alterada (senha incluida),
+ *   exceto que, se estiver inativa, e reativada a cada subida.
  * - O VAQUEIRO e vinculado ao ADMIN via `adminId`, como no cadastro interno,
  *   para os dois enxergarem o mesmo rebanho.
  * - Falha aqui nunca derruba a API: apenas registra o motivo.
@@ -93,7 +94,16 @@ export class DefaultAccountsService implements OnApplicationBootstrap {
       return null;
     }
 
-    if (await this.userRepository.findByEmail(email)) return null;
+    const existing = await this.userRepository.findByEmail(email);
+    if (existing) {
+      // Conta ja existe: senha, perfil e dados ficam como estao, mas ela precisa
+      // continuar ativa (alguem pode ter desativado a conta de teste).
+      if (existing.status !== Status.Active) {
+        await this.userRepository.update(existing.id, { status: Status.Active });
+        this.logger.warn(`Conta padrao ${spec.role} reativada: ${email} (ID: ${existing.id})`);
+      }
+      return null;
+    }
 
     const created = await this.userRepository.create({
       name: this.read(`${spec.prefix}_NAME`) ?? spec.fallbackName,
