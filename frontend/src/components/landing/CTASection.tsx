@@ -18,7 +18,7 @@ export function CTASection() {
         </h2>
         <p className="text-xl text-[#fceeb5] mb-10 max-w-2xl mx-auto">
           Junte-se a centenas de produtores que já estão economizando tempo e
-          aumentando a lucratividade com o QualeiDer.
+          aumentando a lucratividade com o QuaLeiDer.
         </p>
 
         <div className="flex flex-col sm:flex-row justify-center gap-6">

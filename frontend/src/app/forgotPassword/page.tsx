@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Mail } from "lucide-react";
 
 import { InputField, Button, ErrorModal } from "@/components/ui";
 import { AuthLayout } from "@/components/layout";
@@ -64,6 +65,7 @@ export default function ForgotPassword() {
     <AuthLayout
       title="Recuperar Senha"
       subtitle="Digite seu email para receber o código"
+      variant="login"
     >
       <ErrorModal
         isOpen={modalState.isOpen}
@@ -77,8 +79,12 @@ export default function ForgotPassword() {
         <InputField
           label="E-mail"
           type="email"
+          placeholder="seu@email.com"
+          autoComplete="email"
+          leadingIcon={<Mail size={16} strokeWidth={1.8} />}
           disabled={isSubmitting}
           error={errors.email?.message}
+          className="h-10 rounded-md shadow-none"
           {...register("email")}
         />
 
@@ -87,16 +93,17 @@ export default function ForgotPassword() {
           variant="primary"
           fullWidth
           disabled={isSubmitting}
+          className="h-11 rounded-md py-2.5 text-sm font-semibold shadow-sm"
         >
-          {isSubmitting ? "ENVIANDO..." : "ENVIAR CÓDIGO"}
+          {isSubmitting ? "Enviando..." : "Enviar código"}
         </Button>
       </form>
 
-      <p className="text-center text-gray-600 text-sm mt-6">
+      <p className="mt-6 text-center text-xs text-slate-500">
         Lembrou da senha?{" "}
         <Link
           href="/login"
-          className="text-slate-800 hover:text-slate-900 font-semibold transition-colors"
+          className="font-semibold text-[#237a32] transition-colors hover:text-[#185924] hover:underline"
         >
           Fazer Login
         </Link>

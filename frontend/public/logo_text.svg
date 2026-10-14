@@ -8,7 +8,7 @@
   </defs>
   
   <!-- Tipografia Principal -->
-  <text x="5" y="55" class="text-brand" font-size="52" fill="#1e3a29" letter-spacing="-1">QualeiDer</text>
+  <text x="5" y="55" class="text-brand" font-size="52" fill="#1e3a29" letter-spacing="-1">QuaLeiDer</text>
   
   <!-- Linha de base decorativa -->
   <rect x="5" y="70" width="270" height="3" fill="#d97706"/>

@@ -58,11 +58,18 @@ interface AuthLayoutProps {
   children: ReactNode;
   /** Largura do painel de conteúdo — telas com formulário maior (ex: cadastro em etapas) usam "lg". */
   contentWidth?: "sm" | "lg";
+  /** O login usa a composição em cartão e o painel ilustrado da identidade visual. */
+  variant?: "default" | "login";
 }
 
 const CONTENT_WIDTH = {
   sm: "max-w-sm",
   lg: "max-w-2xl",
+};
+
+const LOGIN_CARD_WIDTH = {
+  sm: "max-w-[460px]",
+  lg: "max-w-[680px]",
 };
 
 /**
@@ -76,7 +83,75 @@ export default function AuthLayout({
   subtitle,
   children,
   contentWidth = "sm",
+  variant = "default",
 }: AuthLayoutProps) {
+  if (variant === "login") {
+    return (
+      <main className="flex min-h-screen min-h-[100svh] flex-col bg-[#f6f8f7] lg:flex-row">
+        <section
+          className="relative isolate min-h-[210px] overflow-hidden bg-[#0b4a37] px-7 py-7 text-white lg:min-h-screen lg:w-[45%] lg:px-[clamp(2.75rem,5vw,5.5rem)] lg:py-[clamp(3rem,7vh,5.5rem)]"
+          style={{
+            backgroundImage: "url('/login-cow-field.png')",
+            backgroundPosition: "center bottom",
+            backgroundSize: "cover",
+          }}
+          aria-label="Identidade QuaLeiDer"
+        >
+          <div className="relative z-10 flex h-full flex-col justify-between gap-8 lg:min-h-[calc(100vh-7rem)]">
+            <div className="flex items-center gap-4 lg:block">
+              <Image
+                src="/logo_cow_green.png"
+                alt="Símbolo do QuaLeiDer: contorno de uma vaca"
+                width={104}
+                height={104}
+                className="h-16 w-16 object-contain lg:mb-3 lg:h-24 lg:w-24"
+                priority
+              />
+
+              <div>
+                <h1 className="text-[2rem] font-bold leading-none tracking-[-0.04em] lg:text-[clamp(2.5rem,4vw,3.6rem)]">
+                  QuaLei<span className="text-[#54d58a]">Der</span>
+                </h1>
+                <p className="mt-2 max-w-[18rem] text-sm leading-snug text-white/75 lg:mt-4 lg:text-lg">
+                  Controle da produção leiteira
+                  <br className="hidden lg:block" /> do rebanho
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-auto">
+              <Image
+                src="/ifpe-campus-belo-jardim-white.png"
+                alt="Instituto Federal de Pernambuco, Campus Belo Jardim"
+                width={2149}
+                height={732}
+                className="h-auto w-32 object-contain lg:w-44"
+              />
+            </div>
+          </div>
+        </section>
+
+        <section className="flex flex-1 items-center justify-center px-5 py-8 sm:px-10 lg:px-14 lg:py-12">
+          <div
+            className={`w-full ${LOGIN_CARD_WIDTH[contentWidth]} rounded-xl border border-slate-200/80 bg-white px-6 py-7 shadow-[0_16px_45px_rgba(15,23,42,0.08)] sm:px-9 sm:py-8`}
+          >
+            <h2 className="text-[1.65rem] font-bold leading-tight tracking-[-0.025em] text-slate-800">
+              {title}
+            </h2>
+            <p className="mb-7 mt-1 text-sm text-slate-500">{subtitle}</p>
+
+            {children}
+
+            <p className="mt-7 text-center text-[11px] text-slate-400">
+              © 2025 IFPE · Campus Belo Jardim ·{" "}
+              <AppVersionBadge className="text-slate-400" />
+            </p>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen flex flex-col md:flex-row">
       {/* Painel de identidade institucional */}
@@ -99,7 +174,7 @@ export default function AuthLayout({
             />
             <div>
               <h1 className="text-white text-2xl md:text-4xl font-bold leading-tight">
-                QualeiDer
+                QuaLeiDer
               </h1>
               <p className="text-white/80 text-sm md:text-base md:mt-2 max-w-xs">
                 Controle da produção leiteira do rebanho
