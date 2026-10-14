@@ -103,4 +103,22 @@ describe('E2E: Contas padrão na subida da aplicação', () => {
     process.env.DEFAULT_ADMIN_PASSWORD = ADMIN.password;
     await expect(authHelper.login(ADMIN.email, ADMIN.password)).resolves.toBeTruthy();
   });
+
+  it('reativa as contas padrão desativadas, sem trocar a senha', async () => {
+    const before = await prisma.user.findMany({ where: { email: { in: [ADMIN.email, VAQUEIRO.email] } } });
+    await prisma.user.updateMany({ where: { email: { in: [ADMIN.email, VAQUEIRO.email] } }, data: { status: 'Inactive' } });
+    await testApp
+      .request()
+      .post('/auth/login')
+      .send({ email: ADMIN.email, password: ADMIN.password })
+      .expect(HttpStatus.UNAUTHORIZED);
+
+    await testApp.getModule().get(DefaultAccountsService).ensureDefaultAccounts();
+
+    const after = await prisma.user.findMany({ where: { email: { in: [ADMIN.email, VAQUEIRO.email] } } });
+    expect(after.every((u) => u.status === 'Active')).toBe(true);
+    expect(after.map((u) => u.password).sort()).toEqual(before.map((u) => u.password).sort());
+    await expect(authHelper.login(ADMIN.email, ADMIN.password)).resolves.toBeTruthy();
+    await expect(authHelper.login(VAQUEIRO.email, VAQUEIRO.password)).resolves.toBeTruthy();
+  });
 });
