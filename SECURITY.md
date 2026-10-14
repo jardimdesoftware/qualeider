@@ -57,7 +57,7 @@ O backlog de alto risco original já foi fechado com as seguintes atualizações
 | Frontend framework | CVEs do Next.js e relacionados | `next` na major line atual usada pelo projeto (`^16.3.1`). |
 | Geração de PDF | Achados críticos do `jspdf` | `jspdf` em `^4.2.1`; uso limitado a APIs de geração de relatório. |
 | Backend framework | Migração NestJS 10 → 11 | Pacotes NestJS na linha 11.x. |
-| Mail/templates | Backlog de `nodemailer`/templates | `nodemailer` em `^9.0.5`; `handlebars` declarado diretamente em `^4.7.9`. |
+| Mail/templates | Backlog de `nodemailer`/templates | `nodemailer` em `^9.0.5`; `handlebars` declarado diretamente em `^4.7.10`. |
 | Auth/JWT transitivo | Assinatura `jsonwebtoken`/`jws` | `jsonwebtoken` sobrescrito para `^9.0.3`. |
 | Upload multipart transitivo | Achado crítico em `form-data` | `form-data` sobrescrito para `^4.0.6`. |
 
