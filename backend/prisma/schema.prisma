@@ -338,3 +338,12 @@ model AllowedEmail {
   @@index([adminId])
   @@map("allowed_emails")
 }
+
+// Registro de tarefas de manutencao que rodam UMA unica vez (ex.: limpeza de contas).
+// A chave primaria garante que duas instancias subindo juntas nao repitam a tarefa.
+model OneOffTask {
+  name  String   @id
+  ranAt DateTime @default(now())
+
+  @@map("one_off_tasks")
+}

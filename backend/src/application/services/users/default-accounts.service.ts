@@ -110,6 +110,14 @@ export class DefaultAccountsService implements OnApplicationBootstrap {
     return created;
   }
 
+  /** E-mails das contas padrao em vigor (vazio se a criacao esta desligada). */
+  getDefaultEmails(): string[] {
+    if (this.isDisabled()) return [];
+    return ['DEFAULT_ADMIN_EMAIL', 'DEFAULT_VAQUEIRO_EMAIL']
+      .map((key) => this.read(key)?.toLowerCase())
+      .filter((email): email is string => !!email);
+  }
+
   private isDisabled(): boolean {
     return this.configService.get<string>('DEFAULT_ACCOUNTS_DISABLED')?.trim().toLowerCase() === 'true';
   }
