@@ -99,12 +99,25 @@ describe('UsersController', () => {
       );
     });
 
-    it('cadastro interno: associationId alheio é descartado', async () => {
+    it('cadastro interno: associationId alheio do corpo é descartado (vale o da associação do admin)', async () => {
       await controller.createInternal({ ...base, role: UserRole.VAQUEIRO }, 1, UserRole.ADMIN, 5);
 
       expect(usersService.create).toHaveBeenCalledWith(
-        expect.objectContaining({ associationId: undefined, adminId: 1 }),
+        expect.objectContaining({ associationId: 5, adminId: 1 }),
       );
+    });
+
+    it('cadastro interno: funcionário herda a associação do admin mesmo sem associationId no corpo', async () => {
+      const { associationId: _ignored, ...semAssociacao } = base;
+      await controller.createInternal({ ...semAssociacao, role: UserRole.VAQUEIRO }, 1, UserRole.ADMIN, 5);
+
+      expect(usersService.create).toHaveBeenCalledWith(expect.objectContaining({ associationId: 5, adminId: 1 }));
+    });
+
+    it('cadastro interno de outro ADMIN: associationId alheio continua descartado', async () => {
+      await controller.createInternal({ ...base, role: UserRole.ADMIN }, 1, UserRole.ADMIN, 5);
+
+      expect(usersService.create).toHaveBeenCalledWith(expect.objectContaining({ associationId: undefined }));
     });
 
     it('cadastro interno: admin sem associação não vincula a nenhuma', async () => {

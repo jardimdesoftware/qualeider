@@ -130,6 +130,8 @@ export class InvitesService {
       await this.userRepository.update(invite.userId, {
         associationId: invite.associationId,
       });
+      // Os funcionarios do admin entram junto, senao ele deixa de enxerga-los.
+      await this.userRepository.setEmployeesAssociation(invite.userId, invite.associationId);
 
       const event = new InviteAcceptedEvent({
         inviteId: invite.id,

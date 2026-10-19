@@ -94,10 +94,12 @@ export class UsersController {
       : undefined;
 
     // O admin só vincula à PRÓPRIA associação (ou a nenhuma): o associationId do
-    // corpo da requisição não pode apontar para uma associação alheia.
-    const associationId =
-      createUserDto.associationId != null &&
-      createUserDto.associationId === creatorAssociationId
+    // corpo da requisição não pode apontar para uma associação alheia. Funcionário
+    // acompanha o admin: entra na associação dele mesmo que o corpo não diga.
+    const associationId = isCreatingVaqueiro
+      ? (creatorAssociationId ?? undefined)
+      : createUserDto.associationId != null &&
+          createUserDto.associationId === creatorAssociationId
         ? createUserDto.associationId
         : undefined;
 

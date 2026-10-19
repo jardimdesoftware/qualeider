@@ -38,6 +38,7 @@ describe('InvitesService', () => {
           useValue: {
             findById: jest.fn(),
             update: jest.fn(),
+            setEmployeesAssociation: jest.fn(),
           },
         },
         {
@@ -248,6 +249,28 @@ describe('InvitesService', () => {
       expect(userRepository.update).toHaveBeenCalledWith(2, {
         associationId: 1,
       });
+      // Os funcionarios do admin acompanham o admin na associacao.
+      expect(userRepository.setEmployeesAssociation).toHaveBeenCalledWith(2, 1);
+    });
+
+    it('recusar o convite não mexe na associação de ninguém', async () => {
+      const mockInvite = {
+        id: 1,
+        token: 't',
+        userId: 2,
+        associationId: 1,
+        status: InviteStatus.PENDING,
+        expiresAt: new Date(Date.now() + 86400000),
+        user: { id: 2, name: 'John Doe' },
+        association: { id: 1, name: 'Test Association' },
+      };
+      inviteRepository.findByToken.mockResolvedValue(mockInvite as any);
+      inviteRepository.update.mockResolvedValue(mockInvite as any);
+
+      await service.respondToInvite('t', InviteAction.DECLINE);
+
+      expect(userRepository.update).not.toHaveBeenCalled();
+      expect(userRepository.setEmployeesAssociation).not.toHaveBeenCalled();
     });
 
     it('deve recusar convite com sucesso', async () => {

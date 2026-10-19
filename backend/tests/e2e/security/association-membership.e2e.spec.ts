@@ -87,10 +87,12 @@ describe('E2E: Vínculo com associação — ninguém escolhe a associação soz
       expect(await associationOf('vinc-func-1@example.com')).toBeNull();
     });
 
-    it('admin da associação A não vincula o funcionário à associação B', async () => {
+    it('admin da associação A não vincula o funcionário à associação B (ele fica só na própria A)', async () => {
       await internal(adminOfAToken, 'vinc-func-2@example.com', assocBId).expect(HttpStatus.CREATED);
 
-      expect(await associationOf('vinc-func-2@example.com')).toBeNull();
+      const associationId = await associationOf('vinc-func-2@example.com');
+      expect(associationId).not.toBe(assocBId);
+      expect(associationId).toBe(assocAId);
     });
 
     it('admin da associação A vincula o funcionário à própria associação A', async () => {

@@ -43,4 +43,10 @@ export interface IUserRepository {
    * pelo primeiro login via Google — ver AuthService.loginWithGoogle.
    */
   findFirstAdmin(): Promise<UserEntity | null>;
+  /**
+   * Coloca todos os funcionarios (VAQUEIRO) do admin na associacao dele. Os
+   * funcionarios acompanham o admin: sem isso, ao entrar numa associacao o admin
+   * passa a ver o rebanho da associacao e deixa de ver os proprios funcionarios.
+   */
+  setEmployeesAssociation(adminId: ID, associationId: number): Promise<void>;
 }

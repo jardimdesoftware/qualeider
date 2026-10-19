@@ -122,6 +122,17 @@ export class PrismaUserRepository implements IUserRepository {
     return this.performUpdate(id, data);
   }
 
+  async setEmployeesAssociation(adminId: ID, associationId: number): Promise<void> {
+    await this.prisma.user.updateMany({
+      where: {
+        adminId: Number(adminId),
+        role: PrismaUserRole.VAQUEIRO,
+        OR: [{ associationId: null }, { associationId: { not: associationId } }],
+      },
+      data: { associationId },
+    });
+  }
+
   async partialUpdate(id: ID, data: Partial<UserEntity>): Promise<Omit<UserEntity, 'password'>> {
     return this.performUpdate(id, data);
   }
