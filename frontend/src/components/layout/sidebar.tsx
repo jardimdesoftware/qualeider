@@ -15,6 +15,7 @@ import {
   BarChart3,
   Bell,
   Truck,
+  ClipboardList,
 } from "lucide-react";
 import { getUserRoleFromToken, clearAuthToken } from "@/utils/auth";
 import { debounce } from "@/utils/debounce";
@@ -81,6 +82,12 @@ export default function Sidebar() {
       link: "/dailyForm",
       icon: <Milk size={ICON_SIZES.SM} />,
       adminOnly: false,
+    },
+    {
+      name: "Coletas registradas",
+      link: "/dashboardUser/history",
+      icon: <ClipboardList size={ICON_SIZES.SM} />,
+      adminOnly: true,
     },
     {
       name: "Meus Animais",

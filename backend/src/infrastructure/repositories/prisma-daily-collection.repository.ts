@@ -41,6 +41,7 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
         include: {
           items: { include: { animal: { select: { id: true, name: true, tagNumber: true } as any } } },
           destination: { select: { id: true, name: true } },
+          user: { select: { id: true, name: true } },
         },
       });
       return DailyCollectionMapper.toDomain(created);
@@ -88,6 +89,7 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
 
     const include: Prisma.DailyCollectionInclude = { 
       destination: { select: { id: true, name: true } },
+      user: { select: { id: true, name: true } },
       items: {
         include: { animal: true }
       } 
@@ -119,11 +121,12 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
   async findById(id: ID, options?: DailyCollectionFindOneOptions): Promise<DailyCollectionEntity | null> {
     const include: Prisma.DailyCollectionInclude = { 
       destination: { select: { id: true, name: true } },
+      user: { select: { id: true, name: true } },
       items: {
         include: { animal: true }
-      } 
+      }
     };
-    
+
     if (options?.includeUser) {
       include.user = true;
     }

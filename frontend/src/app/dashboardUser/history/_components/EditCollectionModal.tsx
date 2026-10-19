@@ -7,6 +7,7 @@ import { z } from "zod";
 import { X, Milk } from "lucide-react";
 import { DailyCollection, MilkingPlace } from "@/interfaces/daily-collection";
 import { ICON_SIZES } from "@/constants/ui";
+import { useDestinations } from "@/hooks/queries/useDestinations";
 
 const editCollectionSchema = z.object({
   collectionDate: z.string().min(1, "Data é obrigatória"),
@@ -17,6 +18,7 @@ const editCollectionSchema = z.object({
   milkingPlace: z.nativeEnum(MilkingPlace),
   rationProvided: z.boolean(),
   technicalAssistance: z.boolean(),
+  destinationId: z.string().optional(),
 });
 
 type EditCollectionFormData = z.infer<typeof editCollectionSchema>;
@@ -36,6 +38,7 @@ export function EditCollectionModal({
   onSave,
   isSaving = false,
 }: EditCollectionModalProps) {
+  const { data: destinations = [] } = useDestinations();
   const {
     register,
     handleSubmit,
@@ -56,6 +59,9 @@ export function EditCollectionModal({
         milkingPlace: collection.milkingPlace,
         rationProvided: collection.rationProvided,
         technicalAssistance: collection.technicalAssistance,
+        destinationId: collection.destinationId
+          ? String(collection.destinationId)
+          : "",
       });
     }
   }, [collection, reset]);
@@ -73,7 +79,11 @@ export function EditCollectionModal({
   if (!isOpen || !collection) return null;
 
   const onSubmit = (data: EditCollectionFormData) => {
-    onSave(collection.id, data);
+    const { destinationId, ...rest } = data;
+    onSave(collection.id, {
+      ...rest,
+      ...(destinationId ? { destinationId: Number(destinationId) } : {}),
+    } as Partial<EditCollectionFormData>);
   };
 
   const inputCls =
@@ -182,6 +192,23 @@ export function EditCollectionModal({
                 <option value="Aberto">Aberto</option>
                 <option value="Curral">Curral</option>
                 <option value="Ambos">Ambos</option>
+              </select>
+            </div>
+
+            {/* Destino do leite */}
+            <div>
+              <label className={labelCls}>Destino do leite</label>
+              <select
+                {...register("destinationId")}
+                disabled={isSaving}
+                className={inputCls}
+              >
+                <option value="">Sem destino</option>
+                {destinations.map((destination) => (
+                  <option key={destination.id} value={destination.id}>
+                    {destination.name}
+                  </option>
+                ))}
               </select>
             </div>
 

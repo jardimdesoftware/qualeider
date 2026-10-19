@@ -16,6 +16,8 @@ export class DailyCollectionEntity {
   technicalAssistance!: boolean;
   destinationId?: ID | null;
   destination?: { id: ID; name: string } | null;
+  // Quem registrou a coleta (so id e nome: nunca a conta inteira)
+  user?: { id: ID; name: string } | null;
   status!: Status;
   createdAt!: Date;
   updatedAt!: Date;
