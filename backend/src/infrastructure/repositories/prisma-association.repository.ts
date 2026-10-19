@@ -365,25 +365,15 @@ export class PrismaAssociationRepository implements IAssociationRepository {
     return ranked;
   }
 
+  /**
+   * Sem cache: o relatorio mensal serve tambem a fazenda individual (escopo de
+   * usuario/grupo Admin+Vaqueiros), que espera ver a coleta recem registrada. Ja foi
+   * guardado por 30 min, mas nenhuma escrita de coleta/animal invalidava a chave, e a
+   * invalidacao da associacao usava uma chave diferente da de leitura. Sao tres
+   * agregacoes simples por escopo, entao a leitura direta basta.
+   */
   async getMonthlyReport(scope: HerdScope, year: number, month: number): Promise<any> {
-    const scopeKey = scope.associationId
-      ? `assoc:${scope.associationId}`
-      : scope.adminGroupId
-        ? `admin:${scope.adminGroupId}`
-        : `user:${scope.userId}`;
-    const cacheKey = `monthly_report:${scopeKey}:${year}:${month}`;
-
-    // Tenta buscar do cache
-    const cached = await this.cacheManager.get(cacheKey);
-    if (cached) return cached;
-
-    // Se não tiver no cache, calcula
-    const report = await this.calculateMonthlyReport(scope, year, month);
-
-    // Salva no cache (TTL 30 minutos para relatórios mensais)
-    await this.cacheManager.set(cacheKey, report, 1800000);
-
-    return report;
+    return this.calculateMonthlyReport(scope, year, month);
   }
 
   private async calculateMonthlyReport(scope: HerdScope, year: number, month: number): Promise<any> {
@@ -521,11 +511,6 @@ export class PrismaAssociationRepository implements IAssociationRepository {
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
       await this.cacheManager.del(`producer_ranking:${associationId}:default:default`);
       await this.cacheManager.del(`producer_ranking:${associationId}:${thirtyDaysAgo.toISOString()}:${now.toISOString()}`);
-      
-      // Invalida caches de relatórios mensais do mês atual
-      const currentYear = now.getFullYear();
-      const currentMonth = now.getMonth() + 1;
-      await this.cacheManager.del(`monthly_report:${associationId}:${currentYear}:${currentMonth}`);
     } catch (error) {
       // Log do erro mas não interrompe o fluxo principal
       this.logger.error('Erro ao invalidar caches', error);
