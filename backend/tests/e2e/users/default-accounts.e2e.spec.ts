@@ -9,31 +9,31 @@ import { ConfigService } from '@nestjs/config';
 import { HttpStatus } from '@nestjs/common';
 
 /**
- * Contas locais (e-mail/senha, sem Google) criadas na subida da API a partir de
- * variáveis de ambiente: um ADMIN e um VAQUEIRO vinculado a ele.
+ * Admin FIXO (e-mail/senha, sem Google) criado na subida da API a partir de
+ * variáveis de ambiente. É o único: nada de vaqueiro fixo. As demais contas vêm do
+ * login pelo Google ou são criadas por um admin.
  */
-describe('E2E: Contas padrão na subida da aplicação', () => {
+describe('E2E: Admin fixo na subida da aplicação', () => {
   const ENV_KEYS = [
     'DEFAULT_ADMIN_EMAIL',
     'DEFAULT_ADMIN_PASSWORD',
     'DEFAULT_ADMIN_NAME',
     'DEFAULT_VAQUEIRO_EMAIL',
     'DEFAULT_VAQUEIRO_PASSWORD',
-    'DEFAULT_VAQUEIRO_NAME',
   ];
   const ADMIN = { email: 'padrao.admin@example.com', password: 'AdminPadrao@123' };
-  const VAQUEIRO = { email: 'padrao.vaqueiro@example.com', password: 'VaqPadrao@123' };
 
   let testApp: TestApp;
   let authHelper: AuthHelper;
 
   beforeAll(async () => {
     await setupE2ETests();
-    process.env.DEFAULT_ADMIN_EMAIL = ADMIN.email;
+    process.env.DEFAULT_ADMIN_EMAIL = ADMIN.email.toUpperCase();
     process.env.DEFAULT_ADMIN_PASSWORD = ADMIN.password;
     process.env.DEFAULT_ADMIN_NAME = 'Admin Padrão';
-    process.env.DEFAULT_VAQUEIRO_EMAIL = VAQUEIRO.email.toUpperCase();
-    process.env.DEFAULT_VAQUEIRO_PASSWORD = VAQUEIRO.password;
+    // Variáveis antigas do vaqueiro fixo não criam mais nada.
+    process.env.DEFAULT_VAQUEIRO_EMAIL = 'padrao.vaqueiro@example.com';
+    process.env.DEFAULT_VAQUEIRO_PASSWORD = 'VaqPadrao@123';
     testApp = new TestApp();
     await testApp.setup();
     authHelper = new AuthHelper(testApp);
@@ -45,17 +45,15 @@ describe('E2E: Contas padrão na subida da aplicação', () => {
     await teardownE2ETests();
   });
 
-  it('cria o ADMIN e o VAQUEIRO e os dois entram por e-mail e senha', async () => {
+  it('cria só o ADMIN, que entra por e-mail e senha; nenhum vaqueiro fixo', async () => {
     const adminToken = await authHelper.login(ADMIN.email, ADMIN.password);
-    const vaqueiroToken = await authHelper.login(VAQUEIRO.email, VAQUEIRO.password);
     expect(adminToken).toBeTruthy();
-    expect(vaqueiroToken).toBeTruthy();
 
-    const admin = await prisma.user.findUniqueOrThrow({ where: { email: ADMIN.email } });
-    const vaqueiro = await prisma.user.findUniqueOrThrow({ where: { email: VAQUEIRO.email } });
-    expect(admin.role).toBe(UserRole.ADMIN);
-    expect(admin.name).toBe('Admin Padrão');
-    expect(vaqueiro.role).toBe(UserRole.VAQUEIRO);
+    const users = await prisma.user.findMany();
+    expect(users).toHaveLength(1);
+    expect(users[0].email).toBe(ADMIN.email);
+    expect(users[0].role).toBe(UserRole.ADMIN);
+    expect(users[0].name).toBe('Admin Padrão');
   });
 
   it('guarda a senha com hash e nunca em texto puro', async () => {
@@ -64,14 +62,28 @@ describe('E2E: Contas padrão na subida da aplicação', () => {
     expect(admin.password).toMatch(/^\$2[aby]\$/);
   });
 
-  it('vincula o VAQUEIRO ao ADMIN (adminId) e os dois enxergam o mesmo rebanho', async () => {
-    const admin = await prisma.user.findUniqueOrThrow({ where: { email: ADMIN.email } });
-    const vaqueiro = await prisma.user.findUniqueOrThrow({ where: { email: VAQUEIRO.email } });
-    expect(vaqueiro.adminId).toBe(admin.id);
-    expect(admin.adminId).toBeNull();
-
+  it('o admin cria um vaqueiro e os dois enxergam o mesmo rebanho', async () => {
     const adminToken = await authHelper.login(ADMIN.email, ADMIN.password);
-    const vaqueiroToken = await authHelper.login(VAQUEIRO.email, VAQUEIRO.password);
+    const admin = await prisma.user.findUniqueOrThrow({ where: { email: ADMIN.email } });
+
+    await testApp
+      .request()
+      .post('/users/internal')
+      .set(authHelper.authHeader(adminToken))
+      .send({
+        name: 'Vaqueiro Criado',
+        email: 'vaqueiro.criado@example.com',
+        password: 'VaqCriado@123',
+        role: 'VAQUEIRO',
+        userType: 'Pecuarista',
+        userCategory: 'Fisica',
+        city: 'Belo Jardim',
+        state: 'PE',
+      })
+      .expect(HttpStatus.CREATED);
+    const vaqueiro = await prisma.user.findUniqueOrThrow({ where: { email: 'vaqueiro.criado@example.com' } });
+    expect(vaqueiro.adminId).toBe(admin.id);
+    const vaqueiroToken = await authHelper.login('vaqueiro.criado@example.com', 'VaqCriado@123');
 
     const create = (token: string, userId: number, name: string) =>
       testApp
@@ -94,7 +106,7 @@ describe('E2E: Contas padrão na subida da aplicação', () => {
     }
   });
 
-  it('é idempotente: subir de novo não duplica nem troca a senha das contas existentes', async () => {
+  it('é idempotente: subir de novo não duplica nem troca a senha da conta existente', async () => {
     const before = await prisma.user.findMany({ orderBy: { id: 'asc' } });
 
     process.env.DEFAULT_ADMIN_PASSWORD = 'OutraSenha@999';
@@ -107,9 +119,9 @@ describe('E2E: Contas padrão na subida da aplicação', () => {
     await expect(authHelper.login(ADMIN.email, ADMIN.password)).resolves.toBeTruthy();
   });
 
-  it('reativa as contas padrão desativadas, sem trocar a senha', async () => {
-    const before = await prisma.user.findMany({ where: { email: { in: [ADMIN.email, VAQUEIRO.email] } } });
-    await prisma.user.updateMany({ where: { email: { in: [ADMIN.email, VAQUEIRO.email] } }, data: { status: 'Inactive' } });
+  it('reativa o admin padrão desativado, sem trocar a senha', async () => {
+    const before = await prisma.user.findUniqueOrThrow({ where: { email: ADMIN.email } });
+    await prisma.user.update({ where: { email: ADMIN.email }, data: { status: 'Inactive' } });
     await testApp
       .request()
       .post('/auth/login')
@@ -118,22 +130,20 @@ describe('E2E: Contas padrão na subida da aplicação', () => {
 
     await testApp.getModule().get(DefaultAccountsService).ensureDefaultAccounts();
 
-    const after = await prisma.user.findMany({ where: { email: { in: [ADMIN.email, VAQUEIRO.email] } } });
-    expect(after.every((u) => u.status === 'Active')).toBe(true);
-    expect(after.map((u) => u.password).sort()).toEqual(before.map((u) => u.password).sort());
+    const after = await prisma.user.findUniqueOrThrow({ where: { email: ADMIN.email } });
+    expect(after.status).toBe('Active');
+    expect(after.password).toBe(before.password);
     await expect(authHelper.login(ADMIN.email, ADMIN.password)).resolves.toBeTruthy();
-    await expect(authHelper.login(VAQUEIRO.email, VAQUEIRO.password)).resolves.toBeTruthy();
   });
 
   /**
-   * Na subida em banco vazio, `DefaultAccountsService` e `AccountPurgeService` pedem
-   * as mesmas contas ao mesmo tempo: nenhum dos dois pode falhar com "Email já está
-   * em uso" nem consumir id da sequência com um insert que ia falhar.
+   * Em subidas simultâneas (duas chamadas no mesmo processo ou duas instâncias) a
+   * conta não pode falhar com "Email já está em uso" nem consumir id da sequência
+   * com um insert que ia falhar.
    */
-  describe('corrida na criação das contas', () => {
-    const EMAILS = [ADMIN.email, VAQUEIRO.email];
+  describe('corrida na criação da conta', () => {
     const accountsFrom = () => testApp.getModule().get(DefaultAccountsService);
-    const listAccounts = () => prisma.user.findMany({ where: { email: { in: EMAILS } }, orderBy: { id: 'asc' } });
+    const listAdmins = () => prisma.user.findMany({ where: { email: ADMIN.email } });
 
     /** Outra instância da API (processo diferente): não compartilha a promessa em andamento. */
     const buildIndependentInstance = (userRepository: IUserRepository = testApp.getModule().get(IUserRepository)) =>
@@ -147,39 +157,32 @@ describe('E2E: Contas padrão na subida da aplicação', () => {
       await cleanDatabase();
     });
 
-    it('duas execuções simultâneas no mesmo processo criam cada conta uma só vez, sem pular id', async () => {
+    it('duas execuções simultâneas no mesmo processo criam a conta uma só vez', async () => {
       const accounts = accountsFrom();
 
       await Promise.all([accounts.ensureDefaultAccounts(), accounts.ensureDefaultAccounts()]);
 
-      const [admin, vaqueiro, ...others] = await listAccounts();
-      expect(others).toHaveLength(0);
-      expect(admin.role).toBe(UserRole.ADMIN);
-      expect(vaqueiro.role).toBe(UserRole.VAQUEIRO);
-      expect(vaqueiro.adminId).toBe(admin.id);
-      expect(vaqueiro.id).toBe(admin.id + 1);
-      await expect(prisma.user.count()).resolves.toBe(2);
+      expect(await listAdmins()).toHaveLength(1);
+      await expect(prisma.user.count()).resolves.toBe(1);
     });
 
-    it('duas instâncias independentes subindo juntas em banco vazio terminam sem erro e com uma conta de cada', async () => {
+    it('duas instâncias independentes subindo juntas em banco vazio terminam sem erro e com uma conta só', async () => {
       await expect(
         Promise.all([buildIndependentInstance().ensureDefaultAccounts(), buildIndependentInstance().ensureDefaultAccounts()]),
       ).resolves.toBeDefined();
 
-      const [admin, vaqueiro, ...others] = await listAccounts();
-      expect(others).toHaveLength(0);
-      expect(vaqueiro.adminId).toBe(admin.id);
-      await expect(prisma.user.count()).resolves.toBe(2);
+      expect(await listAdmins()).toHaveLength(1);
+      await expect(prisma.user.count()).resolves.toBe(1);
     });
 
     it('create que bate no e-mail já criado por outra instância segue sem erro, adota a conta e reativa a inativa sem trocar a senha', async () => {
       await accountsFrom().ensureDefaultAccounts();
-      await prisma.user.updateMany({ where: { email: { in: EMAILS } }, data: { status: 'Inactive' } });
-      const before = await listAccounts();
+      await prisma.user.updateMany({ where: { email: ADMIN.email }, data: { status: 'Inactive' } });
+      const before = await listAdmins();
 
-      // Esta instância ainda não "enxerga" as contas na primeira consulta de cada e-mail
-      // (elas foram criadas por outra instância depois), então o `create` bate na
-      // unicidade do e-mail no banco de verdade.
+      // Esta instância ainda não "enxerga" a conta na primeira consulta (ela foi criada
+      // por outra instância depois), então o `create` bate na unicidade do e-mail no
+      // banco de verdade.
       const realRepository = testApp.getModule().get<IUserRepository>(IUserRepository);
       const alreadyLooked = new Set<string>();
       const lateRepository = Object.create(realRepository) as IUserRepository;
@@ -191,11 +194,11 @@ describe('E2E: Contas padrão na subida da aplicação', () => {
 
       await expect(buildIndependentInstance(lateRepository).ensureDefaultAccounts()).resolves.toBeUndefined();
 
-      const after = await listAccounts();
+      const after = await listAdmins();
       expect(after.map((u) => u.id)).toEqual(before.map((u) => u.id));
       expect(after.map((u) => u.password)).toEqual(before.map((u) => u.password));
       expect(after.every((u) => u.status === 'Active')).toBe(true);
-      await expect(prisma.user.count()).resolves.toBe(2);
+      await expect(prisma.user.count()).resolves.toBe(1);
     });
   });
 });

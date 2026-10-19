@@ -6,7 +6,7 @@ import { Status, UserRole } from '@/domain/enums/enums';
 import { BCRYPT_ROUNDS_USER_CREATION } from '@/common/constants/security.constants';
 import { BusinessException } from '@/common/exceptions/business.exception';
 
-describe('DefaultAccountsService', () => {
+describe('DefaultAccountsService (admin fixo único)', () => {
   let userRepository: jest.Mocked<Pick<IUserRepository, 'findByEmail' | 'create' | 'update'>>;
   let hashService: jest.Mocked<Pick<IHashService, 'hash'>>;
   let env: Record<string, string | undefined>;
@@ -21,7 +21,7 @@ describe('DefaultAccountsService', () => {
   beforeEach(() => {
     env = { NODE_ENV: 'test' };
     userRepository = { findByEmail: jest.fn().mockResolvedValue(null), create: jest.fn(), update: jest.fn() };
-    userRepository.create.mockImplementation(async (data: any) => ({ id: data.role === UserRole.ADMIN ? 1 : 2, ...data }) as any);
+    userRepository.create.mockImplementation(async (data: any) => ({ id: 1, ...data }) as any);
     hashService = { hash: jest.fn().mockResolvedValue('hashed') };
   });
 
@@ -30,66 +30,39 @@ describe('DefaultAccountsService', () => {
     expect(userRepository.create).not.toHaveBeenCalled();
   });
 
-  it('fora de teste e sem variáveis, cria as contas de teste embutidas (admin e vaqueiro vinculado)', async () => {
+  it('fora de teste e sem variáveis, cria o admin de teste embutido (e só ele)', async () => {
     env = {};
     await build().ensureDefaultAccounts();
 
     expect(hashService.hash).toHaveBeenCalledWith('Teste@12345', BCRYPT_ROUNDS_USER_CREATION);
-    expect(userRepository.create).toHaveBeenNthCalledWith(
-      1,
+    expect(userRepository.create).toHaveBeenCalledTimes(1);
+    expect(userRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({ email: 'admin@qualeider.test', role: UserRole.ADMIN, name: 'Administrador de Teste' }),
-    );
-    expect(userRepository.create).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({ email: 'vaqueiro@qualeider.test', role: UserRole.VAQUEIRO, adminId: 1 }),
     );
   });
 
-  it('DEFAULT_ACCOUNTS_DISABLED=true desliga a criação das contas embutidas', async () => {
+  it('DEFAULT_ACCOUNTS_DISABLED=true desliga a criação do admin embutido', async () => {
     env = { DEFAULT_ACCOUNTS_DISABLED: 'true' };
     await build().ensureDefaultAccounts();
     expect(userRepository.create).not.toHaveBeenCalled();
   });
 
-  it('cria o ADMIN e o VAQUEIRO vinculado ao admin, com e-mail em minúsculas e senha com hash', async () => {
+  it('cria o ADMIN com e-mail em minúsculas, nome configurado e senha com hash', async () => {
     env = {
       NODE_ENV: 'test',
       DEFAULT_ADMIN_EMAIL: ' Admin@Example.com ',
       DEFAULT_ADMIN_PASSWORD: 'Admin@12345',
       DEFAULT_ADMIN_NAME: 'Dono',
-      DEFAULT_VAQUEIRO_EMAIL: 'vaq@example.com',
-      DEFAULT_VAQUEIRO_PASSWORD: 'Vaq@12345',
     };
     await build().ensureDefaultAccounts();
 
     expect(hashService.hash).toHaveBeenCalledWith('Admin@12345', BCRYPT_ROUNDS_USER_CREATION);
-    expect(userRepository.create).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({ email: 'admin@example.com', role: UserRole.ADMIN, name: 'Dono', password: 'hashed', adminId: undefined }),
-    );
-    expect(userRepository.create).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({ email: 'vaq@example.com', role: UserRole.VAQUEIRO, name: 'Vaqueiro', adminId: 1 }),
+    expect(userRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({ email: 'admin@example.com', role: UserRole.ADMIN, name: 'Dono', password: 'hashed' }),
     );
   });
 
-  it('não toca em conta que já existe e liga o vaqueiro ao admin existente', async () => {
-    env = {
-      DEFAULT_ADMIN_EMAIL: 'admin@example.com',
-      DEFAULT_ADMIN_PASSWORD: 'Admin@12345',
-      DEFAULT_VAQUEIRO_EMAIL: 'vaq@example.com',
-      DEFAULT_VAQUEIRO_PASSWORD: 'Vaq@12345',
-    };
-    userRepository.findByEmail.mockImplementation(async (email: string) =>
-      email === 'admin@example.com' ? ({ id: 7, role: UserRole.ADMIN } as any) : null,
-    );
-    await build().ensureDefaultAccounts();
-
-    expect(userRepository.create).toHaveBeenCalledTimes(1);
-    expect(userRepository.create).toHaveBeenCalledWith(expect.objectContaining({ role: UserRole.VAQUEIRO, adminId: 7 }));
-  });
-
-  it('reativa a conta padrão inativa sem alterar senha nem perfil', async () => {
+  it('não existe mais vaqueiro fixo: variáveis DEFAULT_VAQUEIRO_* são ignoradas', async () => {
     env = {
       NODE_ENV: 'test',
       DEFAULT_ADMIN_EMAIL: 'admin@example.com',
@@ -97,53 +70,37 @@ describe('DefaultAccountsService', () => {
       DEFAULT_VAQUEIRO_EMAIL: 'vaq@example.com',
       DEFAULT_VAQUEIRO_PASSWORD: 'Vaq@12345',
     };
-    userRepository.findByEmail.mockImplementation(async (email: string) =>
-      email === 'admin@example.com'
-        ? ({ id: 7, role: UserRole.ADMIN, status: Status.Inactive } as any)
-        : ({ id: 8, role: UserRole.VAQUEIRO, status: Status.Inactive } as any),
-    );
     await build().ensureDefaultAccounts();
 
-    expect(userRepository.update).toHaveBeenCalledTimes(2);
+    expect(userRepository.create).toHaveBeenCalledTimes(1);
+    expect(userRepository.create).not.toHaveBeenCalledWith(expect.objectContaining({ role: UserRole.VAQUEIRO }));
+  });
+
+  it('não toca em conta que já existe', async () => {
+    env = { NODE_ENV: 'test', DEFAULT_ADMIN_EMAIL: 'admin@example.com', DEFAULT_ADMIN_PASSWORD: 'Admin@12345' };
+    userRepository.findByEmail.mockResolvedValue({ id: 7, role: UserRole.ADMIN, status: Status.Active } as any);
+
+    await build().ensureDefaultAccounts();
+
+    expect(userRepository.create).not.toHaveBeenCalled();
+    expect(userRepository.update).not.toHaveBeenCalled();
+    expect(hashService.hash).not.toHaveBeenCalled();
+  });
+
+  it('reativa o admin padrão inativo sem alterar senha nem perfil', async () => {
+    env = { NODE_ENV: 'test', DEFAULT_ADMIN_EMAIL: 'admin@example.com', DEFAULT_ADMIN_PASSWORD: 'Admin@12345' };
+    userRepository.findByEmail.mockResolvedValue({ id: 7, role: UserRole.ADMIN, status: Status.Inactive } as any);
+
+    await build().ensureDefaultAccounts();
+
+    expect(userRepository.update).toHaveBeenCalledTimes(1);
     expect(userRepository.update).toHaveBeenCalledWith(7, { status: Status.Active });
-    expect(userRepository.update).toHaveBeenCalledWith(8, { status: Status.Active });
     expect(userRepository.create).not.toHaveBeenCalled();
     expect(hashService.hash).not.toHaveBeenCalled();
   });
 
-  it('não mexe em conta padrão que já está ativa', async () => {
-    env = {
-      NODE_ENV: 'test',
-      DEFAULT_ADMIN_EMAIL: 'admin@example.com',
-      DEFAULT_ADMIN_PASSWORD: 'Admin@12345',
-    };
-    userRepository.findByEmail.mockResolvedValue({ id: 7, role: UserRole.ADMIN, status: Status.Active } as any);
-    await build().ensureDefaultAccounts();
-    expect(userRepository.update).not.toHaveBeenCalled();
-  });
-
-  it('rejeita senha fora da política e ignora o vaqueiro sem admin', async () => {
-    env = {
-      NODE_ENV: 'test',
-      DEFAULT_ADMIN_EMAIL: 'admin@example.com',
-      DEFAULT_ADMIN_PASSWORD: 'fraca',
-      DEFAULT_VAQUEIRO_EMAIL: 'vaq@example.com',
-      DEFAULT_VAQUEIRO_PASSWORD: 'Vaq@12345',
-    };
-    await build().ensureDefaultAccounts();
-    expect(userRepository.create).not.toHaveBeenCalled();
-  });
-
-  it('não vincula o vaqueiro a um e-mail que não seja de ADMIN', async () => {
-    env = {
-      DEFAULT_ADMIN_EMAIL: 'admin@example.com',
-      DEFAULT_ADMIN_PASSWORD: 'Admin@12345',
-      DEFAULT_VAQUEIRO_EMAIL: 'vaq@example.com',
-      DEFAULT_VAQUEIRO_PASSWORD: 'Vaq@12345',
-    };
-    userRepository.findByEmail.mockImplementation(async (email: string) =>
-      email === 'admin@example.com' ? ({ id: 7, role: UserRole.VAQUEIRO } as any) : null,
-    );
+  it('rejeita senha fora da política', async () => {
+    env = { NODE_ENV: 'test', DEFAULT_ADMIN_EMAIL: 'admin@example.com', DEFAULT_ADMIN_PASSWORD: 'fraca' };
     await build().ensureDefaultAccounts();
     expect(userRepository.create).not.toHaveBeenCalled();
   });
@@ -154,34 +111,26 @@ describe('DefaultAccountsService', () => {
     await expect(build().onApplicationBootstrap()).resolves.toBeUndefined();
   });
 
-  describe('corrida na criação das contas', () => {
+  describe('getDefaultEmails', () => {
+    it('devolve só o e-mail do admin em vigor', () => {
+      env = { NODE_ENV: 'test', DEFAULT_ADMIN_EMAIL: ' Admin@Example.com ' };
+      expect(build().getDefaultEmails()).toEqual(['admin@example.com']);
+    });
+
+    it('vazio quando a criação está desligada', () => {
+      env = { DEFAULT_ACCOUNTS_DISABLED: 'true' };
+      expect(build().getDefaultEmails()).toEqual([]);
+    });
+  });
+
+  describe('corrida na criação da conta', () => {
     const ADMIN_EMAIL = 'admin@example.com';
 
     beforeEach(() => {
-      env = {
-        DEFAULT_ADMIN_EMAIL: ADMIN_EMAIL,
-        DEFAULT_ADMIN_PASSWORD: 'Admin@12345',
-        DEFAULT_VAQUEIRO_EMAIL: 'vaq@example.com',
-        DEFAULT_VAQUEIRO_PASSWORD: 'Vaq@12345',
-      };
+      env = { DEFAULT_ADMIN_EMAIL: ADMIN_EMAIL, DEFAULT_ADMIN_PASSWORD: 'Admin@12345' };
     });
 
-    /** O ADMIN passa a existir (criado por outra instância) só depois do `create` que conflita. */
-    const simulateAdminCreatedByAnotherInstance = (existing: Record<string, unknown>) => {
-      let conflicted = false;
-      userRepository.create.mockImplementation(async (data: any) => {
-        if (data.role === UserRole.ADMIN) {
-          conflicted = true;
-          throw new BusinessException('Email já está em uso.');
-        }
-        return { id: 8, ...data } as any;
-      });
-      userRepository.findByEmail.mockImplementation(async (email: string) =>
-        email === ADMIN_EMAIL && conflicted ? ({ role: UserRole.ADMIN, ...existing } as any) : null,
-      );
-    };
-
-    it('duas chamadas simultâneas compartilham uma única execução e criam cada conta uma só vez', async () => {
+    it('duas chamadas simultâneas compartilham uma única execução e criam a conta uma só vez', async () => {
       const service = build();
 
       const first = service.ensureDefaultAccounts();
@@ -189,9 +138,7 @@ describe('DefaultAccountsService', () => {
       expect(second).toBe(first);
       await Promise.all([first, second]);
 
-      expect(userRepository.create).toHaveBeenCalledTimes(2);
-      expect(userRepository.create).toHaveBeenNthCalledWith(1, expect.objectContaining({ role: UserRole.ADMIN }));
-      expect(userRepository.create).toHaveBeenNthCalledWith(2, expect.objectContaining({ role: UserRole.VAQUEIRO, adminId: 1 }));
+      expect(userRepository.create).toHaveBeenCalledTimes(1);
     });
 
     it('concluída a execução, uma nova chamada roda de novo (a promessa não fica guardada)', async () => {
@@ -210,21 +157,33 @@ describe('DefaultAccountsService', () => {
 
       await expect(service.ensureDefaultAccounts()).rejects.toThrow('banco fora');
       await expect(service.ensureDefaultAccounts()).resolves.toBeUndefined();
-      expect(userRepository.create).toHaveBeenCalledTimes(2);
+      expect(userRepository.create).toHaveBeenCalledTimes(1);
     });
 
-    it('create com e-mail duplicado (outra instância criou antes) segue sem erro e liga o vaqueiro ao admin existente', async () => {
-      simulateAdminCreatedByAnotherInstance({ id: 7, status: Status.Active });
+    it('create com e-mail duplicado (outra instância criou antes) segue sem erro', async () => {
+      let conflicted = false;
+      userRepository.create.mockImplementation(async () => {
+        conflicted = true;
+        throw new BusinessException('Email já está em uso.');
+      });
+      userRepository.findByEmail.mockImplementation(async () =>
+        conflicted ? ({ id: 7, role: UserRole.ADMIN, status: Status.Active } as any) : null,
+      );
 
       await expect(build().ensureDefaultAccounts()).resolves.toBeUndefined();
 
-      expect(userRepository.create).toHaveBeenCalledTimes(2);
-      expect(userRepository.create).toHaveBeenLastCalledWith(expect.objectContaining({ role: UserRole.VAQUEIRO, adminId: 7 }));
       expect(userRepository.update).not.toHaveBeenCalled();
     });
 
     it('conta criada pela outra instância e inativa é reativada, sem trocar a senha', async () => {
-      simulateAdminCreatedByAnotherInstance({ id: 7, status: Status.Inactive });
+      let conflicted = false;
+      userRepository.create.mockImplementation(async () => {
+        conflicted = true;
+        throw new BusinessException('Email já está em uso.');
+      });
+      userRepository.findByEmail.mockImplementation(async () =>
+        conflicted ? ({ id: 7, role: UserRole.ADMIN, status: Status.Inactive } as any) : null,
+      );
 
       await build().ensureDefaultAccounts();
 
