@@ -1,5 +1,5 @@
 import { setupE2ETests, teardownE2ETests, E2E_TIMEOUT } from '../setup';
-import { TestApp } from '../helpers';
+import { TestApp, AuthHelper } from '../helpers';
 import { AssociationFactory, UserFactory, AnimalFactory, DailyCollectionFactory } from '../factories';
 import { HttpStatus } from '@nestjs/common';
 
@@ -57,19 +57,9 @@ describe('E2E: Associations - Relatórios', () => {
     associationToken = loginResponse.body.data.access_token;
 
     const producer1Data = UserFactory.build();
-    const producer1Response = await testApp
-      .request()
-      .post('/users')
-      .send(producer1Data)
-      .expect(HttpStatus.CREATED);
-    
-    if (!producer1Response.body.data || !producer1Response.body.data.id) {
-      throw new Error(`Failed to create producer1. Response: ${JSON.stringify(producer1Response.body)}`);
-    }
-    producer1Id = producer1Response.body.data.id;
-    // O cadastro público não escolhe associação; o vínculo vem de convite aceito
-    // (aqui, direto no banco).
-    await testApp.getPrismaService().user.update({ where: { id: producer1Id }, data: { associationId } });
+    // O vínculo vem de convite aceito (aqui, direto no banco).
+    const producer1 = await new AuthHelper(testApp).createTestUser({ ...producer1Data, associationId } as any);
+    producer1Id = producer1.id!;
 
     const p1Login = await testApp
       .request()
@@ -79,17 +69,8 @@ describe('E2E: Associations - Relatórios', () => {
     const p1Token = p1Login.body.data.access_token;
 
     const producer2Data = UserFactory.build();
-    const producer2Response = await testApp
-      .request()
-      .post('/users')
-      .send(producer2Data)
-      .expect(HttpStatus.CREATED);
-    
-    if (!producer2Response.body.data || !producer2Response.body.data.id) {
-      throw new Error(`Failed to create producer2. Response: ${JSON.stringify(producer2Response.body.data)}`);
-    }
-    producer2Id = producer2Response.body.data.id;
-    await testApp.getPrismaService().user.update({ where: { id: producer2Id }, data: { associationId } });
+    const producer2 = await new AuthHelper(testApp).createTestUser({ ...producer2Data, associationId } as any);
+    producer2Id = producer2.id!;
 
     const p2Login = await testApp
       .request()

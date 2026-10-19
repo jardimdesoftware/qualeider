@@ -146,13 +146,8 @@ export default function Login() {
       </a>
 
       <p className="mt-4 text-center text-xs text-slate-500">
-        Não tem uma conta?{" "}
-        <Link
-          href="/createAccount"
-          className="font-semibold text-[#237a32] transition-colors hover:text-[#185924] hover:underline"
-        >
-          Criar Conta
-        </Link>
+        Não tem acesso? Entre com o Google (e-mail @ifpe.edu.br) ou peça uma
+        conta ao administrador.
       </p>
     </AuthLayout>
   );

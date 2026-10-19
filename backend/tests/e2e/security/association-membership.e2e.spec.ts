@@ -70,16 +70,6 @@ describe('E2E: Vínculo com associação — ninguém escolhe a associação soz
     await teardownE2ETests();
   });
 
-  describe('cadastro público (POST /users)', () => {
-    it('ignora o associationId do corpo: o usuário nasce sem associação', async () => {
-      const intruder = UserFactory.build({ email: 'vinc-intruso@example.com', associationId: assocAId });
-
-      await testApp.request().post('/users').send(intruder).expect(HttpStatus.CREATED);
-
-      expect(await associationOf('vinc-intruso@example.com')).toBeNull();
-    });
-  });
-
   describe('cadastro interno de funcionário (POST /users/internal)', () => {
     it('admin sem associação não vincula o funcionário a nenhuma', async () => {
       await internal(adminWithoutAssocToken, 'vinc-func-1@example.com', assocAId).expect(HttpStatus.CREATED);

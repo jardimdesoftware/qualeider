@@ -42,62 +42,10 @@ describe('UsersController', () => {
     jest.clearAllMocks();
   });
 
-  describe('create', () => {
-    it('deve criar um usuário com sucesso e retornar wrapper', async () => {
-      const createDto: CreateUserDto = {
-        name: 'João Silva',
-        email: 'joao@example.com',
-      } as any;
-
-      const createdUser = createUser({ ...createDto, id: 1 });
-      mockUsersService.create.mockResolvedValue(createdUser);
-
-      const result = await controller.create(createDto);
-
-      expect(usersService.create).toHaveBeenCalledWith({ ...createDto, role: UserRole.ADMIN });
-      expect(result).toEqual(createdUser);
-    });
-
-    it('deve propagar erro de negócio (ex: email duplicado)', async () => {
-      const createDto: CreateUserDto = { email: 'existing@example.com' } as any;
-      const error = new BusinessException('Email já cadastrado.');
-      
-      mockUsersService.create.mockRejectedValue(error);
-
-      await expect(controller.create(createDto)).rejects.toThrow(BusinessException);
-    });
-
-    it('deve ignorar role VAQUEIRO no cadastro publico e criar ADMIN', async () => {
-      const createDto: CreateUserDto = {
-        name: 'Funcionario',
-        email: 'funcionario@example.com',
-        role: UserRole.VAQUEIRO,
-      } as any;
-      const createdUser = createUser({ ...createDto, id: 8, role: UserRole.ADMIN });
-      mockUsersService.create.mockResolvedValue(createdUser);
-
-      const result = await controller.create(createDto);
-
-      expect(usersService.create).toHaveBeenCalledWith({
-        ...createDto,
-        role: UserRole.ADMIN,
-      });
-      expect(result.role).toBe(UserRole.ADMIN);
-    });
-  });
-
   describe('associationId no cadastro', () => {
     const base = { name: 'Fulano', email: 'fulano@example.com', associationId: 77 } as any;
 
     beforeEach(() => mockUsersService.create.mockResolvedValue(createUser({ id: 1 })));
-
-    it('registro público ignora o associationId enviado (ninguém se declara membro de uma associação)', async () => {
-      await controller.create({ ...base });
-
-      expect(usersService.create).toHaveBeenCalledWith(
-        expect.objectContaining({ role: UserRole.ADMIN, associationId: undefined }),
-      );
-    });
 
     it('cadastro interno: associationId alheio é descartado', async () => {
       await controller.createInternal({ ...base, role: UserRole.VAQUEIRO }, 1, UserRole.ADMIN, 5);
