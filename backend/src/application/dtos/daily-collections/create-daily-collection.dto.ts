@@ -63,6 +63,12 @@ export class CreateDailyCollectionDto {
   @IsBoolean()
   technicalAssistance!: boolean;
 
+  @ApiProperty({ description: 'Id do destino do leite (tabela Destination)', example: 1, required: false })
+  @IsOptional()
+  @IsInt({ message: 'destinationId deve ser um numero inteiro' })
+  @IsPositive({ message: 'destinationId deve ser positivo' })
+  destinationId?: number;
+
   @ApiProperty({ description: 'Data da coleta', example: '2025-11-22' })
   @Type(() => Date)
   @IsDate()

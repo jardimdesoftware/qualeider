@@ -19,9 +19,11 @@ import { PrismaAssociationRepository } from '@/infrastructure/repositories/prism
 import { IInviteRepository } from '@/domain/repositories/invite.repository';
 import { PrismaInviteRepository } from '@/infrastructure/repositories/prisma-invite.repository';
 import { IBreedRepository } from '@/domain/repositories/breed.repository';
+import { IDestinationRepository } from '@/domain/repositories/destination.repository';
 import { IAnimalSpeciesRepository } from '@/domain/repositories/animal-species.repository';
 import { PrismaAnimalSpeciesRepository } from '@/infrastructure/repositories/prisma-animal-species.repository';
 import { PrismaBreedRepository } from '@/infrastructure/repositories/prisma-breed.repository';
+import { PrismaDestinationRepository } from '@/infrastructure/repositories/prisma-destination.repository';
 import { IAllowedEmailRepository } from '@/domain/repositories/allowed-email.repository';
 import { PrismaAllowedEmailRepository } from '@/infrastructure/repositories/prisma-allowed-email.repository';
 import { IActivityLogRepository } from '@/domain/repositories/activity-log.repository';
@@ -53,6 +55,7 @@ import { PrismaActivityLogRepository } from '@/infrastructure/repositories/prism
     { provide: IAssociationRepository, useClass: PrismaAssociationRepository },
     { provide: IInviteRepository, useClass: PrismaInviteRepository },
     { provide: IBreedRepository, useClass: PrismaBreedRepository },
+    { provide: IDestinationRepository, useClass: PrismaDestinationRepository },
     { provide: IAnimalSpeciesRepository, useClass: PrismaAnimalSpeciesRepository },
     { provide: IAllowedEmailRepository, useClass: PrismaAllowedEmailRepository },
     { provide: IActivityLogRepository, useClass: PrismaActivityLogRepository },
@@ -68,6 +71,7 @@ import { PrismaActivityLogRepository } from '@/infrastructure/repositories/prism
     IAssociationRepository,
     IInviteRepository,
     IBreedRepository,
+    IDestinationRepository,
     IAnimalSpeciesRepository,
     IAllowedEmailRepository,
     IActivityLogRepository,

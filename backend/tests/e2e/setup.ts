@@ -91,6 +91,7 @@ export async function cleanDatabase(): Promise<void> {
     await Promise.all([
       safeDeleteMany(() => prisma.animal.deleteMany()),
       safeDeleteMany(() => prisma.invite.deleteMany()),
+      safeDeleteMany(() => prisma.destination.deleteMany()),
     ]);
 
     // 4ª ordem: raças, usuários e associações

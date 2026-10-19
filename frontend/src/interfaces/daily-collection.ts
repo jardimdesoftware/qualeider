@@ -41,6 +41,8 @@ export interface DailyCollection {
   numLactation: number;
   milkingPlace: MilkingPlace;
   technicalAssistance: boolean;
+  destinationId?: number | null; // para onde o leite foi
+  destination?: { id: number; name: string } | null;
   createdAt?: string;
   updatedAt?: string;
   items?: DailyCollectionItem[];

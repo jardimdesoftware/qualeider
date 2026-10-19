@@ -10,6 +10,7 @@ import { AssociationsPresentationModule } from './modules/associations.module';
 import { InvitesPresentationModule } from './modules/invites.module';
 import { NotificationsPresentationModule } from './modules/notifications.module';
 import { BreedsPresentationModule } from './modules/breeds.module';
+import { DestinationsPresentationModule } from './modules/destinations.module';
 import { AnimalSpeciesPresentationModule } from './modules/animal-species.module';
 import { AllowedEmailsPresentationModule } from './modules/allowed-emails.module';
 import { ActivityLogsPresentationModule } from './modules/activity-logs.module';
@@ -59,6 +60,7 @@ import { HealthController } from './controllers/health.controller';
     InvitesPresentationModule,
     NotificationsPresentationModule,
     BreedsPresentationModule,
+    DestinationsPresentationModule,
     AnimalSpeciesPresentationModule,
     AllowedEmailsPresentationModule,
     ActivityLogsPresentationModule,

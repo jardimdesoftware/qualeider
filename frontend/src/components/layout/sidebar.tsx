@@ -14,6 +14,7 @@ import {
   Dna,
   BarChart3,
   Bell,
+  Truck,
 } from "lucide-react";
 import { getUserRoleFromToken, clearAuthToken } from "@/utils/auth";
 import { debounce } from "@/utils/debounce";
@@ -103,6 +104,12 @@ export default function Sidebar() {
       name: "Tipos de Animal",
       link: "/dashboardUser/animalSpecies",
       icon: <Dna size={ICON_SIZES.SM} />,
+      adminOnly: true,
+    },
+    {
+      name: "Destinos",
+      link: "/dashboardUser/destinations",
+      icon: <Truck size={ICON_SIZES.SM} />,
       adminOnly: true,
     },
     {

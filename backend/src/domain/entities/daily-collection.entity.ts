@@ -14,6 +14,8 @@ export class DailyCollectionEntity {
   numLactation!: number;
   milkingPlace!: MilkingPlace;
   technicalAssistance!: boolean;
+  destinationId?: ID | null;
+  destination?: { id: ID; name: string } | null;
   status!: Status;
   createdAt!: Date;
   updatedAt!: Date;

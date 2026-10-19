@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable, Inject, Logger } from '@nestjs/common';
 import { IDailyCollectionRepository } from '@/domain/repositories/daily-collection.repository';
 import { IUserRepository } from '@/domain/repositories/user.repository';
 import { IAnimalRepository } from '@/domain/repositories/animal.repository';
+import { IDestinationRepository } from '@/domain/repositories/destination.repository';
 import { CreateDailyCollectionDto } from '@/application/dtos/daily-collections/create-daily-collection.dto';
 import { UpdateDailyCollectionDto } from '@/application/dtos/daily-collections/update-daily-collection.dto';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
@@ -29,6 +30,7 @@ export class DailyCollectionsService {
     @Inject(IUserRepository) private userRepository: IUserRepository,
     @Inject(IDailyCollectionRepository) private dailyCollectionRepository: IDailyCollectionRepository,
     @Inject(IAnimalRepository) private animalRepository: IAnimalRepository,
+    @Inject(IDestinationRepository) private destinationRepository: IDestinationRepository,
     private activityLogService: ActivityLogService,
   ) {}
 
@@ -74,6 +76,7 @@ export class DailyCollectionsService {
     this.assertCanCreateForOwner(owner, requester);
 
     this.validateCollectionDate(createDailyCollectionDto.collectionDate);
+    await this.assertDestinationExists(createDailyCollectionDto.destinationId);
 
     // Só valida items se o array tiver conteúdo
     if (createDailyCollectionDto.items && createDailyCollectionDto.items.length > 0) {
@@ -100,6 +103,15 @@ export class DailyCollectionsService {
     
     if (collectionDateTime > nowTime) {
       throw new BusinessException('Data de coleta não pode ser futura');
+    }
+  }
+
+  /** O destino informado (opcional) precisa existir. */
+  private async assertDestinationExists(destinationId?: number) {
+    if (destinationId === undefined || destinationId === null) return;
+    const destination = await this.destinationRepository.findById(destinationId);
+    if (!destination) {
+      throw new EntityNotFoundException(`Destino com ID ${destinationId} não encontrado.`);
     }
   }
 
@@ -199,6 +211,7 @@ export class DailyCollectionsService {
     if (updateDailyCollectionDto.collectionDate) {
       this.validateCollectionDate(updateDailyCollectionDto.collectionDate);
     }
+    await this.assertDestinationExists(updateDailyCollectionDto.destinationId);
     
     const { items, ...collectionData } = updateDailyCollectionDto;
     

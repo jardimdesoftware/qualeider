@@ -13,6 +13,7 @@ export const dailyCollectionSchema = z.object({
   numLactation: z.number().min(0, "Número de lactações deve ser preenchido"),
   milkingPlace: z.enum(["Aberto", "Curral", "Ambos"]),
   technicalAssistance: z.boolean(),
+  destinationId: z.number().int().positive().optional(),
   userId: z.number().optional(),
   items: z
     .array(
