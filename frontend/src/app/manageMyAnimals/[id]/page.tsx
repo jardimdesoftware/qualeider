@@ -22,6 +22,9 @@ import {
   AnimalCollectionHistoryItem,
 } from "@/interfaces/daily-collection";
 import AnimalReportExportButton from "@/components/reports/AnimalReportExportButton";
+import LactationCurveCard from "@/components/animals/LactationCurveCard";
+import { daysSinceCalving, lactationLabel } from "@/utils/lactation";
+import { formatDateBR } from "@/utils/date";
 
 // helpers
 
@@ -76,6 +79,7 @@ function HistoryTable({ rows }: { rows: AnimalCollectionHistoryItem[] }) {
           <tr className="bg-gray-50 border-b border-gray-100 text-xs uppercase text-gray-500 font-semibold tracking-wider">
             <th className="px-5 py-3">Data</th>
             <th className="px-5 py-3">Quantidade (L)</th>
+            <th className="px-5 py-3">Caneca</th>
             <th className="px-5 py-3">CMT</th>
           </tr>
         </thead>
@@ -92,6 +96,11 @@ function HistoryTable({ rows }: { rows: AnimalCollectionHistoryItem[] }) {
               </td>
               <td className="px-5 py-3 text-slate-800 font-bold">
                 {row.quantity} L
+              </td>
+              <td className="px-5 py-3">
+                {row.mugTestResult ?? (
+                  <span className="text-gray-400 text-xs">—</span>
+                )}
               </td>
               <td className="px-5 py-3">
                 {cmtBadge(row.cmtResult) ?? (
@@ -199,6 +208,22 @@ export default function AnimalDetailPage() {
               value={animal.age ? `${animal.age} anos` : undefined}
             />
             <InfoRow
+              label="Estágio de lactação"
+              value={animal.lactationNumber ? lactationLabel(animal.lactationNumber) : undefined}
+            />
+            <InfoRow
+              label="Último parto"
+              value={
+                animal.calvingDate
+                  ? `${formatDateBR(animal.calvingDate.slice(0, 10) + "T12:00:00")}${
+                      daysSinceCalving(animal.calvingDate) !== null
+                        ? ` (${daysSinceCalving(animal.calvingDate)} dias)`
+                        : ""
+                    }`
+                  : undefined
+              }
+            />
+            <InfoRow
               label="Cadastrado em"
               value={
                 animal.createdAt
@@ -248,6 +273,13 @@ export default function AnimalDetailPage() {
             </div>
           </div>
         )}
+
+        {/* curva de lactacao */}
+        <LactationCurveCard
+          calvingDate={animal.calvingDate}
+          lactationNumber={animal.lactationNumber}
+          history={history}
+        />
 
         {/* historico */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">

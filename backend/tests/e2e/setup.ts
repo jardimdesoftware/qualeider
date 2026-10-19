@@ -88,6 +88,7 @@ export async function cleanDatabase(): Promise<void> {
     // 3ª ordem: animais e convites (animal referencia breed via breedId)
     await Promise.all([
       safeDeleteMany(() => prisma.animal.deleteMany()),
+      safeDeleteMany(() => prisma.destination.deleteMany()),
     ]);
 
     // 4ª ordem: raças e usuários

@@ -17,9 +17,11 @@ import { JwtTokenService } from '@/infrastructure/services/jwt-token.service';
 import { IReportRepository } from '@/domain/repositories/report.repository';
 import { PrismaReportRepository } from '@/infrastructure/repositories/prisma-report.repository';
 import { IBreedRepository } from '@/domain/repositories/breed.repository';
+import { IDestinationRepository } from '@/domain/repositories/destination.repository';
 import { IAnimalSpeciesRepository } from '@/domain/repositories/animal-species.repository';
 import { PrismaAnimalSpeciesRepository } from '@/infrastructure/repositories/prisma-animal-species.repository';
 import { PrismaBreedRepository } from '@/infrastructure/repositories/prisma-breed.repository';
+import { PrismaDestinationRepository } from '@/infrastructure/repositories/prisma-destination.repository';
 import { IAllowedEmailRepository } from '@/domain/repositories/allowed-email.repository';
 import { PrismaAllowedEmailRepository } from '@/infrastructure/repositories/prisma-allowed-email.repository';
 import { IActivityLogRepository } from '@/domain/repositories/activity-log.repository';
@@ -50,6 +52,7 @@ import { PrismaActivityLogRepository } from '@/infrastructure/repositories/prism
     { provide: IFailedEmailRepository, useClass: PrismaFailedEmailRepository },
     { provide: IReportRepository, useClass: PrismaReportRepository },
     { provide: IBreedRepository, useClass: PrismaBreedRepository },
+    { provide: IDestinationRepository, useClass: PrismaDestinationRepository },
     { provide: IAnimalSpeciesRepository, useClass: PrismaAnimalSpeciesRepository },
     { provide: IAllowedEmailRepository, useClass: PrismaAllowedEmailRepository },
     { provide: IActivityLogRepository, useClass: PrismaActivityLogRepository },
@@ -64,6 +67,7 @@ import { PrismaActivityLogRepository } from '@/infrastructure/repositories/prism
     IFailedEmailRepository,
     IReportRepository,
     IBreedRepository,
+    IDestinationRepository,
     IAnimalSpeciesRepository,
     IAllowedEmailRepository,
     IActivityLogRepository,

@@ -12,6 +12,11 @@ interface ConfirmedCowsListProps {
   onEdit: (animalId: number) => void;
 }
 
+const MUG_BADGE: Record<string, string> = {
+  Negativo: "bg-green-100 text-green-700",
+  Positivo: "bg-red-100 text-red-700",
+};
+
 const CMT_BADGE: Record<string, string> = {
   Normal: "bg-green-100 text-green-700",
   Suspeito: "bg-yellow-100 text-yellow-700",
@@ -55,6 +60,16 @@ export function ConfirmedCowsList({
                   <span className="text-xs font-black text-slate-800">
                     {data.quantity.toFixed(1)} L
                   </span>
+                  {data.mugTestResult && (
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        MUG_BADGE[data.mugTestResult] ??
+                        "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      Caneca: {data.mugTestResult}
+                    </span>
+                  )}
                   {data.cmtResult && (
                     <span
                       className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${

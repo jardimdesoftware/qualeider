@@ -15,6 +15,7 @@ export interface ConfirmedItemMap {
   [animalId: number]: {
     quantity: number;
     cmtResult?: string | null;
+    mugTestResult?: string | null;
   };
 }
 
@@ -70,6 +71,7 @@ export function useDailyCollection() {
         animalId: Number(animalId),
         quantity: data.quantity,
         cmtResult: data.cmtResult ?? null,
+        mugTestResult: data.mugTestResult ?? null,
       }))
       .filter((item) => item.quantity > 0);
   };
@@ -85,6 +87,7 @@ export function useDailyCollection() {
         animalId: Number(animalId),
         quantity: parseFloat(val) || 0,
         cmtResult: null,
+        mugTestResult: null,
       }))
       .filter((item) => item.quantity > 0);
   };

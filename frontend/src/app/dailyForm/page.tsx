@@ -29,6 +29,8 @@ import { getFriendlyErrorMessage } from "@/utils/errorMessage";
 import { Status, Animal } from "@/interfaces/animal";
 import { ActiveCowForm } from "./_components/ActiveCowForm";
 import { ConfirmedCowsList } from "./_components/ConfirmedCowsList";
+import { CollectionDestination } from "./_components/CollectionDestination";
+import { useDestinations } from "@/hooks/queries/useDestinations";
 
 function animalLabel(a: Animal): string {
   const tag = a.tagNumber ? `#${a.tagNumber}` : null;
@@ -48,11 +50,15 @@ export default function DailyForm() {
   const { data: animals = [], isLoading: isLoadingAnimals } =
     useUserAnimals(userId);
   const createCollection = useCreateCollection();
+  const { data: destinations = [], isLoading: isLoadingDestinations } =
+    useDestinations();
 
   const [confirmedItems, setConfirmedItems] = useState<ConfirmedItemMap>({});
   const [selectedAnimalId, setSelectedAnimalId] = useState<number | null>(null);
   const [activeQuantity, setActiveQuantity] = useState("");
   const [activeCmtResult, setActiveCmtResult] = useState<string | null>(null);
+  const [activeMugTest, setActiveMugTest] = useState<string | null>(null);
+  const [destinationId, setDestinationId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -103,6 +109,7 @@ export default function DailyForm() {
     setSelectedAnimalId(animal.id);
     setActiveQuantity("");
     setActiveCmtResult(null);
+    setActiveMugTest(null);
     setDropdownOpen(false);
     setSearchQuery("");
   };
@@ -113,11 +120,16 @@ export default function DailyForm() {
     if (!qty || qty <= 0) return;
     setConfirmedItems((prev) => ({
       ...prev,
-      [selectedAnimalId]: { quantity: qty, cmtResult: activeCmtResult },
+      [selectedAnimalId]: {
+        quantity: qty,
+        cmtResult: activeCmtResult,
+        mugTestResult: activeMugTest,
+      },
     }));
     setSelectedAnimalId(null);
     setActiveQuantity("");
     setActiveCmtResult(null);
+    setActiveMugTest(null);
   };
 
   const handleEditConfirmed = (animalId: number) => {
@@ -126,6 +138,7 @@ export default function DailyForm() {
     setSelectedAnimalId(animalId);
     setActiveQuantity(String(item.quantity));
     setActiveCmtResult(item.cmtResult ?? null);
+    setActiveMugTest(item.mugTestResult ?? null);
     setConfirmedItems((prev) => {
       const next = { ...prev };
       delete next[animalId];
@@ -146,6 +159,14 @@ export default function DailyForm() {
       });
       return;
     }
+    if (destinations.length > 0 && destinationId === null) {
+      setModalState({
+        isOpen: true,
+        type: "error",
+        message: "Escolha para onde o leite vai antes de finalizar a coleta.",
+      });
+      return;
+    }
     setIsSubmitting(true);
     try {
       const payload = {
@@ -157,6 +178,7 @@ export default function DailyForm() {
         rationProvided: false,
         technicalAssistance: false,
         milkingPlace: MilkingPlace.Curral,
+        ...(destinationId !== null ? { destinationId } : {}),
         items,
       };
       await createCollection.mutateAsync({ data: payload, userId });
@@ -335,13 +357,16 @@ export default function DailyForm() {
                     animalLabel={animalLabel(selectedAnimal)}
                     quantity={activeQuantity}
                     cmtResult={activeCmtResult}
+                    mugTestResult={activeMugTest}
                     onQuantityChange={setActiveQuantity}
                     onCmtChange={setActiveCmtResult}
+                    onMugTestChange={setActiveMugTest}
                     onConfirm={handleConfirmCow}
                     onCancel={() => {
                       setSelectedAnimalId(null);
                       setActiveQuantity("");
                       setActiveCmtResult(null);
+                      setActiveMugTest(null);
                     }}
                   />
                 )}
@@ -353,6 +378,18 @@ export default function DailyForm() {
                     animals={animals}
                     animalLabel={animalLabel}
                     onEdit={handleEditConfirmed}
+                  />
+                )}
+
+                {/* Total coletado e destino do leite */}
+                {Object.keys(confirmedItems).length > 0 && !selectedAnimal && (
+                  <CollectionDestination
+                    totalMilk={totals.totalMilk}
+                    milkedCows={totals.milkedCows}
+                    destinations={destinations}
+                    isLoading={isLoadingDestinations}
+                    selectedId={destinationId}
+                    onSelect={setDestinationId}
                   />
                 )}
               </>

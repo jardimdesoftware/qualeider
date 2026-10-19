@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable, Inject, Logger } from '@nestjs/common';
 import { IDailyCollectionRepository } from '@/domain/repositories/daily-collection.repository';
 import { IUserRepository } from '@/domain/repositories/user.repository';
 import { IAnimalRepository } from '@/domain/repositories/animal.repository';
+import { IDestinationRepository } from '@/domain/repositories/destination.repository';
 import { CreateDailyCollectionDto } from '@/application/dtos/daily-collections/create-daily-collection.dto';
 import { UpdateDailyCollectionDto } from '@/application/dtos/daily-collections/update-daily-collection.dto';
 import { EntityNotFoundException } from '@/common/exceptions/entity-not-found.exception';
@@ -28,6 +29,7 @@ export class DailyCollectionsService {
     @Inject(IUserRepository) private userRepository: IUserRepository,
     @Inject(IDailyCollectionRepository) private dailyCollectionRepository: IDailyCollectionRepository,
     @Inject(IAnimalRepository) private animalRepository: IAnimalRepository,
+    @Inject(IDestinationRepository) private destinationRepository: IDestinationRepository,
     private activityLogService: ActivityLogService,
   ) {}
 
@@ -73,9 +75,11 @@ export class DailyCollectionsService {
     this.assertCanCreateForOwner(owner, requester);
 
     this.validateCollectionDate(createDailyCollectionDto.collectionDate);
+    await this.assertDestinationExists(createDailyCollectionDto.destinationId);
 
     // Só valida items se o array tiver conteúdo
     if (createDailyCollectionDto.items && createDailyCollectionDto.items.length > 0) {
+      this.assertNoDuplicateMilkings(createDailyCollectionDto.items);
       this.validateItemsSum(createDailyCollectionDto.quantity, createDailyCollectionDto.items);
       await this.validateAnimalsOwnership(owner, createDailyCollectionDto.items);
     }
@@ -101,6 +105,29 @@ export class DailyCollectionsService {
     }
   }
 
+  /** O destino informado (opcional) precisa existir. */
+  private async assertDestinationExists(destinationId?: number) {
+    if (destinationId === undefined || destinationId === null) return;
+    const destination = await this.destinationRepository.findById(destinationId);
+    if (!destination) {
+      throw new EntityNotFoundException(`Destino com ID ${destinationId} não encontrado.`);
+    }
+  }
+
+  /** Cada animal so pode ter um registro por ordenha na mesma coleta. */
+  private assertNoDuplicateMilkings(items: Array<{ animalId: number; milking?: number }>) {
+    const seen = new Set<string>();
+    for (const item of items) {
+      const key = `${item.animalId}:${item.milking ?? 1}`;
+      if (seen.has(key)) {
+        throw new BusinessException(
+          `O animal ${item.animalId} aparece mais de uma vez na ${item.milking ?? 1}ª ordenha.`,
+        );
+      }
+      seen.add(key);
+    }
+  }
+
   private validateItemsSum(totalQuantity: number, items: Array<{ quantity: number }>) {
     const sum = items.reduce((acc, item) => acc + item.quantity, 0);
     const diff = Math.abs(sum - totalQuantity);
@@ -116,7 +143,8 @@ export class DailyCollectionsService {
     owner: Awaited<ReturnType<typeof this.validateUser>>,
     items: Array<{ animalId: number }>,
   ) {
-    const animalIds = items.map(item => item.animalId);
+    // Um animal pode aparecer em mais de uma ordenha do dia: busca cada animal uma vez.
+    const animalIds = [...new Set(items.map(item => item.animalId))];
 
     const animals = await this.animalRepository.findByIds(animalIds);
 
@@ -182,10 +210,12 @@ export class DailyCollectionsService {
     if (updateDailyCollectionDto.collectionDate) {
       this.validateCollectionDate(updateDailyCollectionDto.collectionDate);
     }
+    await this.assertDestinationExists(updateDailyCollectionDto.destinationId);
     
     const { items, ...collectionData } = updateDailyCollectionDto;
     
     if (items?.length) {
+      this.assertNoDuplicateMilkings(items);
       if (updateDailyCollectionDto.quantity !== undefined) {
         this.validateItemsSum(updateDailyCollectionDto.quantity, items);
       }

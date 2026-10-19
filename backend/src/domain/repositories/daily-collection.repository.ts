@@ -19,6 +19,8 @@ export interface AnimalCollectionHistoryItem {
   collectionDate: Date;
   quantity: number;
   cmtResult?: string | null;
+  mugTestResult?: string | null;
+  milking?: number;
 }
 
 export interface IDailyCollectionRepository {

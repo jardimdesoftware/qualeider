@@ -8,6 +8,7 @@ import { DailyCollectionsPresentationModule } from './modules/daily-collections.
 import { AuthPresentationModule } from './modules/auth.module';
 import { ReportsPresentationModule } from './modules/reports.module';
 import { BreedsPresentationModule } from './modules/breeds.module';
+import { DestinationsPresentationModule } from './modules/destinations.module';
 import { AnimalSpeciesPresentationModule } from './modules/animal-species.module';
 import { AllowedEmailsPresentationModule } from './modules/allowed-emails.module';
 import { ActivityLogsPresentationModule } from './modules/activity-logs.module';
@@ -55,6 +56,7 @@ import { HealthController } from './controllers/health.controller';
     AuthPresentationModule,
     ReportsPresentationModule,
     BreedsPresentationModule,
+    DestinationsPresentationModule,
     AnimalSpeciesPresentationModule,
     AllowedEmailsPresentationModule,
     ActivityLogsPresentationModule,

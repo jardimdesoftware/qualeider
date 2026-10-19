@@ -36,6 +36,11 @@ export enum Status {
 
 export type ID = number;
 
+export enum MugTestResult {
+  Negativo = 'Negativo',
+  Positivo = 'Positivo',
+}
+
 export enum CmtResult {
   Normal = 'Normal',
   Suspeito = 'Suspeito',

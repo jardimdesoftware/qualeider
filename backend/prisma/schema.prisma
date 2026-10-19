@@ -137,6 +137,8 @@ model Animal {
   animalSpeciesId       Int?
   animalSpecies         AnimalSpecies?   @relation(fields: [animalSpeciesId], references: [id])
   status                Status           @default(Active)
+  lactationNumber       Int?             // numero da cria: 1 = primeira cria, 2 = segunda...
+  calvingDate           DateTime?        // data do ultimo parto (base dos dias em lactacao)
   user                  User             @relation(fields: [userId], references: [id])
   breedRelation         Breed?           @relation(fields: [breedId], references: [id])
 
@@ -175,12 +177,25 @@ model DailyCollection {
   milkingPlace          MilkingPlace     
   technicalAssistance   Boolean          
   status                Status           @default(Active)
+  destinationId         Int?
+  destination           Destination?     @relation(fields: [destinationId], references: [id], onDelete: Restrict)
   items                 DailyCollectionItem[]
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
   
   @@index([userId, status])
   @@index([collectionDate])
+  @@index([destinationId])
+}
+
+// Para onde o leite coletado e enviado (laticinio, consumo, bezerros...).
+model Destination {
+  id          Int               @id @default(autoincrement())
+  name        String            @unique
+  description String?
+  collections DailyCollection[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 }
 
 model DailyCollectionItem {
@@ -190,13 +205,20 @@ model DailyCollectionItem {
   animalId          Int
   animal            Animal          @relation(fields: [animalId], references: [id])
   quantity          Float
-  cmtResult         CmtResult?      // resultado do teste da caneca (opcional)
+  cmtResult         CmtResult?      // resultado do CMT (California Mastitis Test), opcional
+  mugTestResult     MugTestResult?  // resultado do teste da caneca (grumos no leite), opcional
+  milking           Int             @default(1) // ordenha do dia: 1 = primeira, 2 = segunda
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
   @@index([dailyCollectionId])
   @@index([animalId])
   @@index([dailyCollectionId, animalId])
+}
+
+enum MugTestResult {
+  Negativo
+  Positivo
 }
 
 enum CmtResult {
