@@ -20,6 +20,8 @@ export const dailyCollectionSchema = z.object({
         animalId: z.number(),
         quantity: z.number().min(0),
         cmtResult: z.enum(["Normal", "Suspeito", "Positivo"]).optional().nullable(),
+        mugTestResult: z.enum(["Negativo", "Positivo"]).optional().nullable(),
+        milking: z.number().int().min(1).max(2).optional(),
       })
     )
     .optional(),
@@ -35,4 +37,6 @@ export interface CollectionItem {
   animalId: number;
   quantity: number;
   cmtResult?: string | null;
+  mugTestResult?: string | null;
+  milking?: number;
 }

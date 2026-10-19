@@ -60,6 +60,11 @@ export enum CoverageArea {
   Estadual = 'Estadual',
 }
 
+export enum MugTestResult {
+  Negativo = 'Negativo',
+  Positivo = 'Positivo',
+}
+
 export enum CmtResult {
   Normal = 'Normal',
   Suspeito = 'Suspeito',

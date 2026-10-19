@@ -53,6 +53,7 @@ export default function DailyForm() {
   const [selectedAnimalId, setSelectedAnimalId] = useState<number | null>(null);
   const [activeQuantity, setActiveQuantity] = useState("");
   const [activeCmtResult, setActiveCmtResult] = useState<string | null>(null);
+  const [activeMugTest, setActiveMugTest] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -103,6 +104,7 @@ export default function DailyForm() {
     setSelectedAnimalId(animal.id);
     setActiveQuantity("");
     setActiveCmtResult(null);
+    setActiveMugTest(null);
     setDropdownOpen(false);
     setSearchQuery("");
   };
@@ -113,11 +115,16 @@ export default function DailyForm() {
     if (!qty || qty <= 0) return;
     setConfirmedItems((prev) => ({
       ...prev,
-      [selectedAnimalId]: { quantity: qty, cmtResult: activeCmtResult },
+      [selectedAnimalId]: {
+        quantity: qty,
+        cmtResult: activeCmtResult,
+        mugTestResult: activeMugTest,
+      },
     }));
     setSelectedAnimalId(null);
     setActiveQuantity("");
     setActiveCmtResult(null);
+    setActiveMugTest(null);
   };
 
   const handleEditConfirmed = (animalId: number) => {
@@ -126,6 +133,7 @@ export default function DailyForm() {
     setSelectedAnimalId(animalId);
     setActiveQuantity(String(item.quantity));
     setActiveCmtResult(item.cmtResult ?? null);
+    setActiveMugTest(item.mugTestResult ?? null);
     setConfirmedItems((prev) => {
       const next = { ...prev };
       delete next[animalId];
@@ -335,13 +343,16 @@ export default function DailyForm() {
                     animalLabel={animalLabel(selectedAnimal)}
                     quantity={activeQuantity}
                     cmtResult={activeCmtResult}
+                    mugTestResult={activeMugTest}
                     onQuantityChange={setActiveQuantity}
                     onCmtChange={setActiveCmtResult}
+                    onMugTestChange={setActiveMugTest}
                     onConfirm={handleConfirmCow}
                     onCancel={() => {
                       setSelectedAnimalId(null);
                       setActiveQuantity("");
                       setActiveCmtResult(null);
+                      setActiveMugTest(null);
                     }}
                   />
                 )}

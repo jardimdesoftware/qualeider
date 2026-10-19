@@ -32,6 +32,8 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
               animalId: item.animalId,
               quantity: item.quantity,
               cmtResult: (item as any).cmtResult ?? null,
+              mugTestResult: (item as any).mugTestResult ?? null,
+              milking: (item as any).milking ?? 1,
             })),
           } : undefined,
         },
@@ -172,6 +174,8 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
             animalId: item.animalId,
             quantity: item.quantity,
             cmtResult: (item as any).cmtResult ?? null,
+            mugTestResult: (item as any).mugTestResult ?? null,
+            milking: (item as any).milking ?? 1,
           })),
         });
       });
@@ -231,6 +235,8 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
       collectionDate: item.dailyCollection.collectionDate,
       quantity: item.quantity,
       cmtResult: (item as any).cmtResult ?? null,
+      mugTestResult: (item as any).mugTestResult ?? null,
+      milking: (item as any).milking ?? 1,
     }));
   }
 

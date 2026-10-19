@@ -78,6 +78,7 @@ function HistoryTable({ rows }: { rows: AnimalCollectionHistoryItem[] }) {
           <tr className="bg-gray-50 border-b border-gray-100 text-xs uppercase text-gray-500 font-semibold tracking-wider">
             <th className="px-5 py-3">Data</th>
             <th className="px-5 py-3">Quantidade (L)</th>
+            <th className="px-5 py-3">Caneca</th>
             <th className="px-5 py-3">CMT</th>
           </tr>
         </thead>
@@ -94,6 +95,11 @@ function HistoryTable({ rows }: { rows: AnimalCollectionHistoryItem[] }) {
               </td>
               <td className="px-5 py-3 text-slate-800 font-bold">
                 {row.quantity} L
+              </td>
+              <td className="px-5 py-3">
+                {row.mugTestResult ?? (
+                  <span className="text-gray-400 text-xs">—</span>
+                )}
               </td>
               <td className="px-5 py-3">
                 {cmtBadge(row.cmtResult) ?? (

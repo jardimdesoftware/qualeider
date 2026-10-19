@@ -27,6 +27,8 @@ export class DailyCollectionMapper {
         animalId: item.animalId,
         quantity: item.quantity,
         cmtResult: item.cmtResult ?? null,
+        mugTestResult: item.mugTestResult ?? null,
+        milking: item.milking ?? 1,
         animal: item.animal ? {
             id: item.animal.id,
             name: item.animal.name ?? null,

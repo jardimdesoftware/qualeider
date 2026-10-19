@@ -120,12 +120,13 @@ export default function AnimalReportExportButton({
             timeZone: "UTC",
           }),
           item.quantity.toFixed(1),
+          item.mugTestResult ?? "-",
           item.cmtResult ?? "-",
         ]);
 
         autoTable(doc, {
           startY: yPosition,
-          head: [["Data", "Quantidade (L)", "CMT"]],
+          head: [["Data", "Quantidade (L)", "Caneca", "CMT"]],
           body: tableData,
           theme: "grid",
           headStyles: {
@@ -181,7 +182,7 @@ export default function AnimalReportExportButton({
         ["Nº de Coletas", String(history.length)],
         ["Média por Coleta (L)", averagePerCollection.toFixed(1)],
         [],
-        ["Data", "Quantidade (L)", "CMT"],
+        ["Data", "Quantidade (L)", "Caneca", "CMT"],
       ];
 
       history.forEach((item) => {
@@ -190,6 +191,7 @@ export default function AnimalReportExportButton({
             timeZone: "UTC",
           }),
           item.quantity.toFixed(1),
+          item.mugTestResult ?? "-",
           item.cmtResult ?? "-",
         ]);
       });

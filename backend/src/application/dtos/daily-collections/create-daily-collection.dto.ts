@@ -13,7 +13,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { MilkingPlace, CmtResult } from '@/domain/enums/enums';
+import { MilkingPlace, CmtResult, MugTestResult } from '@/domain/enums/enums';
 
 export class CreateDailyCollectionDto {
   @ApiProperty({
@@ -91,8 +91,20 @@ export class CreateDailyCollectionItemDto {
   @Max(1000, { message: 'Quantidade nao pode exceder 1000 litros por animal' })
   quantity!: number;
 
-  @ApiProperty({ description: 'Resultado do teste da caneca (CMT)', enum: CmtResult, required: false })
+  @ApiProperty({ description: 'Resultado do CMT (California Mastitis Test)', enum: CmtResult, required: false })
   @IsOptional()
   @IsEnum(CmtResult)
   cmtResult?: CmtResult | null;
+
+  @ApiProperty({ description: 'Resultado do teste da caneca (grumos no leite)', enum: MugTestResult, required: false })
+  @IsOptional()
+  @IsEnum(MugTestResult)
+  mugTestResult?: MugTestResult | null;
+
+  @ApiProperty({ description: 'Ordenha do dia: 1 = primeira, 2 = segunda (padrao 1)', example: 1, required: false })
+  @IsOptional()
+  @IsInt({ message: 'milking deve ser um numero inteiro' })
+  @Min(1, { message: 'milking deve ser 1 ou 2' })
+  @Max(2, { message: 'milking deve ser 1 ou 2' })
+  milking?: number;
 }
