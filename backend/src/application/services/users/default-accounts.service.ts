@@ -39,11 +39,15 @@ interface AccountSpec {
  *   exceto que, se estiver inativa, e reativada a cada subida.
  * - O VAQUEIRO e vinculado ao ADMIN via `adminId`, como no cadastro interno,
  *   para os dois enxergarem o mesmo rebanho.
+ * - Sem corrida: chamadas simultaneas no mesmo processo (a subida deste servico e a
+ *   do `AccountPurgeService`) compartilham uma unica execucao, e se outra instancia
+ *   criar a conta no meio do caminho, a conta criada por ela e adotada como existente.
  * - Falha aqui nunca derruba a API: apenas registra o motivo.
  */
 @Injectable()
 export class DefaultAccountsService implements OnApplicationBootstrap {
   private readonly logger = new Logger(DefaultAccountsService.name);
+  private inFlight: Promise<void> | null = null;
 
   constructor(
     @Inject(IUserRepository) private readonly userRepository: IUserRepository,
@@ -60,7 +64,17 @@ export class DefaultAccountsService implements OnApplicationBootstrap {
     }
   }
 
-  async ensureDefaultAccounts(): Promise<void> {
+  /** Chamadas durante uma execucao em andamento reaproveitam a mesma promessa. */
+  ensureDefaultAccounts(): Promise<void> {
+    if (!this.inFlight) {
+      this.inFlight = this.runEnsureDefaultAccounts().finally(() => {
+        this.inFlight = null;
+      });
+    }
+    return this.inFlight;
+  }
+
+  private async runEnsureDefaultAccounts(): Promise<void> {
     if (this.isDisabled()) return;
 
     const admin = await this.ensureAccount({
@@ -96,28 +110,45 @@ export class DefaultAccountsService implements OnApplicationBootstrap {
 
     const existing = await this.userRepository.findByEmail(email);
     if (existing) {
-      // Conta ja existe: senha, perfil e dados ficam como estao, mas ela precisa
-      // continuar ativa (alguem pode ter desativado a conta de teste).
-      if (existing.status !== Status.Active) {
-        await this.userRepository.update(existing.id, { status: Status.Active });
-        this.logger.warn(`Conta padrao ${spec.role} reativada: ${email} (ID: ${existing.id})`);
-      }
+      await this.keepActive(spec, email, existing);
       return null;
     }
 
-    const created = await this.userRepository.create({
-      name: this.read(`${spec.prefix}_NAME`) ?? spec.fallbackName,
-      email,
-      password: await this.hashService.hash(password, BCRYPT_ROUNDS_USER_CREATION),
-      role: spec.role,
-      userType: UserType.Pecuarista,
-      userCategory: UserCategory.Fisica,
-      city: this.read('DEFAULT_ACCOUNTS_CITY') ?? 'Belo Jardim',
-      state: this.read('DEFAULT_ACCOUNTS_STATE') ?? 'PE',
-      adminId: spec.role === UserRole.VAQUEIRO ? adminId : undefined,
-    });
+    const hashedPassword = await this.hashService.hash(password, BCRYPT_ROUNDS_USER_CREATION);
+    let created: UserEntity;
+    try {
+      created = await this.userRepository.create({
+        name: this.read(`${spec.prefix}_NAME`) ?? spec.fallbackName,
+        email,
+        password: hashedPassword,
+        role: spec.role,
+        userType: UserType.Pecuarista,
+        userCategory: UserCategory.Fisica,
+        city: this.read('DEFAULT_ACCOUNTS_CITY') ?? 'Belo Jardim',
+        state: this.read('DEFAULT_ACCOUNTS_STATE') ?? 'PE',
+        adminId: spec.role === UserRole.VAQUEIRO ? adminId : undefined,
+      });
+    } catch (error) {
+      // Corrida entre instancias: outra criou a conta depois do nosso `findByEmail`
+      // e o `create` bateu na unicidade do e-mail. Se a conta existe agora, segue
+      // como se ja existisse; qualquer outra falha continua sendo propagada.
+      const raced = await this.userRepository.findByEmail(email);
+      if (!raced) throw error;
+      await this.keepActive(spec, email, raced);
+      return null;
+    }
     this.logger.log(`Conta padrao ${spec.role} criada: ${created.email} (ID: ${created.id})`);
     return created;
+  }
+
+  /**
+   * Conta ja existe: senha, perfil e dados ficam como estao, mas ela precisa
+   * continuar ativa (alguem pode ter desativado a conta de teste).
+   */
+  private async keepActive(spec: AccountSpec, email: string, existing: UserEntity): Promise<void> {
+    if (existing.status === Status.Active) return;
+    await this.userRepository.update(existing.id, { status: Status.Active });
+    this.logger.warn(`Conta padrao ${spec.role} reativada: ${email} (ID: ${existing.id})`);
   }
 
   /** E-mails das contas padrao em vigor (vazio se a criacao esta desligada). */

@@ -4,6 +4,7 @@ import { IUserRepository } from '@/domain/repositories/user.repository';
 import { IHashService } from '@/application/ports/hash.service';
 import { Status, UserRole } from '@/domain/enums/enums';
 import { BCRYPT_ROUNDS_USER_CREATION } from '@/common/constants/security.constants';
+import { BusinessException } from '@/common/exceptions/business.exception';
 
 describe('DefaultAccountsService', () => {
   let userRepository: jest.Mocked<Pick<IUserRepository, 'findByEmail' | 'create' | 'update'>>;
@@ -151,5 +152,91 @@ describe('DefaultAccountsService', () => {
     env = { NODE_ENV: 'test', DEFAULT_ADMIN_EMAIL: 'admin@example.com', DEFAULT_ADMIN_PASSWORD: 'Admin@12345' };
     userRepository.findByEmail.mockRejectedValue(new Error('banco fora'));
     await expect(build().onApplicationBootstrap()).resolves.toBeUndefined();
+  });
+
+  describe('corrida na criação das contas', () => {
+    const ADMIN_EMAIL = 'admin@example.com';
+
+    beforeEach(() => {
+      env = {
+        DEFAULT_ADMIN_EMAIL: ADMIN_EMAIL,
+        DEFAULT_ADMIN_PASSWORD: 'Admin@12345',
+        DEFAULT_VAQUEIRO_EMAIL: 'vaq@example.com',
+        DEFAULT_VAQUEIRO_PASSWORD: 'Vaq@12345',
+      };
+    });
+
+    /** O ADMIN passa a existir (criado por outra instância) só depois do `create` que conflita. */
+    const simulateAdminCreatedByAnotherInstance = (existing: Record<string, unknown>) => {
+      let conflicted = false;
+      userRepository.create.mockImplementation(async (data: any) => {
+        if (data.role === UserRole.ADMIN) {
+          conflicted = true;
+          throw new BusinessException('Email já está em uso.');
+        }
+        return { id: 8, ...data } as any;
+      });
+      userRepository.findByEmail.mockImplementation(async (email: string) =>
+        email === ADMIN_EMAIL && conflicted ? ({ role: UserRole.ADMIN, ...existing } as any) : null,
+      );
+    };
+
+    it('duas chamadas simultâneas compartilham uma única execução e criam cada conta uma só vez', async () => {
+      const service = build();
+
+      const first = service.ensureDefaultAccounts();
+      const second = service.ensureDefaultAccounts();
+      expect(second).toBe(first);
+      await Promise.all([first, second]);
+
+      expect(userRepository.create).toHaveBeenCalledTimes(2);
+      expect(userRepository.create).toHaveBeenNthCalledWith(1, expect.objectContaining({ role: UserRole.ADMIN }));
+      expect(userRepository.create).toHaveBeenNthCalledWith(2, expect.objectContaining({ role: UserRole.VAQUEIRO, adminId: 1 }));
+    });
+
+    it('concluída a execução, uma nova chamada roda de novo (a promessa não fica guardada)', async () => {
+      const service = build();
+
+      await service.ensureDefaultAccounts();
+      const lookupsAfterFirstRun = userRepository.findByEmail.mock.calls.length;
+      await service.ensureDefaultAccounts();
+
+      expect(userRepository.findByEmail.mock.calls.length).toBeGreaterThan(lookupsAfterFirstRun);
+    });
+
+    it('depois de uma execução que falhou, a chamada seguinte tenta de novo', async () => {
+      userRepository.findByEmail.mockRejectedValueOnce(new Error('banco fora'));
+      const service = build();
+
+      await expect(service.ensureDefaultAccounts()).rejects.toThrow('banco fora');
+      await expect(service.ensureDefaultAccounts()).resolves.toBeUndefined();
+      expect(userRepository.create).toHaveBeenCalledTimes(2);
+    });
+
+    it('create com e-mail duplicado (outra instância criou antes) segue sem erro e liga o vaqueiro ao admin existente', async () => {
+      simulateAdminCreatedByAnotherInstance({ id: 7, status: Status.Active });
+
+      await expect(build().ensureDefaultAccounts()).resolves.toBeUndefined();
+
+      expect(userRepository.create).toHaveBeenCalledTimes(2);
+      expect(userRepository.create).toHaveBeenLastCalledWith(expect.objectContaining({ role: UserRole.VAQUEIRO, adminId: 7 }));
+      expect(userRepository.update).not.toHaveBeenCalled();
+    });
+
+    it('conta criada pela outra instância e inativa é reativada, sem trocar a senha', async () => {
+      simulateAdminCreatedByAnotherInstance({ id: 7, status: Status.Inactive });
+
+      await build().ensureDefaultAccounts();
+
+      expect(userRepository.update).toHaveBeenCalledTimes(1);
+      expect(userRepository.update).toHaveBeenCalledWith(7, { status: Status.Active });
+    });
+
+    it('create que falha sem a conta existir continua propagando o erro original', async () => {
+      userRepository.create.mockRejectedValue(new Error('banco fora'));
+
+      await expect(build().ensureDefaultAccounts()).rejects.toThrow('banco fora');
+      expect(userRepository.create).toHaveBeenCalledTimes(1);
+    });
   });
 });
