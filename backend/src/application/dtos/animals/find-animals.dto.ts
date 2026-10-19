@@ -4,12 +4,6 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { AnimalType } from '@/domain/enums/enums';
 
 export class FindAnimalsDto {
-  @ApiPropertyOptional({ description: 'ID da associacao para filtro' })
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  associationId?: number;
-
   @ApiPropertyOptional({ description: 'ID do usuario para filtro' })
   @IsOptional()
   @Type(() => Number)

@@ -20,9 +20,6 @@ export type MockPrismaService = {
   user: MockedPrismaModel;
   animal: MockedPrismaModel;
   dailyCollection: MockedPrismaModel;
-  association: MockedPrismaModel;
-  invite: MockedPrismaModel;
-  notification: MockedPrismaModel;
   $connect?: jest.Mock;
   $disconnect?: jest.Mock;
   $transaction?: jest.Mock;
@@ -62,39 +59,6 @@ export const createMockPrismaService = (): MockPrismaService => {
       update: jest.fn(),
       delete: jest.fn(),
       count: jest.fn(),
-    },
-
-    // Modelo Association
-    association: {
-      create: jest.fn(),
-      findMany: jest.fn(),
-      findUnique: jest.fn(),
-      findFirst: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-    },
-
-    // Modelo Invite
-    invite: {
-      create: jest.fn(),
-      findMany: jest.fn(),
-      findUnique: jest.fn(),
-      findFirst: jest.fn(),
-      update: jest.fn(),
-      updateMany: jest.fn(),
-      delete: jest.fn(),
-      deleteMany: jest.fn(),
-      count: jest.fn(),
-    },
-
-    // Modelo Notification
-    notification: {
-      create: jest.fn(),
-      findMany: jest.fn(),
-      findUnique: jest.fn(),
-      findFirst: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
     },
 
     // Métodos de transação

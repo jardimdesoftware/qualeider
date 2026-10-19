@@ -10,7 +10,6 @@ import { ConfigService } from '@nestjs/config';
 import { randomBytes, randomInt } from 'crypto';
 import { IHashService } from '@/application/ports/hash.service';
 import { IUserRepository } from '@/domain/repositories/user.repository';
-import { IAssociationRepository } from '@/domain/repositories/association.repository';
 import { IFailedEmailRepository } from '@/domain/repositories/failed-email.repository';
 import { IAllowedEmailRepository } from '@/domain/repositories/allowed-email.repository';
 import { MailService } from '@/mail/mail.service';
@@ -25,7 +24,6 @@ import { isIfpeEmail } from '@/common/utils/email-domain.util';
 import { safeEqual } from '@/common/utils/safe-compare.util';
 import { UserEntity } from '@/domain/entities/user.entity';
 import { AllowedEmailEntity } from '@/domain/entities/allowed-email.entity';
-import { AssociationEntity } from '@/domain/entities/association.entity';
 import { Status, UserRole, UserCategory, ActivityEventType } from '@/domain/enums/enums';
 import { ActivityLogService } from '@/application/services/activity-logs/activity-logs.service';
 
@@ -45,7 +43,6 @@ export class AuthService {
 
   constructor(
     @Inject(IUserRepository) private userRepository: IUserRepository,
-    @Inject(IAssociationRepository) private associationRepository: IAssociationRepository,
     @Inject(IAllowedEmailRepository) private allowedEmailRepository: IAllowedEmailRepository,
     private jwtService: JwtService,
     private mailService: MailService,
@@ -80,52 +77,18 @@ export class AuthService {
     return null;
   }
 
-  async validateAssociation(
-    email: string,
-    password: string,
-  ): Promise<Omit<AssociationEntity, 'password'> | null> {
-    const association = await this.associationRepository.findByEmail(email);
-
-    if (
-      association &&
-      (await this.hashService.compare(password, association.password))
-    ) {
-      const { password, ...result } = association;
-      return result;
-    }
-
-    return null;
-  }
-
   async executeLogin(loginDto: { email: string; password: string }) {
-    // Try User login first
-    let entity:
-      | Omit<UserEntity, 'password'>
-      | Omit<AssociationEntity, 'password'>
-      | null = await this.validateUser(loginDto.email, loginDto.password);
-    let entityType: 'user' | 'association' = 'user';
+    const user = await this.validateUser(loginDto.email, loginDto.password);
 
-    // If not a user, try Association login
-    if (!entity) {
-      const association = await this.validateAssociation(
-        loginDto.email,
-        loginDto.password,
-      );
-      if (association) {
-        entity = association;
-        entityType = 'association';
-      }
-    }
-
-    if (!entity) {
+    if (!user) {
       throw new UnauthorizedException('Credenciais inválidas.');
     }
 
-    return this.loginEntity(entity, entityType);
+    return this.loginEntity(user);
   }
 
   async login(user: any) {
-    return this.loginEntity(user, 'user');
+    return this.loginEntity(user);
   }
 
   /**
@@ -232,11 +195,7 @@ export class AuthService {
       // Funcionário sem vínculo (criado antes de User.adminId existir) cujo
       // email um admin liberou: completa o vínculo para ele passar a ver o
       // rebanho desse admin.
-      if (
-        existing.role === UserRole.VAQUEIRO &&
-        !existing.adminId &&
-        !existing.associationId
-      ) {
+      if (existing.role === UserRole.VAQUEIRO && !existing.adminId) {
         const linkedAdmin = await this.findAdminWhoAllowed(allowedEmail);
         if (linkedAdmin) {
           await this.userRepository.update(existing.id, { adminId: linkedAdmin.id });
@@ -244,7 +203,7 @@ export class AuthService {
         }
       }
 
-      return this.loginEntity(existing, 'user');
+      return this.loginEntity(existing);
     }
 
     const admin =
@@ -276,25 +235,20 @@ export class AuthService {
 
     this.logger.log(`Conta criada via login com Google: ${created.email}`);
 
-    return this.loginEntity(created, 'user');
+    return this.loginEntity(created);
   }
 
-  async loginEntity(entity: any, entityType: 'user' | 'association') {
+  async loginEntity(entity: any) {
     const payload = {
       email: entity.email,
       sub: entity.id,
-      associationId: entityType === 'user' ? entity.associationId : null,
-      userType: entityType,
-      // role só existe para entidades do tipo 'user' (ADMIN | VAQUEIRO)
-      role: entityType === 'user' ? (entity.role ?? null) : null,
+      role: entity.role ?? null,
     };
 
-    this.logger.log(`${entityType === 'user' ? 'Usuário' : 'Associação'} autenticado: ${entity.email}`);
+    this.logger.log(`Usuário autenticado: ${entity.email}`);
 
-    if (entityType === 'user') {
-      await this.userRepository.update(entity.id, { lastLogin: new Date() });
-      await this.activityLogService.record(entity.id, ActivityEventType.LOGIN);
-    }
+    await this.userRepository.update(entity.id, { lastLogin: new Date() });
+    await this.activityLogService.record(entity.id, ActivityEventType.LOGIN);
 
     return {
       access_token: this.jwtService.sign(payload),
@@ -336,7 +290,7 @@ export class AuthService {
       // O token ja foi persistido nesse ponto. Uma falha apenas no ENVIO do
       // e-mail (SMTP fora do ar, credenciais invalidas/ausentes, etc.) nao
       // deve derrubar a requisicao com 500: registramos a falha na mesma
-      // fila (failed_emails) usada pelo fluxo de notificacoes e continuamos
+      // fila (failed_emails) e continuamos
       // respondendo com sucesso ao cliente.
       try {
         await this.mailService.sendResetPasswordEmail(

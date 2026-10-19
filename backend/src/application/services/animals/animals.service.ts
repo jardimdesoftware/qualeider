@@ -16,7 +16,6 @@ import { ActivityLogService } from '@/application/services/activity-logs/activit
 export interface AnimalRequesterContext {
   id: number;
   role?: UserRole;
-  associationId?: number | null;
   adminId?: number | null;
 }
 

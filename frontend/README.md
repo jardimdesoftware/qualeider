@@ -1,6 +1,6 @@
 # QuaLeiDer - Frontend Client
 
-> Cliente web moderno para gestão da produção leiteira e associações rurais.
+> Cliente web moderno para gestão da produção leiteira (IFPE).
 
 [![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev/)
@@ -21,7 +21,7 @@
 
 ## 📌 Sobre
 
-A interface web do **QuaLeiDer** foi projetada para ser intuitiva para produtores rurais e administradores de associações. Ela consome a API REST do backend para fornecer dashboards em tempo real, gestão de formulários complexos e visualização de dados.
+A interface web do **QuaLeiDer** foi projetada para ser intuitiva para produtores rurais e administradores da fazenda. Ela consome a API REST do backend para fornecer dashboards em tempo real, gestão de formulários complexos e visualização de dados.
 
 ## 🏗️ Arquitetura e Fluxo
 
@@ -80,32 +80,30 @@ Acesse: `http://localhost:3001`
 
 ## ✨ Funcionalidades
 
-| Componente UI | Status | Descrição |
-| --- | --- | --- |
-| **Painel do Produtor** | ✅ | Visão geral de coletas recentes e estatísticas rápidas |
-| **Formulário de Coletas** | ✅ | Entrada de dados com validação em tempo real e wizards |
-| **Gestão de Animais** | ✅ | Cartões interativos para visualizar e editar rebanho |
-| **Portal da Associação** | ✅ | Tabelas avançadas para gestão de membros e convites |
-| **Sistema de Convites** | ✅ | Interface para gerenciar tokens de novos membros |
-| **Gráficos** | 🚧 | Visualização visual da evolução da produção (Recharts) |
-| **Responsividade** | ✅ | Totalmente adaptado para Mobile e Desktop |
+| Componente UI             | Status | Descrição                                              |
+| ------------------------- | ------ | ------------------------------------------------------ |
+| **Painel do Produtor**    | ✅     | Visão geral de coletas recentes e estatísticas rápidas |
+| **Formulário de Coletas** | ✅     | Entrada de dados com validação em tempo real e wizards |
+| **Gestão de Animais**     | ✅     | Cartões interativos para visualizar e editar rebanho   |
+| **Gráficos**              | 🚧     | Visualização visual da evolução da produção (Recharts) |
+| **Responsividade**        | ✅     | Totalmente adaptado para Mobile e Desktop              |
 
 ## 🛠️ Tecnologias
 
-* **Framework**: [Next.js 15](https://nextjs.org/) (App Router)
-* **Core**: React 19, TypeScript
-* **Estilo**: Tailwind CSS + `tailwindcss-animate`
-* **Componentes**: Radix UI (base para Shadcn/ui), Lucide Icons
-* **Estado/Dados**: React Hooks, Axios, SWR (em breve)
-* **Formulários**: React Hook Form + Zod (Validação Schema-first)
-* **Utilitários**: `date-fns` (datas), `clsx` (classes condicionais)
+- **Framework**: [Next.js 15](https://nextjs.org/) (App Router)
+- **Core**: React 19, TypeScript
+- **Estilo**: Tailwind CSS + `tailwindcss-animate`
+- **Componentes**: Radix UI (base para Shadcn/ui), Lucide Icons
+- **Estado/Dados**: React Hooks, Axios, SWR (em breve)
+- **Formulários**: React Hook Form + Zod (Validação Schema-first)
+- **Utilitários**: `date-fns` (datas), `clsx` (classes condicionais)
 
 ## ⚙️ Configuração Detalhada
 
 ### Variáveis de Ambiente (`.env.local`)
 
-| Variável | Descrição | Padrão |
-| --- | --- | --- |
+| Variável              | Descrição                                       | Padrão                      |
+| --------------------- | ----------------------------------------------- | --------------------------- |
 | `NEXT_PUBLIC_API_URL` | Endpoint base da API REST (deve incluir `/api`) | `http://localhost:3000/api` |
 
 ### Scripts Disponíveis

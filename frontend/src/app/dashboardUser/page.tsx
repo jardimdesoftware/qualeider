@@ -42,7 +42,6 @@ import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { useUser } from "@/hooks/useUser";
 import { ICON_SIZES } from "@/constants/ui";
 import { useUserDashboard } from "@/hooks/queries/useDashboard";
-import { useRespondInvite } from "@/hooks/queries/useInvites";
 import { useUsers } from "@/hooks/queries/useUsers";
 import { animalService } from "@/services/animalService";
 import { AnimalProductionSummary } from "@/interfaces/animal";
@@ -76,10 +75,8 @@ export default function DashboardUser() {
   const {
     animals,
     collections: dailyCollections,
-    invites,
     isLoading: dataLoading,
   } = useUserDashboard(userId);
-  const respondInvite = useRespondInvite();
 
   const [animalProduction, setAnimalProduction] = useState<
     AnimalProductionSummary[]
@@ -108,33 +105,6 @@ export default function DashboardUser() {
     message: "",
     type: "success" as "success" | "error" | "info",
   });
-
-  const handleInviteResponse = async (
-    token: string,
-    response: "Accept" | "Decline",
-  ) => {
-    try {
-      const result = await respondInvite.mutateAsync({ token, response });
-      if (response === "Accept") {
-        setModalState({
-          isOpen: true,
-          title: "Bem-vindo!",
-          message: result.message || "Você agora faz parte da associação.",
-          type: "success",
-        });
-      }
-    } catch (err: any) {
-      console.error("Erro ao responder convite", err);
-      setModalState({
-        isOpen: true,
-        title: "Erro",
-        message:
-          "Erro ao processar resposta: " +
-          (err.response?.data?.message || err.message),
-        type: "error",
-      });
-    }
-  };
 
   const handleCloseModal = () => {
     setModalState((prev) => ({ ...prev, isOpen: false }));
@@ -375,54 +345,6 @@ export default function DashboardUser() {
         </header>
 
         <div className="w-full flex-1 bg-slate-50 p-4 md:p-6 lg:p-8 space-y-6">
-          {/* Pending Invites Section */}
-          {invites.length > 0 && (
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-              <h3 className="text-lg font-bold text-slate-800 mb-4">
-                Convites Pendentes
-              </h3>
-              <div className="space-y-4">
-                {invites.map((invite) => (
-                  <div
-                    key={invite.id}
-                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-slate-50 rounded-lg border border-slate-200"
-                  >
-                    <div>
-                      <p className="font-semibold text-slate-800">
-                        Convite da Associação{" "}
-                        <span className="text-slate-800">
-                          {invite.association?.name}
-                        </span>
-                      </p>
-                      <p className="text-sm text-slate-600">
-                        {invite.message ||
-                          "Gostaríamos que você fizesse parte da nossa associação."}
-                      </p>
-                    </div>
-                    <div className="flex gap-2 shrink-0">
-                      <button
-                        onClick={() =>
-                          handleInviteResponse(invite.token, "Decline")
-                        }
-                        className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
-                      >
-                        Recusar
-                      </button>
-                      <button
-                        onClick={() =>
-                          handleInviteResponse(invite.token, "Accept")
-                        }
-                        className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium text-white bg-[#2f9e41] hover:bg-[#142920] rounded-lg transition-colors shadow-sm"
-                      >
-                        Aceitar
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Empty States */}
           {(!hasAnimals || !hasCollections) && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">

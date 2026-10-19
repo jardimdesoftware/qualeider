@@ -1,6 +1,6 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
-import { GetMonthlyReportDto } from '@/application/dtos/associations/get-monthly-report.dto';
+import { GetMonthlyReportDto } from '@/application/dtos/reports/get-monthly-report.dto';
 
 describe('GetMonthlyReportDto', () => {
     it('deve transformar strings numéricas em números', async () => {

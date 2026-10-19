@@ -62,7 +62,6 @@ export class UsersController {
     @Body() createUserDto: CreateUserDto,
     @GetUser('id') creatorId?: number,
     @GetUser('role') creatorRole?: UserRole,
-    @GetUser('associationId') creatorAssociationId?: number | null,
   ) {
     if (creatorRole !== UserRole.ADMIN) {
       throw new ForbiddenException('Você não tem permissão para cadastrar funcionários.');
@@ -73,15 +72,7 @@ export class UsersController {
       ? creatorId
       : undefined;
 
-    // O admin só vincula à PRÓPRIA associação (ou a nenhuma): o associationId do
-    // corpo da requisição não pode apontar para uma associação alheia.
-    const associationId =
-      createUserDto.associationId != null &&
-      createUserDto.associationId === creatorAssociationId
-        ? createUserDto.associationId
-        : undefined;
-
-    return this.usersService.create({ ...createUserDto, adminId, associationId });
+    return this.usersService.create({ ...createUserDto, adminId });
   }
 
   @Get('check-email')
@@ -109,10 +100,8 @@ export class UsersController {
     @Query() query: FindUsersDto,
     @GetUser('id') requesterId: number,
     @GetUser('role') requesterRole: UserRole,
-    @GetUser('associationId') requesterAssociationId: number | null,
   ) {
     const criteria: UserCriteria = {
-      associationId: query.associationId,
       status: query.status,
       emailContains: query.emailContains,
     };
@@ -120,7 +109,6 @@ export class UsersController {
     return this.usersService.findAll(criteria, {
       id: requesterId,
       role: requesterRole,
-      associationId: requesterAssociationId,
     });
   }
 
@@ -135,12 +123,10 @@ export class UsersController {
     @Param('id', ParseIntPipe) id: number,
     @GetUser('id') requesterId: number,
     @GetUser('role') requesterRole: UserRole,
-    @GetUser('associationId') requesterAssociationId: number | null,
   ) {
     return this.usersService.findOneForRequester(id, {
       id: requesterId,
       role: requesterRole,
-      associationId: requesterAssociationId,
     });
   }
 
@@ -156,12 +142,10 @@ export class UsersController {
     @Body() updateUserDto: UpdateUserDto,
     @GetUser('id') requesterId: number,
     @GetUser('role') requesterRole: UserRole,
-    @GetUser('associationId') requesterAssociationId: number | null,
   ) {
     return this.usersService.update(id, updateUserDto, {
       id: requesterId,
       role: requesterRole,
-      associationId: requesterAssociationId,
     });
   }
 
@@ -177,12 +161,10 @@ export class UsersController {
     @Body() updatePartialUserDto: UpdatePartialUserDto,
     @GetUser('id') requesterId: number,
     @GetUser('role') requesterRole: UserRole,
-    @GetUser('associationId') requesterAssociationId: number | null,
   ) {
     return this.usersService.partialUpdate(id, updatePartialUserDto, {
       id: requesterId,
       role: requesterRole,
-      associationId: requesterAssociationId,
     });
   }
 
@@ -197,12 +179,10 @@ export class UsersController {
     @Param('id', ParseIntPipe) id: number,
     @GetUser('id') requesterId: number,
     @GetUser('role') requesterRole: UserRole,
-    @GetUser('associationId') requesterAssociationId: number | null,
   ) {
     return this.usersService.remove(id, {
       id: requesterId,
       role: requesterRole,
-      associationId: requesterAssociationId,
     });
   }
 }

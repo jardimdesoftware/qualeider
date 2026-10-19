@@ -34,31 +34,7 @@ export enum Status {
   Inactive = 'Inactive',
 }
 
-export enum InviteAction {
-  ACCEPT = 'Accept',
-  DECLINE = 'Decline',
-}
-
-export enum InviteStatus {
-  PENDING = 'PENDING',
-  ACCEPTED = 'ACCEPTED',
-  DECLINED = 'DECLINED',
-  EXPIRED = 'EXPIRED',
-  CANCELED = 'CANCELED',
-}
-
-export enum NotificationType {
-  INDIVIDUAL = 'Individual', 
-  COLLECTIVE = 'Collective',       
-}
-
 export type ID = number;
-
-export enum CoverageArea {
-  Municipal = 'Municipal',
-  Regional = 'Regional',
-  Estadual = 'Estadual',
-}
 
 export enum CmtResult {
   Normal = 'Normal',

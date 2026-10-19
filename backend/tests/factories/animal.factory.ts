@@ -52,16 +52,6 @@ export class AnimalFactory {
   }
 
   /**
-   * Cria um Animal com associação
-   */
-  static createWithAssociation(
-    userId: number,
-    overrides: Partial<AnimalEntity> = {},
-  ): AnimalEntity {
-    return this.create(userId, overrides);
-  }
-
-  /**
    * Cria um Animal jovem (idade < 2 anos)
    */
   static createYoung(

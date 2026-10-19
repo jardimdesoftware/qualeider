@@ -55,12 +55,11 @@ describe('AnimalsController', () => {
       const created = createAnimal({ id: 1, ...createDto });
       mockAnimalsService.create.mockResolvedValue(created);
 
-      const result = await controller.create(createDto, 1, UserRole.ADMIN, null, null);
+      const result = await controller.create(createDto, 1, UserRole.ADMIN, null);
 
       expect(animalsService.create).toHaveBeenCalledWith(createDto, {
         id: 1,
         role: UserRole.ADMIN,
-        associationId: null,
         adminId: null,
       });
       expect(result).toEqual(created);
@@ -73,7 +72,7 @@ describe('AnimalsController', () => {
       mockAnimalsService.create.mockRejectedValue(error);
 
       await expect(
-        controller.create(createDto, 1, UserRole.ADMIN, null, null),
+        controller.create(createDto, 1, UserRole.ADMIN, null),
       ).rejects.toThrow(EntityNotFoundException);
     });
 
@@ -84,15 +83,15 @@ describe('AnimalsController', () => {
         mockAnimalsService.create.mockRejectedValue(error);
   
         await expect(
-          controller.create(createDto, 1, UserRole.ADMIN, null, null),
+          controller.create(createDto, 1, UserRole.ADMIN, null),
         ).rejects.toThrow(BusinessException);
     });
   });
 
-  const adminA = { id: 1, userType: 'user', role: UserRole.ADMIN, associationId: null, adminId: null };
+  const adminA = { id: 1, role: UserRole.ADMIN, adminId: null };
 
   describe('findAll', () => {
-    it('lista sempre dentro do escopo de quem pede (admin sem associação: o próprio grupo)', async () => {
+    it('lista sempre dentro do escopo de quem pede (admin: o próprio grupo)', async () => {
       const animals = [createAnimal({ id: 1 }), createAnimal({ id: 2 })];
       mockAnimalsService.findAll.mockResolvedValue(animals);
 
@@ -105,22 +104,13 @@ describe('AnimalsController', () => {
     it('os filtros da query são somados ao escopo, nunca o substituem', async () => {
       mockAnimalsService.findAll.mockResolvedValue([]);
 
-      await controller.findAll({ associationId: 10, userId: 5, status: 'Active' }, adminA);
+      await controller.findAll({ userId: 5, status: 'Active' }, adminA);
 
       expect(animalsService.findAll).toHaveBeenCalledWith({
         scope: { adminGroupId: 1 },
-        associationId: 10,
         userId: 5,
         status: 'Active',
       });
-    });
-
-    it('login de associação lê o escopo da própria associação', async () => {
-      mockAnimalsService.findAll.mockResolvedValue([]);
-
-      await controller.findAll({}, { id: 7, userType: 'association' });
-
-      expect(animalsService.findAll).toHaveBeenCalledWith({ scope: { associationId: 7 } });
     });
   });
 
@@ -155,12 +145,11 @@ describe('AnimalsController', () => {
       
       mockAnimalsService.update.mockResolvedValue(updated);
 
-      const result = await controller.update(1, updateDto, 1, UserRole.ADMIN, null, null);
+      const result = await controller.update(1, updateDto, 1, UserRole.ADMIN, null);
 
       expect(animalsService.update).toHaveBeenCalledWith(1, updateDto, {
         id: 1,
         role: UserRole.ADMIN,
-        associationId: null,
         adminId: null,
       });
       expect(result).toEqual(updated);
@@ -173,7 +162,7 @@ describe('AnimalsController', () => {
       mockAnimalsService.update.mockRejectedValue(error);
 
       await expect(
-        controller.update(1, updateDto, 1, UserRole.ADMIN, null, null),
+        controller.update(1, updateDto, 1, UserRole.ADMIN, null),
       ).rejects.toThrow('Database failure');
     });
   });
@@ -183,12 +172,11 @@ describe('AnimalsController', () => {
       const response = { id: 1, status: 'Inactive' };
       mockAnimalsService.remove.mockResolvedValue(response);
 
-      const result = await controller.remove(1, 1, UserRole.ADMIN, null, null);
+      const result = await controller.remove(1, 1, UserRole.ADMIN, null);
 
       expect(animalsService.remove).toHaveBeenCalledWith(1, {
         id: 1,
         role: UserRole.ADMIN,
-        associationId: null,
         adminId: null,
       });
       expect(result).toEqual(response);
@@ -199,7 +187,7 @@ describe('AnimalsController', () => {
       mockAnimalsService.remove.mockRejectedValue(error);
 
       await expect(
-        controller.remove(999, 1, UserRole.ADMIN, null, null),
+        controller.remove(999, 1, UserRole.ADMIN, null),
       ).rejects.toThrow(EntityNotFoundException);
     });
   });
@@ -209,12 +197,11 @@ describe('AnimalsController', () => {
       const response = { id: 1, status: 'Inactive' };
       mockAnimalsService.inativar.mockResolvedValue(response);
 
-      const result = await controller.inativar(1, 1, UserRole.ADMIN, null, null);
+      const result = await controller.inativar(1, 1, UserRole.ADMIN, null);
 
       expect(animalsService.inativar).toHaveBeenCalledWith(1, {
         id: 1,
         role: UserRole.ADMIN,
-        associationId: null,
         adminId: null,
       });
       expect(result).toEqual(response);
@@ -225,7 +212,7 @@ describe('AnimalsController', () => {
       mockAnimalsService.inativar.mockRejectedValue(error);
 
       await expect(
-        controller.inativar(1, 5, UserRole.VAQUEIRO, null, 1),
+        controller.inativar(1, 5, UserRole.VAQUEIRO, 1),
       ).rejects.toThrow(ForbiddenException);
     });
   });
@@ -243,20 +230,14 @@ describe('AnimalsController', () => {
       expect(result).toEqual(animals);
     };
 
-    it('admin sem associação: o próprio grupo (não os animais de todos os donos)',
+    it('admin: o próprio grupo (não os animais de todos os donos)',
       lists(adminA, 1, { adminGroupId: 1 }));
 
-    it('admin de uma associação: o rebanho da associação',
-      lists({ ...adminA, associationId: 10 }, 1, { associationId: 10 }));
-
-    it('vaqueiro de uma associação: o rebanho da associação',
-      lists({ id: 5, userType: 'user', role: UserRole.VAQUEIRO, associationId: 10, adminId: null }, 5, { associationId: 10 }));
-
     it('vaqueiro cadastrado por um admin: o grupo desse admin',
-      lists({ id: 5, userType: 'user', role: UserRole.VAQUEIRO, associationId: null, adminId: 1 }, 5, { adminGroupId: 1 }));
+      lists({ id: 5, role: UserRole.VAQUEIRO, adminId: 1 }, 5, { adminGroupId: 1 }));
 
     it('vaqueiro sem vínculo: só os próprios animais',
-      lists({ id: 5, userType: 'user', role: UserRole.VAQUEIRO, associationId: null, adminId: null }, 5, { userId: 5 }));
+      lists({ id: 5, role: UserRole.VAQUEIRO, adminId: null }, 5, { userId: 5 }));
 
     it('recusa quando o id do caminho é de outro dono (nada é listado)', async () => {
       mockAnimalsService.assertCanReadUserData.mockRejectedValue(new ForbiddenException('outro dono'));

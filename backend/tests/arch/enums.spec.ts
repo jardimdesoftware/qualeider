@@ -3,9 +3,7 @@ import {
   UserType as PrismaUserType,
   Status as PrismaStatus,
   AnimalType as PrismaAnimalType,
-  CoverageArea as PrismaCoverageArea,
-  MilkingPlace as PrismaMilkingPlace,
-  InviteStatus as PrismaInviteStatus
+  MilkingPlace as PrismaMilkingPlace
 } from '@prisma/client';
 
 import { 
@@ -13,9 +11,7 @@ import {
   UserType as DomainUserType,
   Status as DomainStatus,
   AnimalType as DomainAnimalType,
-  CoverageArea as DomainCoverageArea,
-  MilkingPlace as DomainMilkingPlace,
-  InviteStatus as DomainInviteStatus
+  MilkingPlace as DomainMilkingPlace
 } from '@/domain/enums/enums';
 
 describe('Enums Consistency - Prisma vs Domain', () => {
@@ -83,22 +79,6 @@ describe('Enums Consistency - Prisma vs Domain', () => {
     });
   });
 
-  describe('CoverageArea', () => {
-    it('deve ter as mesmas áreas de cobertura no Prisma e no Domínio', () => {
-      const prismaKeys = Object.keys(PrismaCoverageArea).sort();
-      const domainKeys = Object.keys(DomainCoverageArea).sort();
-      
-      expect(domainKeys).toEqual(prismaKeys);
-    });
-
-    it('deve ter os mesmos valores no Prisma e no Domínio', () => {
-      const prismaValues = Object.values(PrismaCoverageArea).sort();
-      const domainValues = Object.values(DomainCoverageArea).sort();
-      
-      expect(domainValues).toEqual(prismaValues);
-    });
-  });
-
   describe('MilkingPlace', () => {
     it('deve ter os mesmos locais de ordenha no Prisma e no Domínio', () => {
       const prismaKeys = Object.keys(PrismaMilkingPlace).sort();
@@ -115,19 +95,4 @@ describe('Enums Consistency - Prisma vs Domain', () => {
     });
   });
 
-  describe('InviteStatus', () => {
-    it('deve ter os mesmos status de convite no Prisma e no Domínio', () => {
-      const prismaKeys = Object.keys(PrismaInviteStatus).sort();
-      const domainKeys = Object.keys(DomainInviteStatus).sort();
-      
-      expect(domainKeys).toEqual(prismaKeys);
-    });
-
-    it('deve ter os mesmos valores no Prisma e no Domínio', () => {
-      const prismaValues = Object.values(PrismaInviteStatus).sort();
-      const domainValues = Object.values(DomainInviteStatus).sort();
-      
-      expect(domainValues).toEqual(prismaValues);
-    });
-  });
 });

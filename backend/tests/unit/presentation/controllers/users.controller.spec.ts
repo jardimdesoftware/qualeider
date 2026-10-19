@@ -42,32 +42,6 @@ describe('UsersController', () => {
     jest.clearAllMocks();
   });
 
-  describe('associationId no cadastro', () => {
-    const base = { name: 'Fulano', email: 'fulano@example.com', associationId: 77 } as any;
-
-    beforeEach(() => mockUsersService.create.mockResolvedValue(createUser({ id: 1 })));
-
-    it('cadastro interno: associationId alheio é descartado', async () => {
-      await controller.createInternal({ ...base, role: UserRole.VAQUEIRO }, 1, UserRole.ADMIN, 5);
-
-      expect(usersService.create).toHaveBeenCalledWith(
-        expect.objectContaining({ associationId: undefined, adminId: 1 }),
-      );
-    });
-
-    it('cadastro interno: admin sem associação não vincula a nenhuma', async () => {
-      await controller.createInternal({ ...base, role: UserRole.VAQUEIRO }, 1, UserRole.ADMIN, null);
-
-      expect(usersService.create).toHaveBeenCalledWith(expect.objectContaining({ associationId: undefined }));
-    });
-
-    it('cadastro interno: vincula à própria associação do admin', async () => {
-      await controller.createInternal({ ...base, associationId: 5, role: UserRole.VAQUEIRO }, 1, UserRole.ADMIN, 5);
-
-      expect(usersService.create).toHaveBeenCalledWith(expect.objectContaining({ associationId: 5 }));
-    });
-  });
-
   describe('createInternal', () => {
     it('deve vincular adminId = id do criador quando ADMIN cadastra um VAQUEIRO', async () => {
       const createDto: CreateUserDto = {
@@ -154,37 +128,34 @@ describe('UsersController', () => {
       const users = [createUser({ id: 1 })];
       mockUsersService.findAll.mockResolvedValue(users);
 
-      const result = await controller.findAll({}, 1, UserRole.ADMIN, null);
+      const result = await controller.findAll({}, 1, UserRole.ADMIN);
 
       expect(usersService.findAll).toHaveBeenCalledWith(
         {},
-        { id: 1, role: UserRole.ADMIN, associationId: null },
+        { id: 1, role: UserRole.ADMIN },
       );
       expect(result).toEqual(users);
     });
 
-    it('deve filtrar usuários por associationId, status e emailContains', async () => {
-      const users = [createUser({ id: 1, associationId: 5 })];
+    it('deve filtrar usuários por status e emailContains', async () => {
+      const users = [createUser({ id: 1 })];
       mockUsersService.findAll.mockResolvedValue(users);
 
       await controller.findAll(
         {
-          associationId: 5,
           status: 'Active',
           emailContains: 'test',
         },
         1,
         UserRole.ADMIN,
-        7,
       );
 
       expect(usersService.findAll).toHaveBeenCalledWith(
         {
-          associationId: 5,
           status: 'Active',
           emailContains: 'test',
         },
-        { id: 1, role: UserRole.ADMIN, associationId: 7 },
+        { id: 1, role: UserRole.ADMIN },
       );
     });
   });
@@ -194,12 +165,11 @@ describe('UsersController', () => {
       const user = createUser({ id: 1 });
       mockUsersService.findOneForRequester.mockResolvedValue(user);
 
-      const result = await controller.findOne(1, 1, UserRole.ADMIN, 3);
+      const result = await controller.findOne(1, 1, UserRole.ADMIN);
 
       expect(usersService.findOneForRequester).toHaveBeenCalledWith(1, {
         id: 1,
         role: UserRole.ADMIN,
-        associationId: 3,
       });
       expect(result).toEqual(user);
     });
@@ -208,7 +178,7 @@ describe('UsersController', () => {
       const error = new EntityNotFoundException('Usuário não encontrado.');
       mockUsersService.findOneForRequester.mockRejectedValue(error);
 
-      await expect(controller.findOne(999, 1, UserRole.ADMIN, null)).rejects.toThrow(EntityNotFoundException);
+      await expect(controller.findOne(999, 1, UserRole.ADMIN)).rejects.toThrow(EntityNotFoundException);
     });
   });
 
@@ -219,12 +189,11 @@ describe('UsersController', () => {
       
       mockUsersService.update.mockResolvedValue(updatedUser);
 
-      const result = await controller.update(1, updateDto, 1, UserRole.ADMIN, null);
+      const result = await controller.update(1, updateDto, 1, UserRole.ADMIN);
 
       expect(usersService.update).toHaveBeenCalledWith(1, updateDto, {
         id: 1,
         role: UserRole.ADMIN,
-        associationId: null,
       });
       expect(result).toEqual(updatedUser);
     });
@@ -234,7 +203,7 @@ describe('UsersController', () => {
       mockUsersService.update.mockRejectedValue(error);
 
       await expect(
-        controller.update(999, {}, 1, UserRole.ADMIN, null),
+        controller.update(999, {}, 1, UserRole.ADMIN),
       ).rejects.toThrow(EntityNotFoundException);
     });
   });
@@ -246,12 +215,11 @@ describe('UsersController', () => {
 
       mockUsersService.partialUpdate.mockResolvedValue(updatedUser);
 
-      const result = await controller.partialUpdate(1, updateDto, 1, UserRole.ADMIN, null);
+      const result = await controller.partialUpdate(1, updateDto, 1, UserRole.ADMIN);
 
       expect(usersService.partialUpdate).toHaveBeenCalledWith(1, updateDto, {
         id: 1,
         role: UserRole.ADMIN,
-        associationId: null,
       });
       expect(result).toEqual(updatedUser);
     });
@@ -262,12 +230,11 @@ describe('UsersController', () => {
       const deleted = createUser({ id: 1 });
       mockUsersService.remove.mockResolvedValue(deleted);
 
-      const result = await controller.remove(1, 1, UserRole.ADMIN, 7);
+      const result = await controller.remove(1, 1, UserRole.ADMIN);
 
       expect(usersService.remove).toHaveBeenCalledWith(1, {
         id: 1,
         role: UserRole.ADMIN,
-        associationId: 7,
       });
       expect(result).toEqual(deleted);
     });
@@ -276,7 +243,7 @@ describe('UsersController', () => {
       const error = new EntityNotFoundException('Usuário não encontrado.');
       mockUsersService.remove.mockRejectedValue(error);
 
-      await expect(controller.remove(999, 1, UserRole.ADMIN, null)).rejects.toThrow(EntityNotFoundException);
+      await expect(controller.remove(999, 1, UserRole.ADMIN)).rejects.toThrow(EntityNotFoundException);
     });
   });
 });

@@ -25,28 +25,6 @@ export const producerSidebarData = {
   ],
 };
 
-export const accountSelectionSidebarData = {
-  title: "Sistema de Gestão Completo",
-  subtitle: "A solução ideal para produção leiteira em qualquer escala",
-  items: [
-    {
-      title: "Para Produtores",
-      description:
-        "Gerencie animais, monitore produção diária e acesse gráficos detalhados.",
-    },
-    {
-      title: "Para Associações",
-      description:
-        "Gerencie múltiplos produtores, relatórios agregados e análises regionais.",
-    },
-    {
-      title: "Suporte Técnico",
-      description:
-        "Acesso a veterinários e técnicos especializados em produção leiteira.",
-    },
-  ],
-};
-
 export const loginSidebarData = {
   title: "Bem-vindo ao QuaLeiDer!",
   subtitle:

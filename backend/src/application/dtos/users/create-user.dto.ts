@@ -112,12 +112,4 @@ export class CreateUserDto {
   @IsString()
   @MaxLength(100, { message: 'A cidade deve ter no máximo 100 caracteres.' })
   city!: string;
-
-  @ApiProperty({
-    description: 'ID da organização (associação) do usuário',
-    example: 1,
-    required: false,
-  })
-  @IsOptional()
-  associationId?: number;
 }

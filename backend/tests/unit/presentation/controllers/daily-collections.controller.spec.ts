@@ -59,12 +59,11 @@ describe('DailyCollectionsController', () => {
       const created = createDailyCollection({ id: 1, userId: 1, quantity: 10 });
       mockService.create.mockResolvedValue(created);
 
-      const result = await controller.create(dto, 1, UserRole.ADMIN, null, null);
+      const result = await controller.create(dto, 1, UserRole.ADMIN, null);
 
       expect(service.create).toHaveBeenCalledWith(dto, {
         id: 1,
         role: UserRole.ADMIN,
-        associationId: null,
         adminId: null,
       });
       expect(result).toEqual(created);
@@ -76,7 +75,7 @@ describe('DailyCollectionsController', () => {
 
       mockService.create.mockRejectedValue(error);
 
-      await expect(controller.create(dto, 1, UserRole.ADMIN, null, null)).rejects.toThrow(
+      await expect(controller.create(dto, 1, UserRole.ADMIN, null)).rejects.toThrow(
         EntityNotFoundException,
       );
     });
@@ -87,13 +86,13 @@ describe('DailyCollectionsController', () => {
 
       mockService.create.mockRejectedValue(error);
 
-      await expect(controller.create(dto, 1, UserRole.ADMIN, null, null)).rejects.toThrow(
+      await expect(controller.create(dto, 1, UserRole.ADMIN, null)).rejects.toThrow(
         'Unique constraint violation',
       );
     });
   });
 
-  const adminA = { id: 1, userType: 'user', role: UserRole.ADMIN, associationId: null, adminId: null };
+  const adminA = { id: 1, role: UserRole.ADMIN, adminId: null };
 
   describe('findAll', () => {
     it('lista sempre dentro do escopo de quem pede', async () => {
@@ -110,13 +109,12 @@ describe('DailyCollectionsController', () => {
       mockService.findAll.mockResolvedValue([]);
 
       await controller.findAll(
-        { associationId: 10, userId: 5, startDate: '2025-01-01', endDate: '2025-01-31' },
+        { userId: 5, startDate: '2025-01-01', endDate: '2025-01-31' },
         adminA,
       );
 
       expect(service.findAll).toHaveBeenCalledWith({
         scope: { adminGroupId: 1 },
-        associationId: 10,
         userId: 5,
         dateRange: { start: new Date('2025-01-01'), end: new Date('2025-01-31') },
       });
@@ -154,12 +152,11 @@ describe('DailyCollectionsController', () => {
 
       mockService.update.mockResolvedValue(updated);
 
-      const result = await controller.update(1, updateDto, 1, UserRole.ADMIN, null, null);
+      const result = await controller.update(1, updateDto, 1, UserRole.ADMIN, null);
 
       expect(service.update).toHaveBeenCalledWith(1, updateDto, {
         id: 1,
         role: UserRole.ADMIN,
-        associationId: null,
         adminId: null,
       });
       expect(result).toEqual(updated);
@@ -171,7 +168,7 @@ describe('DailyCollectionsController', () => {
 
       mockService.update.mockRejectedValue(error);
 
-      await expect(controller.update(999, updateDto, 1, UserRole.ADMIN, null, null)).rejects.toThrow(
+      await expect(controller.update(999, updateDto, 1, UserRole.ADMIN, null)).rejects.toThrow(
         EntityNotFoundException,
       );
     });
@@ -182,12 +179,11 @@ describe('DailyCollectionsController', () => {
       const deleted = createDailyCollection({ id: 1 });
       mockService.remove.mockResolvedValue(deleted);
 
-      const result = await controller.remove(1, 1, UserRole.ADMIN, null, null);
+      const result = await controller.remove(1, 1, UserRole.ADMIN, null);
 
       expect(service.remove).toHaveBeenCalledWith(1, {
         id: 1,
         role: UserRole.ADMIN,
-        associationId: null,
         adminId: null,
       });
       expect(result).toEqual(deleted);
@@ -197,7 +193,7 @@ describe('DailyCollectionsController', () => {
       const error = new EntityNotFoundException('Formulário não encontrado.');
       mockService.remove.mockRejectedValue(error);
 
-      await expect(controller.remove(999, 1, UserRole.ADMIN, null, null)).rejects.toThrow(
+      await expect(controller.remove(999, 1, UserRole.ADMIN, null)).rejects.toThrow(
         EntityNotFoundException,
       );
     });
@@ -216,12 +212,11 @@ describe('DailyCollectionsController', () => {
       expect(result).toEqual(items);
     };
 
-    it('admin sem associação: o próprio grupo (não as coletas de todos os donos)', lists(adminA, 1, { adminGroupId: 1 }));
-    it('admin de uma associação: as coletas da associação', lists({ ...adminA, associationId: 10 }, 1, { associationId: 10 }));
+    it('admin: o próprio grupo (não as coletas de todos os donos)', lists(adminA, 1, { adminGroupId: 1 }));
     it('vaqueiro cadastrado por um admin: o grupo desse admin',
-      lists({ id: 5, userType: 'user', role: UserRole.VAQUEIRO, associationId: null, adminId: 1 }, 5, { adminGroupId: 1 }));
+      lists({ id: 5, role: UserRole.VAQUEIRO, adminId: 1 }, 5, { adminGroupId: 1 }));
     it('vaqueiro sem vínculo: só as próprias',
-      lists({ id: 5, userType: 'user', role: UserRole.VAQUEIRO, associationId: null, adminId: null }, 5, { userId: 5 }));
+      lists({ id: 5, role: UserRole.VAQUEIRO, adminId: null }, 5, { userId: 5 }));
 
     it('recusa quando o id do caminho é de outro dono (nada é listado)', async () => {
       mockService.assertCanReadUserData.mockRejectedValue(new ForbiddenException('outro dono'));

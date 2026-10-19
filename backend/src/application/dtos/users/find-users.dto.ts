@@ -1,14 +1,7 @@
-import { IsOptional, IsNumber, IsEnum, IsString } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsOptional, IsEnum, IsString } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class FindUsersDto {
-  @ApiPropertyOptional({ description: 'ID da associação para filtro' })
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  associationId?: number;
-
   @ApiPropertyOptional({ 
     description: 'Status do usuário',
     enum: ['Active', 'Inactive']

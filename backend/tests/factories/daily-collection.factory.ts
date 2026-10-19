@@ -104,16 +104,6 @@ export class DailyCollectionFactory {
   }
 
   /**
-   * Cria uma coleta com associação (não aplicável, mas mantido para compatibilidade)
-   */
-  static createWithAssociation(
-    userId: number,
-    overrides: Partial<DailyCollectionEntity> = {},
-  ): DailyCollectionEntity {
-    return DailyCollectionFactory.create(userId, overrides);
-  }
-
-  /**
    * Cria uma coleta com alta produção
    */
   static createHighProduction(

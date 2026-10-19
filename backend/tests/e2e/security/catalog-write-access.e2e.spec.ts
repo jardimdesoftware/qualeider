@@ -1,6 +1,6 @@
 import { setupE2ETests, teardownE2ETests, E2E_TIMEOUT } from '../setup';
 import { TestApp, AuthHelper } from '../helpers';
-import { AssociationFactory, UserFactory } from '../factories';
+import { UserFactory } from '../factories';
 import { UserRole } from '@/domain/enums/enums';
 import { HttpStatus } from '@nestjs/common';
 
@@ -17,7 +17,6 @@ describe.each([
   let authHelper: AuthHelper;
   let adminToken: string;
   let vaqueiroToken: string;
-  let associationToken: string;
   const suffix = `${Date.now()}`.slice(-6);
 
   const write = (method: 'post' | 'put' | 'delete', path: string, token?: string, body?: object) => {
@@ -50,10 +49,6 @@ describe.each([
     });
     await write('post', '/users/internal', adminToken, vaqueiro).expect(HttpStatus.CREATED);
     vaqueiroToken = await authHelper.login(vaqueiro.email!, vaqueiro.password!);
-
-    const association = AssociationFactory.build();
-    await testApp.request().post('/associations').send(association).expect(HttpStatus.CREATED);
-    associationToken = await authHelper.login(association.email!, association.password!);
   }, E2E_TIMEOUT);
 
   afterAll(async () => {
@@ -87,10 +82,6 @@ describe.each([
       await write('post', base, vaqueiroToken, { name: `Vaq ${suffix}` }).expect(HttpStatus.FORBIDDEN);
     });
 
-    it('associação: 403', async () => {
-      await write('post', base, associationToken, { name: `Assoc ${suffix}` }).expect(HttpStatus.FORBIDDEN);
-    });
-
     it('admin: 201', async () => {
       await write('post', base, adminToken, { name: `Admin ${suffix}` }).expect(HttpStatus.CREATED);
     });
@@ -105,9 +96,8 @@ describe.each([
     it.each([
       ['sem login', undefined, HttpStatus.UNAUTHORIZED],
       ['funcionário', 'vaqueiro', HttpStatus.FORBIDDEN],
-      ['associação', 'association', HttpStatus.FORBIDDEN],
     ])('%s: nega e não altera', async (_label, who, status) => {
-      const token = who === 'vaqueiro' ? vaqueiroToken : who === 'association' ? associationToken : undefined;
+      const token = who === 'vaqueiro' ? vaqueiroToken : undefined;
 
       await write('put', `${base}/${id}`, token, { name: 'Vandalizado' }).expect(status);
 
@@ -133,9 +123,8 @@ describe.each([
     it.each([
       ['sem login', undefined, HttpStatus.UNAUTHORIZED],
       ['funcionário', 'vaqueiro', HttpStatus.FORBIDDEN],
-      ['associação', 'association', HttpStatus.FORBIDDEN],
     ])('%s: nega e o registro continua existindo', async (_label, who, status) => {
-      const token = who === 'vaqueiro' ? vaqueiroToken : who === 'association' ? associationToken : undefined;
+      const token = who === 'vaqueiro' ? vaqueiroToken : undefined;
 
       await write('delete', `${base}/${id}`, token).expect(status);
 

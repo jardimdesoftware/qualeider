@@ -17,7 +17,6 @@ import { canReadOwner, resolveReadScope } from '@/domain/utils/read-scope.util';
 export interface RequesterContext {
   id: number;
   role?: UserRole;
-  associationId?: number | null;
 }
 
 @Injectable()
@@ -47,7 +46,6 @@ export class UsersService {
 
   async update(id: number, updateUserDto: UpdateUserDto, requester: RequesterContext) {
     await this.assertCanManage(id, requester);
-    this.assertCanSetAssociation(updateUserDto, requester);
     return this.performUpdate(id, updateUserDto);
   }
 
@@ -57,7 +55,6 @@ export class UsersService {
     requester: RequesterContext,
   ) {
     await this.assertCanManage(id, requester);
-    this.assertCanSetAssociation(updatePartialUserDto, requester);
     return this.performUpdate(id, updatePartialUserDto);
   }
 
@@ -69,24 +66,10 @@ export class UsersService {
 
   /**
    * Garante que o requisitante pode editar o usuario alvo: precisa ser ADMIN
-   * e o alvo precisa estar no escopo dele (mesma associacao, funcionario
-   * vinculado via adminId, ou ele mesmo). Sem isso, qualquer usuario
-   * autenticado conseguia editar role/associationId de qualquer conta do
+   * e o alvo precisa ser um funcionario vinculado via adminId, ou ele mesmo. Sem
+   * isso, qualquer usuario autenticado conseguia editar role de qualquer conta do
    * sistema via PUT/PATCH /users/:id (escalada de privilegio).
    */
-  /**
-   * O admin só vincula usuários à PRÓPRIA associação. Sem isso, ele encaixava um
-   * funcionário em qualquer associação e passava a enxergar os dados dela.
-   */
-  private assertCanSetAssociation(
-    dto: { associationId?: number | null },
-    requester: RequesterContext,
-  ): void {
-    if (dto.associationId != null && dto.associationId !== requester.associationId) {
-      throw new ForbiddenException('Você só pode vincular usuários à sua própria associação.');
-    }
-  }
-
   private async assertCanManage(targetId: number, requester: RequesterContext): Promise<void> {
     if (requester.role !== UserRole.ADMIN) {
       throw new ForbiddenException('Você não tem permissão para editar este usuário.');
@@ -101,9 +84,7 @@ export class UsersService {
       throw new EntityNotFoundException(`Usuário com ID ${targetId} não encontrado.`);
     }
 
-    const managesTarget =
-      target.adminId === requester.id ||
-      (requester.associationId != null && target.associationId === requester.associationId);
+    const managesTarget = target.adminId === requester.id;
 
     if (!managesTarget) {
       throw new ForbiddenException('Você não tem permissão para editar este usuário.');
@@ -113,8 +94,7 @@ export class UsersService {
   async remove(id: number, requester?: RequesterContext) {
     if (requester) {
       // Mesma regra de PUT/PATCH: o ADMIN só desativa a si mesmo, funcionários
-      // vinculados a ele ou membros da sua associação. Antes bastava ser ADMIN,
-      // e o cadastro público cria ADMIN, então qualquer visitante desativava
+      // vinculados a ele. Antes bastava ser ADMIN, então qualquer admin desativava
       // contas de outros donos.
       await this.assertCanManage(id, requester);
     }
@@ -134,8 +114,8 @@ export class UsersService {
       this.assertAdmin(requester, 'Você não tem permissão para listar usuários.');
     }
 
-    // Só lista usuários do escopo do requisitante (ele, seus funcionários ou a
-    // sua associação), nunca os de outros donos.
+    // Só lista usuários do escopo do requisitante (ele e seus funcionários),
+    // nunca os de outros donos.
     const result = await this.userRepository.findAll({
       ...criteria,
       scope: requester ? resolveReadScope(requester) : criteria?.scope,

@@ -3,12 +3,6 @@ import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class FindDailyCollectionsDto {
-  @ApiPropertyOptional({ description: 'ID da associação para filtro' })
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  associationId?: number;
-
   @ApiPropertyOptional({ description: 'ID do usuário para filtro' })
   @IsOptional()
   @Type(() => Number)

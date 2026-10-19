@@ -1,6 +1,6 @@
 # QuaLeiDer - Backend API
 
-> Sistema de gestão para produtores de leite, coletas diárias e associações rurais.
+> Sistema de gestão para produtores de leite e coletas diárias (IFPE).
 
 [![Build Status](https://github.com/marcelo-ifpe/qualeider/actions/workflows/tests.yml/badge.svg)](https://github.com/marcelo-ifpe/qualeider/actions/workflows/tests.yml)
 [![NestJS](https://img.shields.io/badge/NestJS-E0234E?style=for-the-badge&logo=nestjs&logoColor=white)](https://nestjs.com/)
@@ -24,7 +24,7 @@
 
 ## 📌 Sobre
 
-QuaLeiDer é uma plataforma desenvolvida para o **Instituto Federal de Pernambuco (IFPE)** para modernizar a gestão da produção leiteira. O sistema conecta pequenos produtores a associações, permitindo registro digital de coletas, controle de rebanho e transparência na produção.
+QuaLeiDer é uma plataforma desenvolvida para o **Instituto Federal de Pernambuco (IFPE)** para modernizar a gestão da produção leiteira. O sistema permite registro digital de coletas, controle de rebanho e transparência na produção, em um único banco compartilhado pela equipe do IFPE.
 
 ## 🏗️ Arquitetura
 
@@ -89,9 +89,6 @@ docker-compose down
 | :--- | :---: | :--- |
 | **Gestão de Coletas** | ✅ | Registro diário de litragem, gordura e itens do tanque |
 | **Controle de Rebanho** | ✅ | Cadastro de vacas, cabras, ovelhas com dados genealógicos |
-| **Associações** | ✅ | Gestão de múltiplos produtores e áreas de cobertura |
-| **Convites** | ✅ | Sistema de tokens por email para novos membros |
-| **Notificações** | ✅ | Avisos internos para produtores |
 | **Relatórios** | 🚧 | Geração de PDFs e exportação de dados (Em progresso) |
 | **Dashboard** | 📅 | Gráficos analíticos avançados (Planejado) |
 
@@ -147,23 +144,12 @@ Diagrama Entidade-Relacionamento do sistema:
 
 ```mermaid
 erDiagram
-    Association ||--o{ User : "possui membros"
-    Association ||--o{ Invite : "envia"
-    Association ||--o{ Notification : "gera"
     User ||--o{ Animal : "possui"
     User ||--o{ DailyCollection : "registra"
-    User ||--o{ Invite : "recebe"
-    User ||--o{ NotificationRecipient : "recebe"
+    User ||--o{ User : "admin cadastra funcionários"
     DailyCollection ||--o{ DailyCollectionItem : "contém"
     Animal ||--o{ DailyCollectionItem : "produz"
-    Notification ||--o{ NotificationRecipient : "destina-se"
 
-    Association {
-        int id
-        string name
-        string cnpj
-        string email
-    }
     User {
         int id
         string name
@@ -180,11 +166,6 @@ erDiagram
         int id
         float quantity
         date date
-    }
-    Invite {
-        string token
-        enum status
-        date expiresAt
     }
 ```
 

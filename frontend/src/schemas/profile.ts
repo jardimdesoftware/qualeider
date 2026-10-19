@@ -19,7 +19,7 @@ export const settingsSchema = z.object({
   userCategory: z.enum(["Fisica", "Juridica"]),
   state: stateRule,
   city: cityRule,
-  userType: z.string().optional(), // Only for "user" type, not "association"
+  userType: z.string().optional(),
 });
 
 // ===========================

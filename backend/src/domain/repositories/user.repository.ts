@@ -7,7 +7,6 @@ export const IUserRepository = Symbol('IUserRepository');
 
 export interface UserFindOneOptions {
   includeAnimals?: boolean;
-  includeAssociation?: boolean;
 }
 
 export interface IUserRepository {

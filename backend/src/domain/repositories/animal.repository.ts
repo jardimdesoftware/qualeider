@@ -30,7 +30,7 @@ export interface IAnimalRepository {
   findByIds(ids: ID[], options?: AnimalFindOneOptions): Promise<AnimalEntity[]>;
   /**
    * Busca um animal com o mesmo tagNumber dentro do escopo de rebanho informado
-   * (associacao, grupo Admin+Vaqueiros, ou usuario isolado), opcionalmente
+   * (grupo Admin+Vaqueiros, ou usuario isolado), opcionalmente
    * excluindo o proprio animal (usado em updates).
    */
   findConflictingTagNumber(

@@ -16,21 +16,6 @@ export class MockMailService {
     context: any;
   }> = [];
 
-  async sendInviteEmail(
-    to: string,
-    associationName: string,
-    inviteToken: string,
-  ): Promise<void> {
-    this.logger.log(`[MOCK] Email de convite enviado para ${to}`);
-
-    this.sentEmails.push({
-      to,
-      subject: 'Convite para se juntar',
-      template: 'invite',
-      context: { associationName, inviteToken },
-    });
-  }
-
   async sendPasswordResetEmail(
     to: string,
     resetToken: string,

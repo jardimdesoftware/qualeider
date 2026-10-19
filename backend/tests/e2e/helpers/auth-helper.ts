@@ -14,7 +14,6 @@ export interface TestUser {
   city: string;
   state: string;
   status?: Status;
-  associationId?: number;
 }
 
 /**
@@ -51,7 +50,6 @@ export class AuthHelper {
         city: defaultUser.city,
         state: defaultUser.state,
         status: defaultUser.status,
-        associationId: defaultUser.associationId,
       },
     });
 

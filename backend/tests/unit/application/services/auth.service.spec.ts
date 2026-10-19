@@ -10,7 +10,6 @@ import {
 import { IHashService as IHashServiceSymbol, type IHashService } from '@/application/ports/hash.service';
 import { createUser } from '../../../factories';
 
-import { IAssociationRepository } from '@/domain/repositories/association.repository';
 import { IFailedEmailRepository } from '@/domain/repositories/failed-email.repository';
 import { IAllowedEmailRepository } from '@/domain/repositories/allowed-email.repository';
 import { ConfigService } from '@nestjs/config';
@@ -27,7 +26,6 @@ describe('AuthService', () => {
   let userRepository: IUserRepository;
   let mailService: jest.Mocked<MailService>;
   let hashService: jest.Mocked<IHashService>;
-  let associationRepository: IAssociationRepository;
   let failedEmailRepository: jest.Mocked<IFailedEmailRepository>;
   let allowedEmailRepository: jest.Mocked<IAllowedEmailRepository>;
   let configService: jest.Mocked<ConfigService>;
@@ -57,15 +55,6 @@ describe('AuthService', () => {
           provide: MailService,
           useValue: {
             sendResetPasswordEmail: jest.fn(),
-          },
-        },
-        {
-          provide: IAssociationRepository,
-          useValue: {
-            findById: jest.fn(),
-            findByEmail: jest.fn(),
-            create: jest.fn(),
-            update: jest.fn(),
           },
         },
         {
@@ -110,7 +99,6 @@ describe('AuthService', () => {
     userRepository = module.get<IUserRepository>(IUserRepositorySymbol) as any;
     mailService = module.get(MailService);
     hashService = module.get(IHashServiceSymbol) as any;
-    associationRepository = module.get<IAssociationRepository>(IAssociationRepository) as any;
     failedEmailRepository = module.get(IFailedEmailRepository);
     allowedEmailRepository = module.get(IAllowedEmailRepository);
     configService = module.get(ConfigService);
@@ -183,64 +171,6 @@ describe('AuthService', () => {
     });
   });
 
-  describe('validateAssociation', () => {
-    it('deve retornar associação sem senha quando credenciais são válidas', async () => {
-      const mockAssociation = {
-        id: 1,
-        email: 'assoc@example.com',
-        password: 'hashedPassword',
-      };
-
-      (associationRepository.findByEmail as jest.Mock).mockResolvedValue(
-        mockAssociation,
-      );
-      (hashService.compare as jest.Mock).mockResolvedValue(true);
-
-      const result = await service.validateAssociation(
-        'assoc@example.com',
-        'password123',
-      );
-
-      expect(associationRepository.findByEmail).toHaveBeenCalledWith(
-        'assoc@example.com',
-      );
-      expect(hashService.compare).toHaveBeenCalledWith(
-        'password123',
-        'hashedPassword',
-      );
-      expect(result).not.toHaveProperty('password');
-      expect(result!.email).toBe('assoc@example.com');
-    });
-
-    it('deve retornar null quando associação não for encontrada', async () => {
-      (associationRepository.findByEmail as jest.Mock).mockResolvedValue(null);
-
-      const result = await service.validateAssociation(
-        'nonexistent@example.com',
-        'password123',
-      );
-      expect(result).toBeNull();
-    });
-
-    it('deve retornar null quando a senha da associação estiver incorreta', async () => {
-      const mockAssociation = {
-        email: 'assoc@example.com',
-        password: 'hashedPassword',
-      };
-
-      (associationRepository.findByEmail as jest.Mock).mockResolvedValue(
-        mockAssociation,
-      );
-      (hashService.compare as jest.Mock).mockResolvedValue(false);
-
-      const result = await service.validateAssociation(
-        'assoc@example.com',
-        'wrong',
-      );
-      expect(result).toBeNull();
-    });
-  });
-
   describe('executeLogin', () => {
     it('deve realizar login com sucesso quando credenciais são válidas', async () => {
       const loginDto = { email: 'test@example.com', password: 'password123' };
@@ -256,63 +186,39 @@ describe('AuthService', () => {
         loginDto.email,
         loginDto.password,
       );
-      expect(service.loginEntity).toHaveBeenCalledWith(mockUser, 'user');
+      expect(service.loginEntity).toHaveBeenCalledWith(mockUser);
       expect(result).toEqual(mockToken);
     });
 
 
 
-    it('deve realizar login como associação quando login de usuário falha', async () => {
-      const loginDto = { email: 'assoc@example.com', password: 'password123' };
-      const mockAssociation = { id: 1, email: 'assoc@example.com' };
-      const mockToken = { access_token: 'jwt-token-assoc' };
-
-      jest.spyOn(service, 'validateUser').mockResolvedValue(null);
-      jest.spyOn(service, 'validateAssociation').mockResolvedValue(mockAssociation as any);
-      jest.spyOn(service, 'loginEntity').mockResolvedValue(mockToken);
-
-      const result = await service.executeLogin(loginDto);
-
-      expect(service.validateUser).toHaveBeenCalledWith(loginDto.email, loginDto.password);
-      expect(service.validateAssociation).toHaveBeenCalledWith(loginDto.email, loginDto.password);
-      expect(service.loginEntity).toHaveBeenCalledWith(mockAssociation, 'association');
-      expect(result).toEqual(mockToken);
-    });
-
-    it('deve lançar UnauthorizedException quando validação falha para ambos', async () => {
+    it('deve lançar UnauthorizedException quando as credenciais não conferem', async () => {
       const loginDto = { email: 'test@example.com', password: 'wrong' };
 
       jest.spyOn(service, 'validateUser').mockResolvedValue(null);
-      jest.spyOn(service, 'validateAssociation').mockResolvedValue(null);
 
       await expect(service.executeLogin(loginDto)).rejects.toThrow(
         UnauthorizedException,
       );
     });
 
-    it('regressão #169: propaga o erro de conta inativa sem cair no fallback de Associação', async () => {
+    it('propaga o erro de conta inativa', async () => {
       const loginDto = { email: 'vaqueiro@example.com', password: 'password123' };
       const inactiveError = new UnauthorizedException(
         'Conta inativa. Entre em contato com o administrador.',
       );
 
       jest.spyOn(service, 'validateUser').mockRejectedValue(inactiveError);
-      jest.spyOn(service, 'validateAssociation');
 
       await expect(service.executeLogin(loginDto)).rejects.toThrow(
         'Conta inativa. Entre em contato com o administrador.',
       );
-      expect(service.validateAssociation).not.toHaveBeenCalled();
     });
   });
 
   describe('login', () => {
     it('deve retornar token de acesso com payload correto', async () => {
-      const mockUser = {
-        id: 1,
-        email: 'test@example.com',
-        associationId: 10,
-      };
+      const mockUser = { id: 1, email: 'test@example.com', role: UserRole.ADMIN };
 
       jwtService.sign.mockReturnValue('mock-jwt-token');
 
@@ -321,19 +227,13 @@ describe('AuthService', () => {
       expect(jwtService.sign).toHaveBeenCalledWith({
         email: 'test@example.com',
         sub: 1,
-        associationId: 10,
-        userType: 'user',
-        role: null,
+        role: UserRole.ADMIN,
       });
       expect(result).toEqual({ access_token: 'mock-jwt-token' });
     });
 
-    it('deve tratar usuário sem associationId', async () => {
-      const mockUser = {
-        id: 2,
-        email: 'independent@example.com',
-        associationId: null,
-      };
+    it('usa role null quando o usuário não tem role', async () => {
+      const mockUser = { id: 2, email: 'independent@example.com' };
 
       jwtService.sign.mockReturnValue('mock-jwt-token-2');
 
@@ -342,8 +242,6 @@ describe('AuthService', () => {
       expect(jwtService.sign).toHaveBeenCalledWith({
         email: 'independent@example.com',
         sub: 2,
-        associationId: null,
-        userType: 'user',
         role: null,
       });
       expect(result.access_token).toBe('mock-jwt-token-2');
@@ -468,7 +366,7 @@ describe('AuthService', () => {
         email: 'active@ifpe.edu.br',
       });
 
-      expect(service.loginEntity).toHaveBeenCalledWith(existingUser, 'user');
+      expect(service.loginEntity).toHaveBeenCalledWith(existingUser);
       expect(result).toEqual(loginResult);
     });
 
@@ -516,7 +414,7 @@ describe('AuthService', () => {
           password: 'hashed-random-password',
         }),
       );
-      expect(service.loginEntity).toHaveBeenCalledWith(createdUser, 'user');
+      expect(service.loginEntity).toHaveBeenCalledWith(createdUser);
       expect(result).toEqual(loginResult);
     });
 
@@ -585,7 +483,6 @@ describe('AuthService', () => {
           role: UserRole.VAQUEIRO,
           status: Status.Active,
           adminId: null,
-          associationId: null,
         });
         (userRepository.findByEmail as jest.Mock).mockResolvedValue(orphan);
         (allowedEmailRepository.findByEmail as jest.Mock).mockResolvedValue(allowed(55));

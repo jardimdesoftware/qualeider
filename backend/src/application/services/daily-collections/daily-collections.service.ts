@@ -17,7 +17,6 @@ import { ActivityLogService } from '@/application/services/activity-logs/activit
 export interface DailyCollectionRequesterContext {
   id: number;
   role?: UserRole;
-  associationId?: number | null;
   adminId?: number | null;
 }
 
@@ -138,7 +137,7 @@ export class DailyCollectionsService {
       const animalOwner = animalOwnersById.get(animalOwnerId)!;
 
       // O animal pode ter sido cadastrado por qualquer membro do mesmo
-      // rebanho (mesma associacao ou grupo Admin+Vaqueiros), nao apenas
+      // rebanho (grupo Admin+Vaqueiros), nao apenas
       // por quem esta registrando a coleta.
       if (!isSameHerd(owner, animalOwner)) {
         throw new BusinessException(

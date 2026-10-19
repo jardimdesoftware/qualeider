@@ -3,7 +3,6 @@ import { logger } from "./logger";
 
 export interface TokenPayload {
   sub: string | number;
-  userType: "user" | "association";
   role?: "ADMIN" | "VAQUEIRO" | null;
   name?: string;
   email?: string;
@@ -27,17 +26,6 @@ export function decodeToken(token: string): TokenPayload | null {
     logger.error("Failed to decode token", error);
     return null;
   }
-}
-
-/**
- * Get user type from stored token
- */
-export function getUserTypeFromToken(): "user" | "association" {
-  const token = getAuthToken();
-  if (!token) return "user";
-
-  const decoded = decodeToken(token);
-  return decoded?.userType || "user";
 }
 
 /**

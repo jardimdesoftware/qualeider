@@ -110,48 +110,6 @@ describe('E2E: Rate Limiting (Throttling)', () => {
     });
   });
 
-  describe('POST /associations - 5 requests / 2s (test env)', () => {
-    it('deve bloquear 6ª criação de associação com HTTP 429', async () => {
-      const fakeIP = randomIP();
-      
-      // Fazer 5 requisições
-      for (let i = 1; i <= 5; i++) {
-        const assocData = {
-          fullName: `Test Association ${Date.now()}-${i}`,
-          email: `throttle-assoc-${Date.now()}-${i}@example.com`,
-          password: 'Test@1234',
-          cnpj: `${12345678000100 + i}`,
-          city: 'São Paulo',
-          state: 'SP',
-        };
-
-        await testApp
-          .throttledRequest()
-          .post('/associations')
-          .set('X-Forwarded-For', fakeIP)
-          .send(assocData);
-      }
-
-      // 6ª deve ser bloqueada
-      const assocData = {
-        fullName: `Test Association ${Date.now()}-6`,
-        email: `throttle-assoc-${Date.now()}-6@example.com`,
-        password: 'Test@1234',
-        cnpj: '12345678000199',
-        city: 'São Paulo',
-        state: 'SP',
-      };
-
-      const response = await testApp
-        .throttledRequest()
-        .post('/associations')
-        .set('X-Forwarded-For', fakeIP)
-        .send(assocData);
-
-      expect(response.status).toBe(HttpStatus.TOO_MANY_REQUESTS);
-    });
-  });
-
   describe('Validação de Headers HTTP 429', () => {
     it('deve incluir todos os headers de rate limit na resposta 429', async () => {
       const fakeIP = randomIP();

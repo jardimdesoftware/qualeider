@@ -75,7 +75,6 @@ export async function cleanDatabase(): Promise<void> {
     // 1ª ordem: tabelas dependentes (FK para collections/notifications/users)
     await Promise.all([
       safeDeleteMany(() => prisma.dailyCollectionItem.deleteMany()),
-      safeDeleteMany(() => prisma.notificationRecipient.deleteMany()),
       safeDeleteMany(() => prisma.activityLog.deleteMany()),
       safeDeleteMany(() => prisma.allowedEmail.deleteMany()),
       safeDeleteMany(() => prisma.oneOffTask.deleteMany()),
@@ -84,20 +83,17 @@ export async function cleanDatabase(): Promise<void> {
     // 2ª ordem: collections e notifications
     await Promise.all([
       safeDeleteMany(() => prisma.dailyCollection.deleteMany()),
-      safeDeleteMany(() => prisma.notification.deleteMany()),
     ]);
 
     // 3ª ordem: animais e convites (animal referencia breed via breedId)
     await Promise.all([
       safeDeleteMany(() => prisma.animal.deleteMany()),
-      safeDeleteMany(() => prisma.invite.deleteMany()),
     ]);
 
-    // 4ª ordem: raças, usuários e associações
+    // 4ª ordem: raças e usuários
     await Promise.all([
       safeDeleteMany(() => prisma.breed.deleteMany()),
       safeDeleteMany(() => prisma.user.deleteMany()),
-      safeDeleteMany(() => prisma.association.deleteMany()),
     ]);
   } catch (error) {
     console.error('Erro ao limpar banco de dados:', error);

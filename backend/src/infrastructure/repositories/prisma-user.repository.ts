@@ -33,7 +33,6 @@ export class PrismaUserRepository implements IUserRepository {
           password: data.password,
           city: data.city,
           state: data.state,
-          associationId: data.associationId,
           adminId: data.adminId,
 
           // Conversão segura de Enum Domínio -> Enum Prisma
@@ -60,8 +59,6 @@ export class PrismaUserRepository implements IUserRepository {
       ? (criteria.status as unknown as PrismaStatus) 
       : PrismaStatus.Active;
 
-    if (criteria.associationId) where.associationId = criteria.associationId;
-
     if (criteria.scope) where.AND = [herdScopeUserWhere(criteria.scope)];
     
     if (criteria.ids && criteria.ids.length > 0) where.id = { in: criteria.ids };
@@ -70,7 +67,6 @@ export class PrismaUserRepository implements IUserRepository {
 
     const include: Prisma.UserInclude = {};
     if (criteria.includeAnimals) include.animals = true;
-    if (criteria.includeAssociation) include.association = true;
 
     // Normalizar parâmetros de paginação
     const { page, limit, skip } = normalizePaginationParams(criteria);
@@ -94,12 +90,11 @@ export class PrismaUserRepository implements IUserRepository {
 
   async findById(
     id: ID, 
-    options?: { includeAnimals?: boolean; includeAssociation?: boolean }
+    options?: { includeAnimals?: boolean }
   ): Promise<Omit<UserEntity, 'password'> | null> {
     
     const include: Prisma.UserInclude = {};
     if (options?.includeAnimals) include.animals = true;
-    if (options?.includeAssociation) include.association = true;
 
     const rawUser = await this.prisma.user.findUnique({
       where: { id, status: PrismaStatus.Active },
@@ -138,12 +133,6 @@ export class PrismaUserRepository implements IUserRepository {
         resetTokenExpiry: data.resetTokenExpiry,
       };
       
-      if (data.associationId) {
-        updateData.association = {
-          connect: { id: data.associationId },
-        };
-      }
-
       if (data.adminId) {
         updateData.admin = { connect: { id: data.adminId } };
       }

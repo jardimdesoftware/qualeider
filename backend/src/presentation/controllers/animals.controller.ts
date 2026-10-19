@@ -47,13 +47,11 @@ export class AnimalsController {
     @Body() createAnimalDto: CreateAnimalDto,
     @GetUser('id') requesterId: number,
     @GetUser('role') requesterRole?: UserRole,
-    @GetUser('associationId') requesterAssociationId?: number | null,
     @GetUser('adminId') requesterAdminId?: number | null,
   ) {
     return this.animalsService.create(createAnimalDto, {
       id: requesterId,
       role: requesterRole,
-      associationId: requesterAssociationId,
       adminId: requesterAdminId,
     });
   }
@@ -64,7 +62,6 @@ export class AnimalsController {
   async findAll(@Query() query: FindAnimalsDto, @GetUser() requester: ReadPrincipal) {
     const criteria: AnimalCriteria = {
       scope: resolveReadScope(requester),
-      associationId: query.associationId,
       userId: query.userId,
       status: query.status,
       animalType: query.animalType,
@@ -85,7 +82,6 @@ export class AnimalsController {
   async getProductionSummary(
     @GetUser('id') requesterId: number,
     @GetUser('role') requesterRole?: UserRole,
-    @GetUser('associationId') requesterAssociationId?: number | null,
     @GetUser('adminId') requesterAdminId?: number | null,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
@@ -94,7 +90,6 @@ export class AnimalsController {
       {
         id: requesterId,
         role: requesterRole,
-        associationId: requesterAssociationId,
         adminId: requesterAdminId,
       },
       startDate ? new Date(startDate) : undefined,
@@ -125,13 +120,11 @@ export class AnimalsController {
     @Body() updateAnimalDto: UpdateAnimalDto,
     @GetUser('id') requesterId: number,
     @GetUser('role') requesterRole?: UserRole,
-    @GetUser('associationId') requesterAssociationId?: number | null,
     @GetUser('adminId') requesterAdminId?: number | null,
   ) {
     return this.animalsService.update(id, updateAnimalDto, {
       id: requesterId,
       role: requesterRole,
-      associationId: requesterAssociationId,
       adminId: requesterAdminId,
     });
   }
@@ -147,13 +140,11 @@ export class AnimalsController {
     @Param('id', ParseIntPipe) id: number,
     @GetUser('id') requesterId: number,
     @GetUser('role') requesterRole?: UserRole,
-    @GetUser('associationId') requesterAssociationId?: number | null,
     @GetUser('adminId') requesterAdminId?: number | null,
   ) {
     return this.animalsService.remove(id, {
       id: requesterId,
       role: requesterRole,
-      associationId: requesterAssociationId,
       adminId: requesterAdminId,
     });
   }
@@ -169,20 +160,18 @@ export class AnimalsController {
     @Param('id', ParseIntPipe) id: number,
     @GetUser('id') requesterId: number,
     @GetUser('role') requesterRole?: UserRole,
-    @GetUser('associationId') requesterAssociationId?: number | null,
     @GetUser('adminId') requesterAdminId?: number | null,
   ) {
     return this.animalsService.inativar(id, {
       id: requesterId,
       role: requesterRole,
-      associationId: requesterAssociationId,
       adminId: requesterAdminId,
     });
   }
 
   @ApiOperation({
     summary:
-      'Buscar animais de um usuario especifico (ou de toda a associacao, se o solicitante for ADMIN)',
+      'Buscar animais de um usuario especifico (ou do grupo Admin + funcionarios, se o solicitante for ADMIN)',
   })
   @ApiBearerAuth()
   @ApiParam({ name: 'userId', description: 'ID do usuario', type: Number })
@@ -194,7 +183,7 @@ export class AnimalsController {
     @GetUser() requester: ReadPrincipal,
   ) {
     // O id do caminho precisa estar no escopo de quem pede; a lista é sempre a do
-    // escopo dele (associacao > grupo Admin + funcionarios > ele mesmo), nunca a
+    // escopo dele (grupo Admin + funcionarios > ele mesmo), nunca a
     // de outro dono. includeInactive: esta listagem alimenta a tela de gestao do
     // rebanho ("Meus Animais"), que decide ativos/inativos no client via o toggle
     // "Mostrar inativos".

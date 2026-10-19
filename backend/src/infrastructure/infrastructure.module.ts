@@ -14,10 +14,8 @@ import { IFailedEmailRepository } from '@/domain/repositories/failed-email.repos
 import { IHashService } from '@/application/ports/hash.service';
 import { ITokenService } from '@/application/ports/token.service';
 import { JwtTokenService } from '@/infrastructure/services/jwt-token.service';
-import { IAssociationRepository } from '@/domain/repositories/association.repository';
-import { PrismaAssociationRepository } from '@/infrastructure/repositories/prisma-association.repository';
-import { IInviteRepository } from '@/domain/repositories/invite.repository';
-import { PrismaInviteRepository } from '@/infrastructure/repositories/prisma-invite.repository';
+import { IReportRepository } from '@/domain/repositories/report.repository';
+import { PrismaReportRepository } from '@/infrastructure/repositories/prisma-report.repository';
 import { IBreedRepository } from '@/domain/repositories/breed.repository';
 import { IAnimalSpeciesRepository } from '@/domain/repositories/animal-species.repository';
 import { PrismaAnimalSpeciesRepository } from '@/infrastructure/repositories/prisma-animal-species.repository';
@@ -50,8 +48,7 @@ import { PrismaActivityLogRepository } from '@/infrastructure/repositories/prism
     { provide: IHashService, useClass: BcryptHashService },
     { provide: ITokenService, useClass: JwtTokenService },
     { provide: IFailedEmailRepository, useClass: PrismaFailedEmailRepository },
-    { provide: IAssociationRepository, useClass: PrismaAssociationRepository },
-    { provide: IInviteRepository, useClass: PrismaInviteRepository },
+    { provide: IReportRepository, useClass: PrismaReportRepository },
     { provide: IBreedRepository, useClass: PrismaBreedRepository },
     { provide: IAnimalSpeciesRepository, useClass: PrismaAnimalSpeciesRepository },
     { provide: IAllowedEmailRepository, useClass: PrismaAllowedEmailRepository },
@@ -65,8 +62,7 @@ import { PrismaActivityLogRepository } from '@/infrastructure/repositories/prism
     IHashService,
     ITokenService,
     IFailedEmailRepository,
-    IAssociationRepository,
-    IInviteRepository,
+    IReportRepository,
     IBreedRepository,
     IAnimalSpeciesRepository,
     IAllowedEmailRepository,

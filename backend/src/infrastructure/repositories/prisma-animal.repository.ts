@@ -70,10 +70,6 @@ export class PrismaAnimalRepository implements IAnimalRepository {
       where.userId = criteria.userId;
     }
 
-    if (criteria.associationId) {
-      where.user = { associationId: criteria.associationId };
-    }
-
     if (criteria.adminGroupId) {
       // Rebanho do grupo Admin+Vaqueiros: animais do proprio Admin ou de
       // qualquer Vaqueiro cadastrado por ele (User.adminId).
@@ -160,9 +156,7 @@ export class PrismaAnimalRepository implements IAnimalRepository {
   ): Promise<AnimalEntity | null> {
     const where: any = { tagNumber };
 
-    if (scope.associationId) {
-      where.user = { associationId: scope.associationId };
-    } else if (scope.adminGroupId) {
+    if (scope.adminGroupId) {
       where.user = { OR: [{ id: scope.adminGroupId }, { adminId: scope.adminGroupId }] };
     } else if (scope.userId) {
       where.userId = scope.userId;
@@ -236,9 +230,7 @@ export class PrismaAnimalRepository implements IAnimalRepository {
   ): Promise<AnimalProductionSummary[]> {
     const where: any = { status: PrismaStatus.Active };
 
-    if (scope.associationId) {
-      where.user = { associationId: scope.associationId };
-    } else if (scope.adminGroupId) {
+    if (scope.adminGroupId) {
       where.user = {
         OR: [{ id: scope.adminGroupId }, { adminId: scope.adminGroupId }],
       };

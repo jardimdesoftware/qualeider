@@ -109,7 +109,6 @@ describe('AnimalsService', () => {
         service.create(createDto, {
           id: requesterId,
           role: UserRole.VAQUEIRO,
-          associationId: null,
           adminId: 1,
         }),
       ).rejects.toThrow(ForbiddenException);
@@ -207,28 +206,6 @@ describe('AnimalsService', () => {
 
       expect(result).toEqual(paginatedResult);
       expect(animalRepository.findAll).toHaveBeenCalled();
-    });
-
-    it('deve filtrar por associationId quando fornecido', async () => {
-      const associationId = 10;
-      const mockAnimals = [createAnimal({ id: 1 })];
-
-      const paginatedResult = {
-        data: mockAnimals,
-        total: 1,
-        page: 1,
-        limit: 50,
-        totalPages: 1,
-        hasNextPage: false,
-        hasPreviousPage: false,
-      };
-
-      animalRepository.findAll.mockResolvedValue(paginatedResult);
-
-      const result = await service.findAll({ associationId });
-
-      expect(result).toEqual(paginatedResult);
-      expect(animalRepository.findAll).toHaveBeenCalledWith({ associationId });
     });
 
     it('deve retornar array vazio quando não há animais', async () => {
@@ -356,7 +333,7 @@ describe('AnimalsService', () => {
 
     it('deve negar atualizacao quando o animal pertence a outro rebanho', async () => {
       const existingAnimal = createAnimal({ id: 1, userId: 10 });
-      const animalOwner = createUser({ id: 10, role: UserRole.ADMIN, associationId: 99 });
+      const animalOwner = createUser({ id: 10, role: UserRole.ADMIN });
       const updateDto: Partial<UpdateAnimalDto> = { name: 'Tentativa' };
 
       animalRepository.findById.mockResolvedValue(existingAnimal);
@@ -366,7 +343,6 @@ describe('AnimalsService', () => {
         service.update(1, updateDto as any, {
           id: 1,
           role: UserRole.ADMIN,
-          associationId: 10,
           adminId: null,
         }),
       ).rejects.toThrow(ForbiddenException);
@@ -425,7 +401,7 @@ describe('AnimalsService', () => {
 
     it('deve negar remocao quando o animal pertence a outro rebanho', async () => {
       const mockAnimal = createAnimal({ id: 1, userId: 10 });
-      const animalOwner = createUser({ id: 10, role: UserRole.ADMIN, associationId: 99 });
+      const animalOwner = createUser({ id: 10, role: UserRole.ADMIN });
 
       animalRepository.findById.mockResolvedValue(mockAnimal);
       userRepository.findById.mockResolvedValue(animalOwner);
@@ -434,7 +410,6 @@ describe('AnimalsService', () => {
         service.remove(1, {
           id: 1,
           role: UserRole.ADMIN,
-          associationId: 10,
           adminId: null,
         }),
       ).rejects.toThrow(ForbiddenException);
@@ -457,7 +432,6 @@ describe('AnimalsService', () => {
       const result = await service.inativar(1, {
         id: 1,
         role: UserRole.ADMIN,
-        associationId: null,
         adminId: null,
       });
 
@@ -471,7 +445,6 @@ describe('AnimalsService', () => {
         service.inativar(1, {
           id: 5,
           role: UserRole.VAQUEIRO,
-          associationId: null,
           adminId: 1,
         }),
       ).rejects.toThrow(ForbiddenException);
@@ -482,7 +455,7 @@ describe('AnimalsService', () => {
 
     it('deve negar quando ADMIN tenta inativar animal de outro rebanho', async () => {
       const mockAnimal = createAnimal({ id: 1, userId: 10 });
-      const animalOwner = createUser({ id: 10, role: UserRole.ADMIN, associationId: 99 });
+      const animalOwner = createUser({ id: 10, role: UserRole.ADMIN });
 
       animalRepository.findById.mockResolvedValue(mockAnimal);
       userRepository.findById.mockResolvedValue(animalOwner);
@@ -491,7 +464,6 @@ describe('AnimalsService', () => {
         service.inativar(1, {
           id: 1,
           role: UserRole.ADMIN,
-          associationId: 10,
           adminId: null,
         }),
       ).rejects.toThrow(ForbiddenException);

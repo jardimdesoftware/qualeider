@@ -55,12 +55,6 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
       where.userId = criteria.userId;
     }
 
-    if (criteria.associationId) {
-      where.user = {
-        associationId: criteria.associationId,
-      };
-    }
-
     if (criteria.adminGroupId) {
       // Coletas do grupo Admin+Vaqueiros: do proprio Admin ou de qualquer
       // Vaqueiro cadastrado por ele (User.adminId).
