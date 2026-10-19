@@ -1,6 +1,5 @@
 import { setupE2ETests, teardownE2ETests, E2E_TIMEOUT } from '../setup';
 import { TestApp } from '../helpers';
-import { UserFactory } from '../factories';
 import { HttpStatus } from '@nestjs/common';
 
 const randomIP = () => 
@@ -108,65 +107,6 @@ describe('E2E: Rate Limiting (Throttling)', () => {
 
       expect(response.status).toBe(HttpStatus.UNAUTHORIZED);
       expect(response.body.statusCode).toBe(401);
-    });
-  });
-
-  describe('POST /users - 5 requests / 2s (test env)', () => {
-    it('deve permitir 5 criações de usuário sem bloqueio', async () => {
-      const fakeIP = randomIP(); 
-      
-      // Fazer 5 requisições
-      for (let i = 1; i <= 5; i++) {
-        const userData = UserFactory.build({
-          email: `throttle-user-${Date.now()}-${i}@example.com`,
-          password: 'Test@1234',
-        });
-
-        const response = await testApp
-          .throttledRequest() // 👈 USO DO MÉTODO SEM BYPASS
-          .post('/users')
-          .set('X-Forwarded-For', fakeIP)
-          .send(userData);
-
-        // Deve passar (201 ou 409 se email duplicado por timing)
-        expect([HttpStatus.CREATED, HttpStatus.CONFLICT]).toContain(response.status);
-      }
-    });
-
-    it('deve bloquear 6ª criação de usuário com HTTP 429', async () => {
-      const fakeIP = randomIP(); 
-      
-      // Fazer 5 requisições para atingir o limite
-      for (let i = 1; i <= 5; i++) {
-        const userData = UserFactory.build({
-          email: `throttle-user-429-${Date.now()}-${i}@example.com`,
-          password: 'Test@1234',
-        });
-
-        await testApp
-          .throttledRequest()
-          .post('/users')
-          .set('X-Forwarded-For', fakeIP)
-          .send(userData);
-        
-        // Add small delay to ensure rate limiter tracks each request
-        await wait(50);
-      }
-
-      // 6ª requisição deve ser bloqueada
-      const userData = UserFactory.build({
-        email: `throttle-user-429-${Date.now()}-6@example.com`,
-        password: 'Test@1234',
-      });
-
-      const response = await testApp
-        .throttledRequest()
-        .post('/users')
-        .set('X-Forwarded-For', fakeIP)
-        .send(userData);
-
-      expect(response.status).toBe(HttpStatus.TOO_MANY_REQUESTS);
-      expect(response.body.statusCode).toBe(429);
     });
   });
 

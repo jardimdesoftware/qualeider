@@ -39,29 +39,9 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   /**
-   * Registro público — sempre cria conta com role ADMIN (dono da fazenda).
-   * O campo `role` do body é ignorado por segurança.
-   */
-  @Throttle({ default: { limit: 5, ttl: THROTTLE_TTL.LONG } })
-  @Post()
-  @Public()
-  @ApiOperation({ summary: 'Registro público: cria conta Admin (dono da fazenda)' })
-  @ApiResponse({ status: 201, description: 'Usuário criado com sucesso' })
-  @ApiResponse({ status: 400, description: 'Dados inválidos' })
-  @ApiResponse({ status: 409, description: 'Email já cadastrado' })
-  @ResponseMessage('Usuário criado com sucesso')
-  async create(@Body() createUserDto: CreateUserDto) {
-    // Garante que o registro público SEMPRE cria um Admin. E que não escolhe
-    // associação: quem se cadastra sozinho não pode se declarar membro de uma
-    // associação qualquer (o vínculo vem de convite aceito ou de quem administra).
-    return this.usersService.create({
-      ...createUserDto,
-      role: UserRole.ADMIN,
-      associationId: undefined,
-    });
-  }
-
-  /**
+   * Não existe cadastro público: as contas nascem do ADMIN fixo, do admin logado
+   * (este endpoint) ou do primeiro login pelo Google.
+   *
    * Criação interna — usado pelo Admin logado para cadastrar funcionários (Vaqueiros).
    * Requer autenticação JWT. Aceita qualquer role (ADMIN ou VAQUEIRO).
    *

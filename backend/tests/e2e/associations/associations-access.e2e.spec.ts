@@ -46,13 +46,9 @@ describe('E2E: Associações — só o dono acessa e altera', () => {
       )
     ).token;
 
-    // O cadastro público não escolhe associação; o vínculo vem de convite aceito
-    // (aqui, direto no banco).
+    // O vínculo vem de convite aceito (aqui, direto no banco).
     const member = UserFactory.build();
-    const registered = await testApp.request().post('/users').send(member).expect(HttpStatus.CREATED);
-    await testApp
-      .getPrismaService()
-      .user.update({ where: { id: registered.body.data.id }, data: { associationId: assocA.id } });
+    await authHelper.createTestUser({ ...member, associationId: assocA.id } as any);
     memberToken = await authHelper.login(member.email!, member.password!);
   }, E2E_TIMEOUT);
 

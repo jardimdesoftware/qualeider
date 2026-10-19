@@ -1,9 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { authService } from "@/services/authService";
-import { producerService } from "@/services/producerService";
 import { LoginData } from "@/schemas/auth";
-import { ProducerData } from "@/schemas/registration";
 
 export function useLogin() {
   const router = useRouter();
@@ -16,12 +14,6 @@ export function useLogin() {
       queryClient.invalidateQueries({ queryKey: ["user"] });
       router.push("/dashboardUser");
     },
-  });
-}
-
-export function useCreateProducer() {
-  return useMutation({
-    mutationFn: (data: ProducerData) => producerService.create(data),
   });
 }
 
