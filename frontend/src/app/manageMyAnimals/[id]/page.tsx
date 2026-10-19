@@ -22,6 +22,7 @@ import {
   AnimalCollectionHistoryItem,
 } from "@/interfaces/daily-collection";
 import AnimalReportExportButton from "@/components/reports/AnimalReportExportButton";
+import LactationCurveCard from "@/components/animals/LactationCurveCard";
 import { daysSinceCalving, lactationLabel } from "@/utils/lactation";
 import { formatDateBR } from "@/utils/date";
 
@@ -272,6 +273,13 @@ export default function AnimalDetailPage() {
             </div>
           </div>
         )}
+
+        {/* curva de lactacao */}
+        <LactationCurveCard
+          calvingDate={animal.calvingDate}
+          lactationNumber={animal.lactationNumber}
+          history={history}
+        />
 
         {/* historico */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
