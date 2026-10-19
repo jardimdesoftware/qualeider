@@ -418,7 +418,7 @@ describe('AuthService', () => {
       expect(result).toEqual(loginResult);
     });
 
-    describe('vínculo com o admin que liberou o email', () => {
+    describe('vínculo com o admin raiz (todos no mesmo grupo)', () => {
       const allowed = (adminId: number | null) =>
         ({ id: 1, email: 'ext@gmail.com', adminId, createdAt: new Date() }) as any;
 
@@ -431,11 +431,8 @@ describe('AuthService', () => {
         jest.spyOn(service, 'loginEntity').mockResolvedValue({ access_token: 't' });
       });
 
-      it('vincula o novo funcionário ao admin que liberou o email, não ao primeiro admin', async () => {
+      it('vincula o novo funcionário ao admin raiz, mesmo quando outro admin liberou o email', async () => {
         (allowedEmailRepository.findByEmail as jest.Mock).mockResolvedValue(allowed(55));
-        (userRepository.findById as jest.Mock).mockResolvedValue(
-          createUser({ id: 55, role: UserRole.ADMIN }),
-        );
         (userRepository.findFirstAdmin as jest.Mock).mockResolvedValue(
           createUser({ id: 1, role: UserRole.ADMIN }),
         );
@@ -443,26 +440,12 @@ describe('AuthService', () => {
         await service.loginWithGoogle({ email: 'ext@gmail.com' });
 
         expect(userRepository.create).toHaveBeenCalledWith(
-          expect.objectContaining({ adminId: 55, role: UserRole.VAQUEIRO }),
+          expect.objectContaining({ adminId: 1, role: UserRole.VAQUEIRO }),
         );
-        expect(userRepository.findFirstAdmin).not.toHaveBeenCalled();
+        expect(userRepository.findById).not.toHaveBeenCalled();
       });
 
-      it('cai no primeiro admin quando o admin que liberou não está mais ativo', async () => {
-        (allowedEmailRepository.findByEmail as jest.Mock).mockResolvedValue(allowed(55));
-        (userRepository.findById as jest.Mock).mockResolvedValue(null);
-        (userRepository.findFirstAdmin as jest.Mock).mockResolvedValue(
-          createUser({ id: 1, role: UserRole.ADMIN }),
-        );
-
-        await service.loginWithGoogle({ email: 'ext@gmail.com' });
-
-        expect(userRepository.create).toHaveBeenCalledWith(
-          expect.objectContaining({ adminId: 1 }),
-        );
-      });
-
-      it('cai no primeiro admin para liberação antiga, sem dono', async () => {
+      it('também vincula ao admin raiz na liberação antiga, sem dono', async () => {
         (allowedEmailRepository.findByEmail as jest.Mock).mockResolvedValue(allowed(null));
         (userRepository.findFirstAdmin as jest.Mock).mockResolvedValue(
           createUser({ id: 1, role: UserRole.ADMIN }),
@@ -476,7 +459,7 @@ describe('AuthService', () => {
         );
       });
 
-      it('completa o vínculo de funcionário existente sem admin quando o email foi liberado por um admin', async () => {
+      it('completa o vínculo de funcionário existente sem admin ligando-o ao admin raiz', async () => {
         const orphan = createUser({
           id: 70,
           email: 'ext@gmail.com',
@@ -486,14 +469,14 @@ describe('AuthService', () => {
         });
         (userRepository.findByEmail as jest.Mock).mockResolvedValue(orphan);
         (allowedEmailRepository.findByEmail as jest.Mock).mockResolvedValue(allowed(55));
-        (userRepository.findById as jest.Mock).mockResolvedValue(
-          createUser({ id: 55, role: UserRole.ADMIN }),
+        (userRepository.findFirstAdmin as jest.Mock).mockResolvedValue(
+          createUser({ id: 1, role: UserRole.ADMIN }),
         );
         (userRepository.update as jest.Mock).mockResolvedValue(orphan);
 
         await service.loginWithGoogle({ email: 'ext@gmail.com' });
 
-        expect(userRepository.update).toHaveBeenCalledWith(70, { adminId: 55 });
+        expect(userRepository.update).toHaveBeenCalledWith(70, { adminId: 1 });
         expect(userRepository.create).not.toHaveBeenCalled();
       });
 

@@ -62,15 +62,15 @@ export class UsersController {
     @Body() createUserDto: CreateUserDto,
     @GetUser('id') creatorId?: number,
     @GetUser('role') creatorRole?: UserRole,
+    @GetUser('adminId') creatorAdminId?: number | null,
   ) {
     if (creatorRole !== UserRole.ADMIN) {
       throw new ForbiddenException('Você não tem permissão para cadastrar funcionários.');
     }
 
-    const isCreatingVaqueiro = createUserDto.role === UserRole.VAQUEIRO;
-    const adminId = isCreatingVaqueiro
-      ? creatorId
-      : undefined;
+    // Toda conta criada por um admin (admin ou vaqueiro) fica no grupo do admin
+    // raiz: se quem cria e a propria raiz, o grupo e ele; senao, o grupo dele.
+    const adminId = creatorAdminId ?? creatorId;
 
     return this.usersService.create({ ...createUserDto, adminId });
   }
@@ -100,6 +100,7 @@ export class UsersController {
     @Query() query: FindUsersDto,
     @GetUser('id') requesterId: number,
     @GetUser('role') requesterRole: UserRole,
+    @GetUser('adminId') requesterAdminId?: number | null,
   ) {
     const criteria: UserCriteria = {
       status: query.status,
@@ -109,6 +110,7 @@ export class UsersController {
     return this.usersService.findAll(criteria, {
       id: requesterId,
       role: requesterRole,
+      adminId: requesterAdminId,
     });
   }
 
@@ -123,10 +125,12 @@ export class UsersController {
     @Param('id', ParseIntPipe) id: number,
     @GetUser('id') requesterId: number,
     @GetUser('role') requesterRole: UserRole,
+    @GetUser('adminId') requesterAdminId?: number | null,
   ) {
     return this.usersService.findOneForRequester(id, {
       id: requesterId,
       role: requesterRole,
+      adminId: requesterAdminId,
     });
   }
 
@@ -142,10 +146,12 @@ export class UsersController {
     @Body() updateUserDto: UpdateUserDto,
     @GetUser('id') requesterId: number,
     @GetUser('role') requesterRole: UserRole,
+    @GetUser('adminId') requesterAdminId?: number | null,
   ) {
     return this.usersService.update(id, updateUserDto, {
       id: requesterId,
       role: requesterRole,
+      adminId: requesterAdminId,
     });
   }
 
@@ -161,10 +167,12 @@ export class UsersController {
     @Body() updatePartialUserDto: UpdatePartialUserDto,
     @GetUser('id') requesterId: number,
     @GetUser('role') requesterRole: UserRole,
+    @GetUser('adminId') requesterAdminId?: number | null,
   ) {
     return this.usersService.partialUpdate(id, updatePartialUserDto, {
       id: requesterId,
       role: requesterRole,
+      adminId: requesterAdminId,
     });
   }
 
@@ -179,10 +187,12 @@ export class UsersController {
     @Param('id', ParseIntPipe) id: number,
     @GetUser('id') requesterId: number,
     @GetUser('role') requesterRole: UserRole,
+    @GetUser('adminId') requesterAdminId?: number | null,
   ) {
     return this.usersService.remove(id, {
       id: requesterId,
       role: requesterRole,
+      adminId: requesterAdminId,
     });
   }
 }

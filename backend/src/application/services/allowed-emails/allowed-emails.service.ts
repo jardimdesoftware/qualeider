@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { IAllowedEmailRepository } from '@/domain/repositories/allowed-email.repository';
 import { CreateAllowedEmailDto } from '@/application/dtos/allowed-emails/create-allowed-email.dto';
 import { BusinessException } from '@/common/exceptions/business.exception';
@@ -15,14 +15,14 @@ export class AllowedEmailsService {
     private readonly allowedEmailRepository: IAllowedEmailRepository,
   ) {}
 
-  /** Cada admin vê as próprias liberações e as antigas sem dono. */
-  async findAll(adminId: ID) {
-    return this.allowedEmailRepository.findAll(adminId);
+  /** As liberações são compartilhadas: todo admin vê todas. */
+  async findAll() {
+    return this.allowedEmailRepository.findAll();
   }
 
   /**
-   * Registra o admin que liberou o email: é a ele que o funcionário será
-   * vinculado no primeiro login via Google (ver AuthService.loginWithGoogle).
+   * Registra o admin que liberou o email (só para histórico): no primeiro login via
+   * Google o funcionário entra no grupo do admin raiz (ver AuthService.loginWithGoogle).
    */
   async create(dto: CreateAllowedEmailDto, adminId: ID) {
     if (isIfpeEmail(dto.email)) {
@@ -41,15 +41,11 @@ export class AllowedEmailsService {
     return allowedEmail;
   }
 
-  /** Só o admin dono (ou qualquer admin, se a liberação for antiga e sem dono) pode remover. */
-  async remove(id: ID, adminId: ID) {
+  /** Qualquer admin pode remover uma liberação. */
+  async remove(id: ID) {
     const allowedEmail = await this.allowedEmailRepository.findById(id);
     if (!allowedEmail) {
       throw new EntityNotFoundException(`Email liberado com ID ${id} não encontrado.`);
-    }
-
-    if (allowedEmail.adminId != null && allowedEmail.adminId !== adminId) {
-      throw new ForbiddenException('Esta liberação pertence a outro administrador.');
     }
 
     await this.allowedEmailRepository.delete(id);

@@ -23,7 +23,6 @@ import {
 import { isIfpeEmail } from '@/common/utils/email-domain.util';
 import { safeEqual } from '@/common/utils/safe-compare.util';
 import { UserEntity } from '@/domain/entities/user.entity';
-import { AllowedEmailEntity } from '@/domain/entities/allowed-email.entity';
 import { Status, UserRole, UserCategory, ActivityEventType } from '@/domain/enums/enums';
 import { ActivityLogService } from '@/application/services/activity-logs/activity-logs.service';
 
@@ -152,24 +151,12 @@ export class AuthService {
   }
 
   /**
-   * Admin ativo que liberou o email (se houver). Um funcionário criado via
-   * Google precisa ficar no grupo desse admin; senão ele não enxerga os
-   * animais e coletas que o admin cadastra.
-   */
-  private async findAdminWhoAllowed(allowedEmail: AllowedEmailEntity | null) {
-    if (!allowedEmail?.adminId) return null;
-    const admin = await this.userRepository.findById(allowedEmail.adminId);
-    return admin && admin.role === UserRole.ADMIN ? admin : null;
-  }
-
-  /**
    * Login via Google. Emails @ifpe.edu.br (qualquer subdomínio) entram direto;
    * emails de fora do domínio só entram se um Admin os liberou antes na tela
    * de Funcionários (ver AllowedEmailsController).
    *
-   * Se ainda não existe conta, cria uma como Vaqueiro vinculada ao Admin que
-   * liberou o email. Sem admin responsável (email @ifpe.edu.br ou liberação
-   * antiga, sem dono), cai no primeiro Admin ativo cadastrado.
+   * Se ainda não existe conta, cria uma como Vaqueiro no grupo do admin raiz (o
+   * primeiro Admin ativo, sem adminId): todo mundo compartilha o mesmo rebanho.
    */
   async loginWithGoogle(profile: { email: string; name?: string }) {
     const email = profile.email.toLowerCase().trim();
@@ -192,23 +179,20 @@ export class AuthService {
         );
       }
 
-      // Funcionário sem vínculo (criado antes de User.adminId existir) cujo
-      // email um admin liberou: completa o vínculo para ele passar a ver o
-      // rebanho desse admin.
+      // Funcionário sem vínculo (criado antes de User.adminId existir): completa o
+      // vínculo com o admin raiz para ele passar a ver o rebanho do grupo.
       if (existing.role === UserRole.VAQUEIRO && !existing.adminId) {
-        const linkedAdmin = await this.findAdminWhoAllowed(allowedEmail);
-        if (linkedAdmin) {
-          await this.userRepository.update(existing.id, { adminId: linkedAdmin.id });
-          existing.adminId = linkedAdmin.id;
+        const rootAdmin = await this.userRepository.findFirstAdmin();
+        if (rootAdmin) {
+          await this.userRepository.update(existing.id, { adminId: rootAdmin.id });
+          existing.adminId = rootAdmin.id;
         }
       }
 
       return this.loginEntity(existing);
     }
 
-    const admin =
-      (await this.findAdminWhoAllowed(allowedEmail)) ??
-      (await this.userRepository.findFirstAdmin());
+    const admin = await this.userRepository.findFirstAdmin();
     if (!admin) {
       throw new UnauthorizedException(
         'Ainda não há um administrador cadastrado no sistema.',

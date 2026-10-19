@@ -1,5 +1,4 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ForbiddenException } from '@nestjs/common';
 import { AllowedEmailsService } from '@/application/services/allowed-emails/allowed-emails.service';
 import { IAllowedEmailRepository } from '@/domain/repositories/allowed-email.repository';
 import { BusinessException } from '@/common/exceptions/business.exception';
@@ -34,12 +33,12 @@ describe('AllowedEmailsService', () => {
   });
 
   describe('findAll', () => {
-    it('lista só as liberações do admin (e as antigas sem dono)', async () => {
+    it('lista todas as liberações, de qualquer admin (são compartilhadas)', async () => {
       repository.findAll.mockResolvedValue([entity()]);
 
-      await service.findAll(10);
+      await service.findAll();
 
-      expect(repository.findAll).toHaveBeenCalledWith(10);
+      expect(repository.findAll).toHaveBeenCalledWith();
     });
   });
 
@@ -70,33 +69,22 @@ describe('AllowedEmailsService', () => {
   });
 
   describe('remove', () => {
-    it('remove a liberação do próprio admin', async () => {
-      repository.findById.mockResolvedValue(entity({ adminId: 10 }));
+    it.each([
+      ['criada pelo próprio admin', 10],
+      ['criada por outro admin', 99],
+      ['antiga, sem dono', null],
+    ])('qualquer admin remove a liberação %s', async (_label, ownerId) => {
+      repository.findById.mockResolvedValue(entity({ adminId: ownerId }));
 
-      await service.remove(1, 10);
-
-      expect(repository.delete).toHaveBeenCalledWith(1);
-    });
-
-    it('permite remover liberação antiga sem dono', async () => {
-      repository.findById.mockResolvedValue(entity({ adminId: null }));
-
-      await service.remove(1, 10);
+      await service.remove(1);
 
       expect(repository.delete).toHaveBeenCalledWith(1);
-    });
-
-    it('nega remover liberação de outro admin', async () => {
-      repository.findById.mockResolvedValue(entity({ adminId: 99 }));
-
-      await expect(service.remove(1, 10)).rejects.toThrow(ForbiddenException);
-      expect(repository.delete).not.toHaveBeenCalled();
     });
 
     it('retorna não encontrado quando a liberação não existe', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.remove(1, 10)).rejects.toThrow(EntityNotFoundException);
+      await expect(service.remove(1)).rejects.toThrow(EntityNotFoundException);
     });
   });
 });

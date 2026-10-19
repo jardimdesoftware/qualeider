@@ -17,6 +17,7 @@ import { canReadOwner, resolveReadScope } from '@/domain/utils/read-scope.util';
 export interface RequesterContext {
   id: number;
   role?: UserRole;
+  adminId?: number | null;
 }
 
 @Injectable()
@@ -66,7 +67,7 @@ export class UsersService {
 
   /**
    * Garante que o requisitante pode editar o usuario alvo: precisa ser ADMIN
-   * e o alvo precisa ser um funcionario vinculado via adminId, ou ele mesmo. Sem
+   * e o alvo precisa estar no mesmo grupo (mesmo rebanho), ou ser ele mesmo. Sem
    * isso, qualquer usuario autenticado conseguia editar role de qualquer conta do
    * sistema via PUT/PATCH /users/:id (escalada de privilegio).
    */
@@ -84,9 +85,7 @@ export class UsersService {
       throw new EntityNotFoundException(`Usuário com ID ${targetId} não encontrado.`);
     }
 
-    const managesTarget = target.adminId === requester.id;
-
-    if (!managesTarget) {
+    if (!canReadOwner(requester, target)) {
       throw new ForbiddenException('Você não tem permissão para editar este usuário.');
     }
   }
@@ -94,7 +93,7 @@ export class UsersService {
   async remove(id: number, requester?: RequesterContext) {
     if (requester) {
       // Mesma regra de PUT/PATCH: o ADMIN só desativa a si mesmo, funcionários
-      // vinculados a ele. Antes bastava ser ADMIN, então qualquer admin desativava
+      // do mesmo grupo. Antes bastava ser ADMIN, então qualquer admin desativava
       // contas de outros donos.
       await this.assertCanManage(id, requester);
     }
@@ -114,8 +113,8 @@ export class UsersService {
       this.assertAdmin(requester, 'Você não tem permissão para listar usuários.');
     }
 
-    // Só lista usuários do escopo do requisitante (ele e seus funcionários),
-    // nunca os de outros donos.
+    // Só lista usuários do escopo do requisitante (o grupo dele), nunca os de
+    // outros donos.
     const result = await this.userRepository.findAll({
       ...criteria,
       scope: requester ? resolveReadScope(requester) : criteria?.scope,

@@ -557,6 +557,33 @@ describe('UsersService', () => {
       expect(userRepository.softDelete).not.toHaveBeenCalled();
     });
 
+    it('admin do mesmo grupo (adminId = raiz) desativa outro admin e funcionários do grupo', async () => {
+      const requester = { id: 7, role: UserRole.ADMIN, adminId: 1 };
+      const otherAdmin = createUser({ id: 1, role: UserRole.ADMIN, adminId: null });
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValue(otherAdmin);
+      (userRepository.softDelete as jest.Mock).mockResolvedValue({ ...otherAdmin, status: Status.Inactive });
+
+      await service.remove(1, requester);
+      expect(userRepository.softDelete).toHaveBeenCalledWith(1);
+
+      const employee = createUser({ id: 9, role: UserRole.VAQUEIRO, adminId: 1 });
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValue(employee);
+      (userRepository.softDelete as jest.Mock).mockResolvedValue({ ...employee, status: Status.Inactive });
+
+      await service.remove(9, requester);
+      expect(userRepository.softDelete).toHaveBeenCalledWith(9);
+    });
+
+    it('admin do grupo edita funcionário cadastrado por outro admin do mesmo grupo', async () => {
+      const employee = createUser({ id: 9, role: UserRole.VAQUEIRO, adminId: 1 });
+      (userRepository.findByIdAny as jest.Mock).mockResolvedValue(employee);
+      (userRepository.partialUpdate as jest.Mock).mockResolvedValue({ ...employee, name: 'Novo' });
+
+      await service.partialUpdate(9, { name: 'Novo' } as any, { id: 7, role: UserRole.ADMIN, adminId: 1 });
+
+      expect(userRepository.partialUpdate).toHaveBeenCalled();
+    });
+
     it('retorna EntityNotFoundException quando o usuário não existe', async () => {
       (userRepository.findByIdAny as jest.Mock).mockResolvedValue(null);
 

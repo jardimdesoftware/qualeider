@@ -41,3 +41,25 @@ describe('canReadOwner', () => {
   });
 
 });
+
+describe('grupo único: toda conta pendurada no admin raiz', () => {
+  const root = admin();
+  const admin2 = admin({ id: 7, adminId: 1 });
+  const vaqDoAdmin2 = vaqueiro({ id: 8, adminId: 1 });
+
+  it('um admin criado pelo admin raiz lê o grupo da raiz, não um grupo só dele', () => {
+    expect(resolveReadScope(admin2)).toEqual({ adminGroupId: 1 });
+  });
+
+  it('a raiz, o outro admin e os vaqueiros se leem entre si', () => {
+    expect(canReadOwner(root, owner({ id: 7, role: UserRole.ADMIN, adminId: 1 }))).toBe(true);
+    expect(canReadOwner(admin2, owner({ id: 1, role: UserRole.ADMIN, adminId: null }))).toBe(true);
+    expect(canReadOwner(admin2, owner({ id: 8, adminId: 1 }))).toBe(true);
+    expect(canReadOwner(vaqDoAdmin2, owner({ id: 7, role: UserRole.ADMIN, adminId: 1 }))).toBe(true);
+  });
+
+  it('um grupo diferente (outra raiz) continua isolado', () => {
+    expect(canReadOwner(admin2, owner({ id: 50, role: UserRole.ADMIN, adminId: null }))).toBe(false);
+    expect(canReadOwner(admin2, owner({ id: 51, adminId: 50 }))).toBe(false);
+  });
+});

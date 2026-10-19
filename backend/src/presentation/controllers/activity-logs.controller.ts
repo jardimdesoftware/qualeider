@@ -27,12 +27,14 @@ export class ActivityLogsController {
     @Query() query: FindActivityLogsDto,
     @GetUser('id') requesterId: number,
     @GetUser('role') requesterRole?: UserRole,
+    @GetUser('adminId') requesterAdminId?: number | null,
   ) {
     return this.activityLogService.findAll(
       query.userId,
       {
         id: requesterId,
         role: requesterRole,
+        adminId: requesterAdminId,
       },
       { page: query.page, limit: query.limit },
     );

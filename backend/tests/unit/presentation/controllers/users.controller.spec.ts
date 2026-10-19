@@ -86,7 +86,7 @@ describe('UsersController', () => {
       expect(usersService.create).not.toHaveBeenCalled();
     });
 
-    it('nao deve setar adminId ao cadastrar um novo ADMIN', async () => {
+    it('o admin raiz cadastra um novo ADMIN já no grupo dele (adminId = raiz)', async () => {
       const createDto: CreateUserDto = {
         name: 'Outro Admin',
         email: 'admin2@example.com',
@@ -97,8 +97,21 @@ describe('UsersController', () => {
 
       const result = await controller.createInternal(createDto, 1, UserRole.ADMIN);
 
-      expect(usersService.create).toHaveBeenCalledWith({ ...createDto, adminId: undefined });
+      expect(usersService.create).toHaveBeenCalledWith({ ...createDto, adminId: 1 });
       expect(result).toEqual(createdUser);
+    });
+
+    it('um admin que não é a raiz cadastra contas no grupo da raiz, não no dele', async () => {
+      const createDto: CreateUserDto = {
+        name: 'Vaqueiro Novo',
+        email: 'vaq3@example.com',
+        role: UserRole.VAQUEIRO,
+      } as any;
+      mockUsersService.create.mockResolvedValue(createUser({ ...createDto, id: 9 }));
+
+      await controller.createInternal(createDto, 7, UserRole.ADMIN, 1);
+
+      expect(usersService.create).toHaveBeenCalledWith({ ...createDto, adminId: 1 });
     });
   });
 
