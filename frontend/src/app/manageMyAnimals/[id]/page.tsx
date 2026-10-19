@@ -22,6 +22,8 @@ import {
   AnimalCollectionHistoryItem,
 } from "@/interfaces/daily-collection";
 import AnimalReportExportButton from "@/components/reports/AnimalReportExportButton";
+import { daysSinceCalving, lactationLabel } from "@/utils/lactation";
+import { formatDateBR } from "@/utils/date";
 
 // helpers
 
@@ -197,6 +199,22 @@ export default function AnimalDetailPage() {
             <InfoRow
               label="Idade"
               value={animal.age ? `${animal.age} anos` : undefined}
+            />
+            <InfoRow
+              label="Estágio de lactação"
+              value={animal.lactationNumber ? lactationLabel(animal.lactationNumber) : undefined}
+            />
+            <InfoRow
+              label="Último parto"
+              value={
+                animal.calvingDate
+                  ? `${formatDateBR(animal.calvingDate.slice(0, 10) + "T12:00:00")}${
+                      daysSinceCalving(animal.calvingDate) !== null
+                        ? ` (${daysSinceCalving(animal.calvingDate)} dias)`
+                        : ""
+                    }`
+                  : undefined
+              }
             />
             <InfoRow
               label="Cadastrado em"

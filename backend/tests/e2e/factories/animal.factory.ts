@@ -6,6 +6,9 @@ export interface AnimalFactoryData {
   breed?: string;
   age?: number;
   userId?: number;
+  lactationNumber?: number;
+  calvingDate?: string;
+  motherId?: number;
 }
 
 /**

@@ -91,6 +91,28 @@ describe('AnimalsService', () => {
       expect(animalRepository.create).toHaveBeenCalledWith(createDto);
     });
 
+    it('deve recusar data de parto no futuro', async () => {
+      const userId = 1;
+      userRepository.findById.mockResolvedValue(createUser({ id: userId }));
+      const amanha = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+      await expect(
+        service.create({ name: 'Mimosa', age: 5, userId, calvingDate: amanha } as CreateAnimalDto),
+      ).rejects.toThrow('A data do parto não pode estar no futuro.');
+      expect(animalRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('deve aceitar data de parto passada e numero da cria', async () => {
+      const userId = 1;
+      userRepository.findById.mockResolvedValue(createUser({ id: userId }));
+      const dto = { name: 'Mimosa', age: 5, userId, lactationNumber: 2, calvingDate: new Date('2026-08-15') } as CreateAnimalDto;
+      animalRepository.create.mockResolvedValue(createAnimal({ ...dto, id: 1 }));
+
+      await service.create(dto);
+
+      expect(animalRepository.create).toHaveBeenCalledWith(dto);
+    });
+
     it('deve negar quando um VAQUEIRO tenta cadastrar animal para outro usuario', async () => {
       const requesterId = 5;
       const otherUserId = 6;

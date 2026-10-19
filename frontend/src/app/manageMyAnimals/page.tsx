@@ -14,6 +14,8 @@ import {
 } from "@/components/ui";
 import InputField from "@/components/ui/input-field";
 import SelectField from "@/components/ui/select-field";
+import { LACTATION_OPTIONS, toDateInputValue } from "@/utils/lactation";
+import { getLocalDate } from "@/utils/date";
 import DashboardLoading from "@/components/dashboard/DashboardLoading";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 import {
@@ -84,6 +86,8 @@ function AnimalModal({
       breedId: editingAnimal?.breedId ?? undefined,
       breed: editingAnimal?.breed ?? "",
       age: editingAnimal?.age ?? 1,
+      lactationNumber: editingAnimal?.lactationNumber ?? undefined,
+      calvingDate: toDateInputValue(editingAnimal?.calvingDate),
       motherId: editingAnimal?.motherId ?? undefined,
       motherCode: editingAnimal?.motherCode ?? "",
       fatherCode: editingAnimal?.fatherCode ?? "",
@@ -93,6 +97,7 @@ function AnimalModal({
   const selectedBreedId = watch("breedId");
   const selectedSpeciesId = watch("animalSpeciesId");
   const selectedMotherId = watch("motherId");
+  const selectedLactation = watch("lactationNumber");
 
   const speciesOptions = species.map((s) => ({
     value: String(s.id),
@@ -134,8 +139,16 @@ function AnimalModal({
     });
   };
 
+  const handleLactationChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setValue("lactationNumber", Number(e.target.value) || undefined, {
+      shouldValidate: true,
+    });
+  };
+
   const onSubmit = async (data: AnimalData) => {
     const payload = { ...data };
+    // Data vazia não é enviada (o backend recusaria "" como data).
+    if (!payload.calvingDate) payload.calvingDate = undefined;
     if (motherMode !== "registered") payload.motherId = undefined;
     if (motherMode !== "unregistered") payload.motherCode = undefined;
 
@@ -227,6 +240,23 @@ function AnimalModal({
             max="30"
             error={errors.age?.message}
             {...register("age", { valueAsNumber: true })}
+          />
+
+          <SelectField
+            label="Estágio de lactação (opcional)"
+            placeholder="Não informado"
+            error={errors.lactationNumber?.message}
+            options={LACTATION_OPTIONS}
+            value={selectedLactation ? String(selectedLactation) : ""}
+            onChange={handleLactationChange}
+          />
+
+          <InputField
+            label="Data do último parto (opcional)"
+            type="date"
+            max={getLocalDate()}
+            error={errors.calvingDate?.message}
+            {...register("calvingDate")}
           />
 
           <div className="space-y-2">

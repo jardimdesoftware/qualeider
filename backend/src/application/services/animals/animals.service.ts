@@ -102,6 +102,8 @@ export class AnimalsService {
       await this.assertTagNumberAvailable(owner, createAnimalDto.tagNumber);
     }
 
+    this.assertCalvingDateNotInFuture(createAnimalDto.calvingDate);
+
     if (createAnimalDto.motherId) {
       await this.validateParent(createAnimalDto.motherId, createAnimalDto.userId, 'Mãe');
     }
@@ -171,6 +173,8 @@ export class AnimalsService {
       await this.assertTagNumberAvailable(owner!, updateAnimalDto.tagNumber, id);
     }
 
+    this.assertCalvingDateNotInFuture(updateAnimalDto.calvingDate);
+
     if (updateAnimalDto.motherId) {
       await this.validateParent(updateAnimalDto.motherId, existing.userId as number, 'Mãe');
     }
@@ -231,6 +235,13 @@ export class AnimalsService {
    * mesmo usuário que tinham esse número como motherCode ou fatherCode (texto)
    * mas ainda sem o FK correspondente. Ao encontrá-los, preenchemos a FK real.
    */
+  /** O ultimo parto nao pode estar no futuro (os dias em lactacao seriam negativos). */
+  private assertCalvingDateNotInFuture(calvingDate?: Date) {
+    if (calvingDate && calvingDate.getTime() > Date.now()) {
+      throw new BusinessException('A data do parto não pode estar no futuro.');
+    }
+  }
+
   private async reconcileParentCodes(userId: number, tagNumber: string, newAnimalId: number) {
     const pending = await this.animalRepository.findPendingByParentCode(userId, tagNumber);
 

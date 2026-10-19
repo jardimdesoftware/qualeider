@@ -184,6 +184,8 @@ model Animal {
   animalSpeciesId       Int?
   animalSpecies         AnimalSpecies?   @relation(fields: [animalSpeciesId], references: [id])
   status                Status           @default(Active)
+  lactationNumber       Int?             // numero da cria: 1 = primeira cria, 2 = segunda...
+  calvingDate           DateTime?        // data do ultimo parto (base dos dias em lactacao)
   user                  User             @relation(fields: [userId], references: [id])
   breedRelation         Breed?           @relation(fields: [breedId], references: [id])
 
