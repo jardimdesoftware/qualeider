@@ -61,6 +61,9 @@ try {
   check(!root.headers.get("x-powered-by"), "X-Powered-By do upstream não vaza", root.headers.get("x-powered-by") ?? "");
   check(root.headers.get("x-frame-options") === "SAMEORIGIN", "X-Frame-Options mantido");
   check(root.headers.get("x-content-type-options") === "nosniff", "X-Content-Type-Options mantido");
+  check(root.headers.get("cross-origin-opener-policy") === "same-origin", "COOP restringe o contexto de navegação");
+  check(root.headers.get("cross-origin-embedder-policy") === "credentialless", "COEP restringe recursos entre origens");
+  check(root.headers.get("cross-origin-resource-policy") === "same-origin", "CORP restringe o compartilhamento de recursos");
 
   console.log("\nIP real do cliente");
   const seen = async (path, xff) => (await (await hit(path, xff)).json()).headers;

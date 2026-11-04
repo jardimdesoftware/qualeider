@@ -67,6 +67,16 @@ describe("buildCsp", () => {
     expect(directive(csp, "frame-ancestors")).toEqual(["'self'"]);
   });
 
+  it("restringe blocos de estilo ao nonce e isola unsafe-inline nos atributos", () => {
+    const csp = buildCsp({ nonce });
+
+    expect(directive(csp, "style-src")).toEqual([
+      "'self'",
+      `'nonce-${nonce}'`,
+    ]);
+    expect(directive(csp, "style-src-attr")).toEqual(["'unsafe-inline'"]);
+  });
+
   it("não usa upgrade-insecure-requests (quebraria o ambiente local em HTTP)", () => {
     expect(buildCsp({ nonce })).not.toContain("upgrade-insecure-requests");
   });
@@ -95,5 +105,23 @@ describe("securityHeaders", () => {
     expect(byKey["Permissions-Policy"]).toContain("camera=()");
     expect(byKey["Permissions-Policy"]).toContain("microphone=()");
     expect(byKey["Permissions-Policy"]).toContain("geolocation=()");
+  });
+
+  it("envia headers básicos mesmo sem o nginx", () => {
+    expect(byKey["X-Frame-Options"]).toBe("SAMEORIGIN");
+    expect(byKey["X-Content-Type-Options"]).toBe("nosniff");
+    expect(byKey["Referrer-Policy"]).toBe("strict-origin-when-cross-origin");
+  });
+
+  it("isola o contexto de navegação e os recursos entre origens", () => {
+    expect(byKey["Cross-Origin-Opener-Policy"]).toBe("same-origin");
+    expect(byKey["Cross-Origin-Embedder-Policy"]).toBe("credentialless");
+    expect(byKey["Cross-Origin-Resource-Policy"]).toBe("same-origin");
+  });
+
+  it("aplica CSP mínima às respostas que não recebem nonce", () => {
+    expect(byKey["Content-Security-Policy"]).toBe(
+      "default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+    );
   });
 });

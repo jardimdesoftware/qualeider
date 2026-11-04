@@ -20,7 +20,7 @@ Plataforma web para gestão de produtores, animais e coletas diárias de leite,
 apoiando associações e produtores no acompanhamento da produção leiteira com
 mais organização, rastreabilidade e segurança.
 
-Acesse agora pelo [link](https://qualeider.valerialima.me/).
+Acesse agora pelo [link](https://qualact.alexandrejota.me/).
 
 ## 💻 Tecnologias Utilizadas
 
@@ -77,3 +77,9 @@ Política de segurança, triagem de alertas e escopo de disclosure em [SECURITY.
 ## 🤝 Contribuição
 
 Consulte o [guia de contribuição](CONTRIBUTING.md) antes de abrir issues, branches ou pull requests.
+
+## Operação e conformidade
+
+- [Guia de Segurança e Privacidade](docs/SECURITY_AND_PRIVACY.md)
+- [VM pública, TLS, Portainer e observabilidade](docs/operations/PRODUCTION.md)
+- [Teste de carga básico com k6](k6/README.md)

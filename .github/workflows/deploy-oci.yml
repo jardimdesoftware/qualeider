@@ -104,7 +104,7 @@ jobs:
           healthy=0
           for attempt in $(seq 1 18); do
             if curl --fail --silent --show-error --max-time 10 \
-              https://qualeider.valerialima.me/api/health >/dev/null; then
+              https://qualact.alexandrejota.me/api/health >/dev/null; then
               healthy=1
               break
             fi
@@ -167,7 +167,7 @@ jobs:
           healthy=0
           for attempt in $(seq 1 18); do
             if curl --fail --silent --show-error --max-time 10 \
-              https://qualeider.valerialima.me/ >/dev/null; then
+              https://qualact.alexandrejota.me/ >/dev/null; then
               healthy=1
               break
             fi

@@ -3,7 +3,7 @@
  * Verificação ponta a ponta dos headers de segurança de uma instância em
  * execução (local, staging ou produção):
  *
- *   node scripts/verify-security-headers.mjs https://qualeider.valerialima.me
+ *   node scripts/verify-security-headers.mjs https://qualact.alexandrejota.me
  *   node scripts/verify-security-headers.mjs http://localhost:8080
  *
  * Sai com código 1 se algum requisito falhar. Para HTTP (ambiente local), o
@@ -60,6 +60,13 @@ for (const path of ["/", "/login", "/createAccount"]) {
   check(h("x-content-type-options") === "nosniff", "X-Content-Type-Options: nosniff");
   check(!!h("x-frame-options"), "X-Frame-Options presente");
   check(!!h("referrer-policy"), "Referrer-Policy presente");
+  check(h("cross-origin-opener-policy") === "same-origin", "Cross-Origin-Opener-Policy: same-origin");
+  check(
+    ["require-corp", "credentialless"].includes(h("cross-origin-embedder-policy") ?? ""),
+    "Cross-Origin-Embedder-Policy válido",
+    h("cross-origin-embedder-policy") ?? "ausente",
+  );
+  check(h("cross-origin-resource-policy") === "same-origin", "Cross-Origin-Resource-Policy: same-origin");
   check(!h("x-powered-by"), "sem X-Powered-By", h("x-powered-by") ?? "");
   check(
     !/nginx\/\d/i.test(h("server") ?? ""),
@@ -74,6 +81,10 @@ for (const path of ["/", "/login", "/createAccount"]) {
     !!nonce && body.includes(`nonce="${nonce}"`),
     "HTML usa o mesmo nonce da CSP nos scripts",
   );
+  check(
+    !!nonce && body.includes("window.__nonce__=") && body.includes(nonce),
+    "runtime CSS-in-JS recebe o nonce antes da hidratação",
+  );
 }
 
 const a = csp(await get("/login"));
@@ -87,6 +98,11 @@ if (sec.status === 404) {
   const text = await sec.text();
   check(sec.status === 200 && /^Contact:/m.test(text), "security.txt com Contact");
   check(/^Expires:/m.test(text), "security.txt com Expires (obrigatório na RFC 9116)");
+  check(
+    csp(sec) === "default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+    "security.txt recebe CSP mínima para respostas sem nonce",
+    csp(sec) || "ausente",
+  );
 }
 
 console.log(failures === 0 ? "\nTudo certo." : `\n${failures} verificação(ões) falharam.`);

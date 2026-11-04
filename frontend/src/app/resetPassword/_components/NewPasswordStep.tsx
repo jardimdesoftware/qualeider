@@ -46,7 +46,11 @@ export function NewPasswordStep({
   };
 
   return (
-    <form onSubmit={handleSubmit(onResetPassword)} className="space-y-4">
+    <form
+      method="post"
+      onSubmit={handleSubmit(onResetPassword)}
+      className="space-y-4"
+    >
       <InputField
         label="Nova Senha"
         showPasswordToggle
