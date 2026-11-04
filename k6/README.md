@@ -4,7 +4,7 @@ O cenário cobre as páginas públicas mais acessadas, cresce até 10 usuários
 virtuais e falha se mais de 1% das requisições falhar ou se o p95 ultrapassar
 750 ms.
 
-O alvo padrão é `https://qualeider.valerialima.me`. Execute a partir da raiz do
+O alvo padrão é `https://qualact.alexandrejota.me`. Execute a partir da raiz do
 repositório:
 
 ```bash

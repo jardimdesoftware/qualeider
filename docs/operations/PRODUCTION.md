@@ -2,7 +2,7 @@
 
 ## Arquitetura
 
-Uma VM Linux pública executa Docker Engine. O Nginx do host termina TLS para `qualeider.valerialima.me` e encaminha para `127.0.0.1:8080`; o Nginx do Compose roteia frontend e API. PostgreSQL, backend e frontend ficam apenas nas redes Docker.
+Uma VM Linux pública executa Docker Engine. O Nginx do host termina TLS para `qualact.alexandrejota.me` e encaminha para `127.0.0.1:8080`; o Nginx do Compose roteia frontend e API. PostgreSQL, backend e frontend ficam apenas nas redes Docker.
 
 ## Preparação da VM
 
@@ -20,7 +20,7 @@ docker compose -p qualeider --env-file .env.production \
   -f docker-compose.prod.yml -f docker-compose.oci.yml pull
 docker compose -p qualeider --env-file .env.production \
   -f docker-compose.prod.yml -f docker-compose.oci.yml up -d
-curl --fail https://qualeider.valerialima.me/
+curl --fail https://qualact.alexandrejota.me/
 ```
 
 O workflow `deploy-oci.yml` atualiza backend/frontend por SSH com host key fixada e restaura a imagem anterior se o health check público falhar. Configure `OCI_HOST`, `OCI_USER`, `OCI_SSH_PRIVATE_KEY` e `OCI_SSH_KNOWN_HOSTS` no environment de produção do GitHub.

@@ -20,7 +20,7 @@ Plataforma web para gestão de produtores, animais e coletas diárias de leite,
 apoiando associações e produtores no acompanhamento da produção leiteira com
 mais organização, rastreabilidade e segurança.
 
-Acesse agora pelo [link](https://qualeider.valerialima.me/).
+Acesse agora pelo [link](https://qualact.alexandrejota.me/).
 
 ## 💻 Tecnologias Utilizadas
 

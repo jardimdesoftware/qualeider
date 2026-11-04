@@ -1,7 +1,7 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 
-const baseUrl = (__ENV.BASE_URL || 'https://qualeider.valerialima.me').replace(/\/$/, '');
+const baseUrl = (__ENV.BASE_URL || 'https://qualact.alexandrejota.me').replace(/\/$/, '');
 
 export const options = {
   stages: [
