@@ -1,6 +1,25 @@
 # OWASP ZAP baseline rule configuration.
 # Format: rule-id<TAB>action<TAB>optional comment
 # Unlisted passive rules retain the baseline default (WARN).
-10202	WARN	(Ausência de token Anti-CSRF requer revisão)
-10038	WARN	(CSP Header ausente em endpoints específicos de teste)
-10010	WARN	(Cookie sem HttpOnly requer revisão)
+# Os formulários abaixo são interceptados pelo React e enviam JSON com bearer
+# token; não há autenticação implícita por cookie, portanto CSRF não se aplica.
+10202	IGNORE	(Formulários React não usam sessão autenticada por cookie)
+# Redirecionamento intencional da raiz para /login.
+10044	IGNORE	(Redirecionamento esperado da raiz para o login)
+# Timestamp faz parte do state OAuth assinado e não contém dado sensível.
+10096	IGNORE	(Timestamp esperado dentro do state OAuth assinado)
+# O scanner não diferencia style-src de style-src-attr. A aplicação permite
+# inline somente em atributos exigidos por React e testa que blocos <style>
+# continuam restritos ao nonce.
+10055	IGNORE	(unsafe-inline limitado a style-src-attr; style-src exige nonce)
+# Alertas puramente informativos, sem condição vulnerável.
+10109	IGNORE	(Aplicação web moderna identificada)
+10111	IGNORE	(Requisição de autenticação identificada)
+10112	IGNORE	(Resposta de gerenciamento de sessão identificada)
+10049	IGNORE	(Classificação informativa de cache)
+# Regressões de segurança que devem bloquear a execução.
+10010	FAIL	(Cookies devem usar HttpOnly)
+10024	FAIL	(Dados sensíveis não podem aparecer na URL)
+10036	FAIL	(Versão do servidor não pode ser exposta)
+10038	FAIL	(Toda resposta deve receber uma CSP)
+90004	FAIL	(Headers COEP, COOP e CORP são obrigatórios)

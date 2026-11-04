@@ -75,7 +75,7 @@ export default function MultiStepForm({
       )}
 
       {/* Form Content */}
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form method="post" onSubmit={handleSubmit} className="space-y-6">
         {/* Current Step Content */}
         <div className="min-h-[300px]">
           {children}

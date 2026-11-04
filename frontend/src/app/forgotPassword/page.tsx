@@ -75,7 +75,11 @@ export default function ForgotPassword() {
         type={modalState.type}
       />
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form
+        method="post"
+        onSubmit={handleSubmit(onSubmit)}
+        className="space-y-4"
+      >
         <InputField
           label="E-mail"
           type="email"

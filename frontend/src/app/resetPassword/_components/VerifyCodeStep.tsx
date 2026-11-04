@@ -53,7 +53,11 @@ export function VerifyCodeStep({
   };
 
   return (
-    <form onSubmit={handleSubmit(onVerifyCode)} className="space-y-6">
+    <form
+      method="post"
+      onSubmit={handleSubmit(onVerifyCode)}
+      className="space-y-6"
+    >
       {emailParam ? (
         <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 text-center mb-4">
           <p className="text-xs text-blue-600 uppercase font-bold tracking-wide mb-1">
