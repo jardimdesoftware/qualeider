@@ -19,6 +19,6 @@ jobs:
     environment: production
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Executar carga pública controlada
         run: docker run --rm -v "$PWD:/work" -w /work grafana/k6:1.8.2 run k6/load.js
