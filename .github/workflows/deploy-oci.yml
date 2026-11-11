@@ -41,6 +41,8 @@ jobs:
       OCI_SSH_KNOWN_HOSTS: ${{ secrets.OCI_SSH_KNOWN_HOSTS }}
 
     steps:
+      - uses: actions/checkout@v4
+
       - name: Configure SSH
         shell: bash
         run: |
@@ -58,10 +60,101 @@ jobs:
           printf '%s\n' "${OCI_SSH_KNOWN_HOSTS}" > "${RUNNER_TEMP}/ssh/known_hosts"
           chmod 600 "${RUNNER_TEMP}/ssh/oci_key" "${RUNNER_TEMP}/ssh/known_hosts"
 
+      - name: Synchronize non-secret deployment configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          tar -czf "${RUNNER_TEMP}/qualeider-deploy-config.tgz" \
+            docker-compose.prod.yml docker-compose.oci.yml nginx
+
+          scp \
+            -i "${RUNNER_TEMP}/ssh/oci_key" \
+            -o BatchMode=yes \
+            -o ConnectTimeout=15 \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="${RUNNER_TEMP}/ssh/known_hosts" \
+            "${RUNNER_TEMP}/qualeider-deploy-config.tgz" \
+            "${OCI_USER}@${OCI_HOST}:/tmp/qualeider-deploy-config.tgz"
+
+          ssh \
+            -i "${RUNNER_TEMP}/ssh/oci_key" \
+            -o BatchMode=yes \
+            -o ConnectTimeout=15 \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="${RUNNER_TEMP}/ssh/known_hosts" \
+            "${OCI_USER}@${OCI_HOST}" \
+            'install -d /opt/qualeider/app && tar -xzf /tmp/qualeider-deploy-config.tgz -C /opt/qualeider/app && rm /tmp/qualeider-deploy-config.tgz'
+
+      - name: Deploy complete stack
+        if: github.event_name == 'workflow_dispatch' && inputs.component == 'all'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ssh \
+            -i "${RUNNER_TEMP}/ssh/oci_key" \
+            -o BatchMode=yes \
+            -o ConnectTimeout=15 \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="${RUNNER_TEMP}/ssh/known_hosts" \
+            "${OCI_USER}@${OCI_HOST}" \
+            'flock -w 900 /tmp/oci-app-deploy.lock bash -se' <<'REMOTE'
+          set -euo pipefail
+
+          cd /opt/qualeider/app
+
+          upsert_env() {
+            key="$1"
+            value="$2"
+            if grep -q "^${key}=" .env.production; then
+              sed -i "s|^${key}=.*|${key}=${value}|" .env.production
+            else
+              printf '%s=%s\n' "${key}" "${value}" >> .env.production
+            fi
+          }
+
+          upsert_env NGINX_HTTP_PORT 8081
+          upsert_env CORS_ORIGINS https://alexandrejota.me
+          upsert_env GOOGLE_CALLBACK_URL https://alexandrejota.me/api/auth/google/callback
+          upsert_env FRONTEND_URL https://alexandrejota.me
+          upsert_env NEXT_PUBLIC_API_URL /api
+
+          compose=(
+            docker compose
+            -p qualeider
+            --env-file .env.production
+            -f docker-compose.prod.yml
+            -f docker-compose.oci.yml
+          )
+
+          "${compose[@]}" pull
+          "${compose[@]}" up -d --remove-orphans
+
+          healthy=0
+          for attempt in $(seq 1 24); do
+            if curl --fail --silent --show-error --max-time 10 \
+              http://127.0.0.1:8081/api/health >/dev/null; then
+              healthy=1
+              break
+            fi
+            echo "Local stack healthcheck attempt ${attempt}/24 failed; retrying."
+            sleep 10
+          done
+
+          if [[ "${healthy}" -ne 1 ]]; then
+            "${compose[@]}" ps
+            "${compose[@]}" logs --tail=100
+            exit 1
+          fi
+
+          "${compose[@]}" ps
+          REMOTE
+
       - name: Deploy backend image
         if: >-
           (github.event_name == 'workflow_run' && github.event.workflow_run.name == 'Backend CI/CD') ||
-          (github.event_name == 'workflow_dispatch' && (inputs.component == 'backend' || inputs.component == 'all'))
+          (github.event_name == 'workflow_dispatch' && inputs.component == 'backend')
         shell: bash
         run: |
           set -euo pipefail
@@ -104,7 +197,7 @@ jobs:
           healthy=0
           for attempt in $(seq 1 18); do
             if curl --fail --silent --show-error --max-time 10 \
-              https://qualact.alexandrejota.me/api/health >/dev/null; then
+              https://alexandrejota.me/api/health >/dev/null; then
               healthy=1
               break
             fi
@@ -124,7 +217,7 @@ jobs:
       - name: Deploy frontend image
         if: >-
           (github.event_name == 'workflow_run' && github.event.workflow_run.name == 'Frontend CI/CD') ||
-          (github.event_name == 'workflow_dispatch' && (inputs.component == 'frontend' || inputs.component == 'all'))
+          (github.event_name == 'workflow_dispatch' && inputs.component == 'frontend')
         shell: bash
         run: |
           set -euo pipefail
@@ -167,7 +260,7 @@ jobs:
           healthy=0
           for attempt in $(seq 1 18); do
             if curl --fail --silent --show-error --max-time 10 \
-              https://qualact.alexandrejota.me/ >/dev/null; then
+              https://alexandrejota.me/ >/dev/null; then
               healthy=1
               break
             fi

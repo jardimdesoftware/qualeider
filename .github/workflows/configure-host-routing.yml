@@ -1,0 +1,109 @@
+name: Configure Qualeider host routing
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_production:
+        description: Confirmar alteração do Nginx/TLS de produção
+        required: true
+        default: false
+        type: boolean
+      letsencrypt_email:
+        description: E-mail responsável pelo certificado Let's Encrypt
+        required: true
+        type: string
+
+concurrency:
+  group: qualeider-host-routing-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  configure:
+    if: ${{ inputs.confirm_production }}
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 15
+    env:
+      OCI_HOST: ${{ secrets.OCI_HOST }}
+      OCI_USER: ${{ secrets.OCI_USER }}
+      OCI_SSH_PRIVATE_KEY: ${{ secrets.OCI_SSH_PRIVATE_KEY }}
+      OCI_SSH_KNOWN_HOSTS: ${{ secrets.OCI_SSH_KNOWN_HOSTS }}
+      LETSENCRYPT_EMAIL: ${{ inputs.letsencrypt_email }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate inputs and configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for variable in OCI_HOST OCI_USER OCI_SSH_PRIVATE_KEY OCI_SSH_KNOWN_HOSTS; do
+            if [[ -z "${!variable:-}" ]]; then
+              echo "Required secret ${variable} is not configured." >&2
+              exit 1
+            fi
+          done
+
+          if [[ ! "${LETSENCRYPT_EMAIL}" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
+            echo 'Invalid Let’s Encrypt e-mail.' >&2
+            exit 1
+          fi
+
+          install -m 700 -d "${RUNNER_TEMP}/ssh"
+          printf '%s\n' "${OCI_SSH_PRIVATE_KEY}" > "${RUNNER_TEMP}/ssh/oci_key"
+          printf '%s\n' "${OCI_SSH_KNOWN_HOSTS}" > "${RUNNER_TEMP}/ssh/known_hosts"
+          chmod 600 "${RUNNER_TEMP}/ssh/oci_key" "${RUNNER_TEMP}/ssh/known_hosts"
+
+      - name: Upload routing configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          tar -czf "${RUNNER_TEMP}/qualeider-nginx.tgz" nginx
+          scp \
+            -i "${RUNNER_TEMP}/ssh/oci_key" \
+            -o BatchMode=yes \
+            -o ConnectTimeout=15 \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="${RUNNER_TEMP}/ssh/known_hosts" \
+            "${RUNNER_TEMP}/qualeider-nginx.tgz" \
+            "${OCI_USER}@${OCI_HOST}:/tmp/qualeider-nginx.tgz"
+
+          ssh \
+            -i "${RUNNER_TEMP}/ssh/oci_key" \
+            -o BatchMode=yes \
+            -o ConnectTimeout=15 \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="${RUNNER_TEMP}/ssh/known_hosts" \
+            "${OCI_USER}@${OCI_HOST}" \
+            'install -d /opt/qualeider/app && tar -xzf /tmp/qualeider-nginx.tgz -C /opt/qualeider/app && rm /tmp/qualeider-nginx.tgz'
+
+      - name: Apply Nginx routing and TLS
+        shell: bash
+        run: |
+          set -euo pipefail
+          email_arg=$(printf '%q' "${LETSENCRYPT_EMAIL}")
+
+          ssh \
+            -i "${RUNNER_TEMP}/ssh/oci_key" \
+            -o BatchMode=yes \
+            -o ConnectTimeout=15 \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="${RUNNER_TEMP}/ssh/known_hosts" \
+            "${OCI_USER}@${OCI_HOST}" \
+            "sudo -n bash /opt/qualeider/app/nginx/configure-shared-host.sh ${email_arg}"
+
+      - name: Verify public routing
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --max-time 15 https://alexandrejota.me/api/health
+          curl --fail --silent --show-error --max-time 15 https://alexandrejota.me/ >/dev/null
+          curl --fail --silent --show-error --max-time 15 https://edutrace.ruancarvalho.me/ >/dev/null
+
+          [[ "$(curl --silent --output /dev/null --write-out '%{redirect_url}' https://www.alexandrejota.me/)" == "https://alexandrejota.me/" ]]
+          [[ "$(curl --silent --output /dev/null --write-out '%{redirect_url}' https://qualact.alexandrejota.me/)" == "https://alexandrejota.me/" ]]
