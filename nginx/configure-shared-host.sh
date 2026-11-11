@@ -29,10 +29,19 @@ fi
 
 install -d -m 755 /var/www/letsencrypt/.well-known/acme-challenge
 
-install -m 644 "${script_dir}/default-deny.example.conf" \
-  /etc/nginx/sites-available/00-default-deny
-ln -sfn /etc/nginx/sites-available/00-default-deny \
-  /etc/nginx/sites-enabled/00-default-deny
+# Algumas VMs já possuem outro site explicitamente marcado como default_server.
+# Nginx não aceita dois defaults no mesmo endereço; nesse caso, preservamos o
+# existente e instalamos apenas os virtual hosts exatos do Qualeider.
+if grep -RslE 'listen[[:space:]].*default_server' \
+  /etc/nginx/sites-enabled --exclude=00-default-deny | grep -q .; then
+  rm -f /etc/nginx/sites-enabled/00-default-deny
+  echo 'default_server existente preservado.'
+else
+  install -m 644 "${script_dir}/default-deny.example.conf" \
+    /etc/nginx/sites-available/00-default-deny
+  ln -sfn /etc/nginx/sites-available/00-default-deny \
+    /etc/nginx/sites-enabled/00-default-deny
+fi
 
 install -m 644 "${script_dir}/qual-bootstrap-http.example.conf" \
   /etc/nginx/sites-available/qualeider-bootstrap
