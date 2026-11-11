@@ -12,7 +12,7 @@
 
 ## Testes de carga
 
-- Criei cenários k6 controlados para Qualeider e EduTrace.
+- Criei um cenário k6 controlado para o Qualeider.
 - Limitei a carga a 10 usuários virtuais durante 1 minuto.
 - Testei apenas páginas públicas, sem criar ou alterar dados.
 - Defini critérios: menos de 1% de falhas, mais de 99% dos checks aprovados e
@@ -25,7 +25,7 @@
 - Captura da configuração DNS no Namecheap.
 - Relatório de DNS e conectividade da VM.
 - Configurações versionadas de Nginx, HTTPS e deploy.
-- Artefatos JSON do k6 com requisições, falhas, checks e latência.
+- Artefato JSON do k6 com requisições, falhas, checks e latência.
 
 ## Situação em 10/11/2026
 
@@ -50,13 +50,4 @@
 - 0,00% de falhas.
 - 548 checks aprovados e nenhum reprovado.
 - Latência p95 de 123,03 ms, abaixo do limite de 750 ms.
-- Todos os critérios de aprovação foram atendidos.
-
-## Resultado k6 do EduTrace
-
-- 644 requisições em aproximadamente 1 minuto.
-- 322 iterações concluídas, sem interrupções.
-- 0,00% de falhas.
-- 644 checks aprovados e nenhum reprovado.
-- Latência p95 de 24,30 ms, abaixo do limite de 750 ms.
 - Todos os critérios de aprovação foram atendidos.

@@ -22,10 +22,3 @@ Também é possível iniciar o workflow **k6 production** manualmente no GitHub
 Actions. Ele exige a confirmação `confirm_production` e usa o ambiente protegido
 `production`. Não aumente VUs ou duração sem combinar uma janela de teste.
 O workflow preserva o JSON de resultado por 90 dias como artefato.
-
-No Windows, depois de confirmar que as duas aplicações estão disponíveis, os
-dois cenários podem ser executados em sequência a partir da raiz do Qualeider:
-
-```powershell
-.\scripts\run-production-load-tests.ps1 -ConfirmProduction
-```

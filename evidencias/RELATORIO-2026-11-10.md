@@ -2,8 +2,8 @@
 
 ## Objetivo
 
-Publicar o Qualeider em `https://alexandrejota.me` e preparar testes k6
-controlados em produção para Qualeider e EduTrace.
+Publicar o Qualeider em `https://alexandrejota.me` e preparar um teste k6
+controlado em produção para o Qualeider.
 
 ## Evidências coletadas
 
@@ -37,12 +37,10 @@ controlados em produção para Qualeider e EduTrace.
 - Virtual host padrão de bloqueio adicionado para impedir que domínios sem
   configuração sejam entregues por outra aplicação da VM.
 - Instrução Certbot preparada para certificado SAN com os três nomes.
-- Testes k6 de Qualeider e EduTrace limitados a 10 VUs, somente leitura e com
+- Teste k6 do Qualeider limitado a 10 VUs, somente leitura e com
   interrupção automática quando os thresholds falham.
 - Resultado completo dos testes exportado em JSON e armazenado por 90 dias nos
   artefatos do GitHub Actions.
-- Script único criado para validar disponibilidade e executar os dois testes:
-  `scripts/run-production-load-tests.ps1`.
 - Workflow de primeira publicação preparado para subir toda a stack na porta
   8081 antes do health check público.
 - Workflow manual de roteamento preparado para instalar Nginx, emitir o
@@ -50,7 +48,7 @@ controlados em produção para Qualeider e EduTrace.
 
 ## Validações executadas
 
-- Sintaxe JavaScript dos dois cenários k6: aprovada com `node --check`.
+- Sintaxe JavaScript do cenário k6: aprovada com `node --check`.
 - Teste E2E de CORS/CSP: não executado até o fim porque o PostgreSQL de teste
   local não existe; a falha ocorreu na inicialização do Prisma, antes das
   asserções.
@@ -63,8 +61,8 @@ Após aplicar a nova stack e a configuração Nginx/TLS na VM:
 
 1. Capturar resposta HTTP 200 de `https://alexandrejota.me/` e `/api/health`.
 2. Capturar redirecionamento 301 de `www` e `qualact` para o domínio raiz.
-3. Executar o script k6 em uma janela combinada.
-4. Anexar `k6-qualeider-summary.json` e `k6-edutrace-summary.json` aos slides.
+3. Executar o k6 em uma janela controlada.
+4. Anexar `k6-qualeider-summary.json` aos slides.
 
 Nenhum resultado de carga foi inventado: os JSONs só serão produzidos por uma
 execução real contra os serviços disponíveis.
@@ -99,17 +97,3 @@ execução real contra os serviços disponíveis.
 - Uma execução anterior (`42946108261`) também foi aprovada, com 951 requisições,
   0,00% de falhas e p95 de 39 ms; ela identificou e permitiu corrigir a permissão
   de escrita do artefato no volume Docker.
-
-## Resultado k6 — EduTrace
-
-- Execução com artefato: GitHub Actions `42947026028`, em 10/11/2026.
-- Carga: rampa controlada até 10 usuários virtuais durante 1 minuto.
-- Duração efetiva: 60,04 segundos.
-- Iterações concluídas: 322, sem interrupções.
-- Requisições HTTP: 644.
-- Taxa de falhas: 0,00%.
-- Checks: 644 aprovados, 0 reprovados (100%).
-- Latência p95: 24,30 ms, abaixo do limite de 750 ms.
-- Resultado: aprovado em todos os thresholds.
-- Artefato JSON preservado pelo GitHub Actions por 90 dias e baixado em
-  `edutrace/evidencias/k6-run-42947026028/k6-edutrace-summary.json`.
