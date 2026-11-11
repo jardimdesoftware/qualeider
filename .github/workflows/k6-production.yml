@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       confirm_production:
-        description: Digite true para confirmar o teste controlado em produção
+        description: Digite true para confirmar o teste progressivo de capacidade em produção
         required: true
         default: false
         type: boolean
@@ -20,13 +20,13 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - name: Executar carga pública controlada
-        run: docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" -w /work grafana/k6:1.8.2 run k6/load.js
+      - name: Executar carga pública progressiva
+        run: docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" -w /work -e SUMMARY_PATH=evidencias/k6-qualeider-capacity-summary.json grafana/k6:1.8.2 run k6/capacity.js
       - name: Guardar evidência do teste
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: k6-qualeider-production-${{ github.run_id }}
-          path: evidencias/k6-qualeider-summary.json
+          name: k6-qualeider-capacity-${{ github.run_id }}
+          path: evidencias/k6-qualeider-capacity-summary.json
           if-no-files-found: warn
           retention-days: 90
