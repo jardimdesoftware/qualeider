@@ -85,13 +85,31 @@ execução real contra os serviços disponíveis.
 
 ## Resultado k6 — Qualeider
 
-- Execução: GitHub Actions `42946108261`, em 10/11/2026.
+- Execução com artefato: GitHub Actions `42946387352`, em 10/11/2026.
 - Carga: rampa controlada até 10 usuários virtuais durante 1 minuto.
-- Iterações concluídas: 317, sem interrupções.
-- Requisições HTTP: 951.
+- Duração efetiva: 60,7 segundos.
+- Iterações concluídas: 274, sem interrupções.
+- Requisições HTTP: 822.
 - Taxa de falhas: 0,00%.
-- Latência p95: 39 ms, abaixo do limite de 750 ms.
+- Checks: 548 aprovados, 0 reprovados (100%).
+- Latência p95: 123,03 ms, abaixo do limite de 750 ms.
 - Resultado: aprovado em todos os thresholds.
-- O log registrou as métricas, mas a primeira tentativa de gravar o JSON teve
-  permissão negada no volume Docker; o workflow foi ajustado para usar o UID/GID
-  do runner e preservar o artefato nas próximas execuções.
+- Artefato JSON preservado pelo GitHub Actions por 90 dias e baixado em
+  `evidencias/k6-run-42946387352/k6-qualeider-summary.json`.
+- Uma execução anterior (`42946108261`) também foi aprovada, com 951 requisições,
+  0,00% de falhas e p95 de 39 ms; ela identificou e permitiu corrigir a permissão
+  de escrita do artefato no volume Docker.
+
+## Resultado k6 — EduTrace
+
+- Execução com artefato: GitHub Actions `42947026028`, em 10/11/2026.
+- Carga: rampa controlada até 10 usuários virtuais durante 1 minuto.
+- Duração efetiva: 60,04 segundos.
+- Iterações concluídas: 322, sem interrupções.
+- Requisições HTTP: 644.
+- Taxa de falhas: 0,00%.
+- Checks: 644 aprovados, 0 reprovados (100%).
+- Latência p95: 24,30 ms, abaixo do limite de 750 ms.
+- Resultado: aprovado em todos os thresholds.
+- Artefato JSON preservado pelo GitHub Actions por 90 dias e baixado em
+  `edutrace/evidencias/k6-run-42947026028/k6-edutrace-summary.json`.

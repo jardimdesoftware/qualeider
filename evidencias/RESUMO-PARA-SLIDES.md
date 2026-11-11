@@ -45,8 +45,18 @@
 
 ## Resultado k6 do Qualeider
 
-- 951 requisições em aproximadamente 1 minuto.
-- 317 iterações concluídas, sem interrupções.
+- 822 requisições em 60,7 segundos.
+- 274 iterações concluídas, sem interrupções.
 - 0,00% de falhas.
-- Latência p95 de 39 ms, muito abaixo do limite de 750 ms.
+- 548 checks aprovados e nenhum reprovado.
+- Latência p95 de 123,03 ms, abaixo do limite de 750 ms.
+- Todos os critérios de aprovação foram atendidos.
+
+## Resultado k6 do EduTrace
+
+- 644 requisições em aproximadamente 1 minuto.
+- 322 iterações concluídas, sem interrupções.
+- 0,00% de falhas.
+- 644 checks aprovados e nenhum reprovado.
+- Latência p95 de 24,30 ms, abaixo do limite de 750 ms.
 - Todos os critérios de aprovação foram atendidos.
