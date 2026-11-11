@@ -8,6 +8,9 @@
 - `host-nginx.example.conf` — exemplo para o nginx **do servidor** (o que termina
   o TLS). Esse nginx não faz parte do repositório: é documentação do que aplicar
   nele (HSTS, `server_tokens off`, repasse do IP real).
+- `default-deny.example.conf` — virtual host padrão para a VM compartilhada.
+  Impede que um domínio sem bloco próprio seja atendido pelo EduTrace ou por
+  outra aplicação carregada antes pelo Nginx.
 - `tests/` — teste de integração do `nginx.conf` com o nginx real:
 
   ```bash

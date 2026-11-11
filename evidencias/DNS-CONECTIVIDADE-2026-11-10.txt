@@ -1,0 +1,28 @@
+Coleta: 10/11/2026 - America/Sao_Paulo
+
+Comandos:
+  Resolve-DnsName alexandrejota.me -Type A
+  Resolve-DnsName www.alexandrejota.me -Type CNAME
+  Resolve-DnsName qualact.alexandrejota.me -Type A
+  Resolve-DnsName edutrace.ruancarvalho.me -Type A
+
+Resultados:
+  alexandrejota.me             A      150.136.88.141
+  www.alexandrejota.me         CNAME  alexandrejota.me
+  qualact.alexandrejota.me     A      150.136.88.141
+  edutrace.ruancarvalho.me     A      150.136.88.141
+
+Conectividade TCP testada em 150.136.88.141:
+  porta 22   FALHOU
+  porta 80   FALHOU
+  porta 443  FALHOU
+
+Validação HTTPS:
+  https://alexandrejota.me/              conexão indisponível
+  https://www.alexandrejota.me/          conexão indisponível
+  https://qualact.alexandrejota.me/      conexão indisponível
+  https://edutrace.ruancarvalho.me/      conexão indisponível
+
+Conclusão da coleta:
+  O DNS está propagado. A VM, as regras de rede ou os serviços do host ainda
+  não aceitam conexões públicas, impedindo o deploy/aceite e os testes k6.

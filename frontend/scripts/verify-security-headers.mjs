@@ -3,7 +3,7 @@
  * Verificação ponta a ponta dos headers de segurança de uma instância em
  * execução (local, staging ou produção):
  *
- *   node scripts/verify-security-headers.mjs https://qualact.alexandrejota.me
+ *   node scripts/verify-security-headers.mjs https://alexandrejota.me
  *   node scripts/verify-security-headers.mjs http://localhost:8080
  *
  * Sai com código 1 se algum requisito falhar. Para HTTP (ambiente local), o

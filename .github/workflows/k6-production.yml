@@ -22,3 +22,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Executar carga pública controlada
         run: docker run --rm -v "$PWD:/work" -w /work grafana/k6:1.8.2 run k6/load.js
+      - name: Guardar evidência do teste
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-qualeider-production-${{ github.run_id }}
+          path: evidencias/k6-qualeider-summary.json
+          if-no-files-found: warn
+          retention-days: 90

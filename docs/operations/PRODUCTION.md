@@ -2,7 +2,7 @@
 
 ## Arquitetura
 
-Uma VM Linux pública executa Docker Engine. O Nginx do host termina TLS para `qualact.alexandrejota.me` e encaminha para `127.0.0.1:8080`; o Nginx do Compose roteia frontend e API. PostgreSQL, backend e frontend ficam apenas nas redes Docker.
+Uma VM Linux pública executa Docker Engine. O Nginx do host termina TLS para `alexandrejota.me` e encaminha para `127.0.0.1:8081`; o Nginx do Compose roteia frontend e API. A porta `8080` permanece reservada ao EduTrace na mesma VM. PostgreSQL, backend e frontend ficam apenas nas redes Docker. `www.alexandrejota.me` e `qualact.alexandrejota.me` redirecionam para a URL canônica.
 
 ## Preparação da VM
 
@@ -10,7 +10,32 @@ Uma VM Linux pública executa Docker Engine. O Nginx do host termina TLS para `q
 2. Aponte o registro DNS A/AAAA do domínio para a VM.
 3. Instale Docker Engine/Compose e Nginx; crie `/opt/qualeider/app` com proprietário dedicado.
 4. Copie `docker-compose.prod.yml`, `docker-compose.oci.yml`, `nginx/` e um `.env.production` com permissões `0600`.
-5. Instale o certificado com Certbot e adapte `nginx/host-nginx.example.conf`. Valide com `nginx -t` antes de recarregar.
+5. Instale o certificado com Certbot para os três nomes e adapte `nginx/host-nginx.example.conf`:
+
+```bash
+sudo certbot --nginx --cert-name alexandrejota.me \
+  -d alexandrejota.me \
+  -d www.alexandrejota.me \
+  -d qualact.alexandrejota.me
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+O certificado deve conter os três nomes porque os aliases também recebem TLS
+antes de responder com o redirecionamento para a URL canônica.
+
+No `.env.production` da VM, mantenha o domínio canônico consistente:
+
+```dotenv
+CORS_ORIGINS=https://alexandrejota.me
+GOOGLE_CALLBACK_URL=https://alexandrejota.me/api/auth/google/callback
+FRONTEND_URL=https://alexandrejota.me
+NEXT_PUBLIC_API_URL=/api
+NGINX_HTTP_PORT=8081
+```
+
+Se o login Google estiver habilitado, cadastre a mesma `GOOGLE_CALLBACK_URL` na
+configuração OAuth do provedor.
 
 Subida inicial:
 
@@ -20,10 +45,30 @@ docker compose -p qualeider --env-file .env.production \
   -f docker-compose.prod.yml -f docker-compose.oci.yml pull
 docker compose -p qualeider --env-file .env.production \
   -f docker-compose.prod.yml -f docker-compose.oci.yml up -d
-curl --fail https://qualact.alexandrejota.me/
+curl --fail https://alexandrejota.me/
+curl --fail https://alexandrejota.me/api/health
+curl --head https://www.alexandrejota.me/
+curl --head https://qualact.alexandrejota.me/
 ```
 
 O workflow `deploy-oci.yml` atualiza backend/frontend por SSH com host key fixada e restaura a imagem anterior se o health check público falhar. Configure `OCI_HOST`, `OCI_USER`, `OCI_SSH_PRIVATE_KEY` e `OCI_SSH_KNOWN_HOSTS` no environment de produção do GitHub.
+
+## Primeira publicação na VM compartilhada
+
+1. Execute manualmente **Deploy latest images to OCI** com `component=all`. O
+   workflow sincroniza os arquivos, força a porta interna `8081`, sobe toda a
+   stack e valida `/api/health` pelo loopback da VM.
+2. Execute **Configure Qualeider host routing**, confirme produção e informe o
+   e-mail do Let's Encrypt. O workflow instala o virtual host, emite o
+   certificado e valida Qualeider e EduTrace publicamente.
+3. Somente depois execute **k6 production** nos dois repositórios.
+
+O usuário SSH precisa conseguir executar `sudo -n` para Nginx/Certbot. Como
+alternativa, um administrador pode executar na VM:
+
+```bash
+sudo bash /opt/qualeider/app/nginx/configure-shared-host.sh email@example.com
+```
 
 ## Plataforma de gerenciamento
 

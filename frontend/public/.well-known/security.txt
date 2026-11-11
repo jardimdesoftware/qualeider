@@ -4,5 +4,5 @@
 Contact: https://github.com/jardimdesoftware/qualeider/security/advisories/new
 Expires: 2027-10-04T00:00:00.000Z
 Preferred-Languages: pt, en
-Canonical: https://qualact.alexandrejota.me/.well-known/security.txt
+Canonical: https://alexandrejota.me/.well-known/security.txt
 Policy: https://github.com/jardimdesoftware/qualeider/blob/main/SECURITY.md
