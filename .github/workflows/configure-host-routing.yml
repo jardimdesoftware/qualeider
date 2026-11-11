@@ -1,4 +1,4 @@
-name: Configure Qualeider host routing
+name: Configure QuaLact host routing
 
 on:
   workflow_dispatch:

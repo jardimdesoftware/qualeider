@@ -1,5 +1,5 @@
 # =============================================================================
-# docker-compose.yml — Qualeider | Produção (build local)
+# docker-compose.yml — QuaLact | Produção (build local)
 # =============================================================================
 # Stack de produção enxuta: apenas os serviços essenciais da aplicação.
 # Frontend, backend e banco de dados — sem proxy, sem infra extra.

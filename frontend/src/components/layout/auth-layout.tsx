@@ -6,7 +6,7 @@ import AppVersionBadge from "@/components/global/AppVersionBadge";
  * Grade de quadrados que ecoa o vocabulário gráfico do manual de marca do
  * Instituto Federal (mosaico de quadrados, um deles em vermelho como
  * ênfase pontual) — não é uma reprodução da marca registrada do IF, é uma
- * textura própria do QualeiDer inspirada nesse vocabulário. Ver DESIGN.md.
+ * textura própria do QuaLact inspirada nesse vocabulário. Ver DESIGN.md.
  */
 function BrandMosaic({
   className = "",
@@ -95,13 +95,13 @@ export default function AuthLayout({
             backgroundPosition: "center bottom",
             backgroundSize: "cover",
           }}
-          aria-label="Identidade QuaLeiDer"
+          aria-label="Identidade QuaLact"
         >
           <div className="relative z-10 flex h-full flex-col justify-between gap-8 lg:min-h-[calc(100vh-7rem)]">
             <div className="flex items-center gap-4 lg:block">
               <Image
                 src="/logo_cow_green.png"
-                alt="Símbolo do QuaLeiDer: contorno de uma vaca"
+                alt="Símbolo do QuaLact: contorno de uma vaca"
                 width={104}
                 height={104}
                 className="h-16 w-16 object-contain lg:mb-3 lg:h-24 lg:w-24"
@@ -110,7 +110,7 @@ export default function AuthLayout({
 
               <div>
                 <h1 className="text-[2rem] font-bold leading-none tracking-[-0.04em] lg:text-[clamp(2.5rem,4vw,3.6rem)]">
-                  QuaLei<span className="text-[#54d58a]">Der</span>
+                  Qua<span className="text-[#54d58a]">Lact</span>
                 </h1>
                 <p className="mt-2 max-w-[18rem] text-sm leading-snug text-white/75 lg:mt-4 lg:text-lg">
                   Controle da produção leiteira
@@ -174,7 +174,7 @@ export default function AuthLayout({
             />
             <div>
               <h1 className="text-white text-2xl md:text-4xl font-bold leading-tight">
-                QuaLeiDer
+                QuaLact
               </h1>
               <p className="text-white/80 text-sm md:text-base md:mt-2 max-w-xs">
                 Controle da produção leiteira do rebanho

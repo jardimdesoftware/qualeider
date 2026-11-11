@@ -23,7 +23,7 @@ const geistMono = Geist_Mono({
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "QuaLeiDer | IFPE",
+  title: "QuaLact | IFPE",
   description: "Centralizador de informacoes sobre a qualidade do leite",
 };
 

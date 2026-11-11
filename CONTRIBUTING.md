@@ -1,6 +1,6 @@
 # Guia de Contribuicão
 
-Obrigado por contribuir com o QuaLeiDer!
+Obrigado por contribuir com o QuaLact!
 
 ## Fluxo de Trabalho
 

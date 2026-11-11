@@ -41,6 +41,6 @@ export function handleSummary(data) {
 
   return {
     [summaryPath]: JSON.stringify(data, null, 2),
-    stdout: `\nEvidência k6 Qualeider: ${requests} requisições, falhas ${(failureRate * 100).toFixed(2)}%, p95 ${p95.toFixed(2)} ms.\n`,
+    stdout: `\nEvidência k6 QuaLact: ${requests} requisições, falhas ${(failureRate * 100).toFixed(2)}%, p95 ${p95.toFixed(2)} ms.\n`,
   };
 }

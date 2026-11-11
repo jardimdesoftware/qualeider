@@ -1,4 +1,4 @@
-# Política de divulgação de vulnerabilidades do QualeiDer (RFC 9116).
+# Política de divulgação de vulnerabilidades do QuaLact (RFC 9116).
 # Atualize "Expires" antes da data (no máximo 1 ano à frente): há um teste que
 # falha quando o arquivo está vencido, para lembrar da renovação.
 Contact: https://github.com/jardimdesoftware/qualeider/security/advisories/new

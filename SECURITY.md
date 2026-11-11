@@ -1,4 +1,4 @@
-# Política de Segurança — Qualeider
+# Política de Segurança — QuaLact
 
 > Este arquivo substitui e consolida os antigos `SECURITY_AUDIT.md` (raiz) e
 > `.github/TRIVY_POLICY.md`. Relacionado às issues [#121](https://github.com/jardimdesoftware/qualeider/issues/121)
@@ -18,7 +18,7 @@ sem exploração trivial), use o template de issue [🔒 Segurança](.github/ISS
 
 ## Alertas automatizados e triagem
 
-Este documento registra como o Qualeider trata alertas do Dependabot, Code
+Este documento registra como o QuaLact trata alertas do Dependabot, Code
 Scanning e de dependências/containers. O objetivo é manter todo alerta
 visível, priorizado e corrigido ou rastreado com dono definido.
 

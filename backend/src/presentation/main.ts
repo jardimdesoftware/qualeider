@@ -70,7 +70,7 @@ function setupSwagger(app: INestApplication, configService: ConfigService): void
   }
 
   const config = new DocumentBuilder()
-    .setTitle('Sistema QuaLeiDer')
+    .setTitle('Sistema QuaLact')
     .setDescription(
       'API para gerenciamento de usuários, animais e coletas diárias de leite',
     )

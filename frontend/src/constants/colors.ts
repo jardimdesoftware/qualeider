@@ -1,5 +1,5 @@
 /**
- * Design Tokens - Cores do Sistema QualeiDer
+ * Design Tokens - Cores do Sistema QuaLact
  *
  * Este arquivo centraliza todas as cores utilizadas no sistema,
  * facilitando manutenção e garantindo consistência visual.

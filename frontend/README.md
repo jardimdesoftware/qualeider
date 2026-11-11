@@ -1,4 +1,4 @@
-# QuaLeiDer - Frontend Client
+# QuaLact - Frontend Client
 
 > Cliente web moderno para gestão da produção leiteira e associações rurais.
 
@@ -21,7 +21,7 @@
 
 ## 📌 Sobre
 
-A interface web do **QuaLeiDer** foi projetada para ser intuitiva para produtores rurais e administradores de associações. Ela consome a API REST do backend para fornecer dashboards em tempo real, gestão de formulários complexos e visualização de dados.
+A interface web do **QuaLact** foi projetada para ser intuitiva para produtores rurais e administradores de associações. Ela consome a API REST do backend para fornecer dashboards em tempo real, gestão de formulários complexos e visualização de dados.
 
 ## 🏗️ Arquitetura e Fluxo
 

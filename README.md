@@ -14,7 +14,7 @@
 ![OWASP ZAP](https://github.com/jardimdesoftware/qualeider/actions/workflows/owasp-zap.yml/badge.svg)
 ![Vulnerabilidades](badges/vulnerabilidades.svg)
 
-# 🐄🥛 QuaLeiDer
+# 🐄🥛 QuaLact
 
 Plataforma web para gestão de produtores, animais e coletas diárias de leite,
 apoiando associações e produtores no acompanhamento da produção leiteira com

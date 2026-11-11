@@ -1,5 +1,5 @@
 # =============================================================================
-# Backend Qualeider - hardened multi-arch image
+# Backend QuaLact - hardened multi-arch image
 # =============================================================================
 
 FROM --platform=$BUILDPLATFORM node:25-slim AS builder
@@ -78,9 +78,9 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD ["/nodejs/bin/node", "scripts/healthcheck.mjs"]
 
-LABEL org.opencontainers.image.title="Qualeider Backend" \
-      org.opencontainers.image.description="Backend API for Qualeider platform" \
-      org.opencontainers.image.vendor="Qualeider" \
+LABEL org.opencontainers.image.title="QuaLact Backend" \
+      org.opencontainers.image.description="Backend API for QuaLact platform" \
+      org.opencontainers.image.vendor="QuaLact" \
       org.opencontainers.image.licenses="UNLICENSED"
 
 # The distroless Node image already uses Node as its entrypoint.

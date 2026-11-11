@@ -23,7 +23,7 @@ done
 
 if ! curl --fail --silent --show-error --max-time 10 \
   http://127.0.0.1:8081/api/health >/dev/null; then
-  echo 'O Qualeider não está saudável em 127.0.0.1:8081.' >&2
+  echo 'O QuaLact não está saudável em 127.0.0.1:8081.' >&2
   exit 1
 fi
 
@@ -31,7 +31,7 @@ install -d -m 755 /var/www/letsencrypt/.well-known/acme-challenge
 
 # Algumas VMs já possuem outro site explicitamente marcado como default_server.
 # Nginx não aceita dois defaults no mesmo endereço; nesse caso, preservamos o
-# existente e instalamos apenas os virtual hosts exatos do Qualeider.
+# existente e instalamos apenas os virtual hosts exatos do QuaLact.
 if grep -RslE 'listen[[:space:]].*default_server' \
   /etc/nginx/sites-enabled --exclude=00-default-deny | grep -q .; then
   rm -f /etc/nginx/sites-enabled/00-default-deny
@@ -73,4 +73,4 @@ systemctl reload nginx
 curl --fail --location --silent --show-error --max-time 15 \
   https://alexandrejota.me/ >/dev/null
 
-echo 'Roteamento do Qualeider configurado com sucesso.'
+echo 'Roteamento do QuaLact configurado com sucesso.'

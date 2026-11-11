@@ -26,7 +26,7 @@ export class TemplateMailerService {
     const pass = configService.get<string>('SMTP_PASSWORD');
     const from = configService.get<string>('SMTP_FROM') || user || 'noreply@qualeider.test';
 
-    this.defaultFrom = `"Equipe de Suporte - QualeiDer" <${from}>`;
+    this.defaultFrom = `"Equipe de Suporte - QuaLact" <${from}>`;
     this.transporter = nodemailer.createTransport({
       host,
       port,
