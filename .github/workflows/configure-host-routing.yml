@@ -101,8 +101,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error --max-time 15 https://alexandrejota.me/api/health
-          curl --fail --silent --show-error --max-time 15 https://alexandrejota.me/ >/dev/null
+          curl --fail --location --silent --show-error --max-time 15 https://alexandrejota.me/ >/dev/null
           curl --fail --silent --show-error --max-time 15 https://edutrace.ruancarvalho.me/ >/dev/null
 
           [[ "$(curl --silent --output /dev/null --write-out '%{redirect_url}' https://www.alexandrejota.me/)" == "https://alexandrejota.me/" ]]

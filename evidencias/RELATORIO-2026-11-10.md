@@ -68,3 +68,30 @@ Após aplicar a nova stack e a configuração Nginx/TLS na VM:
 
 Nenhum resultado de carga foi inventado: os JSONs só serão produzidos por uma
 execução real contra os serviços disponíveis.
+
+## Atualização após o deploy — 10/11/2026
+
+- A stack completa do Qualeider foi publicada em `127.0.0.1:8081` e respondeu
+  ao health check interno.
+- O certificado Let's Encrypt foi emitido para `alexandrejota.me`,
+  `www.alexandrejota.me` e `qualact.alexandrejota.me`, com expiração em
+  09/02/2027 e renovação automática configurada pelo Certbot.
+- `https://alexandrejota.me` passou a entregar o Qualeider e redirecionar para
+  `/login`.
+- `www` e `qualact` passaram a redirecionar para o domínio raiz.
+- `https://edutrace.ruancarvalho.me` permaneceu respondendo pelo EduTrace.
+- O endpoint `/api/health` continua intencionalmente restrito à rede interna;
+  a verificação pública foi ajustada para validar a página de login.
+
+## Resultado k6 — Qualeider
+
+- Execução: GitHub Actions `42946108261`, em 10/11/2026.
+- Carga: rampa controlada até 10 usuários virtuais durante 1 minuto.
+- Iterações concluídas: 317, sem interrupções.
+- Requisições HTTP: 951.
+- Taxa de falhas: 0,00%.
+- Latência p95: 39 ms, abaixo do limite de 750 ms.
+- Resultado: aprovado em todos os thresholds.
+- O log registrou as métricas, mas a primeira tentativa de gravar o JSON teve
+  permissão negada no volume Docker; o workflow foi ajustado para usar o UID/GID
+  do runner e preservar o artefato nas próximas execuções.

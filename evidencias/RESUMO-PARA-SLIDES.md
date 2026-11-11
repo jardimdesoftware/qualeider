@@ -34,4 +34,19 @@
 - Roteamento incorreto identificado: o host padrão do EduTrace respondia pelo
   domínio do Qualeider.
 - Correção preparada: porta exclusiva, virtual host próprio e certificado TLS.
-- Teste real em produção: aguardando a aplicação da configuração na VM.
+- Teste k6 em produção: etapa seguinte após a validação do domínio.
+
+## Resultado do deploy
+
+- Qualeider publicado com sucesso em `https://alexandrejota.me`.
+- HTTPS válido com renovação automática.
+- EduTrace preservado em `https://edutrace.ruancarvalho.me`.
+- Redirecionamentos `www` e `qualact` validados.
+
+## Resultado k6 do Qualeider
+
+- 951 requisições em aproximadamente 1 minuto.
+- 317 iterações concluídas, sem interrupções.
+- 0,00% de falhas.
+- Latência p95 de 39 ms, muito abaixo do limite de 750 ms.
+- Todos os critérios de aprovação foram atendidos.
