@@ -70,9 +70,7 @@ rm -f /etc/nginx/sites-enabled/qualeider-bootstrap
 nginx -t
 systemctl reload nginx
 
-curl --fail --silent --show-error --max-time 15 \
-  https://alexandrejota.me/api/health >/dev/null
-curl --fail --silent --show-error --max-time 15 \
+curl --fail --location --silent --show-error --max-time 15 \
   https://alexandrejota.me/ >/dev/null
 
 echo 'Roteamento do Qualeider configurado com sucesso.'

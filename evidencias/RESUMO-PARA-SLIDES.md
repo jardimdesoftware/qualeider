@@ -12,7 +12,7 @@
 
 ## Testes de carga
 
-- Criei cenários k6 controlados para Qualeider e EduTrace.
+- Criei um cenário k6 controlado para o Qualeider.
 - Limitei a carga a 10 usuários virtuais durante 1 minuto.
 - Testei apenas páginas públicas, sem criar ou alterar dados.
 - Defini critérios: menos de 1% de falhas, mais de 99% dos checks aprovados e
@@ -25,7 +25,7 @@
 - Captura da configuração DNS no Namecheap.
 - Relatório de DNS e conectividade da VM.
 - Configurações versionadas de Nginx, HTTPS e deploy.
-- Artefatos JSON do k6 com requisições, falhas, checks e latência.
+- Artefato JSON do k6 com requisições, falhas, checks e latência.
 
 ## Situação em 10/11/2026
 
@@ -34,4 +34,20 @@
 - Roteamento incorreto identificado: o host padrão do EduTrace respondia pelo
   domínio do Qualeider.
 - Correção preparada: porta exclusiva, virtual host próprio e certificado TLS.
-- Teste real em produção: aguardando a aplicação da configuração na VM.
+- Teste k6 em produção: etapa seguinte após a validação do domínio.
+
+## Resultado do deploy
+
+- Qualeider publicado com sucesso em `https://alexandrejota.me`.
+- HTTPS válido com renovação automática.
+- EduTrace preservado em `https://edutrace.ruancarvalho.me`.
+- Redirecionamentos `www` e `qualact` validados.
+
+## Resultado k6 do Qualeider
+
+- 822 requisições em 60,7 segundos.
+- 274 iterações concluídas, sem interrupções.
+- 0,00% de falhas.
+- 548 checks aprovados e nenhum reprovado.
+- Latência p95 de 123,03 ms, abaixo do limite de 750 ms.
+- Todos os critérios de aprovação foram atendidos.

@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Executar carga pública controlada
-        run: docker run --rm -v "$PWD:/work" -w /work grafana/k6:1.8.2 run k6/load.js
+        run: docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" -w /work grafana/k6:1.8.2 run k6/load.js
       - name: Guardar evidência do teste
         if: always()
         uses: actions/upload-artifact@v4

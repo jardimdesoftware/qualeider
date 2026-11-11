@@ -46,7 +46,8 @@ docker compose -p qualeider --env-file .env.production \
 docker compose -p qualeider --env-file .env.production \
   -f docker-compose.prod.yml -f docker-compose.oci.yml up -d
 curl --fail https://alexandrejota.me/
-curl --fail https://alexandrejota.me/api/health
+curl --fail http://127.0.0.1:8081/api/health # execute dentro da VM
+curl --fail --location https://alexandrejota.me/login
 curl --head https://www.alexandrejota.me/
 curl --head https://qualact.alexandrejota.me/
 ```
