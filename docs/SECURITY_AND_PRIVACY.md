@@ -1,8 +1,8 @@
-# Guia de Segurança e Privacidade — QuaLeiDer
+# Guia de Segurança e Privacidade — QuaLact
 
 ## Escopo e dados
 
-O QuaLeiDer trata contas de usuários, vínculos com associações, identificação de produtores e vaqueiros, cadastro de animais e registros de produção. Senhas são armazenadas somente como hash; tokens, segredos SMTP/OAuth e credenciais de banco nunca devem ser versionados.
+O QuaLact trata contas de usuários, vínculos com associações, identificação de produtores e vaqueiros, cadastro de animais e registros de produção. Senhas são armazenadas somente como hash; tokens, segredos SMTP/OAuth e credenciais de banco nunca devem ser versionados.
 
 ## Princípios de privacidade
 

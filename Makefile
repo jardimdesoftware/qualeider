@@ -1,5 +1,5 @@
 # =============================================================================
-# Makefile — Qualeider
+# Makefile — QuaLact
 # =============================================================================
 # Ponto de entrada unico para os fluxos operacionais mais comuns do projeto.
 # Requer: docker + docker compose, node/npm no host.

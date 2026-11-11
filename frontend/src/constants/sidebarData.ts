@@ -48,7 +48,7 @@ export const accountSelectionSidebarData = {
 };
 
 export const loginSidebarData = {
-  title: "Bem-vindo ao QuaLeiDer!",
+  title: "Bem-vindo ao QuaLact!",
   subtitle:
     "Sua ferramenta essencial para o gerenciamento da produção leiteira",
   items: [

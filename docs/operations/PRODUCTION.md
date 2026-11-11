@@ -1,4 +1,4 @@
-# Produção em VM pública — QuaLeiDer
+# Produção em VM pública — QuaLact
 
 ## Arquitetura
 
@@ -59,9 +59,9 @@ O workflow `deploy-oci.yml` atualiza backend/frontend por SSH com host key fixad
 1. Execute manualmente **Deploy latest images to OCI** com `component=all`. O
    workflow sincroniza os arquivos, força a porta interna `8081`, sobe toda a
    stack e valida `/api/health` pelo loopback da VM.
-2. Execute **Configure Qualeider host routing**, confirme produção e informe o
+2. Execute **Configure QuaLact host routing**, confirme produção e informe o
    e-mail do Let's Encrypt. O workflow instala o virtual host, emite o
-   certificado e valida Qualeider e EduTrace publicamente.
+   certificado e valida QuaLact e EduTrace publicamente.
 3. Somente depois execute **k6 production** nos dois repositórios.
 
 O usuário SSH precisa conseguir executar `sudo -n` para Nginx/Certbot. Como

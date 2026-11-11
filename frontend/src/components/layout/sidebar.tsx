@@ -138,7 +138,7 @@ export default function Sidebar() {
                 <Menu size={ICON_SIZES.MD} />
               )}
             </button>
-            <h2 className="text-white font-bold text-lg">QuaLeiDer</h2>
+            <h2 className="text-white font-bold text-lg">QuaLact</h2>
           </div>
 
           {/* Gaveta lateral mobile */}
@@ -164,7 +164,7 @@ export default function Sidebar() {
               />
               <div>
                 <h2 className="text-white font-bold text-lg leading-tight">
-                  QuaLeiDer
+                  QuaLact
                 </h2>
                 {isAdmin && (
                   <span className="text-[10px] uppercase tracking-wider font-semibold text-amber-200">
@@ -220,7 +220,7 @@ export default function Sidebar() {
               />
               <div>
                 <h2 className="text-white font-bold text-lg leading-tight">
-                  QuaLeiDer
+                  QuaLact
                 </h2>
                 {isAdmin && (
                   <span className="text-[10px] uppercase tracking-wider font-semibold text-amber-200">

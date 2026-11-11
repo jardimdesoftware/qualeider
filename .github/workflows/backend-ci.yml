@@ -1,5 +1,5 @@
 # =============================================================================
-# Backend CI/CD — Qualeider
+# Backend CI/CD — QuaLact
 # =============================================================================
 # Workflow unificado de CI/CD para o backend.
 #
@@ -597,8 +597,8 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           labels: |
-            org.opencontainers.image.title=Qualeider Backend
-            org.opencontainers.image.description=Backend API for Qualeider platform
+            org.opencontainers.image.title=QuaLact Backend
+            org.opencontainers.image.description=Backend API for QuaLact platform
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.version=${{ steps.resolve_tag.outputs.image_tag }}

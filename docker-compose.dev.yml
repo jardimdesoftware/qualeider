@@ -1,5 +1,5 @@
 # =============================================================================
-# docker-compose.dev.yml — Qualeider | Desenvolvimento Local
+# docker-compose.dev.yml — QuaLact | Desenvolvimento Local
 # =============================================================================
 # Ambiente de desenvolvimento local.
 # Sobe apenas o serviço essencial: banco de dados.

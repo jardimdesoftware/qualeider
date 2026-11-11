@@ -1,5 +1,5 @@
 # =============================================================================
-# docker-compose.prod.yml — Qualeider Production
+# docker-compose.prod.yml — QuaLact Production
 # =============================================================================
 # Arquivo para deploy em produção usando imagens pré-publicadas no GHCR.
 #
