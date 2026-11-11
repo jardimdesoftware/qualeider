@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Open_Sans, Geist_Mono } from "next/font/google";
+import { headers } from "next/headers";
+import Script from "next/script";
 import { Toaster } from "react-hot-toast";
 import { QueryProvider } from "@/providers/QueryProvider";
 import "./globals.css";
@@ -21,17 +23,28 @@ const geistMono = Geist_Mono({
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "QuaLeiDer | IFPE",
+  title: "QuaLact | IFPE",
   description: "Centralizador de informacoes sobre a qualidade do leite",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <html lang="en">
+      {nonce && (
+        <Script
+          id="goober-csp-nonce"
+          strategy="beforeInteractive"
+          nonce={nonce}
+        >
+          {`window.__nonce__=${JSON.stringify(nonce)};`}
+        </Script>
+      )}
       <body
         className={`${openSans.variable} ${geistMono.variable} font-sans antialiased`}
       >

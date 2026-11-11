@@ -1,5 +1,5 @@
 # =============================================================================
-# docker-compose.prod.yml — Qualeider Production
+# docker-compose.prod.yml — QuaLact Production
 # =============================================================================
 # Arquivo para deploy em produção usando imagens pré-publicadas no GHCR.
 #
@@ -113,7 +113,7 @@ services:
     container_name: qualeider-nginx
     restart: unless-stopped
     ports:
-      - "${NGINX_HTTP_PORT:-80}:80"
+      - "127.0.0.1:${NGINX_HTTP_PORT:-8081}:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:

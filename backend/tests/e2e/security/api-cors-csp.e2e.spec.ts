@@ -31,7 +31,7 @@ async function buildApp(rawOrigins: string | undefined, isProduction: boolean): 
   return app;
 }
 
-const SITE = 'https://qualeider.valerialima.me';
+const SITE = 'https://alexandrejota.me';
 const EVIL = 'https://evil.example';
 
 // x-e2e-bypass: evita o throttler nestas verificações de cabeçalho.
@@ -41,7 +41,7 @@ const get = (app: INestApplication, path: string, origin?: string) => {
 };
 
 describe('E2E: CORS e CSP da API', () => {
-  describe('produção com CORS_ORIGINS="https://qualeider.valerialima.me/" (barra final de propósito)', () => {
+  describe('produção com CORS_ORIGINS="https://alexandrejota.me/" (barra final de propósito)', () => {
     let app: INestApplication;
 
     beforeAll(async () => {

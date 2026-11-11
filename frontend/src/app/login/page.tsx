@@ -71,7 +71,11 @@ export default function Login() {
       </Suspense>
 
       {/* Uso da tag FORM para suporte nativo a 'Enter' */}
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5">
+      <form
+        method="post"
+        onSubmit={handleSubmit(onSubmit)}
+        className="space-y-3.5"
+      >
         <InputField
           label="E-mail"
           type="email"

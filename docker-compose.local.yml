@@ -1,5 +1,5 @@
 # =============================================================================
-# docker-compose.local.yml — Qualeider | Simulação Local de Produção
+# docker-compose.local.yml — QuaLact | Simulação Local de Produção
 # =============================================================================
 # Ambiente local avançado para simular a stack completa de produção.
 # Sobe TODOS os serviços em container (backend + frontend + banco + nginx),

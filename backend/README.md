@@ -1,4 +1,4 @@
-# QuaLeiDer - Backend API
+# QuaLact - Backend API
 
 > Sistema de gestão para produtores de leite e coletas diárias (IFPE).
 
@@ -24,7 +24,7 @@
 
 ## 📌 Sobre
 
-QuaLeiDer é uma plataforma desenvolvida para o **Instituto Federal de Pernambuco (IFPE)** para modernizar a gestão da produção leiteira. O sistema permite registro digital de coletas, controle de rebanho e transparência na produção, em um único banco compartilhado pela equipe do IFPE.
+QuaLact é uma plataforma desenvolvida para o **Instituto Federal de Pernambuco (IFPE)** para modernizar a gestão da produção leiteira. O sistema permite registro digital de coletas, controle de rebanho e transparência na produção, em um único banco compartilhado pela equipe do IFPE.
 
 ## 🏗️ Arquitetura
 

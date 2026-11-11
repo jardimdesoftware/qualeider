@@ -9,10 +9,10 @@
  *  - Unsplash: imagem da landing page;
  *  - Sentry (se NEXT_PUBLIC_SENTRY_DSN estiver definido): envio de erros.
  *
- * `style-src` mantém 'unsafe-inline' de propósito: bibliotecas de UI
- * (react-hot-toast, recharts) e atributos `style=` do React injetam estilos em
- * tempo de execução, e nonce não cobre atributos. Scripts, o vetor que
- * importa para XSS, ficam só com nonce + 'strict-dynamic'.
+ * Estilos em elementos ficam limitados a folhas da mesma origem e ao nonce.
+ * `style-src-attr` mantém 'unsafe-inline' somente para atributos `style=`
+ * gerados por React, react-hot-toast e recharts; isso evita liberar blocos
+ * `<style>` inline genéricos. Scripts ficam só com nonce + 'strict-dynamic'.
  */
 const EXTERNAL_CONNECT_SRC = [
   "https://viacep.com.br",
@@ -54,7 +54,8 @@ export function buildCsp({
   const directives: Record<string, string[]> = {
     "default-src": ["'self'"],
     "script-src": scriptSrc,
-    "style-src": ["'self'", "'unsafe-inline'"],
+    "style-src": ["'self'", `'nonce-${nonce}'`],
+    "style-src-attr": ["'unsafe-inline'"],
     "img-src": ["'self'", "data:", "blob:", ...EXTERNAL_IMG_SRC],
     "font-src": ["'self'", "data:"],
     "connect-src": connectSrc,

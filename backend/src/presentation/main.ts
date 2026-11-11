@@ -1,3 +1,4 @@
+import '../observability/instrumentation';
 import { NestFactory } from '@nestjs/core';
 import { Logger, INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -10,6 +11,7 @@ import { PrismaExceptionFilter } from '@/common/filters/prisma-exception.filter'
 import { useContainer } from 'class-validator';
 import { buildCorsOptions, createHelmetMiddleware } from './security.config';
 import { configureTrustProxy } from './proxy.config';
+import { setupMetrics } from '../observability/metrics';
 
 /**
  * Caminhos expostos pelo Swagger (UI + specs raw), usados tanto para
@@ -68,7 +70,7 @@ function setupSwagger(app: INestApplication, configService: ConfigService): void
   }
 
   const config = new DocumentBuilder()
-    .setTitle('Sistema QuaLeiDer')
+    .setTitle('Sistema QuaLact')
     .setDescription(
       'API para gerenciamento de usuários, animais e coletas diárias de leite',
     )
@@ -134,6 +136,8 @@ async function logAppStatus(
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   const configService = app.get(ConfigService);
+
+  setupMetrics(app);
 
   // IP real do cliente atrás do nginx (rate limit de rotas públicas por IP).
   const trustedProxyHops = configureTrustProxy(app, configService);

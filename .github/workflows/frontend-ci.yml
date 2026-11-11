@@ -1,5 +1,5 @@
 # =============================================================================
-# Frontend CI/CD — Qualeider
+# Frontend CI/CD — QuaLact
 # =============================================================================
 # Arquitetura de jobs:
 # ┌──────────────┐
@@ -279,8 +279,8 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.tag-creation.outputs.created_tag }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           labels: |
-            org.opencontainers.image.title=Qualeider Frontend
-            org.opencontainers.image.description=Frontend Next.js for Qualeider platform
+            org.opencontainers.image.title=QuaLact Frontend
+            org.opencontainers.image.description=Frontend Next.js for QuaLact platform
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.version=${{ needs.tag-creation.outputs.created_tag }}

@@ -1,5 +1,5 @@
 # =============================================================================
-# Formatar PR do Dependabot — Qualeider
+# Formatar PR do Dependabot — QuaLact
 # =============================================================================
 # PRs abertos pelo Dependabot nao seguem o pull_request_template.md (sem os
 # checkboxes de "Tipo de mudanca"), entao o job `tag-creation` do backend-ci.yml

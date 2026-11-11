@@ -1,5 +1,5 @@
 # =============================================================================
-# Dockerfile — Frontend Qualeider (Multi-arch)
+# Dockerfile — Frontend QuaLact (Multi-arch)
 # =============================================================================
 # Multi-stage build para Next.js com suporte a AMD64 + ARM64 (via buildx)
 # - Versões de imagem alinhadas ao Node usado no CI (node:24-alpine)
@@ -94,9 +94,9 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1
 
 # Labels OCI padronizados
-LABEL org.opencontainers.image.title="Qualeider Frontend" \
-      org.opencontainers.image.description="Frontend Next.js for Qualeider platform" \
-      org.opencontainers.image.vendor="Qualeider" \
+LABEL org.opencontainers.image.title="QuaLact Frontend" \
+      org.opencontainers.image.description="Frontend Next.js for QuaLact platform" \
+      org.opencontainers.image.vendor="QuaLact" \
       org.opencontainers.image.licenses="UNLICENSED"
 
 # Executar o servidor standalone

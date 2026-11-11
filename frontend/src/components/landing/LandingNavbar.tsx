@@ -22,7 +22,7 @@ export function LandingNavbar() {
             />
           </svg>
           <span className="text-2xl font-black text-white brand-font tracking-wide">
-            QuaLeiDer
+            QuaLact
           </span>
         </div>
 

@@ -56,7 +56,7 @@ export default function InfoSidebar({
       <div className="mt-auto flex justify-end pt-8">
         <Image
           src="/logo_cow.png"
-          alt="Logo QualeIDer"
+          alt="Logo QuaLact"
           className="h-20 w-20 rounded-md border border-brand-border bg-white p-2"
           width={LOGO_SIZES.XL}
           height={LOGO_SIZES.XL}

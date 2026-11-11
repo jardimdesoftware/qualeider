@@ -1,0 +1,13 @@
+# Overlay específico da VM OCI usado por .github/workflows/deploy-oci.yml.
+# Mantém as imagens sempre atualizadas e não publica banco/API diretamente.
+services:
+  backend:
+    pull_policy: always
+    expose:
+      - "3000"
+  frontend:
+    pull_policy: always
+    expose:
+      - "3000"
+  nginx:
+    pull_policy: always
