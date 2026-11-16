@@ -14,7 +14,6 @@ describe('AdminOnlyGuard', () => {
 
   it.each([
     ['funcionário', { id: 2, role: UserRole.VAQUEIRO }],
-    ['associação (sem role)', { id: 3, userType: 'association' }],
     ['sem usuário no request', undefined],
     ['usuário sem role', { id: 4 }],
   ])('nega %s', (_label, user) => {

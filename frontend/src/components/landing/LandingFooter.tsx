@@ -40,14 +40,6 @@ export function LandingFooter() {
               </Link>
             </li>
             <li>
-              <Link
-                href="/createAccount"
-                className="hover:text-[#d97706] transition"
-              >
-                Cadastro
-              </Link>
-            </li>
-            <li>
               <a href="#" className="hover:text-[#d97706] transition">
                 Suporte
               </a>

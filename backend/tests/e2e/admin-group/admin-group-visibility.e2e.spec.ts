@@ -9,8 +9,8 @@ import { HttpStatus } from '@nestjs/common';
  *
  * 1. O vaqueiro enxerga o que o admin cadastrou (e vice-versa), e NÃO enxerga
  *    o rebanho de outro admin.
- * 2. Relatório mensal: para ADMIN/VAQUEIRO sem associação ele retornava sempre
- *    zero (o id do usuário era tratado como id de associação).
+ * 2. Relatório mensal: para ADMIN/VAQUEIRO ele retornava sempre zero (o id do
+ *    usuário era tratado como id de associação).
  * 3. "Mostrar inativos": a listagem de gestão do rebanho nunca devolvia os
  *    animais inativados, então o toggle não tinha efeito.
  * 4. Funcionário inativado precisa continuar carregável na tela de edição
@@ -167,8 +167,8 @@ describe('E2E: Grupo Admin + Vaqueiro (visibilidade e relatórios)', () => {
     });
   });
 
-  describe('GET /associations/reports/monthly (admin/vaqueiro sem associação)', () => {
-    const url = () => `/associations/reports/monthly?year=${reportYear}&month=${reportMonth}`;
+  describe('GET /reports/monthly (admin e vaqueiro)', () => {
+    const url = () => `/reports/monthly?year=${reportYear}&month=${reportMonth}`;
 
     it('admin recebe a produção somada do grupo (antes retornava sempre zero)', async () => {
       const response = await testApp

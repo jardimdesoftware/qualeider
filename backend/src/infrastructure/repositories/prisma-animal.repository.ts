@@ -40,6 +40,8 @@ export class PrismaAnimalRepository implements IAnimalRepository {
           age: data.age,
           userId: data.userId,
           status: PrismaStatus.Active,
+          lactationNumber: data.lactationNumber ?? null,
+          calvingDate: data.calvingDate ?? null,
           motherId: data.motherId ?? null,
           motherCode: data.motherCode ?? null,
           fatherId: data.fatherId ?? null,
@@ -68,10 +70,6 @@ export class PrismaAnimalRepository implements IAnimalRepository {
 
     if (criteria.userId) {
       where.userId = criteria.userId;
-    }
-
-    if (criteria.associationId) {
-      where.user = { associationId: criteria.associationId };
     }
 
     if (criteria.adminGroupId) {
@@ -160,9 +158,7 @@ export class PrismaAnimalRepository implements IAnimalRepository {
   ): Promise<AnimalEntity | null> {
     const where: any = { tagNumber };
 
-    if (scope.associationId) {
-      where.user = { associationId: scope.associationId };
-    } else if (scope.adminGroupId) {
+    if (scope.adminGroupId) {
       where.user = { OR: [{ id: scope.adminGroupId }, { adminId: scope.adminGroupId }] };
     } else if (scope.userId) {
       where.userId = scope.userId;
@@ -213,6 +209,8 @@ export class PrismaAnimalRepository implements IAnimalRepository {
           breedId: data.breedId ?? undefined,
           age: data.age ?? undefined,
           status: data.status ?? undefined,
+          lactationNumber: data.lactationNumber ?? undefined,
+          calvingDate: data.calvingDate ?? undefined,
           motherId: data.motherId ?? undefined,
           motherCode: data.motherCode ?? undefined,
           fatherId: data.fatherId ?? undefined,
@@ -236,9 +234,7 @@ export class PrismaAnimalRepository implements IAnimalRepository {
   ): Promise<AnimalProductionSummary[]> {
     const where: any = { status: PrismaStatus.Active };
 
-    if (scope.associationId) {
-      where.user = { associationId: scope.associationId };
-    } else if (scope.adminGroupId) {
+    if (scope.adminGroupId) {
       where.user = {
         OR: [{ id: scope.adminGroupId }, { adminId: scope.adminGroupId }],
       };

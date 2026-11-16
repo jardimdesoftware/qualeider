@@ -1,4 +1,4 @@
-import { ID, MilkingPlace, Status, CmtResult } from '@/domain/enums/enums';
+import { ID, MilkingPlace, Status, CmtResult, MugTestResult } from '@/domain/enums/enums';
 
 export class DailyCollectionEntity {
   constructor(props?: Partial<DailyCollectionEntity>) {
@@ -14,6 +14,10 @@ export class DailyCollectionEntity {
   numLactation!: number;
   milkingPlace!: MilkingPlace;
   technicalAssistance!: boolean;
+  destinationId?: ID | null;
+  destination?: { id: ID; name: string } | null;
+  // Quem registrou a coleta (so id e nome: nunca a conta inteira)
+  user?: { id: ID; name: string } | null;
   status!: Status;
   createdAt!: Date;
   updatedAt!: Date;
@@ -26,6 +30,8 @@ export interface DailyCollectionItem {
   animalId: ID;
   quantity: number;
   cmtResult?: CmtResult | null;
+  mugTestResult?: MugTestResult | null;
+  milking?: number;
   animal?: {
     id: ID;
     name?: string | null;

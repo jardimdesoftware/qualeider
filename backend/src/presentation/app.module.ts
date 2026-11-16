@@ -6,10 +6,9 @@ import { UsersPresentationModule } from './modules/users.module';
 import { AnimalsPresentationModule } from './modules/animals.module';
 import { DailyCollectionsPresentationModule } from './modules/daily-collections.module';
 import { AuthPresentationModule } from './modules/auth.module';
-import { AssociationsPresentationModule } from './modules/associations.module';
-import { InvitesPresentationModule } from './modules/invites.module';
-import { NotificationsPresentationModule } from './modules/notifications.module';
+import { ReportsPresentationModule } from './modules/reports.module';
 import { BreedsPresentationModule } from './modules/breeds.module';
+import { DestinationsPresentationModule } from './modules/destinations.module';
 import { AnimalSpeciesPresentationModule } from './modules/animal-species.module';
 import { AllowedEmailsPresentationModule } from './modules/allowed-emails.module';
 import { ActivityLogsPresentationModule } from './modules/activity-logs.module';
@@ -55,10 +54,9 @@ import { HealthController } from './controllers/health.controller';
     AnimalsPresentationModule,
     DailyCollectionsPresentationModule,
     AuthPresentationModule,
-    AssociationsPresentationModule,
-    InvitesPresentationModule,
-    NotificationsPresentationModule,
+    ReportsPresentationModule,
     BreedsPresentationModule,
+    DestinationsPresentationModule,
     AnimalSpeciesPresentationModule,
     AllowedEmailsPresentationModule,
     ActivityLogsPresentationModule,

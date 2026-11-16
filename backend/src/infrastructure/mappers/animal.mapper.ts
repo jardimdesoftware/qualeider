@@ -21,6 +21,8 @@ export class AnimalMapper {
             age: raw.age,
             userId: raw.userId,
             status: raw.status as Status,
+            lactationNumber: raw.lactationNumber ?? null,
+            calvingDate: raw.calvingDate ?? null,
             motherId: raw.motherId ?? null,
             motherCode: raw.motherCode ?? null,
             mother: raw.mother ? {
@@ -52,6 +54,8 @@ export class AnimalMapper {
             age: animal.age,
             userId: animal.userId,
             status: animal.status,
+            lactationNumber: animal.lactationNumber ?? null,
+            calvingDate: animal.calvingDate ?? null,
             motherId: animal.motherId ?? null,
             motherCode: animal.motherCode ?? null,
             fatherId: animal.fatherId ?? null,

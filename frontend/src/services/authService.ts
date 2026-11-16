@@ -2,7 +2,6 @@ import { apiBase, STORAGE_KEY } from "./baseApi";
 import { jwtDecode } from "jwt-decode";
 
 interface TokenPayload {
-  userType: "association" | "user";
   sub: string;
   name?: string;
   email?: string;
@@ -15,7 +14,6 @@ interface LoginCredentials {
 
 interface LoginResponse {
   token: string;
-  userType: "association" | "user";
   payload: TokenPayload;
 }
 
@@ -32,7 +30,7 @@ export const authService = {
 
     const payload = jwtDecode<TokenPayload>(token);
 
-    return { token, userType: payload.userType, payload };
+    return { token, payload };
   },
 
   logout: () => {

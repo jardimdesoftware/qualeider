@@ -6,4 +6,3 @@
  * Mantém valores consistentes e facilita manutenção.
  */
 
-export const INVITE_EXPIRATION_DAYS = 7;

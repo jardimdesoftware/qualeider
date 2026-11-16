@@ -7,6 +7,8 @@ export const animalSchema = z.object({
   breedId: z.number().int().positive("Selecione uma raça"),
   breed: z.string().max(100, "Máximo 100 caracteres").optional(),
   age: z.number().min(0, "Idade não pode ser negativa").max(30, "Idade máxima é 30 anos"),
+  lactationNumber: z.number().int().min(1).max(20).optional(),
+  calvingDate: z.string().optional(),
   motherId: z.number().int().positive().optional(),
   motherCode: z.string().max(20, "Máximo 20 caracteres").optional(),
   fatherId: z.number().int().positive().optional(),

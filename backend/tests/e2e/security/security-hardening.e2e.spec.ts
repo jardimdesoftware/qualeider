@@ -200,28 +200,20 @@ describe('E2E: Segurança', () => {
   });
 
   describe('Mass assignment / escalação de privilégio', () => {
-    it('POST /users (cadastro público) ignora role enviado pelo cliente e força ADMIN', async () => {
-      const response = await testApp
-        .request()
-        .post('/users')
-        .send({
-          ...UserFactory.build({ email: 'sec-selfsignup@example.com' }),
-          role: 'VAQUEIRO', // tentativa de se cadastrar com role diferente do forçado pelo endpoint
-        })
-        .expect(HttpStatus.CREATED);
+    it('não existe cadastro público: POST /users não é uma rota (404), com ou sem login', async () => {
+      const body = UserFactory.build({ email: 'sec-selfsignup@example.com' });
 
-      expect(response.body.data.role).toBe(UserRole.ADMIN);
-    });
-
-    it('POST /users (cadastro público) rejeita role fora do enum (tentativa de escalar pra um papel inexistente)', async () => {
+      await testApp.request().post('/users').send(body).expect(HttpStatus.NOT_FOUND);
       await testApp
         .request()
         .post('/users')
-        .send({
-          ...UserFactory.build({ email: 'sec-superadmin@example.com' }),
-          role: 'SUPERADMIN',
-        })
-        .expect(HttpStatus.BAD_REQUEST);
+        .set(authHelper.authHeader(adminToken))
+        .send(body)
+        .expect(HttpStatus.NOT_FOUND);
+
+      expect(
+        await testApp.getPrismaService().user.count({ where: { email: 'sec-selfsignup@example.com' } }),
+      ).toBe(0);
     });
 
     it('VAQUEIRO não consegue criar outro usuário via /users/internal mesmo pedindo role ADMIN no corpo', async () => {

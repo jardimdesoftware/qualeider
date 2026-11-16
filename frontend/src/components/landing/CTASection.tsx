@@ -23,14 +23,14 @@ export function CTASection() {
 
         <div className="flex flex-col sm:flex-row justify-center gap-6">
           <Link
-            href="/createAccount"
+            href="/login"
             className="bg-[#d97706] hover:bg-[#b45309] text-white font-bold py-5 px-10 rounded-lg text-xl shadow-2xl transition-transform hover:scale-105"
           >
-            CRIAR MINHA CONTA GRÁTIS
+            ENTRAR NO SISTEMA
           </Link>
         </div>
         <p className="mt-4 text-sm opacity-60">
-          Não é necessário cartão de crédito.
+          Acesso com e-mail @ifpe.edu.br ou conta criada pelo administrador.
         </p>
       </div>
     </section>

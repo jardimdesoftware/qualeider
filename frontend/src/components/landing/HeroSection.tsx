@@ -22,10 +22,10 @@ export function HeroSection() {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
             <Link
-              href="/createAccount"
+              href="/login"
               className="bg-[#4ade80] hover:bg-[#22c55e] text-[#064e3b] font-black py-4 px-8 rounded-lg text-lg transition-transform hover:scale-105 shadow-xl flex items-center justify-center gap-2"
             >
-              COMEÇAR AGORA
+              ENTRAR
               <ArrowRight className="w-6 h-6" />
             </Link>
             <button className="bg-transparent border-2 border-white text-white hover:bg-white/10 font-bold py-4 px-8 rounded-lg text-lg transition-colors flex items-center justify-center gap-2">

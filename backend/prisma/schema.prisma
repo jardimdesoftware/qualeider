@@ -42,51 +42,9 @@ enum MilkingPlace {
   Ambos
 }
 
-enum CoverageArea {
-  Municipal
-  Regional
-  Estadual
-}
-
 enum Status {
   Active
   Inactive
-}
-
-model Association {
-  id                    Int              @id @default(autoincrement())
-  name                  String           
-  tradeName             String?          
-  cnpj                  String           @unique 
-  stateRegistration     String?          
-  email                 String           @unique
-  password              String           
-  landlinePhone         String          
-  mobilePhone           String?          
-  website               String?          
-  zipCode               String?          
-  state                 String           
-  city                  String           
-  street                String?          
-  number                String?          
-  complement            String?          
-  neighborhood          String?          
-  foundationDate        DateTime?        
-  numberOfMembers       Int?             
-  coverageArea          CoverageArea           
-  presidentName         String?          
-  presidentCpf          String?          
-  presidentEmail        String?          
-  presidentPhone        String?          
-  status                Status           @default(Active)
-  users                 User[]
-  notifications         Notification[]
-  invites               Invite[]
-  createdAt             DateTime         @default(now())
-  updatedAt             DateTime         @updatedAt
-  @@index([city, state])
-  @@index([status])
-  @@index([cnpj])
 }
 
 enum UserRole {
@@ -104,8 +62,6 @@ enum ActivityEventType {
 
 model User {
   id                    Int              @id @default(autoincrement())
-  associationId         Int?
-  association           Association?     @relation(fields: [associationId], references: [id])
   adminId               Int?             // Admin (dono da fazenda) que cadastrou este funcionario (Vaqueiro)
   admin                 User?            @relation("AdminVaqueiros", fields: [adminId], references: [id])
   vaqueiros             User[]           @relation("AdminVaqueiros")
@@ -126,12 +82,9 @@ model User {
   lastLogin             DateTime?
   animals               Animal[]
   dailyCollections      DailyCollection[]
-  invites               Invite[]
-  receivedNotifications NotificationRecipient[]
   activityLogs          ActivityLog[]
   allowedEmails         AllowedEmail[]   @relation("AdminAllowedEmails")
   @@index([city, state, status])
-  @@index([associationId, status])
   @@index([adminId])
 }
 
@@ -184,6 +137,8 @@ model Animal {
   animalSpeciesId       Int?
   animalSpecies         AnimalSpecies?   @relation(fields: [animalSpeciesId], references: [id])
   status                Status           @default(Active)
+  lactationNumber       Int?             // numero da cria: 1 = primeira cria, 2 = segunda...
+  calvingDate           DateTime?        // data do ultimo parto (base dos dias em lactacao)
   user                  User             @relation(fields: [userId], references: [id])
   breedRelation         Breed?           @relation(fields: [breedId], references: [id])
 
@@ -222,12 +177,25 @@ model DailyCollection {
   milkingPlace          MilkingPlace     
   technicalAssistance   Boolean          
   status                Status           @default(Active)
+  destinationId         Int?
+  destination           Destination?     @relation(fields: [destinationId], references: [id], onDelete: Restrict)
   items                 DailyCollectionItem[]
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
   
   @@index([userId, status])
   @@index([collectionDate])
+  @@index([destinationId])
+}
+
+// Para onde o leite coletado e enviado (laticinio, consumo, bezerros...).
+model Destination {
+  id          Int               @id @default(autoincrement())
+  name        String            @unique
+  description String?
+  collections DailyCollection[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 }
 
 model DailyCollectionItem {
@@ -237,7 +205,9 @@ model DailyCollectionItem {
   animalId          Int
   animal            Animal          @relation(fields: [animalId], references: [id])
   quantity          Float
-  cmtResult         CmtResult?      // resultado do teste da caneca (opcional)
+  cmtResult         CmtResult?      // resultado do CMT (California Mastitis Test), opcional
+  mugTestResult     MugTestResult?  // resultado do teste da caneca (grumos no leite), opcional
+  milking           Int             @default(1) // ordenha do dia: 1 = primeira, 2 = segunda
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
@@ -246,71 +216,15 @@ model DailyCollectionItem {
   @@index([dailyCollectionId, animalId])
 }
 
+enum MugTestResult {
+  Negativo
+  Positivo
+}
+
 enum CmtResult {
   Normal
   Suspeito
   Positivo
-}
-
-enum InviteStatus {
-  PENDING
-  ACCEPTED
-  DECLINED
-  EXPIRED
-  CANCELED
-}
-
-model Invite {
-  id                    Int              @id @default(autoincrement())
-  associationId         Int
-  association           Association      @relation(fields: [associationId], references: [id])
-  userId                Int
-  user                  User             @relation(fields: [userId], references: [id])
-  token                 String           @unique @default(uuid())
-  status                InviteStatus     @default(PENDING)
-  message               String?
-  customMessage         String?
-  sentAt                DateTime         @default(now())
-  expiresAt             DateTime
-  respondedAt           DateTime?
-  createdAt             DateTime         @default(now())
-  updatedAt             DateTime         @updatedAt
-
-  @@index([associationId])
-  @@index([userId])
-  @@index([status])
-  @@index([token])
-  @@index([expiresAt])
-}
-
-model Notification {
-  id                    Int              @id @default(autoincrement())
-  associationId         Int
-  association           Association      @relation(fields: [associationId], references: [id])
-  subject               String
-  message               String
-  metadata              String?          // JSON string
-  recipients            NotificationRecipient[]
-  createdAt             DateTime         @default(now())
-
-  @@index([associationId])
-  @@index([createdAt])
-}
-
-model NotificationRecipient {
-  id              Int          @id @default(autoincrement())
-  notificationId  Int
-  notification    Notification @relation(fields: [notificationId], references: [id])
-  userId          Int
-  user            User         @relation(fields: [userId], references: [id])
-  read            Boolean      @default(false)
-  readAt          DateTime?
-  createdAt       DateTime     @default(now())
-
-  @@unique([notificationId, userId])
-  @@index([userId])
-  @@index([read])
-  @@index([userId, read, createdAt])
 }
 
 model FailedEmail {

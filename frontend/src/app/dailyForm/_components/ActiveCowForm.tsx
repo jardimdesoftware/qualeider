@@ -9,11 +9,30 @@ interface ActiveCowFormProps {
   animalLabel: string;
   quantity: string;
   cmtResult: string | null;
+  mugTestResult: string | null;
   onQuantityChange: (val: string) => void;
   onCmtChange: (val: string | null) => void;
+  onMugTestChange: (val: string | null) => void;
   onConfirm: () => void;
   onCancel: () => void;
 }
+
+const MUG_OPTIONS = [
+  {
+    value: "Negativo",
+    label: "Negativo",
+    bg: "bg-green-100 border-green-400 text-green-800",
+    activeBg: "bg-green-500 border-green-600 text-white",
+    dot: "bg-green-500",
+  },
+  {
+    value: "Positivo",
+    label: "Positivo (grumos)",
+    bg: "bg-red-100 border-red-400 text-red-800",
+    activeBg: "bg-red-500 border-red-600 text-white",
+    dot: "bg-red-500",
+  },
+] as const;
 
 const CMT_OPTIONS = [
   {
@@ -44,8 +63,10 @@ export function ActiveCowForm({
   animalLabel,
   quantity,
   cmtResult,
+  mugTestResult,
   onQuantityChange,
   onCmtChange,
+  onMugTestChange,
   onConfirm,
   onCancel,
 }: ActiveCowFormProps) {
@@ -101,10 +122,39 @@ export function ActiveCowForm({
           </div>
         </div>
 
-        {/* CMT test */}
+        {/* Teste da caneca */}
         <div>
           <label className="block text-sm font-bold text-slate-700 mb-2">
-            Teste da Caneca (CMT)
+            Teste da Caneca
+            <span className="text-slate-400 font-normal ml-1">— opcional</span>
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            {MUG_OPTIONS.map((opt) => {
+              const isActive = mugTestResult === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => onMugTestChange(isActive ? null : opt.value)}
+                  className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 font-bold text-sm transition-all ${
+                    isActive ? opt.activeBg : opt.bg
+                  }`}
+                >
+                  <span
+                    className={`w-3 h-3 rounded-full ${isActive ? "bg-white/80" : opt.dot}`}
+                  />
+                  {opt.label}
+                  {isActive && <Check className="w-3 h-3" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* CMT */}
+        <div>
+          <label className="block text-sm font-bold text-slate-700 mb-2">
+            CMT (California Mastitis Test)
             <span className="text-slate-400 font-normal ml-1">— opcional</span>
           </label>
           <div className="grid grid-cols-3 gap-2">

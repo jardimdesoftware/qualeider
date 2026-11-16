@@ -63,6 +63,17 @@ export function CollectionDetailsModal({
         </header>
 
         <div className="p-6">
+          <p className="text-sm text-slate-600 mb-4">
+            Registrada por{" "}
+            <strong className="text-slate-800">
+              {collection.user?.name ?? `Usuário #${collection.userId}`}
+            </strong>
+            {" · "}Destino:{" "}
+            <strong className="text-slate-800">
+              {collection.destination?.name ?? "sem destino"}
+            </strong>
+          </p>
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
               <p className="text-xs text-slate-500 uppercase font-bold">
@@ -110,6 +121,12 @@ export function CollectionDetailsModal({
                   <th className="px-4 py-3 font-semibold text-slate-600">
                     Animal
                   </th>
+                  <th className="px-4 py-3 font-semibold text-slate-600">
+                    Caneca
+                  </th>
+                  <th className="px-4 py-3 font-semibold text-slate-600">
+                    CMT
+                  </th>
                   <th className="px-4 py-3 font-semibold text-slate-600 text-right">
                     Quantidade
                   </th>
@@ -124,6 +141,12 @@ export function CollectionDetailsModal({
                           ? item.animal.name
                           : `Animal #${item.animalId}`}
                       </td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {item.mugTestResult ?? "—"}
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {item.cmtResult ?? "—"}
+                      </td>
                       <td className="px-4 py-3 text-right font-bold text-slate-800">
                         {item.quantity} L
                       </td>
@@ -132,7 +155,7 @@ export function CollectionDetailsModal({
                 ) : (
                   <tr>
                     <td
-                      colSpan={2}
+                      colSpan={4}
                       className="px-4 py-8 text-center text-slate-400 italic"
                     >
                       Detalhes não disponíveis para esta coleta.

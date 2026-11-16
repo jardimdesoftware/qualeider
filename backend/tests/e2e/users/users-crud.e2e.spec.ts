@@ -64,8 +64,13 @@ describe('E2E: Users - CRUD Operations', () => {
     await teardownE2ETests();
   });
 
-  describe('POST /users (Create)', () => {
-    it('deve criar um novo usuário com dados válidos', async () => {
+  describe('POST /users/internal (Criar conta pelo admin; não há cadastro público)', () => {
+    const internalPost = (token?: string) => {
+      const req = testApp.request().post('/users/internal');
+      return token ? req.set(authHelper.authHeader(token)) : req;
+    };
+
+    it('o admin cria uma conta com dados válidos', async () => {
       const newUserData = UserFactory.build({
         email: 'newuser@example.com',
         password: 'NewUser@1234',
@@ -74,17 +79,10 @@ describe('E2E: Users - CRUD Operations', () => {
         state: 'PR',
       });
 
-      const response = await testApp
-        .request()
-        .post('/users')
-        .send(newUserData)
-        .expect(HttpStatus.CREATED);
+      const response = await internalPost(adminToken).send(newUserData).expect(HttpStatus.CREATED);
 
       expect(response.body).toHaveProperty('statusCode', HttpStatus.CREATED);
-      expect(response.body).toHaveProperty(
-        'message',
-        'Usuário criado com sucesso',
-      );
+      expect(response.body).toHaveProperty('message', 'Usuário criado com sucesso');
 
       const data = response.body.data;
       expect(data).toHaveProperty('id');
@@ -94,37 +92,24 @@ describe('E2E: Users - CRUD Operations', () => {
       expect(data).not.toHaveProperty('password');
     });
 
-    it('deve retornar 409 com email duplicado', async () => {
-      const duplicateData = UserFactory.build({
-        email: 'admin@example.com',
-      });
+    it('sem login: 401 (qualquer um criar conta sozinho não existe mais)', async () => {
+      await internalPost().send(UserFactory.build({ email: 'sem.login@example.com' })).expect(HttpStatus.UNAUTHORIZED);
+    });
 
-      await testApp
-        .request()
-        .post('/users')
-        .send(duplicateData)
+    it('e-mail duplicado: 400', async () => {
+      await internalPost(adminToken)
+        .send(UserFactory.build({ email: 'admin@example.com' }))
         .expect(HttpStatus.BAD_REQUEST);
     });
 
-    it('deve retornar 400 com dados inválidos', async () => {
-      await testApp
-        .request()
-        .post('/users')
-        .send({
-          email: 'invalid-email',
-          password: '123',
-          name: '',
-          userCategory: 'INVALID',
-        })
+    it('dados inválidos: 400', async () => {
+      await internalPost(adminToken)
+        .send({ email: 'invalid-email', password: '123', name: '', userCategory: 'INVALID' })
         .expect(HttpStatus.BAD_REQUEST);
     });
 
-    it('deve retornar 400 sem campos obrigatórios', async () => {
-      await testApp
-        .request()
-        .post('/users')
-        .send({})
-        .expect(HttpStatus.BAD_REQUEST);
+    it('sem campos obrigatórios: 400', async () => {
+      await internalPost(adminToken).send({}).expect(HttpStatus.BAD_REQUEST);
     });
   });
 

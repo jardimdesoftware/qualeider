@@ -8,8 +8,7 @@ import { UserRole } from '@/domain/enums/enums';
 
 /**
  * Restringe a rota a usuários ADMIN. Roda depois do JwtAuthGuard global (que já
- * popula `request.user`), então rotas @Public() não devem usá-lo. Associações
- * (userType "association") não têm `role` e também ficam de fora.
+ * popula `request.user`), então rotas @Public() não devem usá-lo.
  */
 @Injectable()
 export class AdminOnlyGuard implements CanActivate {

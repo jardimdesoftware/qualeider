@@ -4,6 +4,11 @@ export enum MilkingPlace {
   Ambos = "Ambos",
 }
 
+export enum MugTestResult {
+  Negativo = "Negativo",
+  Positivo = "Positivo",
+}
+
 export enum CmtResult {
   Normal = "Normal",
   Suspeito = "Suspeito",
@@ -15,7 +20,9 @@ export interface DailyCollectionItem {
   animalId: number;
   dailyCollectionId: number;
   quantity: number;
-  cmtResult?: CmtResult | null;
+  cmtResult?: CmtResult | null; // CMT (California Mastitis Test)
+  mugTestResult?: MugTestResult | null; // teste da caneca
+  milking?: number; // 1 = primeira ordenha, 2 = segunda
   animal?: {
     id: number;
     name?: string | null;
@@ -34,6 +41,9 @@ export interface DailyCollection {
   numLactation: number;
   milkingPlace: MilkingPlace;
   technicalAssistance: boolean;
+  destinationId?: number | null; // para onde o leite foi
+  destination?: { id: number; name: string } | null;
+  user?: { id: number; name: string } | null; // quem registrou
   createdAt?: string;
   updatedAt?: string;
   items?: DailyCollectionItem[];
@@ -49,4 +59,6 @@ export interface AnimalCollectionHistoryItem {
   collectionDate: string;
   quantity: number;
   cmtResult?: CmtResult | null;
+  mugTestResult?: MugTestResult | null;
+  milking?: number;
 }

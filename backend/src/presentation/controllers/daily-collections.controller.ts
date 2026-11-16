@@ -51,13 +51,11 @@ export class DailyCollectionsController {
     @Body() createDailyCollectionDto: CreateDailyCollectionDto,
     @GetUser('id') requesterId: number,
     @GetUser('role') requesterRole?: UserRole,
-    @GetUser('associationId') requesterAssociationId?: number | null,
     @GetUser('adminId') requesterAdminId?: number | null,
   ) {
     return this.dailyCollectionsService.create(createDailyCollectionDto, {
       id: requesterId,
       role: requesterRole,
-      associationId: requesterAssociationId,
       adminId: requesterAdminId,
     });
   }
@@ -68,7 +66,6 @@ export class DailyCollectionsController {
   async findAll(@Query() query: FindDailyCollectionsDto, @GetUser() requester: ReadPrincipal) {
     const criteria: DailyCollectionCriteria = {
       scope: resolveReadScope(requester),
-      associationId: query.associationId,
       userId: query.userId,
     };
 
@@ -113,13 +110,11 @@ export class DailyCollectionsController {
     @Body() updateDailyCollectionDto: UpdateDailyCollectionDto,
     @GetUser('id') requesterId: number,
     @GetUser('role') requesterRole?: UserRole,
-    @GetUser('associationId') requesterAssociationId?: number | null,
     @GetUser('adminId') requesterAdminId?: number | null,
   ) {
     return this.dailyCollectionsService.update(id, updateDailyCollectionDto, {
       id: requesterId,
       role: requesterRole,
-      associationId: requesterAssociationId,
       adminId: requesterAdminId,
     });
   }
@@ -135,19 +130,17 @@ export class DailyCollectionsController {
     @Param('id', ParseIntPipe) id: number,
     @GetUser('id') requesterId: number,
     @GetUser('role') requesterRole?: UserRole,
-    @GetUser('associationId') requesterAssociationId?: number | null,
     @GetUser('adminId') requesterAdminId?: number | null,
   ) {
     return this.dailyCollectionsService.remove(id, {
       id: requesterId,
       role: requesterRole,
-      associationId: requesterAssociationId,
       adminId: requesterAdminId,
     });
   }
 
   @ApiOperation({
-    summary: 'Buscar formulários de um usuário pelo ID (ou de toda a associação, se o solicitante for ADMIN)',
+    summary: 'Buscar formulários de um usuário pelo ID (ou do grupo Admin + funcionários, se o solicitante for ADMIN)',
   })
   @ApiBearerAuth()
   @ApiParam({ name: 'userId', description: 'ID do usuário', type: Number })
@@ -162,7 +155,7 @@ export class DailyCollectionsController {
     @GetUser() requester: ReadPrincipal,
   ) {
     // O id do caminho precisa estar no escopo de quem pede; a lista é sempre a do
-    // escopo dele (associacao > grupo Admin + funcionarios > ele mesmo).
+    // escopo dele (grupo Admin + funcionarios > ele mesmo).
     await this.dailyCollectionsService.assertCanReadUserData(userId, requester);
     return this.dailyCollectionsService.findAll({
       scope: resolveReadScope(requester),

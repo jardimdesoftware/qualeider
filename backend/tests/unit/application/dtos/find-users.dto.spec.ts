@@ -3,20 +3,8 @@ import { validate } from 'class-validator';
 import { FindUsersDto } from '@/application/dtos/users/find-users.dto';
 
 describe('FindUsersDto', () => {
-  it('deve transformar strings numéricas em números', async () => {
-    const plain = {
-      associationId: '123',
-    };
-    
-    const dto = plainToInstance(FindUsersDto, plain);
-    
-    expect(dto.associationId).toBe(123);
-    expect(typeof dto.associationId).toBe('number');
-  });
-
   it('deve validar dados válidos', async () => {
     const plain = {
-      associationId: 1,
       status: 'Active',
       emailContains: 'test',
     };
@@ -37,7 +25,6 @@ describe('FindUsersDto', () => {
 
   it('deve falhar na validação se os tipos estiverem incorretos', async () => {
     const plain = {
-      associationId: 'not-a-number',
       status: 'InvalidStatus',
       emailContains: 123,
     };
@@ -47,7 +34,6 @@ describe('FindUsersDto', () => {
 
     expect(errors.length).toBeGreaterThan(0);
     const properties = errors.map(e => e.property);
-    expect(properties).toContain('associationId');
     expect(properties).toContain('status');
     expect(properties).toContain('emailContains');
   });

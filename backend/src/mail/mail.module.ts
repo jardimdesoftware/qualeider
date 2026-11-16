@@ -20,8 +20,7 @@ import { TemplateMailerService } from './template-mailer.service';
           Logger.warn(
             'SMTP configuration incomplete. Email sending will fail! ' +
               'Login and password reset (apply) are unaffected, but ' +
-              'forgot-password requests will return an error and invite/notification ' +
-              'emails will be dropped or queued to failed_emails. ' +
+              'forgot-password requests will return an error. ' +
               'See README.md > "Comportamento de e-mail (SMTP) em desenvolvimento" ' +
               'to set up Ethereal for local testing.',
             'MailModule',

@@ -26,6 +26,10 @@ export interface Animal {
   userId: number;
   status: Status;
 
+  // Lactação
+  lactationNumber?: number | null; // 1 = primeira cria, 2 = segunda cria...
+  calvingDate?: string | null; // data do último parto (ISO)
+
   // Parentesco
   motherId?: number | null;
   mother?: Animal | null;

@@ -13,7 +13,8 @@ import {
   Milk,
   Dna,
   BarChart3,
-  Bell,
+  Truck,
+  ClipboardList,
 } from "lucide-react";
 import { getUserRoleFromToken, clearAuthToken } from "@/utils/auth";
 import { debounce } from "@/utils/debounce";
@@ -65,7 +66,7 @@ export default function Sidebar() {
 
   /**
    * Menu do usuário logado.
-   * Vaqueiro tem acesso restrito: Início, Dados diários, Meus Animais e Notificações.
+   * Vaqueiro tem acesso restrito: Início, Dados diários, Meus Animais.
    * Raças, Tipos de Animal, Funcionários e Relatórios são exclusivos do ADMIN.
    */
   const allMenuItems = [
@@ -82,15 +83,15 @@ export default function Sidebar() {
       adminOnly: false,
     },
     {
+      name: "Coletas registradas",
+      link: "/dashboardUser/history",
+      icon: <ClipboardList size={ICON_SIZES.SM} />,
+      adminOnly: true,
+    },
+    {
       name: "Meus Animais",
       link: "/manageMyAnimals",
       icon: <FileText size={ICON_SIZES.SM} />,
-      adminOnly: false,
-    },
-    {
-      name: "Notificações",
-      link: "/dashboardUser/notifications",
-      icon: <Bell size={ICON_SIZES.SM} />,
       adminOnly: false,
     },
     {
@@ -103,6 +104,12 @@ export default function Sidebar() {
       name: "Tipos de Animal",
       link: "/dashboardUser/animalSpecies",
       icon: <Dna size={ICON_SIZES.SM} />,
+      adminOnly: true,
+    },
+    {
+      name: "Destinos",
+      link: "/dashboardUser/destinations",
+      icon: <Truck size={ICON_SIZES.SM} />,
       adminOnly: true,
     },
     {

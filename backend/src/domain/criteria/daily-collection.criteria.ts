@@ -4,7 +4,6 @@ import { PaginationParams } from '../common/pagination.interface';
 /**
  * Critérios de filtragem para busca de coletas diárias.
  * 
- * @property associationId - Filtrar por ID da associação
  * @property userId - Filtrar por ID do usuário/produtor
  * @property adminGroupId - Filtrar pelo grupo Admin+Vaqueiros (coletas de animais
  *   cujo dono e o Admin com esse ID, ou um Vaqueiro cadastrado por esse Admin)
@@ -14,7 +13,6 @@ import { PaginationParams } from '../common/pagination.interface';
  * @property limit - Limite de registros por página (padrão: 50, máx: 1000)
  */
 export interface DailyCollectionCriteria extends PaginationParams {
-  associationId?: number;
   userId?: number;
   adminGroupId?: number;
   /** Escopo obrigatório de quem lê; aplicado com AND sobre os demais filtros. */

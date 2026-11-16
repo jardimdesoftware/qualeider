@@ -39,29 +39,9 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   /**
-   * Registro público — sempre cria conta com role ADMIN (dono da fazenda).
-   * O campo `role` do body é ignorado por segurança.
-   */
-  @Throttle({ default: { limit: 5, ttl: THROTTLE_TTL.LONG } })
-  @Post()
-  @Public()
-  @ApiOperation({ summary: 'Registro público: cria conta Admin (dono da fazenda)' })
-  @ApiResponse({ status: 201, description: 'Usuário criado com sucesso' })
-  @ApiResponse({ status: 400, description: 'Dados inválidos' })
-  @ApiResponse({ status: 409, description: 'Email já cadastrado' })
-  @ResponseMessage('Usuário criado com sucesso')
-  async create(@Body() createUserDto: CreateUserDto) {
-    // Garante que o registro público SEMPRE cria um Admin. E que não escolhe
-    // associação: quem se cadastra sozinho não pode se declarar membro de uma
-    // associação qualquer (o vínculo vem de convite aceito ou de quem administra).
-    return this.usersService.create({
-      ...createUserDto,
-      role: UserRole.ADMIN,
-      associationId: undefined,
-    });
-  }
-
-  /**
+   * Não existe cadastro público: as contas nascem do ADMIN fixo, do admin logado
+   * (este endpoint) ou do primeiro login pelo Google.
+   *
    * Criação interna — usado pelo Admin logado para cadastrar funcionários (Vaqueiros).
    * Requer autenticação JWT. Aceita qualquer role (ADMIN ou VAQUEIRO).
    *
@@ -82,26 +62,17 @@ export class UsersController {
     @Body() createUserDto: CreateUserDto,
     @GetUser('id') creatorId?: number,
     @GetUser('role') creatorRole?: UserRole,
-    @GetUser('associationId') creatorAssociationId?: number | null,
+    @GetUser('adminId') creatorAdminId?: number | null,
   ) {
     if (creatorRole !== UserRole.ADMIN) {
       throw new ForbiddenException('Você não tem permissão para cadastrar funcionários.');
     }
 
-    const isCreatingVaqueiro = createUserDto.role === UserRole.VAQUEIRO;
-    const adminId = isCreatingVaqueiro
-      ? creatorId
-      : undefined;
+    // Toda conta criada por um admin (admin ou vaqueiro) fica no grupo do admin
+    // raiz: se quem cria e a propria raiz, o grupo e ele; senao, o grupo dele.
+    const adminId = creatorAdminId ?? creatorId;
 
-    // O admin só vincula à PRÓPRIA associação (ou a nenhuma): o associationId do
-    // corpo da requisição não pode apontar para uma associação alheia.
-    const associationId =
-      createUserDto.associationId != null &&
-      createUserDto.associationId === creatorAssociationId
-        ? createUserDto.associationId
-        : undefined;
-
-    return this.usersService.create({ ...createUserDto, adminId, associationId });
+    return this.usersService.create({ ...createUserDto, adminId });
   }
 
   @Get('check-email')
@@ -129,10 +100,9 @@ export class UsersController {
     @Query() query: FindUsersDto,
     @GetUser('id') requesterId: number,
     @GetUser('role') requesterRole: UserRole,
-    @GetUser('associationId') requesterAssociationId: number | null,
+    @GetUser('adminId') requesterAdminId?: number | null,
   ) {
     const criteria: UserCriteria = {
-      associationId: query.associationId,
       status: query.status,
       emailContains: query.emailContains,
     };
@@ -140,7 +110,7 @@ export class UsersController {
     return this.usersService.findAll(criteria, {
       id: requesterId,
       role: requesterRole,
-      associationId: requesterAssociationId,
+      adminId: requesterAdminId,
     });
   }
 
@@ -155,12 +125,12 @@ export class UsersController {
     @Param('id', ParseIntPipe) id: number,
     @GetUser('id') requesterId: number,
     @GetUser('role') requesterRole: UserRole,
-    @GetUser('associationId') requesterAssociationId: number | null,
+    @GetUser('adminId') requesterAdminId?: number | null,
   ) {
     return this.usersService.findOneForRequester(id, {
       id: requesterId,
       role: requesterRole,
-      associationId: requesterAssociationId,
+      adminId: requesterAdminId,
     });
   }
 
@@ -176,12 +146,12 @@ export class UsersController {
     @Body() updateUserDto: UpdateUserDto,
     @GetUser('id') requesterId: number,
     @GetUser('role') requesterRole: UserRole,
-    @GetUser('associationId') requesterAssociationId: number | null,
+    @GetUser('adminId') requesterAdminId?: number | null,
   ) {
     return this.usersService.update(id, updateUserDto, {
       id: requesterId,
       role: requesterRole,
-      associationId: requesterAssociationId,
+      adminId: requesterAdminId,
     });
   }
 
@@ -197,12 +167,12 @@ export class UsersController {
     @Body() updatePartialUserDto: UpdatePartialUserDto,
     @GetUser('id') requesterId: number,
     @GetUser('role') requesterRole: UserRole,
-    @GetUser('associationId') requesterAssociationId: number | null,
+    @GetUser('adminId') requesterAdminId?: number | null,
   ) {
     return this.usersService.partialUpdate(id, updatePartialUserDto, {
       id: requesterId,
       role: requesterRole,
-      associationId: requesterAssociationId,
+      adminId: requesterAdminId,
     });
   }
 
@@ -217,12 +187,12 @@ export class UsersController {
     @Param('id', ParseIntPipe) id: number,
     @GetUser('id') requesterId: number,
     @GetUser('role') requesterRole: UserRole,
-    @GetUser('associationId') requesterAssociationId: number | null,
+    @GetUser('adminId') requesterAdminId?: number | null,
   ) {
     return this.usersService.remove(id, {
       id: requesterId,
       role: requesterRole,
-      associationId: requesterAssociationId,
+      adminId: requesterAdminId,
     });
   }
 }

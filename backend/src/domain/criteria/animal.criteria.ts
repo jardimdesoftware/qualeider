@@ -5,7 +5,6 @@ import { PaginationParams } from '../common/pagination.interface';
 /**
  * Criterios de filtragem para busca de animais.
  *
- * @property associationId - Filtrar por ID da associacao
  * @property userId - Filtrar por ID do usuario/produtor
  * @property adminGroupId - Filtrar pelo grupo Admin+Vaqueiros (animais cujo dono
  *   e o Admin com esse ID, ou um Vaqueiro cadastrado por esse Admin)
@@ -21,7 +20,6 @@ import { PaginationParams } from '../common/pagination.interface';
  * @property limit - Limite de registros por pagina (padrao: 50, max: 1000)
  */
 export interface AnimalCriteria extends PaginationParams {
-  associationId?: number;
   userId?: number;
   adminGroupId?: number;
   /** Escopo obrigatório de quem lê; aplicado com AND sobre os demais filtros. */

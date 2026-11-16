@@ -8,7 +8,6 @@ export interface UserFactoryData {
   userCategory?: UserCategory;
   city?: string;
   state?: string;
-  associationId?: number;
   role?: UserRole;
 }
 

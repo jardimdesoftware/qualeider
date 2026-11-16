@@ -6,7 +6,6 @@ export class UserEntity {
   }
 
   id!: ID;
-  associationId?: number | null;
   adminId?: number | null;
   name!: string;
   email!: string;

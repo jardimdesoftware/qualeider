@@ -1,4 +1,5 @@
 import {
+  IsDate,
   IsEnum,
   IsInt,
   IsOptional,
@@ -8,6 +9,7 @@ import {
   Max,
   MaxLength,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { AnimalType } from '@/domain/enums/enums';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -52,6 +54,19 @@ export class CreateAnimalDto {
   @Min(0, { message: 'Idade nao pode ser negativa' })
   @Max(30, { message: 'Idade nao pode exceder 30 anos' })
   age!: number;
+
+  @ApiProperty({ description: 'Numero da cria: 1 = primeira cria, 2 = segunda cria...', example: 2, required: false })
+  @IsOptional()
+  @IsInt({ message: 'lactationNumber deve ser um numero inteiro' })
+  @Min(1, { message: 'lactationNumber deve ser no minimo 1' })
+  @Max(20, { message: 'lactationNumber nao pode exceder 20' })
+  lactationNumber?: number;
+
+  @ApiProperty({ description: 'Data do ultimo parto (base dos dias em lactacao)', example: '2026-08-15', required: false })
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate({ message: 'calvingDate deve ser uma data valida' })
+  calvingDate?: Date;
 
   @ApiProperty({ description: 'Id do usuario dono do animal', example: 2 })
   @IsInt({ message: 'userId deve ser um numero inteiro' })

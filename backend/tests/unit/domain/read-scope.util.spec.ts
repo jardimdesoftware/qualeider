@@ -1,20 +1,12 @@
 import { UserRole } from '@/domain/enums/enums';
 import { canReadOwner, resolveReadScope } from '@/domain/utils/read-scope.util';
 
-const admin = (over = {}) => ({ id: 1, userType: 'user', role: UserRole.ADMIN, associationId: null, adminId: null, ...over });
-const vaqueiro = (over = {}) => ({ id: 5, userType: 'user', role: UserRole.VAQUEIRO, associationId: null, adminId: 1, ...over });
-const owner = (over = {}) => ({ id: 20, role: UserRole.VAQUEIRO, associationId: null as number | null, adminId: null as number | null, ...over });
+const admin = (over = {}) => ({ id: 1, role: UserRole.ADMIN, adminId: null, ...over });
+const vaqueiro = (over = {}) => ({ id: 5, role: UserRole.VAQUEIRO, adminId: 1, ...over });
+const owner = (over = {}) => ({ id: 20, role: UserRole.VAQUEIRO, adminId: null as number | null, ...over });
 
 describe('resolveReadScope', () => {
-  it('login de associação: a própria associação', () => {
-    expect(resolveReadScope({ id: 7, userType: 'association' })).toEqual({ associationId: 7 });
-  });
-
-  it('usuário em associação: a associação (prevalece)', () => {
-    expect(resolveReadScope(admin({ associationId: 3 }))).toEqual({ associationId: 3 });
-  });
-
-  it('admin sem associação: o próprio grupo', () => {
+  it('admin: o próprio grupo', () => {
     expect(resolveReadScope(admin())).toEqual({ adminGroupId: 1 });
   });
 
@@ -48,14 +40,26 @@ describe('canReadOwner', () => {
     expect(canReadOwner(vaqueiro({ adminId: null }), owner())).toBe(false);
   });
 
-  it('membros da mesma associação se leem; de outra, não', () => {
-    expect(canReadOwner(admin({ associationId: 3 }), owner({ associationId: 3 }))).toBe(true);
-    expect(canReadOwner(admin({ associationId: 3 }), owner({ associationId: 4 }))).toBe(false);
+});
+
+describe('grupo único: toda conta pendurada no admin raiz', () => {
+  const root = admin();
+  const admin2 = admin({ id: 7, adminId: 1 });
+  const vaqDoAdmin2 = vaqueiro({ id: 8, adminId: 1 });
+
+  it('um admin criado pelo admin raiz lê o grupo da raiz, não um grupo só dele', () => {
+    expect(resolveReadScope(admin2)).toEqual({ adminGroupId: 1 });
   });
 
-  it('login de associação lê só os membros dela; id igual de usuário não conta', () => {
-    expect(canReadOwner({ id: 3, userType: 'association' }, owner({ associationId: 3 }))).toBe(true);
-    expect(canReadOwner({ id: 3, userType: 'association' }, owner({ associationId: 4 }))).toBe(false);
-    expect(canReadOwner({ id: 3, userType: 'association' }, owner({ id: 3, associationId: null }))).toBe(false);
+  it('a raiz, o outro admin e os vaqueiros se leem entre si', () => {
+    expect(canReadOwner(root, owner({ id: 7, role: UserRole.ADMIN, adminId: 1 }))).toBe(true);
+    expect(canReadOwner(admin2, owner({ id: 1, role: UserRole.ADMIN, adminId: null }))).toBe(true);
+    expect(canReadOwner(admin2, owner({ id: 8, adminId: 1 }))).toBe(true);
+    expect(canReadOwner(vaqDoAdmin2, owner({ id: 7, role: UserRole.ADMIN, adminId: 1 }))).toBe(true);
+  });
+
+  it('um grupo diferente (outra raiz) continua isolado', () => {
+    expect(canReadOwner(admin2, owner({ id: 50, role: UserRole.ADMIN, adminId: null }))).toBe(false);
+    expect(canReadOwner(admin2, owner({ id: 51, adminId: 50 }))).toBe(false);
   });
 });

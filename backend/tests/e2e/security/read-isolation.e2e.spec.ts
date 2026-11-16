@@ -1,14 +1,13 @@
 import { setupE2ETests, teardownE2ETests, E2E_TIMEOUT } from '../setup';
 import { TestApp, AuthHelper } from '../helpers';
-import { AnimalFactory, AssociationFactory, DailyCollectionFactory, UserFactory } from '../factories';
-import { UserCategory, UserRole } from '@/domain/enums/enums';
+import { AnimalFactory, DailyCollectionFactory, UserFactory } from '../factories';
+import { UserRole } from '@/domain/enums/enums';
 import { HttpStatus } from '@nestjs/common';
-import * as bcrypt from 'bcryptjs';
 
 /**
  * Antes, qualquer ADMIN (e o cadastro público sempre cria ADMIN) lia os usuários,
  * animais e coletas de TODOS os donos. Agora cada um lê só o próprio escopo:
- * ele mesmo + funcionários vinculados (ou a associação, se pertencer a uma).
+ * ele mesmo + funcionários vinculados.
  */
 describe('E2E: Leitura entre donos — cada um lê só o próprio escopo', () => {
   let testApp: TestApp;
@@ -24,11 +23,6 @@ describe('E2E: Leitura entre donos — cada um lê só o próprio escopo', () =>
   let animalOfB: number;
   let collectionOfA: number;
   let collectionOfB: number;
-
-  // Associação com um membro (criado no banco: o vínculo vem de convite aceito).
-  let assoc: { id: number; token: string };
-  let memberToken: string;
-  let animalOfMember: number;
 
   const get = (path: string, token: string) =>
     testApp.request().get(path).set(authHelper.authHeader(token));
@@ -83,24 +77,6 @@ describe('E2E: Leitura entre donos — cada um lê só o próprio escopo', () =>
     animalOfB = await createAnimal(adminB.token, adminB.id, 'Vaca B');
     collectionOfA = await createCollection(adminA.token, adminA.id, animalOfA);
     collectionOfB = await createCollection(adminB.token, adminB.id, animalOfB);
-
-    const association = AssociationFactory.build();
-    const created = await testApp.request().post('/associations').send(association).expect(HttpStatus.CREATED);
-    assoc = { id: created.body.data.id, token: await authHelper.login(association.email!, association.password!) };
-    const member = await testApp.getPrismaService().user.create({
-      data: {
-        name: 'Membro',
-        email: 'iso-membro@example.com',
-        password: await bcrypt.hash('Membro@1234', 4),
-        userCategory: UserCategory.Fisica,
-        city: 'Recife',
-        state: 'PE',
-        role: UserRole.ADMIN,
-        associationId: assoc.id,
-      },
-    });
-    memberToken = await authHelper.login('iso-membro@example.com', 'Membro@1234');
-    animalOfMember = await createAnimal(memberToken, member.id, 'Vaca do membro');
   }, E2E_TIMEOUT);
 
   afterAll(async () => {
@@ -114,7 +90,6 @@ describe('E2E: Leitura entre donos — cada um lê só o próprio escopo', () =>
       await get(`/animals/${animalOfA}`, vaqA.token).expect(HttpStatus.OK);
       await get(`/animals/${animalOfA}`, adminB.token).expect(HttpStatus.FORBIDDEN);
       await get(`/animals/${animalOfA}`, vaqB.token).expect(HttpStatus.FORBIDDEN);
-      await get(`/animals/${animalOfA}`, assoc.token).expect(HttpStatus.FORBIDDEN);
     });
 
     it('GET /animals (lista): só o escopo, mesmo pedindo o userId de outro dono', async () => {
@@ -181,26 +156,6 @@ describe('E2E: Leitura entre donos — cada um lê só o próprio escopo', () =>
       await get(`/users/${vaqB.id}`, adminA.token).expect(HttpStatus.FORBIDDEN);
       await get(`/users/${vaqA.id}`, adminA.token).expect(HttpStatus.OK);
       await get(`/users/${adminA.id}`, adminA.token).expect(HttpStatus.OK);
-    });
-  });
-
-  describe('associação: lê o que é dos seus membros e de mais ninguém', () => {
-    it('membro enxerga o rebanho da associação e não o de um dono avulso', async () => {
-      const response = await get(`/animals/user/${vaqA.id}`, memberToken).expect(HttpStatus.FORBIDDEN);
-      expect(response.status).toBe(HttpStatus.FORBIDDEN);
-
-      const own = await get('/animals', memberToken).expect(HttpStatus.OK);
-      expect(ids(own.body)).toContain(animalOfMember);
-      expect(ids(own.body)).not.toContain(animalOfA);
-    });
-
-    it('login de associação lê os animais dos membros, não os de donos avulsos', async () => {
-      const list = await get('/animals', assoc.token).expect(HttpStatus.OK);
-      expect(ids(list.body)).toContain(animalOfMember);
-      expect(ids(list.body)).not.toContain(animalOfA);
-
-      await get(`/animals/${animalOfMember}`, assoc.token).expect(HttpStatus.OK);
-      await get(`/animals/${animalOfA}`, assoc.token).expect(HttpStatus.FORBIDDEN);
     });
   });
 });

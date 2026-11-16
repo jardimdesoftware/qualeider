@@ -10,7 +10,13 @@ export interface DailyCollectionFactoryData {
   milkingPlace?: MilkingPlace;
   technicalAssistance?: boolean;
   collectionDate?: string | Date;
-  items?: { animalId: number; quantity: number }[];
+  items?: {
+    animalId: number;
+    quantity: number;
+    cmtResult?: string | null;
+    mugTestResult?: string | null;
+    milking?: number;
+  }[];
 }
 
 /**

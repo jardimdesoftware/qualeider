@@ -20,6 +20,10 @@ export class AnimalEntity {
   userId!: ID;
   status!: Status;
 
+  // Lactacao
+  lactationNumber?: number | null; // numero da cria (1 = primeira cria)
+  calvingDate?: Date | null; // data do ultimo parto
+
   // Parentesco - Mae
   motherId?: ID | null;
   motherCode?: string | null;

@@ -27,15 +27,22 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
           numLactation: data.numLactation,
           milkingPlace: data.milkingPlace as unknown as MilkingPlace,
           technicalAssistance: data.technicalAssistance,
+          destinationId: data.destinationId ?? null,
           items: data.items ? {
             create: data.items.map((item) => ({
               animalId: item.animalId,
               quantity: item.quantity,
               cmtResult: (item as any).cmtResult ?? null,
+              mugTestResult: (item as any).mugTestResult ?? null,
+              milking: (item as any).milking ?? 1,
             })),
           } : undefined,
         },
-        include: { items: { include: { animal: { select: { id: true, name: true, tagNumber: true } as any } } } },
+        include: {
+          items: { include: { animal: { select: { id: true, name: true, tagNumber: true } as any } } },
+          destination: { select: { id: true, name: true } },
+          user: { select: { id: true, name: true } },
+        },
       });
       return DailyCollectionMapper.toDomain(created);
     } catch (error) {
@@ -53,12 +60,6 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
 
     if (criteria.userId) {
       where.userId = criteria.userId;
-    }
-
-    if (criteria.associationId) {
-      where.user = {
-        associationId: criteria.associationId,
-      };
     }
 
     if (criteria.adminGroupId) {
@@ -81,6 +82,8 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
     }
 
     const include: Prisma.DailyCollectionInclude = { 
+      destination: { select: { id: true, name: true } },
+      user: { select: { id: true, name: true } },
       items: {
         include: { animal: true }
       } 
@@ -111,11 +114,13 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
 
   async findById(id: ID, options?: DailyCollectionFindOneOptions): Promise<DailyCollectionEntity | null> {
     const include: Prisma.DailyCollectionInclude = { 
+      destination: { select: { id: true, name: true } },
+      user: { select: { id: true, name: true } },
       items: {
         include: { animal: true }
-      } 
+      }
     };
-    
+
     if (options?.includeUser) {
       include.user = true;
     }
@@ -146,6 +151,7 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
           numLactation: data.numLactation ?? undefined,
           milkingPlace: data.milkingPlace ?? undefined,
           technicalAssistance: data.technicalAssistance ?? undefined,
+          destinationId: data.destinationId ?? undefined,
         },
       });
       return DailyCollectionMapper.toDomain(updated);
@@ -172,6 +178,8 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
             animalId: item.animalId,
             quantity: item.quantity,
             cmtResult: (item as any).cmtResult ?? null,
+            mugTestResult: (item as any).mugTestResult ?? null,
+            milking: (item as any).milking ?? 1,
           })),
         });
       });
@@ -231,6 +239,8 @@ export class PrismaDailyCollectionRepository implements IDailyCollectionReposito
       collectionDate: item.dailyCollection.collectionDate,
       quantity: item.quantity,
       cmtResult: (item as any).cmtResult ?? null,
+      mugTestResult: (item as any).mugTestResult ?? null,
+      milking: (item as any).milking ?? 1,
     }));
   }
 

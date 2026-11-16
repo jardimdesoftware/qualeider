@@ -9,7 +9,7 @@
  * Número de rounds (iterações) do bcrypt para criação de usuários
  * 2^10 = 1.024 iterações (~100ms)
  *
- * Usado em: UsersService.create(), AssociationsService.create()
+ * Usado em: UsersService.create()
  */
 export const BCRYPT_ROUNDS_USER_CREATION = 10;
 

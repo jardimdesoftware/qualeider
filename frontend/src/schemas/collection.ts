@@ -13,6 +13,7 @@ export const dailyCollectionSchema = z.object({
   numLactation: z.number().min(0, "Número de lactações deve ser preenchido"),
   milkingPlace: z.enum(["Aberto", "Curral", "Ambos"]),
   technicalAssistance: z.boolean(),
+  destinationId: z.number().int().positive().optional(),
   userId: z.number().optional(),
   items: z
     .array(
@@ -20,6 +21,8 @@ export const dailyCollectionSchema = z.object({
         animalId: z.number(),
         quantity: z.number().min(0),
         cmtResult: z.enum(["Normal", "Suspeito", "Positivo"]).optional().nullable(),
+        mugTestResult: z.enum(["Negativo", "Positivo"]).optional().nullable(),
+        milking: z.number().int().min(1).max(2).optional(),
       })
     )
     .optional(),
@@ -35,4 +38,6 @@ export interface CollectionItem {
   animalId: number;
   quantity: number;
   cmtResult?: string | null;
+  mugTestResult?: string | null;
+  milking?: number;
 }

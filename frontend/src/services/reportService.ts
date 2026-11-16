@@ -3,12 +3,9 @@ import { MonthlyReport } from "@/interfaces/report";
 
 export const reportService = {
   async getMonthlyReport(year: number, month: number): Promise<MonthlyReport> {
-    const { data } = await apiBase.get<MonthlyReport>(
-      "/associations/reports/monthly",
-      {
-        params: { year, month },
-      },
-    );
+    const { data } = await apiBase.get<MonthlyReport>("/reports/monthly", {
+      params: { year, month },
+    });
 
     return data;
   },

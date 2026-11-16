@@ -31,23 +31,9 @@ export class UserFactory {
       updatedAt: timestamp,
       resetToken: null,
       resetTokenExpiry: null,
-      associationId: null,
       document: null,
       ...overrides,
     };
-  }
-
-  /**
-   * Cria um User associado a uma associação
-   */
-  static createWithAssociation(
-    associationId: number,
-    overrides: Partial<UserEntity> = {},
-  ): UserEntity {
-    return UserFactory.create({
-      associationId,
-      ...overrides,
-    });
   }
 
   /**
@@ -95,10 +81,6 @@ export class UserFactory {
 // Helper functions for easier imports
 export const createUser = (overrides?: Partial<UserEntity>) =>
   UserFactory.create(overrides);
-export const createUserWithAssociation = (
-  associationId: number,
-  overrides?: Partial<UserEntity>,
-) => UserFactory.createWithAssociation(associationId, overrides);
 export const createManyUsers = (
   count: number,
   overrides?: Partial<UserEntity>,

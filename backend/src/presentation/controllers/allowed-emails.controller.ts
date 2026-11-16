@@ -38,9 +38,9 @@ export class AllowedEmailsController {
   @ApiOperation({ summary: 'Listar emails externos liberados para login via Google' })
   @ApiResponse({ status: 200, description: 'Emails listados com sucesso' })
   @ResponseMessage('Emails listados com sucesso')
-  async findAll(@GetUser('id') adminId: number, @GetUser('role') role?: UserRole) {
+  async findAll(@GetUser('role') role?: UserRole) {
     this.assertAdmin(role);
-    return this.allowedEmailsService.findAll(adminId);
+    return this.allowedEmailsService.findAll();
   }
 
   @Post()
@@ -62,11 +62,10 @@ export class AllowedEmailsController {
   @ResponseMessage('Liberação removida com sucesso')
   async remove(
     @Param('id', ParseIntPipe) id: number,
-    @GetUser('id') adminId: number,
     @GetUser('role') role?: UserRole,
   ) {
     this.assertAdmin(role);
-    await this.allowedEmailsService.remove(id, adminId);
+    await this.allowedEmailsService.remove(id);
     return null;
   }
 }

@@ -22,7 +22,6 @@ export enum Status {
 
 export interface User {
   id: number;
-  associationId?: number;
   name: string;
   email: string;
   role: UserRole;
@@ -44,7 +43,6 @@ export type CreateUserDto = Omit<
 };
 
 export interface UserQuery {
-  associationId?: number;
   status?: Status;
   emailContains?: string;
   page?: number;

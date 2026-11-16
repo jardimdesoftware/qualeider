@@ -17,7 +17,7 @@
 # 🐄🥛 QuaLact
 
 Plataforma web para gestão de produtores, animais e coletas diárias de leite,
-apoiando associações e produtores no acompanhamento da produção leiteira com
+apoiando o IFPE e os produtores no acompanhamento da produção leiteira com
 mais organização, rastreabilidade e segurança.
 
 Acesse agora pelo [link](https://alexandrejota.me/).
