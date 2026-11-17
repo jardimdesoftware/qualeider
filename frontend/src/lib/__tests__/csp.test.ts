@@ -29,16 +29,10 @@ describe("buildCsp", () => {
     expect(prod).not.toContain("ws:");
   });
 
-  it("mantém as origens externas que o app realmente usa (ViaCEP, IBGE, Unsplash)", () => {
+  it("só libera as origens externas que o app usa (Unsplash), e a API fica na mesma origem", () => {
     const csp = buildCsp({ nonce });
 
-    expect(directive(csp, "connect-src")).toEqual(
-      expect.arrayContaining([
-        "'self'",
-        "https://viacep.com.br",
-        "https://servicodados.ibge.gov.br",
-      ]),
-    );
+    expect(directive(csp, "connect-src")).toEqual(["'self'"]);
     expect(directive(csp, "img-src")).toContain("https://images.unsplash.com");
   });
 
@@ -70,10 +64,7 @@ describe("buildCsp", () => {
   it("restringe blocos de estilo ao nonce e isola unsafe-inline nos atributos", () => {
     const csp = buildCsp({ nonce });
 
-    expect(directive(csp, "style-src")).toEqual([
-      "'self'",
-      `'nonce-${nonce}'`,
-    ]);
+    expect(directive(csp, "style-src")).toEqual(["'self'", `'nonce-${nonce}'`]);
     expect(directive(csp, "style-src-attr")).toEqual(["'unsafe-inline'"]);
   });
 
