@@ -1,0 +1,79 @@
+# =============================================================================
+# Coverage Badge — QuaLact
+# =============================================================================
+# A cada merge na main que mexe no backend ou no frontend, roda os testes com
+# cobertura e publica dois badges no branch "badges", exibidos no README:
+#   - cobertura-backend.svg  (testes unitários do backend)
+#   - cobertura-frontend.svg (camada de lógica do frontend: hooks, lib,
+#     schemas, services e utils)
+# O número publicado é o de linhas cobertas, o mesmo que os gates de 70% usam.
+# =============================================================================
+
+name: Generate Coverage Badges
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "frontend/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write # publica os SVGs no branch badges
+
+concurrency:
+  group: badges
+  cancel-in-progress: false
+
+jobs:
+  cobertura:
+    name: Gerar badges de cobertura
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+
+      - name: Cobertura do backend (testes unitários)
+        working-directory: backend
+        run: |
+          npm ci
+          npx prisma generate
+          npx jest --config jest.unit.config.ts --coverage --coverageReporters=json-summary --ci --silent
+
+      - name: Cobertura do frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npx jest --coverage --coverageReporters=json-summary --ci --silent
+
+      - name: Gerar SVGs com Shields.io
+        run: |
+          mkdir -p out
+          badge() {
+            local label="$1" summary="$2" file="$3"
+            local pct color
+            pct=$(jq '.total.lines.pct' "$summary")
+            pct=$(printf '%.1f' "$pct")
+            if awk "BEGIN{exit !($pct >= 80)}"; then color=brightgreen
+            elif awk "BEGIN{exit !($pct >= 70)}"; then color=yellow
+            else color=red; fi
+            echo "$label: $pct% ($color)"
+            echo "- **$label:** $pct% das linhas" >> "$GITHUB_STEP_SUMMARY"
+            curl -sf "https://img.shields.io/badge/${label// /%20}-${pct}%25-${color}.svg" -o "out/$file"
+          }
+          echo "### Cobertura publicada" >> "$GITHUB_STEP_SUMMARY"
+          badge "cobertura backend" backend/coverage/unit/coverage-summary.json cobertura-backend.svg
+          badge "cobertura frontend" frontend/coverage/coverage-summary.json cobertura-frontend.svg
+
+      - name: Publicar no branch badges
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash .github/scripts/publish-badges.sh out/cobertura-backend.svg out/cobertura-frontend.svg

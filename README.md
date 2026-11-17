@@ -12,7 +12,9 @@
 ![Frontend CI/CD](https://github.com/jardimdesoftware/qualeider/actions/workflows/frontend-ci.yml/badge.svg)
 ![CodeQL](https://github.com/jardimdesoftware/qualeider/actions/workflows/codeql.yml/badge.svg)
 ![OWASP ZAP](https://github.com/jardimdesoftware/qualeider/actions/workflows/owasp-zap.yml/badge.svg)
-![Vulnerabilidades](badges/vulnerabilidades.svg)
+![Vulnerabilidades](https://raw.githubusercontent.com/jardimdesoftware/qualeider/badges/vulnerabilidades.svg)
+![Cobertura backend](https://raw.githubusercontent.com/jardimdesoftware/qualeider/badges/cobertura-backend.svg)
+![Cobertura frontend](https://raw.githubusercontent.com/jardimdesoftware/qualeider/badges/cobertura-frontend.svg)
 
 # 🐄🥛 QuaLact
 
