@@ -1,6 +1,13 @@
 name: OWASP ZAP Security Scan
 
 on:
+  # Roda depois de cada deploy em produção, para pegar regressões de headers
+  # e CSP no mesmo dia em que entram, além da varredura semanal.
+  workflow_run:
+    workflows:
+      - Deploy latest images to OCI
+    types:
+      - completed
   schedule:
     # GitHub Actions cron usa UTC: todo domingo, à meia-noite.
     - cron: "0 0 * * 0"
@@ -17,6 +24,8 @@ concurrency:
 jobs:
   zap-scan:
     name: Run passive DAST scan
+    # Depois de um deploy, só varre se ele terminou com sucesso.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
