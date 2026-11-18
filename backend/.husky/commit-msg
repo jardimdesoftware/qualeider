@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+
+# Valida a mensagem do commit (Conventional Commits). Regras em backend/commitlint.config.mjs.
+backend/node_modules/.bin/commitlint --config backend/commitlint.config.mjs --edit "$1" || {
+  echo "❌ Mensagem fora do padrão. Use: tipo(escopo): descrição — ex.: fix(frontend): corrige máscara"
+  exit 1
+}
