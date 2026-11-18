@@ -1,0 +1,13 @@
+{
+  "$comment": "Exceções do gate de dependências (npm audit). Cada item precisa de motivo e data de revisão; depois da data o gate volta a falhar até alguém revisar. Remova o item assim que existir correção.",
+  "exceptions": [
+    {
+      "advisory": "GHSA-fc5q-39xc-vjpf",
+      "package": "picomatch",
+      "projects": ["frontend"],
+      "reason": "ReDoS em picomatch <= 4.0.7, sem versão corrigida publicada. Chega ao frontend só pelo plugin de build do @sentry/nextjs (@rollup/plugin-commonjs e @rollup/pluginutils), que usa picomatch para os globs da configuração do build. Nenhuma entrada de usuário passa por esse código em produção.",
+      "added": "2026-11-17",
+      "review_by": "2026-12-17"
+    }
+  ]
+}

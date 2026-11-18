@@ -31,5 +31,6 @@ jobs:
         working-directory: ${{ matrix.project }}
         env:
           HUSKY: "0"
-      - run: npm audit --omit=dev --audit-level=high
+      - name: npm audit (HIGH/CRITICAL, com exceções documentadas)
+        run: node ../.github/scripts/audit-gate.mjs ${{ matrix.project }}
         working-directory: ${{ matrix.project }}
