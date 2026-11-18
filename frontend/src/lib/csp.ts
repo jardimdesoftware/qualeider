@@ -3,9 +3,6 @@
  * (precisa de um nonce novo a cada resposta).
  *
  * Origens externas permitidas (o navegador fala direto com elas):
- *  - ViaCEP e IBGE: preenchimento de endereço (services/cepService e
- *    ibgeService existem, mas nenhuma tela os usa hoje; ficam liberados para
- *    não quebrarem em silêncio quando forem ligados);
  *  - Unsplash: imagem da landing page;
  *  - Sentry (se NEXT_PUBLIC_SENTRY_DSN estiver definido): envio de erros.
  *
@@ -14,11 +11,6 @@
  * gerados por React, react-hot-toast e recharts; isso evita liberar blocos
  * `<style>` inline genéricos. Scripts ficam só com nonce + 'strict-dynamic'.
  */
-const EXTERNAL_CONNECT_SRC = [
-  "https://viacep.com.br",
-  "https://servicodados.ibge.gov.br",
-];
-
 const EXTERNAL_IMG_SRC = ["https://images.unsplash.com"];
 
 export interface CspOptions {
@@ -47,7 +39,7 @@ export function buildCsp({
   const scriptSrc = ["'self'", `'nonce-${nonce}'`, "'strict-dynamic'"];
   if (isDev) scriptSrc.push("'unsafe-eval'");
 
-  const connectSrc = ["'self'", ...EXTERNAL_CONNECT_SRC];
+  const connectSrc = ["'self'"];
   if (sentry) connectSrc.push(sentry);
   if (isDev) connectSrc.push("ws:", "wss:");
 

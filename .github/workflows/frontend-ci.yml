@@ -215,7 +215,9 @@ jobs:
 
       - name: Run Lint
         run: npm run lint
-        continue-on-error: true
+
+      - name: Run Tests (cobertura mínima de 70%)
+        run: npm run test:cov -- --ci
 
       # --- Trivy FS Scan (bloqueia CRITICAL/HIGH em main e PRs para main) ---
       - name: Trivy — Filesystem Scan
