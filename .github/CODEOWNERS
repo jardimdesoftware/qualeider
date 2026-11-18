@@ -1,0 +1,8 @@
+# Responsáveis padrão por revisar mudanças no QuaLact.
+# Todos os usuários abaixo têm permissão de escrita no repositório.
+* @Jota-github @lucassampaioleite @MarceloDChagas @ValeriaCristinaGL
+
+# Mudanças na automação e nas políticas de segurança devem incluir DevSecOps.
+/.github/ @ValeriaCristinaGL @Jota-github
+/SECURITY.md @ValeriaCristinaGL @Jota-github
+/docs/security/ @ValeriaCristinaGL @Jota-github

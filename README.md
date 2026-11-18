@@ -68,7 +68,7 @@ Detalhes de responsabilidades na [Wiki](https://github.com/jardimdesoftware/qual
 
 ## 📖 Documentação
 
-A documentação de arquitetura, modelagem de dados, plano de testes e outros documentos do projeto estão na [Wiki](https://github.com/jardimdesoftware/qualeider/wiki).
+A documentação de arquitetura, modelagem de dados, plano de testes e outros documentos do projeto estão na [Wiki](https://github.com/jardimdesoftware/qualeider/wiki). As revisões de código seguem os responsáveis definidos em [CODEOWNERS](.github/CODEOWNERS).
 
 ## 🔒 Segurança
 
