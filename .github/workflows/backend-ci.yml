@@ -133,52 +133,16 @@ jobs:
           echo "Tipo detectado: $change_type"
           echo "change_type=$change_type" >> "$GITHUB_OUTPUT"
 
-      - name: Get the last release tag
-        id: last_tag
-        run: |
-          gh auth setup-git
-          tag=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null || echo "")
-          if [[ -z "$tag" ]]; then tag="0.0.0"; fi
-          echo "last_tag=$tag" >> "$GITHUB_OUTPUT"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Calculate new tag
         id: created_tag
+        # Mesma regra no backend e no frontend (.github/scripts/next-version.sh):
+        # os dois chegam na mesma versão para o mesmo merge.
+        env:
+          CHANGE_TYPE: ${{ steps.change_type.outputs.change_type }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
         run: |
-          last_tag_raw="${{ steps.last_tag.outputs.last_tag }}"
-          # Remove o prefixo 'v' se existir para evitar erros de aritmética no bash
-          last_tag_clean="${last_tag_raw#v}"
-          if [[ -z "$last_tag_clean" || "$last_tag_clean" == "0.0.0" ]]; then
-            last_tag_clean="0.0.0"
-          fi
-
-          IFS='.' read -r major minor patch <<< "$last_tag_clean"
-
-          # Garantir que os componentes extraídos sejam numéricos
-          if ! [[ "$major" =~ ^[0-9]+$ ]]; then major=0; fi
-          if ! [[ "$minor" =~ ^[0-9]+$ ]]; then minor=0; fi
-          if ! [[ "$patch" =~ ^[0-9]+$ ]]; then patch=0; fi
-
-          case "${{ steps.change_type.outputs.change_type }}" in
-            bug-fix)
-              patch=$((patch + 1))
-              ;;
-            nova-feature-refactor)
-              minor=$((minor + 1))
-              patch=0
-              ;;
-            novo-marco)
-              major=$((major + 1))
-              minor=0
-              patch=0
-              ;;
-            outros)
-              # Mantém a tag atual
-              ;;
-          esac
-          created_tag="v${major}.${minor}.${patch}"
-          echo "Nova tag: $created_tag"
+          created_tag="$(bash .github/scripts/next-version.sh "$CHANGE_TYPE" "$MERGE_SHA")"
+          echo "Nova tag: ${created_tag:-nenhuma (dev-<sha>)}"
           echo "created_tag=$created_tag" >> "$GITHUB_OUTPUT"
 
   # =========================================================================
@@ -687,6 +651,7 @@ jobs:
     if: >
       needs.build-and-publish.result == 'success' &&
       needs.tag-creation.result == 'success' &&
+      needs.tag-creation.outputs.created_tag != '' &&
       (
         (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
         (github.event_name == 'workflow_dispatch') ||
@@ -694,6 +659,7 @@ jobs:
       )
     permissions:
       contents: write
+      packages: write # marca a imagem do outro componente com a versão
 
     steps:
       - name: Checkout repository
@@ -704,32 +670,31 @@ jobs:
         with:
           name: sbom-cyclonedx
 
-      - name: Create GitHub Release
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Mesma versão nas duas imagens e seção deste componente nas notas
+      # (.github/scripts/release-notes.sh).
+      - name: Prepare release notes
+        run: bash .github/scripts/release-notes.sh backend "${{ needs.tag-creation.outputs.created_tag }}"
+
+      # Backend e frontend publicam na MESMA release: quem chegar primeiro cria,
+      # o outro acrescenta a sua seção (append_body).
+      - name: Create or update GitHub Release
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.tag-creation.outputs.created_tag }}
+          target_commitish: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
           name: Release ${{ needs.tag-creation.outputs.created_tag }}
           generate_release_notes: true
+          append_body: true
+          body_path: release-notes.md
           files: |
             sbom.cdx.json
-          body: |
-            ## 🚀 Release ${{ needs.tag-creation.outputs.created_tag }}
-
-            **Backend Image**: `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.tag-creation.outputs.created_tag }}`
-
-            ### Arquiteturas suportadas
-            - ✅ `linux/amd64` (x86_64)
-            - ✅ `linux/arm64` (ARM64 / OCI Free Tier / Apple Silicon)
-
-            ### Pull da imagem
-            ```bash
-            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.tag-creation.outputs.created_tag }}
-            ```
-
-            ### Security
-            - 🛡️ Trivy vulnerability scan executado (resultado na aba Security)
-            - ✅ Image signed with Cosign (keyless/Sigstore)
-            - 📦 SBOM (CycloneDX) attached
-
-            ---
-            *Automatically generated from commit ${{ github.sha }}*

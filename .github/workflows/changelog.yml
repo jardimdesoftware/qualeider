@@ -1,0 +1,118 @@
+# =============================================================================
+# Changelog — QuaLact
+# =============================================================================
+# Depois que o Backend ou o Frontend CI/CD publica uma release, abre um PR que
+# fecha a seção [Unreleased] do CHANGELOG.md na nova versão, com a lista de
+# PRs da release (.github/scripts/changelog-release.mjs).
+#
+# A main é protegida, então a atualização vai por PR (branch changelog/vX.Y.Z).
+# Requer em Settings → Actions → General: "Allow GitHub Actions to create and
+# approve pull requests". Sem isso, o run avisa e mostra a seção no resumo.
+# =============================================================================
+
+name: Changelog
+
+on:
+  workflow_run:
+    workflows:
+      - Backend CI/CD
+      - Frontend CI/CD
+    types:
+      - completed
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: changelog
+  cancel-in-progress: false
+
+jobs:
+  changelog:
+    name: Atualizar CHANGELOG da última release
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout da main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Identificar a última release
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag=$(gh release list --limit 1 --exclude-drafts --json tagName --jq '.[0].tagName')
+          previous=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | grep -vx "$tag" | head -n 1)
+          date=$(gh release view "$tag" --json publishedAt --jq '.publishedAt[0:10]')
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "previous=$previous" >> "$GITHUB_OUTPUT"
+          echo "date=$date" >> "$GITHUB_OUTPUT"
+          echo "Release: $tag (anterior: $previous, $date)"
+
+      - name: Gerar a seção da versão
+        id: section
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.release.outputs.tag }}
+          PREVIOUS: ${{ steps.release.outputs.previous }}
+          DATE: ${{ steps.release.outputs.date }}
+        run: |
+          branch="changelog/$TAG"
+          if git ls-remote --exit-code --heads origin "$branch" > /dev/null; then
+            echo "Já existe o branch $branch; nada a fazer."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          gh api "repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
+            -f tag_name="$TAG" -f previous_tag_name="$PREVIOUS" --jq .body > "$RUNNER_TEMP/notes.md"
+          node .github/scripts/changelog-release.mjs "$TAG" "$PREVIOUS" "$DATE" "$RUNNER_TEMP/notes.md"
+
+          if git diff --quiet -- CHANGELOG.md; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "branch=$branch" >> "$GITHUB_OUTPUT"
+            { echo "### Seção gerada para $TAG"; echo '```diff'; git diff -- CHANGELOG.md; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Abrir PR com o CHANGELOG
+        if: steps.section.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.release.outputs.tag }}
+          BRANCH: ${{ steps.section.outputs.branch }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git commit -am "docs(changelog): registra a versão ${TAG#v}"
+          git push origin "$BRANCH"
+
+          cat > "$RUNNER_TEMP/body.md" <<EOF
+          ## Tipo de mudança
+
+          - [ ] novo-marco
+          - [ ] nova-feature-refactor
+          - [ ] bug-fix
+          - [x] outros
+
+          ---
+
+          ## Descrição
+
+          PR automático: fecha a seção [Unreleased] do CHANGELOG.md na versão **$TAG**, publicada em https://github.com/${GITHUB_REPOSITORY}/releases/tag/$TAG, e acrescenta a lista de PRs da release. Gerado por \`.github/workflows/changelog.yml\`.
+          EOF
+
+          if ! gh pr create --base main --head "$BRANCH" \
+              --title "docs(changelog): registra a versão ${TAG#v}" \
+              --body-file "$RUNNER_TEMP/body.md"; then
+            echo "::warning::Não foi possível abrir o PR. Ative 'Allow GitHub Actions to create and approve pull requests' em Settings → Actions → General, ou abra o PR do branch $BRANCH manualmente."
+          fi
