@@ -14,6 +14,8 @@ mantém o sistema.
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-11-26
+
 ### Added
 - Testes do frontend na esteira, com cobertura mínima de 70% na camada de
   lógica (hooks, serviços, schemas e utilitários) (#417).
@@ -21,6 +23,20 @@ mantém o sistema.
 ### Removed
 - Código do frontend sem uso desde a remoção da Associação: busca de CEP/IBGE,
   máscaras e validação de CPF/CNPJ. A CSP deixa de liberar ViaCEP e IBGE (#417).
+
+### Pull requests
+- chore(governance): define responsáveis por revisão de código (#424)
+- ci(security): exceção documentada e com prazo para o ReDoS do picomatch (#419)
+- ci(frontend): testes com cobertura mínima de 70% na esteira (#417)
+- docs(changelog): uma seção por versão, da v0.1.0 à v0.9.0 (#418)
+- chore(frontend): remove arquivo de instruções de IA não usado (#420)
+- fix(deps): corrige alertas do Dependabot do minimatch e do fast-uri (#421)
+- ci(zap): roda o scan do OWASP ZAP depois de cada deploy em produção (#422)
+- ci(badges): badges de cobertura e correção do badge de vulnerabilidades (#423)
+- ci(commits): valida mensagens de commit com commitlint (#425)
+- ci(release): mesma versão nas duas imagens, uma release por versão e CHANGELOG automático (#426)
+- chore(db): limpa dados de produção mantendo só o admin inicial (#435)
+- fix(deps): força effect 3.22.1+ para corrigir ReDoS (#436)
 
 ## [0.9.0] - 2026-11-16
 
@@ -307,7 +323,8 @@ mantém o sistema.
 - Primeira versão publicada: backend NestJS + Prisma, frontend Next.js,
   imagens multi-arquitetura no GHCR.
 
-[Unreleased]: https://github.com/jardimdesoftware/qualeider/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/jardimdesoftware/qualeider/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/jardimdesoftware/qualeider/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/jardimdesoftware/qualeider/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/jardimdesoftware/qualeider/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/jardimdesoftware/qualeider/compare/v0.6.0...v0.7.0
